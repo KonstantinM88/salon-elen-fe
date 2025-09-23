@@ -1,0 +1,51 @@
+datasource db {
+  provider          = "mysql"
+  url               = env("DATABASE_URL")
+  shadowDatabaseUrl = env("SHADOW_DATABASE_URL")
+}
+
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum BookingStatus {
+  NEW
+  CONFIRMED
+  CANCELED
+}
+
+model Service {
+  id          Int       @id @default(autoincrement())
+  slug        String    @unique
+  title       String
+  description String?
+  priceCents  Int
+  durationMin Int
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  bookings    Booking[]
+}
+
+model Booking {
+  id          Int           @id @default(autoincrement())
+  customer    String
+  phone       String
+  email       String?
+  serviceId   Int
+  date        DateTime
+  note        String?
+  status      BookingStatus @default(NEW)
+  createdAt   DateTime      @default(now())
+
+  service     Service       @relation(fields: [serviceId], references: [id])
+}
+
+model ContactMessage {
+  id        Int      @id @default(autoincrement())
+  name      String
+  email     String
+  message   String
+  createdAt DateTime @default(now())
+}
