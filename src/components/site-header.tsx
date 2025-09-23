@@ -9,6 +9,7 @@ const NAV = [
   { href: "/prices", label: "Цены" },
   { href: "/contacts", label: "Контакты" },
   { href: "/admin/services", label: "Админ: услуги" },
+  { href: "/admin/bookings", label: "Админ: заявки" },
 ];
 
 export default function SiteHeader() {
