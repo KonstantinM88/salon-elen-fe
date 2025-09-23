@@ -1,20 +1,24 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-export function middleware(req: NextRequest) {
-  if (!req.nextUrl.pathname.startsWith("/admin")) return NextResponse.next();
+const ADMIN_USER = process.env.ADMIN_USER || "admin";
+const ADMIN_PASS = process.env.ADMIN_PASS || "admin";
 
-  const auth = req.headers.get("authorization") || "";
-  const [type, encoded] = auth.split(" ");
-  if (type !== "Basic" || !encoded) {
-    return new NextResponse("Auth required", {
-      status: 401,
-      headers: { "WWW-Authenticate": 'Basic realm="Admin Area"' },
-    });
-  }
-  const [user, pass] = Buffer.from(encoded, "base64").toString().split(":");
-  if (user !== process.env.ADMIN_USER || pass !== process.env.ADMIN_PASS) {
-    return new NextResponse("Forbidden", { status: 403 });
+export function middleware(req: NextRequest) {
+  const url = req.nextUrl;
+  if (url.pathname.startsWith("/admin")) {
+    const auth = req.headers.get("authorization");
+    if (!auth?.startsWith("Basic ")) {
+      return new NextResponse("Auth required", {
+        status: 401,
+        headers: { "WWW-Authenticate": 'Basic realm="Admin"' },
+      });
+    }
+    const [, base64] = auth.split(" ");
+    const [user, pass] = Buffer.from(base64, "base64").toString().split(":");
+    if (user !== ADMIN_USER || pass !== ADMIN_PASS) {
+      return new NextResponse("Forbidden", { status: 403 });
+    }
   }
   return NextResponse.next();
 }
