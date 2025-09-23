@@ -1,19 +1,61 @@
-import { PrismaClient } from "@prisma/client";
-const prisma = new PrismaClient();
+import Section from "@/components/section";
+import ImageCard from "@/components/image-card";
+import Link from "next/link";
 
-export default async function ServicesPage() {
-  const services = await prisma.service.findMany({ orderBy: { title: "asc" } });
+export const metadata = { title: "Услуги — Salon Elen" };
+
+export default function ServicesPage() {
+  const items = [
+    {
+      id: "haircut",
+      title: "Стрижка",
+      img: "/images/services/haircut.jpg",
+      text: "Женская/мужская стрижка, уход и укладка.",
+      duration: "45 мин",
+      price: "от 30 €",
+    },
+    {
+      id: "manicure",
+      title: "Маникюр",
+      img: "/images/services/manicure.jpg",
+      text: "Классический и аппаратный маникюр, гель-лак.",
+      duration: "60 мин",
+      price: "от 35 €",
+    },
+    {
+      id: "makeup",
+      title: "Макияж",
+      img: "/images/services/makeup.jpg",
+      text: "Дневной, вечерний, свадебный.",
+      duration: "60 мин",
+      price: "от 50 €",
+    },
+  ];
+
   return (
-    <section className="container py-8">
-      <h1 className="text-3xl font-bold mb-6">Услуги</h1>
-      <ul className="space-y-4">
-        {services.map(s => (
-          <li key={s.id} className="flex items-center justify-between border-b pb-3">
-            <span>{s.title}</span>
-            <span className="tabular-nums">{(s.priceCents/100).toFixed(2)} €</span>
-          </li>
+    <main className="container py-10 sm:py-14">
+      <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight mb-6 sm:mb-8">
+        Услуги
+      </h1>
+
+      <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        {items.map((s) => (
+          <div key={s.id} id={s.id}>
+            <ImageCard src={s.img} alt={s.title} title={s.title}>
+              <p>{s.text}</p>
+              <p className="mt-2 text-gray-600 dark:text-gray-400">
+                {s.duration} • {s.price}
+              </p>
+              <div className="mt-3">
+                <Link href={`/booking?service=${s.id}`} className="btn">
+                  Записаться
+                </Link>
+              </div>
+            </ImageCard>
+          </div>
         ))}
-      </ul>
-    </section>
+      </div>
+    </main>
   );
 }
+
