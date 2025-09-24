@@ -1,5 +1,5 @@
 datasource db {
-  provider = "postgresql"          // если Neon — ставь "postgresql"
+  provider = "postgresql" // если Neon — ставь "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -14,30 +14,30 @@ enum BookingStatus {
 }
 
 model Service {
-  id          Int       @id @default(autoincrement())
-  slug        String    @unique
+  id          Int      @id @default(autoincrement())
+  slug        String   @unique
   title       String
   description String?
   priceCents  Int
   durationMin Int
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
-  bookings    Booking[]
+  bookings Booking[]
 }
 
 model Booking {
-  id          Int           @id @default(autoincrement())
-  customer    String
-  phone       String
-  email       String?
-  serviceId   Int
-  date        DateTime
-  note        String?
-  status      BookingStatus @default(NEW)
-  createdAt   DateTime      @default(now())
+  id        Int           @id @default(autoincrement())
+  customer  String
+  phone     String
+  email     String?
+  serviceId Int
+  date      DateTime
+  note      String?
+  status    BookingStatus @default(NEW)
+  createdAt DateTime      @default(now())
 
-  service     Service       @relation(fields: [serviceId], references: [id])
+  service Service @relation(fields: [serviceId], references: [id])
 }
 
 model ContactMessage {
@@ -47,6 +47,7 @@ model ContactMessage {
   message   String
   createdAt DateTime @default(now())
 }
+
 // === Added by patch: Articles & Media models ===
 enum ArticleType {
   ARTICLE
@@ -54,10 +55,10 @@ enum ArticleType {
 }
 
 model Article {
-  id          String   @id @default(cuid())
+  id          String      @id @default(cuid())
   type        ArticleType @default(ARTICLE)
   title       String
-  slug        String   @unique
+  slug        String      @unique
   excerpt     String?
   body        String
   cover       String?
@@ -67,7 +68,7 @@ model Article {
   seoDesc     String?
   ogTitle     String?
   ogDesc      String?
-  createdAt   DateTime @default(now())
+  createdAt   DateTime    @default(now())
 }
 
 model Media {
@@ -76,9 +77,9 @@ model Media {
   title     String?
   alt       String?
   desc      String?
-  src       String    // URL or path
+  src       String // URL or path
   width     Int?
   height    Int?
-  tags      String[]  @default([])
-  createdAt DateTime  @default(now())
+  tags      String[] @default([])
+  createdAt DateTime @default(now())
 }
