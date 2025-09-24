@@ -10,6 +10,9 @@ const NAV = [
   { href: "/contacts", label: "Контакты" },
   { href: "/admin/services", label: "Админ: услуги" },
   { href: "/admin/bookings", label: "Админ: заявки" },
+  // внутри меню навигации:
+  { href: "/admin/", label: "Админ панель" },
+
 ];
 
 export default function SiteHeader() {

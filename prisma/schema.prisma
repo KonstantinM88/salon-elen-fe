@@ -47,3 +47,38 @@ model ContactMessage {
   message   String
   createdAt DateTime @default(now())
 }
+// === Added by patch: Articles & Media models ===
+enum ArticleType {
+  ARTICLE
+  PROMO
+}
+
+model Article {
+  id          String   @id @default(cuid())
+  type        ArticleType @default(ARTICLE)
+  title       String
+  slug        String   @unique
+  excerpt     String?
+  body        String
+  cover       String?
+  publishedAt DateTime?
+  expiresAt   DateTime?
+  seoTitle    String?
+  seoDesc     String?
+  ogTitle     String?
+  ogDesc      String?
+  createdAt   DateTime @default(now())
+}
+
+model Media {
+  id        String   @id @default(cuid())
+  album     String?
+  title     String?
+  alt       String?
+  desc      String?
+  src       String    // URL or path
+  width     Int?
+  height    Int?
+  tags      String[]  @default([])
+  createdAt DateTime  @default(now())
+}
