@@ -185,8 +185,8 @@ export default async function AdminServicesPage() {
                       {/* Вторая операция в той же форме */}
                       <button
                         className="btn border-red-300 dark:border-red-700 bg-transparent"
-                        name="id"
-                        value={s.id}
+                        // name="id"
+                        // value={s.id}
                         formAction={deleteService}
                       >
                         Удалить
