@@ -7,7 +7,6 @@ import { revalidatePath } from "next/cache";
 type Result = { ok: true } | { ok: false; error: string };
 type BookingStatus = Booking["status"];
 
-export const dynamic = "force-dynamic";
 
 export async function setStatus(id: number, status: BookingStatus): Promise<Result> {
   try {
