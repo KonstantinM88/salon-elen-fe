@@ -1,11 +1,7 @@
-// // prisma.config.ts
-// type Config = {
-//   seed?: { command: string };
-// };
+import "dotenv/config"; // ← это загрузит .env перед разбором конфига
+import { defineConfig } from "prisma/config";
 
-// const config: Config = {
-//   // если сид у вас в JS — оставьте .js; если в TS — поменяйте на .ts
-//   seed: { command: "tsx prisma/seed.js" },
-// };
+export default defineConfig({
+  // Add your configuration here without the unsupported 'seed' property
+});
 
-// export default config;

@@ -6,7 +6,7 @@
     "postinstall": "prisma generate",
     "studio": "prisma studio",
     "migrate:dev": "prisma migrate dev",
-    "seed": "prisma db seed"
+    "db:seed": "tsx prisma/seed.js"
   },
   "dependencies": {
     "@prisma/client": "^6.16.2",
