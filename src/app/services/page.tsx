@@ -1,4 +1,4 @@
-import Section from "@/components/section";
+
 import ImageCard from "@/components/image-card";
 import Link from "next/link";
 

@@ -1,13 +1,16 @@
-import { PrismaClient } from "@prisma/client";
+// src/lib/db.ts
+import { PrismaClient } from '@prisma/client';
 
-// объявляем глобальную переменную с типом
 declare global {
+  // чтобы не было дубликатов клиента в dev (hot reload)
   // eslint-disable-next-line no-var
   var prisma: PrismaClient | undefined;
 }
 
-export const prisma = globalThis.prisma ?? new PrismaClient();
+export const prisma =
+  global.prisma ??
+  new PrismaClient({
+    log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
+  });
 
-if (process.env.NODE_ENV !== "production") {
-  globalThis.prisma = prisma; // кэшируем в dev, чтобы не плодить коннекты при HMR
-}
+if (process.env.NODE_ENV !== 'production') global.prisma = prisma;

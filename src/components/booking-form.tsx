@@ -2,17 +2,17 @@
 
 import { useState } from "react";
 import { createBooking } from "@/app/actions/book";
-import FormSelect from "@/components/ui/form-select";
 
 type Service = { id: number; title: string; durationMin: number };
 
 export default function BookingForm({ services }: { services: Service[] }) {
   const [status, setStatus] = useState<"idle" | "ok" | "err">("idle");
-  const [msg, setMsg] = useState<string>("");
+  const [msg, setMsg] = useState("");
 
   async function onAction(formData: FormData) {
     setStatus("idle");
     setMsg("");
+
     const res = await createBooking(formData);
     if (res.ok) {
       setStatus("ok");
@@ -34,10 +34,9 @@ export default function BookingForm({ services }: { services: Service[] }) {
             className="rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2"
           />
         </label>
+
         <label className="flex flex-col gap-1">
-          <span className="text-sm text-gray-600 dark:text-gray-300">
-            Телефон*
-          </span>
+          <span className="text-sm text-gray-600 dark:text-gray-300">Телефон*</span>
           <input
             name="phone"
             required
@@ -56,23 +55,20 @@ export default function BookingForm({ services }: { services: Service[] }) {
       </label>
 
       <label className="flex flex-col gap-1">
-        <span className="text-sm text-gray-600 dark:text-gray-300">
-          Услуга*
-        </span>
+        <span className="text-sm text-gray-600 dark:text-gray-300">Услуга*</span>
         <select
           name="serviceId"
           required
           defaultValue=""
           aria-label="Выберите услугу"
           className="
-    rounded-xl border
-    border-gray-700
-    bg-slate-900
-    text-gray-100
-    w-full h-11 px-3
-    focus-visible:ring-2 focus-visible:ring-sky-400/40
-  "
-          // дублируем точечно, если глобальное правило не подцепится
+            rounded-xl border
+            border-gray-300 dark:border-gray-700
+            bg-white dark:bg-slate-900
+            text-gray-900 dark:text-gray-100
+            w-full h-11 px-3
+            focus-visible:ring-2 focus-visible:ring-sky-400/40
+          "
           style={{ colorScheme: "dark" }}
         >
           <option value="" disabled>
@@ -88,9 +84,7 @@ export default function BookingForm({ services }: { services: Service[] }) {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <label className="flex flex-col gap-1">
-          <span className="text-sm text-gray-600 dark:text-gray-300">
-            Дата*
-          </span>
+          <span className="text-sm text-gray-600 dark:text-gray-300">Дата*</span>
           <input
             type="date"
             name="date"
@@ -98,10 +92,9 @@ export default function BookingForm({ services }: { services: Service[] }) {
             className="rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2"
           />
         </label>
+
         <label className="flex flex-col gap-1">
-          <span className="text-sm text-gray-600 dark:text-gray-300">
-            Время*
-          </span>
+          <span className="text-sm text-gray-600 dark:text-gray-300">Время*</span>
           <input
             type="time"
             name="time"
@@ -112,9 +105,7 @@ export default function BookingForm({ services }: { services: Service[] }) {
       </div>
 
       <label className="flex flex-col gap-1">
-        <span className="text-sm text-gray-600 dark:text-gray-300">
-          Комментарий
-        </span>
+        <span className="text-sm text-gray-600 dark:text-gray-300">Комментарий</span>
         <textarea
           name="note"
           rows={4}
@@ -126,6 +117,7 @@ export default function BookingForm({ services }: { services: Service[] }) {
         <button type="submit" className="btn">
           Записаться
         </button>
+
         {status === "ok" && (
           <span className="text-green-600">Заявка отправлена!</span>
         )}
