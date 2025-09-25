@@ -1,64 +1,208 @@
+import { notFound } from "next/navigation";
+import Image from "next/image";
 import { prisma } from "@/lib/db";
-import Link from "next/link";
 
-type Props = { params: Promise<{ slug: string }> };
+/* ---------- utils ---------- */
 
-export async function generateStaticParams() {
-  const items = await prisma.article.findMany({ select: { slug: true } });
-  return items.map((i) => ({ slug: i.slug }));
+function escapeHtml(s: string) {
+  return s.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
+}
+function inlineHtml(s: string) {
+  let out = escapeHtml(s);
+  out = out.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
+  out = out.replace(/_(.+?)_/g, "<em>$1</em>");
+  return out;
 }
 
-export default async function NewsItemPage({ params }: Props) {
-  const { slug } = await params;
+/** Делим текст на читабельные блоки с «защитой от простыни». */
+function splitToBlocks(raw: string): string[] {
+  const text = raw.trim().replace(/\r\n/g, "\n");
+  if (!text) return [];
 
-  const item = await prisma.article.findUnique({
-    where: { slug },
-  });
-
-  if (!item) {
-    return (
-      <main className="container py-10">
-        <p>Публикация не найдена.</p>
-        <Link href="/news" className="btn mt-4">
-          Все публикации
-        </Link>
-      </main>
-    );
+  // 1) Нормальный случай: абзацы разделены пустой строкой
+  if (/\n{2,}/.test(text)) {
+    return text.split(/\n{2,}/);
   }
 
+  // 2) Есть одинарные переносы — попробуем группировать строки
+  const lines = text.split("\n");
+  if (lines.length > 1) {
+    const blocks: string[] = [];
+    let buf: string[] = [];
+    let mode: "list" | "quote" | null = null;
+
+    const flush = () => {
+      if (buf.length) blocks.push(buf.join("\n"));
+      buf = [];
+      mode = null;
+    };
+
+    for (const line of lines) {
+      const t = line.trim();
+      if (!t) {
+        flush();
+        continue;
+      }
+      if (t.startsWith("## ")) {
+        flush();
+        blocks.push(line);
+        continue;
+      }
+      if (t.startsWith("- ")) {
+        if (mode !== "list") flush();
+        mode = "list";
+        buf.push(line);
+        continue;
+      }
+      if (t.startsWith("> ")) {
+        if (mode !== "quote") flush();
+        mode = "quote";
+        buf.push(line);
+        continue;
+      }
+      // обычная строка → самостоятельный абзац
+      flush();
+      blocks.push(line);
+    }
+    flush();
+    return blocks;
+  }
+
+  // 3) Переносов нет — делим по предложениям
+  //   Разбиваем "…!", "…?", "…" + пробел/конец строки.
+  const parts: string[] = [];
+  const re = /([^.!?…]+[.!?…]+)(\s+|$)/gu;
+  let m: RegExpExecArray | null;
+  let i = 0;
+  while ((m = re.exec(text))) {
+    parts.push(m[1].trim());
+    i = re.lastIndex;
+  }
+  if (i < text.length) parts.push(text.slice(i).trim());
+  if (parts.length <= 1) return [text]; // ничего не вышло — отдадим как есть
+
+  // Сгруппируем предложения в абзацы примерно по 350–450 символов
+  const blocks: string[] = [];
+  let acc = "";
+
+  for (const sent of parts) {
+    const next = acc ? `${acc} ${sent}` : sent;
+    if (next.length > 420) {
+      if (acc) blocks.push(acc);
+      acc = sent;
+    } else {
+      acc = next;
+    }
+  }
+  if (acc) blocks.push(acc);
+  return blocks;
+}
+
+/* ---------- renderer ---------- */
+
+function RichBody({ body }: { body: string }) {
+  const blocks = splitToBlocks(body);
+  let key = 0;
   return (
-    <main className="container py-10 space-y-6">
-      <nav className="text-sm opacity-70">
-        <Link href="/news" className="hover:underline">
-          Новости
-        </Link>
-        <span> / </span>
-        <span>{item.title}</span>
-      </nav>
+    <div className="prose prose-elen dark:prose-invert">
+      {blocks.map((block) => {
+        key += 1;
+        const trimmed = block.trim();
+        const lines = block.split("\n");
 
-      <h1 className="text-3xl font-semibold tracking-tight">{item.title}</h1>
+        // список
+        if (lines.every((l) => l.trim().startsWith("- "))) {
+          const items = lines.map((l) => l.replace(/^-+\s*/, "").trim()).filter(Boolean);
+          return (
+            <ul key={key}>
+              {items.map((it, i) => (
+                <li key={i} dangerouslySetInnerHTML={{ __html: inlineHtml(it) }} />
+              ))}
+            </ul>
+          );
+        }
 
-      {item.cover && (
-        <div className="relative aspect-[16/9] overflow-hidden rounded-2xl border">
-          {/* Обычный <img> — работает и с /uploads, и с внешними ссылками */}
-          <img
-            src={item.cover}
-            alt={item.title}
-            className="h-full w-full object-cover"
-            loading="lazy"
-            referrerPolicy="no-referrer"
-          />
-        </div>
-      )}
+        // цитата
+        if (lines.every((l) => l.trim().startsWith("> "))) {
+          const text = lines.map((l) => l.replace(/^>\s*/, "")).join(" ");
+          return <blockquote key={key} dangerouslySetInnerHTML={{ __html: inlineHtml(text) }} />;
+        }
 
-      {item.excerpt && <p className="text-lg opacity-80">{item.excerpt}</p>}
+        // подзаголовок
+        if (trimmed.startsWith("## ")) {
+          const text = trimmed.replace(/^##\s+/, "");
+          return <h2 key={key} dangerouslySetInnerHTML={{ __html: inlineHtml(text) }} />;
+        }
 
-      <article className="prose dark:prose-invert max-w-none">
-        {/* Текст храним как простой markdown/HTML-plain.
-            Если будет markdown — добавим парсер позже. */}
-        <pre className="whitespace-pre-wrap font-sans text-base leading-7">
-          {item.body}
-        </pre>
+        // обычный абзац
+        return <p key={key} dangerouslySetInnerHTML={{ __html: inlineHtml(block) }} />;
+      })}
+    </div>
+  );
+}
+
+export default async function Page({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}) {
+  const { slug } = await params; // Next.js 15: params — Promise
+
+  const item = await prisma.article.findFirst({
+    where: {
+      slug,
+      AND: [
+        { OR: [{ publishedAt: null }, { publishedAt: { lte: new Date() } }] },
+        { OR: [{ expiresAt: null }, { expiresAt: { gte: new Date() } }] },
+      ],
+    },
+  });
+  if (!item) return notFound();
+
+  return (
+    <main className="px-4">
+      <article className="mx-auto max-w-3xl py-8">
+        <header className="mb-6">
+          <h1 className="text-3xl sm:text-4xl font-semibold tracking-tight">
+            {item.title}
+          </h1>
+
+          {item.publishedAt && (
+            <time
+              dateTime={item.publishedAt.toISOString()}
+              className="mt-2 block text-sm opacity-60"
+            >
+              {new Date(item.publishedAt).toLocaleDateString("ru", {
+                day: "2-digit",
+                month: "long",
+                year: "numeric",
+              })}
+            </time>
+          )}
+
+          {item.excerpt && (
+            <p className="mt-4 text-lg sm:text-xl text-gray-700 dark:text-gray-300 font-medium">
+              {item.excerpt}
+            </p>
+          )}
+        </header>
+
+        {item.cover && (
+          <figure className="group overflow-hidden rounded-2xl border border-gray-200/70 dark:border-gray-800 shadow-sm mb-6">
+            <div className="relative aspect-[16/9]">
+              <Image
+                src={item.cover}
+                alt={item.title}
+                fill
+                sizes="(max-width: 640px) 100vw, (max-width: 1024px) 80vw, 768px"
+                className="object-cover transition-transform duration-500 ease-out group-hover:scale-105"
+                priority
+              />
+            </div>
+          </figure>
+        )}
+
+        {item.body && <RichBody body={item.body} />}
       </article>
     </main>
   );

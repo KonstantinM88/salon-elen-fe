@@ -1,7 +1,7 @@
-@import "tailwindcss"; 
-
+@import "tailwindcss";
 @plugin "tailwindcss-animate";
 
+/* вариант тёмной темы для Tailwind v4 */
 @custom-variant dark (&:is(.dark *));
 
 @layer base {
@@ -9,6 +9,7 @@
   body {
     @apply h-full;
   }
+
   /* рендерим системные селекты в тёмной схеме */
   .dark select {
     color-scheme: dark;
@@ -25,26 +26,48 @@
   }
 
   /* (необязательно, но полезно для скроллбаров и форм) */
-  :root {
-    color-scheme: light;
-  }
-  .dark {
-    color-scheme: dark;
-  }
+  :root { color-scheme: light; }
+  .dark { color-scheme: dark; }
 }
+
+/* слегка сгладить переходы у изображений */
+img { image-rendering: auto; }
 
 @layer components {
   .btn {
     @apply inline-flex items-center gap-2 rounded-2xl px-4 py-2
-             border border-gray-200 bg-white text-gray-900
-             hover:bg-gray-50 active:shadow-none shadow transition
-             dark:bg-gray-800 dark:text-gray-100 dark:border-gray-700 dark:hover:bg-gray-700;
+           border border-gray-200 bg-white text-gray-900
+           hover:bg-gray-50 active:shadow-none shadow transition
+           dark:bg-gray-800 dark:text-gray-100 dark:border-gray-700 dark:hover:bg-gray-700;
   }
 
   .link {
     @apply text-gray-700 hover:text-gray-900
-             dark:text-gray-300 dark:hover:text-white transition;
+           dark:text-gray-300 dark:hover:text-white transition;
   }
+
+  /* ───────────────── типографика статей ─────────────────
+     Работает совместно с Tailwind Typography и классами:
+     `prose prose-elen dark:prose-invert`
+  */
+  /* картинки внутри статьи — без внешних отступов */
+  .prose img { @apply m-0; }
+
+  /* обёртка-figure с плавным zoom (используй вместе с .group) */
+  .article-figure { @apply overflow-hidden rounded-2xl border border-gray-200/70 dark:border-gray-800 shadow-sm; }
+  .article-figure img,
+  .article-figure .next-image { @apply transition-transform duration-500 ease-out; }
+  .group:hover .article-figure img,
+  .group:hover .article-figure .next-image { @apply scale-105; }
+
+  /* тонкая настройка заголовков/лида в варианте prose-elen */
+  .prose-elen h1 { @apply text-3xl sm:text-4xl font-semibold tracking-tight; }
+  .prose-elen h2 { @apply text-2xl font-semibold tracking-tight mt-7; }
+  .prose-elen p  { @apply leading-7; }
+  .prose-elen a  { @apply no-underline; }
+  .prose-elen blockquote { @apply italic border-l-4 pl-4; }
+  .prose-elen ul { @apply my-4; }
+  .prose-elen li { @apply pl-1; }
 }
 
 @theme inline {
@@ -52,6 +75,7 @@
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
+
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -70,11 +94,13 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
+
   --color-chart-1: var(--chart-1);
   --color-chart-2: var(--chart-2);
   --color-chart-3: var(--chart-3);
   --color-chart-4: var(--chart-4);
   --color-chart-5: var(--chart-5);
+
   --color-sidebar: var(--sidebar);
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar-primary: var(--sidebar-primary);
@@ -118,7 +144,7 @@
   --input: var(--border);
   --ring: oklch(0.78 0.03 270);
 
-  /* графики/сайдбар — оставил как есть */
+  /* графики/сайдбар */
   --chart-1: oklch(0.646 0.222 41.116);
   --chart-2: oklch(0.6 0.118 184.704);
   --chart-3: oklch(0.398 0.07 227.392);
@@ -179,14 +205,13 @@
 }
 
 @layer base {
-  * {
-    @apply border-border outline-ring/50;
-  }
-  body {
-    @apply bg-background text-foreground;
-  }
+  * { @apply border-border outline-ring/50; }
+  body { @apply bg-background text-foreground; }
 }
 
-html {
-  scroll-behavior: smooth;
-}
+html { scroll-behavior: smooth; }
+/* Показывать одиночные \n внутри параграфов в новости */
+.prose-elen p { white-space: pre-line; text-indent: 0.0em; }
+
+
+
