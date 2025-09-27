@@ -13,7 +13,7 @@ export type ActionFail = { ok: false; error: string; details?: { fieldErrors?: F
 export type ActionOk = { ok: true; id?: string };
 export type ActionResult = ActionOk | ActionFail;
 
-/** Утилита: строки ISO → Date | undefined (для опциональных полей Prisma) */
+/** Строка ISO → Date | undefined */
 function toDateU(v?: string): Date | undefined {
   if (!v) return undefined;
   const d = new Date(v);
@@ -23,14 +23,13 @@ function toDateU(v?: string): Date | undefined {
 /** CREATE */
 export async function createArticle(fd: FormData): Promise<ActionResult> {
   try {
-    // Валидируем как набор строк
     const json = Object.fromEntries(fd.entries());
     const parsed = articleInput.safeParse(json);
     if (!parsed.success) {
       return { ok: false, error: "Некорректные поля", details: { fieldErrors: parsed.error.format() } };
     }
 
-    // Сохраняем локальный файл (если выбран)
+    // файл обложки
     let coverU: string | undefined = undefined;
     const raw = fd.get("coverFile");
     if (raw instanceof File && raw.size > 0) {
@@ -38,31 +37,25 @@ export async function createArticle(fd: FormData): Promise<ActionResult> {
       coverU = saved.src;
     }
 
-    // Собираем объект строго под Prisma.ArticleCreateInput
+    // публикуем СЕЙЧАС, если publishedAt не пришёл
+    const publishedAt = toDateU(parsed.data.publishedAt) ?? new Date();
+
     const data: Prisma.ArticleCreateInput = {
       title: parsed.data.title,
       slug: parsed.data.slug,
-      type: parsed.data.type as ArticleType, // <-- enum напрямую
+      type: parsed.data.type as ArticleType,
       body: parsed.data.body,
-
-      // опциональные → только undefined, не null
       excerpt: parsed.data.excerpt ?? undefined,
       cover: coverU,
       seoTitle: parsed.data.seoTitle ?? undefined,
       seoDesc: parsed.data.seoDesc ?? undefined,
       ogTitle: parsed.data.ogTitle ?? undefined,
       ogDesc: parsed.data.ogDesc ?? undefined,
-
-      // даты: как Date | undefined
-      publishedAt: toDateU(parsed.data.publishedAt),
+      publishedAt,
       expiresAt: toDateU(parsed.data.expiresAt),
     };
 
-    const created = await prisma.article.create({
-      data,
-      select: { id: true },
-    });
-
+    const created = await prisma.article.create({ data, select: { id: true } });
     return { ok: true, id: created.id };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : "Ошибка сохранения" };
@@ -72,14 +65,12 @@ export async function createArticle(fd: FormData): Promise<ActionResult> {
 /** UPDATE */
 export async function updateArticle(id: string, fd: FormData): Promise<ActionResult> {
   try {
-    // Частичная валидация (редактирование может менять не всё)
     const json = Object.fromEntries(fd.entries());
     const parsed = articleInput.partial().safeParse(json);
     if (!parsed.success) {
       return { ok: false, error: "Некорректные поля", details: { fieldErrors: parsed.error.format() } };
     }
 
-    // Новая обложка (если загружена)
     let coverU: string | undefined = undefined;
     const raw = fd.get("coverFile");
     if (raw instanceof File && raw.size > 0) {
@@ -87,12 +78,10 @@ export async function updateArticle(id: string, fd: FormData): Promise<ActionRes
       coverU = saved.src;
     }
 
-    // Формируем объект только с теми полями, что реально пришли
     const data: Prisma.ArticleUpdateInput = {};
-
     if (parsed.data.title !== undefined) data.title = parsed.data.title;
     if (parsed.data.slug !== undefined) data.slug = parsed.data.slug;
-    if (parsed.data.type !== undefined) data.type = parsed.data.type as ArticleType; // <-- enum напрямую
+    if (parsed.data.type !== undefined) data.type = parsed.data.type as ArticleType;
     if (parsed.data.body !== undefined) data.body = parsed.data.body;
 
     if (parsed.data.excerpt !== undefined) data.excerpt = parsed.data.excerpt ?? undefined;
@@ -112,7 +101,7 @@ export async function updateArticle(id: string, fd: FormData): Promise<ActionRes
   }
 }
 
-/** DELETE — для вызова из formAction на серверной странице */
+/** DELETE */
 export async function deleteArticle(id: string): Promise<ActionResult> {
   try {
     await prisma.article.delete({ where: { id } });

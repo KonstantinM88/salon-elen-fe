@@ -6,28 +6,11 @@ import { z } from "zod";
 import { articleInput } from "@/lib/validators";
 type ArticleInput = z.infer<typeof articleInput>;
 
-/** ----- Тип результата server action ----- */
-type FieldErrors = Record<string, unknown>;
-
-type ActionFail = {
-  ok: false;
-  error: string;
-  details?: { fieldErrors?: FieldErrors };
-};
+type FieldErrors = Record<string, string[]>;
+type ActionFail = { ok: false; error: string; details?: { fieldErrors?: FieldErrors } };
 type ActionOk = { ok: true; id?: string };
 type ActionResult = ActionOk | ActionFail;
 
-/** Нормализация ошибок к массиву строк */
-function normalizeErrors(val: unknown): string[] {
-  if (Array.isArray(val)) return val.flatMap((v) => normalizeErrors(v));
-  if (val && typeof val === "object") {
-    return Object.values(val as Record<string, unknown>).flatMap((v) => normalizeErrors(v));
-  }
-  if (val == null) return [];
-  return [String(val)];
-}
-
-/** Начальные значения из БД */
 type InitialArticle = Partial<
   Omit<ArticleInput, "publishedAt" | "expiresAt"> & {
     publishedAt?: string | Date | null;
@@ -37,12 +20,11 @@ type InitialArticle = Partial<
 
 type Props = {
   initial?: InitialArticle;
-  articleId?: string; // для страницы редактирования (скрытое поле)
+  articleId?: string;
   onSubmit: (fd: FormData) => Promise<ActionResult>;
   redirectTo?: string;
 };
 
-/** ----- Лимиты ----- */
 const TITLE_MIN = 3;
 const TITLE_MAX = 80;
 const SLUG_MIN = 3;
@@ -51,26 +33,18 @@ const EXCERPT_MAX = 200;
 const BODY_MIN = 50;
 const BODY_MAX = 5000;
 
-/** Подсчёт слов (unicode-грамотно) */
 function countWords(s: string): number {
-  const matches = s.match(/[\p{L}\p{N}]+/gu);
-  return matches ? matches.length : 0;
+  const m = s.match(/[\p{L}\p{N}]+/gu);
+  return m ? m.length : 0;
 }
-
-/* ===================== ДАТЫ ===================== */
 
 /** dd.MM.yyyy HH:mm */
 function formatRu(date: Date): string {
   const pad = (n: number) => String(n).padStart(2, "0");
-  const d = pad(date.getDate());
-  const m = pad(date.getMonth() + 1);
-  const y = date.getFullYear();
-  const hh = pad(date.getHours());
-  const mm = pad(date.getMinutes());
-  return `${d}.${m}.${y} ${hh}:${mm}`;
+  return `${pad(date.getDate())}.${pad(date.getMonth() + 1)}.${date.getFullYear()} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }
 
-/** Парсим DD.MM.YYYY HH:mm, YYYY-MM-DD HH:mm / THH:mm, или ISO */
+/** DD.MM.YYYY HH:mm | YYYY-MM-DD[ T]HH:mm | ISO */
 function parseDateFlexible(value: string): Date | null {
   const v = value.trim();
   if (!v) return null;
@@ -78,39 +52,31 @@ function parseDateFlexible(value: string): Date | null {
   const ru = /^(\d{2})\.(\d{2})\.(\d{4})(?:\s+(\d{2}):(\d{2}))?$/;
   const mRu = v.match(ru);
   if (mRu) {
-    const [, dd, MM, yyyy, HH = "00", mm = "00"] = mRu;
-    const iso = `${yyyy}-${MM}-${dd}T${HH}:${mm}:00Z`;
-    const d = new Date(iso);
-    return isNaN(d.getTime()) ? null : d;
+    const [, dd, mm, yyyy, HH = "00", MM = "00"] = mRu;
+    const d = new Date(`${yyyy}-${mm}-${dd}T${HH}:${MM}:00Z`);
+    return Number.isNaN(d.getTime()) ? null : d;
   }
 
   const ymd = /^(\d{4})-(\d{2})-(\d{2})(?:[T\s](\d{2}):(\d{2}))?$/;
   const mYmd = v.match(ymd);
   if (mYmd) {
-    const [, yyyy, MM, dd, HH = "00", mm = "00"] = mYmd;
-    const iso = `${yyyy}-${MM}-${dd}T${HH}:${mm}:00Z`;
-    const d = new Date(iso);
-    return isNaN(d.getTime()) ? null : d;
+    const [, yyyy, mm, dd, HH = "00", MM = "00"] = mYmd;
+    const d = new Date(`${yyyy}-${mm}-${dd}T${HH}:${MM}:00Z`);
+    return Number.isNaN(d.getTime()) ? null : d;
   }
 
   const d = new Date(v);
-  return isNaN(d.getTime()) ? null : d;
+  return Number.isNaN(d.getTime()) ? null : d;
 }
 
-/** Для инпута показываем RU-строку; пусто → "" */
 function toRuInput(value?: string | Date | null): string {
   if (!value) return "";
   const d = typeof value === "string" ? new Date(value) : value;
-  return isNaN(d.getTime()) ? "" : formatRu(d);
+  return Number.isNaN(d.getTime()) ? "" : formatRu(d);
 }
-/* =================== КОНЕЦ ДАТ ================== */
 
 function slugify(s: string) {
-  return s
-    .trim()
-    .toLowerCase()
-    .replace(/[^\p{L}\p{N}]+/gu, "-")
-    .replace(/^-+|-+$/g, "");
+  return s.trim().toLowerCase().replace(/[^\p{L}\p{N}]+/gu, "-").replace(/^-+|-+$/g, "");
 }
 
 function isSlugValid(s: string): boolean {
@@ -131,8 +97,9 @@ export default function ArticleForm({
   const [excerpt, setExcerpt] = useState(initial?.excerpt ?? "");
   const [body, setBody] = useState(initial?.body ?? "");
 
-  // Даты в свободном (RU/ISO) формате
-  const [publishedAt, setPublishedAt] = useState<string>(toRuInput(initial?.publishedAt));
+  // ВАЖНО: если initial нет (создание) — ставим publishedAt = сейчас
+  const defaultPublished = initial?.publishedAt ?? new Date();
+  const [publishedAt, setPublishedAt] = useState<string>(toRuInput(defaultPublished));
   const [expiresAt, setExpiresAt] = useState<string>(toRuInput(initial?.expiresAt));
 
   const [seoTitle, setSeoTitle] = useState(initial?.seoTitle ?? "");
@@ -145,17 +112,13 @@ export default function ArticleForm({
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [rawDetails, setRawDetails] = useState<unknown>(null);
 
-  const coverPreview = useMemo(() => {
-    if (coverFile) return URL.createObjectURL(coverFile);
-    return "";
-  }, [coverFile]);
-
+  const coverPreview = useMemo(() => (coverFile ? URL.createObjectURL(coverFile) : ""), [coverFile]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const titleErr = normalizeErrors(fieldErrors.title).at(0);
-  const slugErr = normalizeErrors(fieldErrors.slug).at(0);
-  const bodyErr = normalizeErrors(fieldErrors.body).at(0);
-  const coverErr = normalizeErrors(fieldErrors.cover).at(0);
+  const titleErr = fieldErrors.title?.[0];
+  const slugErr = fieldErrors.slug?.[0];
+  const bodyErr = fieldErrors.body?.[0];
+  const coverErr = fieldErrors.cover?.[0];
 
   const titleLen = title.length;
   const titleBad = titleLen > 0 && (titleLen < TITLE_MIN || titleLen > TITLE_MAX);
@@ -187,11 +150,9 @@ export default function ArticleForm({
     try {
       const fd = new FormData(e.currentTarget);
       if (articleId) fd.set("id", articleId);
-
-      // Принудительно присутствуют скрытые поля (см. ниже), но на всякий случай:
       if (!fd.has("cover")) fd.set("cover", "");
 
-      // Преобразуем даты в ISO (или удаляем)
+      // строки → ISO (или удалить поле)
       const pubDate = parseDateFlexible(publishedAt.trim());
       if (pubDate) fd.set("publishedAt", pubDate.toISOString());
       else fd.delete("publishedAt");
@@ -220,10 +181,7 @@ export default function ArticleForm({
     }
   }
 
-  const hasFieldErrors = Object.keys(fieldErrors).length > 0;
-
-  // ----- Доступные типы — ровно как в валидаторе/БД: ARTICLE | NEWS -----
-  type AllowedType = ArticleInput["type"]; // "ARTICLE" | "NEWS"
+  type AllowedType = ArticleInput["type"];
   const TYPE_OPTIONS: { value: AllowedType; label: string }[] = [
     { value: "ARTICLE", label: "Статья" },
     { value: "NEWS", label: "Новость" },
@@ -232,33 +190,27 @@ export default function ArticleForm({
   return (
     <form onSubmit={handleSubmit} className="space-y-6" encType="multipart/form-data">
       {articleId ? <input type="hidden" name="id" value={articleId} /> : null}
-      {/* Сервер ожидает поле cover (строка-URL), но мы грузим локальный файл.
-          Оставляем пустую строку, реальный файл идёт в coverFile. */}
       <input type="hidden" name="cover" value="" />
 
       {errorMsg && (
         <div role="alert" className="rounded-2xl border border-red-300 bg-red-50 text-red-800 px-4 py-3 space-y-2">
           <div className="font-medium">Ошибка: {errorMsg}</div>
-
-          {hasFieldErrors && (
+          {Object.keys(fieldErrors).length > 0 && (
             <ul className="list-disc pl-5 text-sm">
-              {Object.entries(fieldErrors).map(([field, raw]) => {
-                const items = normalizeErrors(raw);
+              {Object.entries(fieldErrors).map(([field, arr]) => {
+                const texts = Array.isArray(arr) ? arr : [String(arr ?? "")];
                 return (
                   <li key={field}>
-                    <span className="font-semibold">{field}:</span> {items.join("; ")}
+                    <span className="font-semibold">{field}:</span> {texts.join("; ")}
                   </li>
                 );
               })}
             </ul>
           )}
-
           {!!rawDetails && (
             <details className="text-xs opacity-80">
               <summary className="cursor-pointer">Показать подробности для разработчика</summary>
-              <pre className="mt-2 whitespace-pre-wrap break-all">
-                {JSON.stringify(rawDetails, null, 2)}
-              </pre>
+              <pre className="mt-2 whitespace-pre-wrap break-all">{JSON.stringify(rawDetails, null, 2)}</pre>
             </details>
           )}
         </div>
@@ -315,7 +267,7 @@ export default function ArticleForm({
         )}
       </label>
 
-      {/* Тип (ARTICLE | NEWS) */}
+      {/* Тип */}
       <label className="block">
         <span className="text-sm">Тип</span>
         <select
@@ -332,7 +284,7 @@ export default function ArticleForm({
         </select>
       </label>
 
-      {/* Загрузка файла */}
+      {/* Обложка (файл) */}
       <label className="block">
         <span className="text-sm">Обложка (только файл)</span>
 
@@ -376,17 +328,14 @@ export default function ArticleForm({
           </p>
         )}
 
-        {coverPreview && (
+        {coverPreview ? (
           <div className="mt-3 relative aspect-[16/9] overflow-hidden rounded-xl border">
             <div className="relative h-full w-full">
               <Image src={coverPreview} alt="Превью" fill sizes="100vw" style={{ objectFit: "cover" }} />
             </div>
           </div>
-        )}
-        {!coverPreview && (
-          <p className="text-xs opacity-70 mt-1">
-            Поддерживаются JPEG, PNG, WebP. Рекомендуем соотношение 16:9.
-          </p>
+        ) : (
+          <p className="text-xs opacity-70 mt-1">Поддерживаются JPEG, PNG, WebP. Рекомендуем 16:9.</p>
         )}
       </label>
 
@@ -433,17 +382,38 @@ export default function ArticleForm({
         )}
       </label>
 
-      {/* Даты — текстовые поля с RU-подсказкой */}
+      {/* Даты */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <label className="block">
-          <span className="text-sm">Публикация</span>
+          <div className="flex items-center justify-between">
+            <span className="text-sm">Публикация</span>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                className="text-xs underline opacity-80"
+                onClick={() => setPublishedAt(formatRu(new Date()))}
+                title="Поставить текущую дату/время"
+              >
+                Сейчас
+              </button>
+              <button
+                type="button"
+                className="text-xs underline opacity-60"
+                onClick={() => setPublishedAt("")}
+                title="Очистить поле"
+              >
+                Очистить
+              </button>
+            </div>
+          </div>
+
           <input
             type="text"
             name="publishedAt"
             value={publishedAt}
             onChange={(e) => setPublishedAt(e.target.value)}
             className="mt-1 w-full border rounded-2xl p-3"
-            placeholder="ДД.ММ.ГГГГ ЧЧ:ММ — или YYYY-MM-DD HH:mm (можно пусто)"
+            placeholder="ДД.ММ.ГГГГ ЧЧ:ММ — или YYYY-MM-DD HH:mm"
           />
         </label>
 
