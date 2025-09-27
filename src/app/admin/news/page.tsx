@@ -1,76 +1,61 @@
-import { prisma } from "@/lib/db";
 import Link from "next/link";
-import { revalidatePath } from "next/cache";
+import { prisma } from "@/lib/db";
 import { deleteArticle } from "./actions";
 
 export const dynamic = "force-dynamic";
 
-export default async function Page() {
-  const items = await prisma.article.findMany({
-    orderBy: [{ createdAt: "desc" }],
-    select: {
-      id: true,
-      title: true,
-      slug: true,
-      type: true,
-      publishedAt: true,
-      createdAt: true,
-    },
+async function getList() {
+  return prisma.article.findMany({
+    where: {},
+    orderBy: { createdAt: "desc" },
+    select: { id: true, title: true, slug: true, type: true, publishedAt: true, createdAt: true },
   });
+}
 
-  // серверный обработчик формы удаления
-  async function remove(fd: FormData) {
-    "use server";
-    const id = fd.get("id");
-    if (typeof id === "string" && id) {
-      await deleteArticle(id);
-      // обновим список и дашборд
-      revalidatePath("/admin/news");
-      revalidatePath("/admin");
-    }
-  }
+export default async function AdminNewsPage() {
+  const rows = await getList();
 
   return (
     <main className="p-6 space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-semibold">Новости</h1>
-        <Link href="/admin/news/new" className="rounded-2xl border px-3 py-2">
+        <Link className="btn" href="/admin/news/new">
           Новая запись
         </Link>
       </div>
 
-      <div className="rounded-2xl border overflow-hidden">
-        <table className="w-full text-sm">
-          <thead className="bg-black/5">
+      <div className="overflow-x-auto rounded-2xl border">
+        <table className="min-w-full text-sm">
+          <thead className="bg-muted/40">
             <tr>
-              <th className="text-left p-3">Заголовок</th>
-              <th className="text-left p-3">Слаг</th>
-              <th className="text-left p-3">Тип</th>
-              <th className="text-left p-3">Публикация</th>
-              <th className="p-3 w-44">Действия</th>
+              <th className="px-3 py-2 text-left">Заголовок</th>
+              <th className="px-3 py-2 text-left">Тип</th>
+              <th className="px-3 py-2 text-left">Публикация</th>
+              <th className="px-3 py-2 text-right">Действия</th>
             </tr>
           </thead>
           <tbody>
-            {items.map((it) => (
-              <tr key={it.id} className="border-t">
-                <td className="p-3">{it.title}</td>
-                <td className="p-3 text-muted-foreground">{it.slug}</td>
-                <td className="p-3">{it.type}</td>
-                <td className="p-3">
-                  {it.publishedAt ? new Date(it.publishedAt).toLocaleString() : "—"}
+            {rows.map((r) => (
+              <tr key={r.id} className="border-t">
+                <td className="px-3 py-2">{r.title}</td>
+                <td className="px-3 py-2">{r.type}</td>
+                <td className="px-3 py-2">
+                  {r.publishedAt ? new Date(r.publishedAt).toLocaleString() : "—"}
                 </td>
-                <td className="p-3">
-                  <div className="flex gap-2">
-                    <Link href={`/admin/news/${it.id}`} className="rounded-2xl border px-3 py-1">
+                <td className="px-3 py-2">
+                  <div className="flex justify-end gap-2">
+                    <Link className="btn border" href={`/admin/news/${r.id}`}>
                       Редактировать
                     </Link>
 
-                    <form action={remove}>
-                      <input type="hidden" name="id" value={it.id} />
+                    {/* Никаких onClick — только server action через formAction */}
+                    <form>
                       <button
-                        className="rounded-2xl border px-3 py-1 text-red-600"
-                        onClick={(e) => {
-                          if (!confirm("Удалить запись?")) e.preventDefault();
+                        type="submit"
+                        className="btn border text-red-600"
+                        formAction={async () => {
+                          "use server";
+                          await deleteArticle(r.id);
                         }}
                       >
                         Удалить
@@ -80,9 +65,10 @@ export default async function Page() {
                 </td>
               </tr>
             ))}
-            {items.length === 0 && (
+
+            {rows.length === 0 && (
               <tr>
-                <td className="p-6 text-center text-muted-foreground" colSpan={5}>
+                <td className="px-3 py-6 text-center opacity-60" colSpan={4}>
                   Записей пока нет.
                 </td>
               </tr>
