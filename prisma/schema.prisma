@@ -51,7 +51,7 @@ model ContactMessage {
 // === Added by patch: Articles & Media models ===
 enum ArticleType {
   ARTICLE
-  PROMO
+  NEWS
 }
 
 model Article {

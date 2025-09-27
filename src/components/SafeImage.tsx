@@ -1,95 +1,46 @@
 "use client";
 
 import Image, { ImageProps } from "next/image";
-import * as React from "react";
+import { memo } from "react";
 
 /**
- * Параметры безопасной картинки.
- * Осознанно не пробрасываем `fill` снаружи — управляем им через флаг `cover`.
+ * Безопасный показ изображений:
+ * - поддерживает пустой src (рендерит встроенный SVG-плейсхолдер);
+ * - не требует настройки доменов (unoptimized: true);
+ * - аккуратно работает с fill/width/height.
  */
-type SafeImageProps = Omit<ImageProps, "src" | "alt" | "fill" | "width" | "height"> & {
-  /** Путь к изображению (локальный или внешний) */
-  src: string;
-  /** Альтернативный текст */
+type Props = Omit<ImageProps, "src" | "alt"> & {
+  src?: string | null;
   alt: string;
-  /** Принудительно использовать <img> (обойти next/image) */
-  forceImg?: boolean;
-  /** Заполнять контейнер (object-cover + fill для next/image) */
-  cover?: boolean;
-  /** Фиксированные размеры (если не cover). По умолчанию 1200×675 */
-  fixedWidth?: number;
-  fixedHeight?: number;
-  /** Дополнительный className (пробрасывается и в <img>, и в <Image/>) */
-  className?: string;
 };
 
-/** Проверка: внешний ли URL */
-function isExternalUrl(url: string): boolean {
-  return /^https?:\/\//i.test(url);
+const PLACEHOLDER =
+  "data:image/svg+xml;charset=UTF-8," +
+  encodeURIComponent(
+    `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 630' role='img' aria-label='no image'>
+      <rect width='1200' height='630' fill='#111827'/>
+      <rect x='24' y='24' width='1152' height='582' rx='24' fill='#1f2937'/>
+      <path d='M200 450L380 300l140 120 180-160 220 190H200z' fill='#374151'/>
+      <circle cx='360' cy='260' r='36' fill='#374151'/>
+    </svg>`
+  );
+
+function normalizeSrc(src?: string | null): string {
+  if (!src || src.trim() === "") return PLACEHOLDER;
+  return src;
 }
 
-/**
- * SafeImage:
- * - для локальных путей (или когда домен разрешён) — рендерит `<Image />`;
- * - для внешних (неразрешённых) — рендерит `<img>`, чтобы избежать ошибок next/image.
- */
-export default function SafeImage(props: SafeImageProps) {
-  const {
-    src,
-    alt,
-    forceImg,
-    cover,
-    className,
-    fixedWidth = 1200,
-    fixedHeight = 675,
-    // из ImageProps нам пригодятся лишь некоторые поля в ветке <Image/>
-    // всё остальное (например, onLoadingComplete) спокойно пробрасываем:
-    ...imageOnlyRest
-  } = props;
-
-  const external = isExternalUrl(src);
-  const useImg = forceImg || external;
-
-  if (useImg) {
-    // Фоллбэк на обычный <img> для внешних доменов
-    const style: React.CSSProperties | undefined = cover
-      ? { width: "100%", height: "100%", objectFit: "cover" }
-      : undefined;
-
-    return (
-      <img
-        src={src}
-        alt={alt}
-        className={className}
-        loading="lazy"
-        style={style}
-      />
-    );
-  }
-
-  // Локальный путь — используем next/image.
-  if (cover) {
-    return (
-      <Image
-        src={src}
-        alt={alt}
-        fill
-        sizes="(max-width: 768px) 100vw, 800px"
-        className={className}
-        {...imageOnlyRest}
-      />
-    );
-    // width/height не нужны при fill
-  }
-
+function SafeImageBase({ src, alt, ...rest }: Props) {
+  const finalSrc = normalizeSrc(src);
   return (
     <Image
-      src={src}
+      unoptimized
+      src={finalSrc}
       alt={alt}
-      width={fixedWidth}
-      height={fixedHeight}
-      className={className}
-      {...imageOnlyRest}
+      {...rest}
     />
   );
 }
+
+const SafeImage = memo(SafeImageBase);
+export default SafeImage;

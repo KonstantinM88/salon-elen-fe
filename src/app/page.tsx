@@ -1,7 +1,16 @@
 import Link from "next/link";
+import Image from "next/image";
 import Section from "@/components/section";
 import ImageCard from "@/components/image-card";
 import { prisma } from "@/lib/db";
+
+/** Универсальная мапа для меток типа статьи (совместима и со старым PROMO, и с новым NEWS). */
+type KnownType = "ARTICLE" | "NEWS" | "PROMO";
+const TYPE_LABEL: Record<KnownType, string> = {
+  ARTICLE: "Статья",
+  NEWS: "Новость",
+  PROMO: "Акция",
+};
 
 /** последние 3 публикации: без даты или с publishedAt <= now, и не истёкшие */
 async function getLatestArticles() {
@@ -50,10 +59,13 @@ export default async function Home() {
 
         {/* фоновое изображение с затемнением */}
         <div className="absolute inset-0 -z-10">
-          <img
+          <Image
             src="/images/hero.jpg"
             alt="Salon Elen"
-            className="h-full w-full object-cover"
+            fill
+            priority
+            sizes="100vw"
+            style={{ objectFit: "cover" }}
           />
           <div className="absolute inset-0 bg-white/50 dark:bg-black/55 backdrop-blur-[1px]" />
         </div>
@@ -105,19 +117,18 @@ export default async function Home() {
               >
                 {n.cover && (
                   <div className="relative aspect-[16/9] overflow-hidden">
-                    {/* Используем обычный <img>, чтобы не требовать настройки доменов */}
-                    <img
+                    <Image
                       src={n.cover}
                       alt={n.title}
-                      className="h-full w-full object-cover"
-                      loading="lazy"
-                      referrerPolicy="no-referrer"
+                      fill
+                      sizes="(max-width: 1024px) 100vw, 33vw"
+                      style={{ objectFit: "cover" }}
                     />
                   </div>
                 )}
                 <div className="p-4">
                   <div className="text-xs uppercase tracking-wide opacity-60">
-                    {n.type === "PROMO" ? "Акция" : "Новость"}
+                    {TYPE_LABEL[(n.type as KnownType) ?? "ARTICLE"]}
                   </div>
                   <h3 className="mt-1 font-semibold">{n.title}</h3>
                   {n.excerpt && (
@@ -140,10 +151,12 @@ export default async function Home() {
       <Section title="Команда" subtitle="Немного о нас">
         <div className="grid gap-6 lg:grid-cols-2">
           <div className="relative aspect-[16/10] rounded-2xl overflow-hidden border border-gray-200/70 dark:border-gray-800">
-            <img
+            <Image
               src="/images/team.jpg"
               alt="Команда салона"
-              className="h-full w-full object-cover"
+              fill
+              sizes="(max-width: 1024px) 100vw, 50vw"
+              style={{ objectFit: "cover" }}
             />
           </div>
           <div className="flex items-center">
@@ -169,10 +182,12 @@ export default async function Home() {
               <Link href="/booking" className="btn">Записаться</Link>
             </div>
           </div>
-          <img
+          <Image
             src="/images/cta.jpg"
             alt="Запись"
-            className="absolute inset-0 -z-10 h-full w-full object-cover"
+            fill
+            sizes="100vw"
+            style={{ objectFit: "cover" }}
           />
           <div className="absolute inset-0 -z-10 bg-gradient-to-t from-black/40 to-black/10 dark:from-black/60" />
         </div>

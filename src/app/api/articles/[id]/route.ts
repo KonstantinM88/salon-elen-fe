@@ -1,23 +1,46 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { articleInput } from "@/lib/validators";
+import type { $Enums } from "@prisma/client";
 
-type RouteCtx = { params: Promise<{ id: string }> };
+type Params = { params: Promise<{ id: string }> };
 
-export async function GET(_req: Request, ctx: RouteCtx) {
-  const { id } = await ctx.params;            // ← распаковываем params
+// GET /api/articles/[id]
+export async function GET(_req: Request, { params }: Params) {
+  const { id } = await params;
   const item = await prisma.article.findUnique({ where: { id } });
-  return item ? NextResponse.json(item) : NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (!item) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  return NextResponse.json(item);
 }
 
-export async function PATCH(req: Request, ctx: RouteCtx) {
-  const { id } = await ctx.params;            // ← распаковываем params
+// PATCH /api/articles/[id]
+export async function PATCH(req: Request, { params }: Params) {
+  const { id } = await params;
   const json = await req.json();
-  const updated = await prisma.article.update({ where: { id }, data: json });
-  return NextResponse.json(updated);
+  const parsed = articleInput.safeParse(json);
+  if (!parsed.success) {
+    return NextResponse.json({ error: parsed.error.format() }, { status: 400 });
+  }
+
+  const data = {
+    ...parsed.data,
+    type: parsed.data.type as $Enums.ArticleType,
+    publishedAt: parsed.data.publishedAt ? new Date(parsed.data.publishedAt) : null,
+    expiresAt: parsed.data.expiresAt ? new Date(parsed.data.expiresAt) : null,
+  };
+
+  const updated = await prisma.article.update({
+    where: { id },
+    data,
+    select: { id: true },
+  });
+
+  return NextResponse.json({ id: updated.id });
 }
 
-export async function DELETE(_req: Request, ctx: RouteCtx) {
-  const { id } = await ctx.params;            // ← распаковываем params
+// DELETE /api/articles/[id]
+export async function DELETE(_req: Request, { params }: Params) {
+  const { id } = await params;
   await prisma.article.delete({ where: { id } });
   return NextResponse.json({ ok: true });
 }

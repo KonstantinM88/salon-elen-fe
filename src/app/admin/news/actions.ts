@@ -1,177 +1,157 @@
 "use server";
 
 import { prisma } from "@/lib/db";
-import { revalidatePath } from "next/cache";
 import { articleInput } from "@/lib/validators";
-import { ArticleType, Prisma } from "@prisma/client";
 import { saveImageFile } from "@/lib/upload";
+import type { ArticleType } from "@prisma/client";
 
-/* ---------- строгие типы результата ---------- */
-/* eslint-disable @typescript-eslint/no-empty-object-type */
-type Ok<T = {}> = { ok: true } & T;
-type Fail = { ok: false; error: string; details?: unknown };
-export type Result<T = {}> = Ok<T> | Fail;
-/* eslint-enable @typescript-eslint/no-empty-object-type */
+/** ----- типы ответа для форм ----- */
+type FieldErrors = Record<string, string[]>;
+type Fail = { ok: false; error: string; details?: { fieldErrors?: FieldErrors } };
+type Ok = { ok: true; id: string };
+export type Result = Ok | Fail;
 
-/* ---------- утилиты ---------- */
-function toType(v: unknown): ArticleType {
-  return v === "PROMO" ? ArticleType.PROMO : ArticleType.ARTICLE;
-}
-function valToString(v: FormDataEntryValue | undefined): string | undefined {
-  if (v === undefined) return undefined;
-  const s = String(v).trim();
-  return s === "" ? undefined : s;
-}
-function valToDate(v: FormDataEntryValue | undefined): Date | null {
-  const s = valToString(v);
-  if (!s) return null;
-  const d = new Date(s);
-  return Number.isNaN(d.getTime()) ? null : d;
+/** безопасно достаём строку из FormData */
+function fdString(fd: FormData, key: string): string | undefined {
+  const v = fd.get(key);
+  return typeof v === "string" ? v : undefined;
 }
 
-/** простой ретрай на случай временного обрыва (Neon "Closed" и т.п.) */
-async function withRetry<T>(fn: () => Promise<T>, attempts = 2): Promise<T> {
-  let lastErr: unknown;
-  for (let i = 0; i < attempts; i++) {
-    try {
-      return await fn();
-    } catch (e: unknown) {
-      lastErr = e;
-      const msg = e instanceof Error ? e.message : String(e);
-      const transient =
-        msg.includes("Closed") || msg.includes("ECONN") || msg.includes("socket");
-      if (transient && i + 1 < attempts) continue;
-      throw e;
-    }
-  }
-  throw lastErr;
+/** строки → Date|null */
+function toDates(d: { publishedAt?: string; expiresAt?: string }) {
+  return {
+    publishedAt: d.publishedAt ? new Date(d.publishedAt) : null,
+    expiresAt: d.expiresAt ? new Date(d.expiresAt) : null,
+  };
 }
 
-/* ---------- actions ---------- */
-
-export async function createArticle(form: FormData): Promise<Result<{ id: string }>> {
-  // локальная загрузка файла (если передан)
-  const coverFile = form.get("coverFile");
-  let uploadedSrc: string | undefined;
-  if (coverFile instanceof File && coverFile.size > 0) {
-    const saved = await saveImageFile(coverFile, { dir: "uploads", maxWidth: 1600 });
-    uploadedSrc = saved.src; // /uploads/xxxx.webp
-  }
-
-  const p = Object.fromEntries(form.entries()) as Record<string, FormDataEntryValue>;
-
-  // валидация через Zod
-  const parsed = articleInput.safeParse({
-    type: valToString(p.type) ?? "ARTICLE",
-    title: valToString(p.title) ?? "",
-    slug: valToString(p.slug) ?? "",
-    excerpt: valToString(p.excerpt),
-    body: valToString(p.body) ?? "",
-    // приоритет у загруженного файла; иначе берём введённый URL
-    cover: uploadedSrc ?? valToString(p.cover),
-    publishedAt: valToString(p.publishedAt),
-    expiresAt: valToString(p.expiresAt),
-    seoTitle: valToString(p.seoTitle),
-    seoDesc: valToString(p.seoDesc),
-    ogTitle: valToString(p.ogTitle),
-    ogDesc: valToString(p.ogDesc),
-  });
-
-  if (!parsed.success) {
-    return { ok: false, error: "Некорректные поля", details: parsed.error.flatten() };
-  }
-
+/** ---------------- CREATE ---------------- */
+export async function createArticle(fd: FormData): Promise<Result> {
   try {
-    const created = await withRetry(() =>
-      prisma.article.create({
-        data: {
-          type: toType(parsed.data.type),
-          title: parsed.data.title,
-          slug: parsed.data.slug,
-          excerpt: parsed.data.excerpt,
-          body: parsed.data.body,
-          cover: parsed.data.cover,
-          publishedAt: parsed.data.publishedAt ? new Date(parsed.data.publishedAt) : null,
-          expiresAt: parsed.data.expiresAt ? new Date(parsed.data.expiresAt) : null,
-          seoTitle: parsed.data.seoTitle,
-          seoDesc: parsed.data.seoDesc,
-          ogTitle: parsed.data.ogTitle,
-          ogDesc: parsed.data.ogDesc,
-        },
-      })
-    );
+    const json = {
+      title: fdString(fd, "title"),
+      slug: fdString(fd, "slug"),
+      type: fdString(fd, "type"),
+      excerpt: fdString(fd, "excerpt"),
+      body: fdString(fd, "body"),
+      publishedAt: fdString(fd, "publishedAt"),
+      expiresAt: fdString(fd, "expiresAt"),
+      seoTitle: fdString(fd, "seoTitle"),
+      seoDesc: fdString(fd, "seoDesc"),
+      ogTitle: fdString(fd, "ogTitle"),
+      ogDesc: fdString(fd, "ogDesc"),
+    };
 
-    revalidatePath("/admin/news");
-    revalidatePath("/news");
-    revalidatePath("/");
+    const parsed = articleInput.omit({ cover: true }).safeParse(json);
+    if (!parsed.success) {
+      return {
+        ok: false,
+        error: "Некорректные поля",
+        details: { fieldErrors: parsed.error.format() as unknown as FieldErrors },
+      };
+    }
+
+    let cover: string | undefined;
+    const raw = fd.get("coverFile");
+    if (raw instanceof File && raw.size > 0) {
+      const saved = await saveImageFile(raw);
+      cover = saved.src;
+    }
+
+    const { publishedAt, expiresAt } = toDates(parsed.data);
+
+    const base = {
+      title: parsed.data.title,
+      slug: parsed.data.slug,
+      type: parsed.data.type as ArticleType,
+      excerpt: parsed.data.excerpt,
+      body: parsed.data.body,
+      seoTitle: parsed.data.seoTitle,
+      seoDesc: parsed.data.seoDesc,
+      ogTitle: parsed.data.ogTitle,
+      ogDesc: parsed.data.ogDesc,
+    };
+
+    const created = await prisma.article.create({
+      data: { ...base, cover, publishedAt, expiresAt },
+      select: { id: true },
+    });
+
     return { ok: true, id: created.id };
-  } catch (e: unknown) {
-    if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002") {
-      return { ok: false, error: "Такой slug уже существует" };
-    }
-    const msg = e instanceof Error ? e.message : "Не удалось сохранить статью";
-    return { ok: false, error: msg };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Unknown error" };
   }
 }
 
-export async function updateArticle(
-  id: string,
-  form: FormData
-): Promise<Result<{ id: string }>> {
-  // локальная загрузка нового файла (если передан)
-  const coverFile = form.get("coverFile");
-  let uploadedSrc: string | undefined;
-  if (coverFile instanceof File && coverFile.size > 0) {
-    const saved = await saveImageFile(coverFile, { dir: "uploads", maxWidth: 1600 });
-    uploadedSrc = saved.src;
-  }
-
-  const p = Object.fromEntries(form.entries()) as Record<string, FormDataEntryValue>;
-
+/** ---------------- UPDATE ---------------- */
+export async function updateArticle(id: string, fd: FormData): Promise<Result> {
   try {
-    const updated = await withRetry(() =>
-      prisma.article.update({
-        where: { id },
-        data: {
-          type: toType(p.type),
-          title: valToString(p.title),
-          slug: valToString(p.slug),
-          excerpt: valToString(p.excerpt),
-          body: valToString(p.body),
-          // новый локальный файл имеет приоритет, иначе текстовое поле cover
-          cover: uploadedSrc ?? valToString(p.cover),
-          publishedAt: valToDate(p.publishedAt),
-          expiresAt: valToDate(p.expiresAt),
-          seoTitle: valToString(p.seoTitle),
-          seoDesc: valToString(p.seoDesc),
-          ogTitle: valToString(p.ogTitle),
-          ogDesc: valToString(p.ogDesc),
-        },
-      })
-    );
+    const json = {
+      title: fdString(fd, "title"),
+      slug: fdString(fd, "slug"),
+      type: fdString(fd, "type"),
+      excerpt: fdString(fd, "excerpt"),
+      body: fdString(fd, "body"),
+      publishedAt: fdString(fd, "publishedAt"),
+      expiresAt: fdString(fd, "expiresAt"),
+      seoTitle: fdString(fd, "seoTitle"),
+      seoDesc: fdString(fd, "seoDesc"),
+      ogTitle: fdString(fd, "ogTitle"),
+      ogDesc: fdString(fd, "ogDesc"),
+    };
 
-    revalidatePath("/admin/news");
-    revalidatePath("/news");
-    revalidatePath("/");
+    const parsed = articleInput.omit({ cover: true }).partial().safeParse(json);
+    if (!parsed.success) {
+      return {
+        ok: false,
+        error: "Некорректные поля",
+        details: { fieldErrors: parsed.error.format() as unknown as FieldErrors },
+      };
+    }
+
+    const data: Record<string, unknown> = {};
+
+    if (parsed.data.title !== undefined) data.title = parsed.data.title;
+    if (parsed.data.slug !== undefined) data.slug = parsed.data.slug;
+    if (parsed.data.type !== undefined) data.type = parsed.data.type as ArticleType;
+    if (parsed.data.excerpt !== undefined) data.excerpt = parsed.data.excerpt;
+    if (parsed.data.body !== undefined) data.body = parsed.data.body;
+    if (parsed.data.seoTitle !== undefined) data.seoTitle = parsed.data.seoTitle;
+    if (parsed.data.seoDesc !== undefined) data.seoDesc = parsed.data.seoDesc;
+    if (parsed.data.ogTitle !== undefined) data.ogTitle = parsed.data.ogTitle;
+    if (parsed.data.ogDesc !== undefined) data.ogDesc = parsed.data.ogDesc;
+
+    if (parsed.data.publishedAt !== undefined) {
+      data.publishedAt = parsed.data.publishedAt ? new Date(parsed.data.publishedAt) : null;
+    }
+    if (parsed.data.expiresAt !== undefined) {
+      data.expiresAt = parsed.data.expiresAt ? new Date(parsed.data.expiresAt) : null;
+    }
+
+    const raw = fd.get("coverFile");
+    if (raw instanceof File && raw.size > 0) {
+      const saved = await saveImageFile(raw);
+      data.cover = saved.src;
+    }
+
+    const updated = await prisma.article.update({
+      where: { id },
+      data,
+      select: { id: true },
+    });
+
     return { ok: true, id: updated.id };
-  } catch (e: unknown) {
-    if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002") {
-      return { ok: false, error: "Такой slug уже существует" };
-    }
-    const msg = e instanceof Error ? e.message : "Не удалось обновить статью";
-    return { ok: false, error: msg };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Unknown error" };
   }
 }
 
-export async function deleteArticle(id: string): Promise<Result> {
+/** ---------------- DELETE ---------------- */
+export async function deleteArticle(id: string): Promise<{ ok: true } | { ok: false; error: string }> {
   try {
-    await withRetry(() => prisma.article.delete({ where: { id } }));
-    revalidatePath("/admin/news");
-    revalidatePath("/news");
-    revalidatePath("/");
+    await prisma.article.delete({ where: { id } });
     return { ok: true };
-  } catch (e: unknown) {
-    const msg = e instanceof Error ? e.message : "Не удалось удалить статью";
-    return { ok: false, error: msg };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Unknown error" };
   }
 }
