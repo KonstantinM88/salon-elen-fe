@@ -16,12 +16,9 @@ function fmt(d: Date) {
   }).format(d);
 }
 
-// Серверный action для формы удаления.
-// Важно: возвращаем Promise<void> и ревалидируем страницу списка.
 async function deleteAction(formData: FormData): Promise<void> {
   "use server";
   await deleteArticle(formData);
-  // Обновим серверный рендер этой страницы, чтобы удалённая запись исчезла
   revalidatePath("/admin/news");
 }
 
@@ -37,11 +34,21 @@ export default async function Page() {
     },
   });
 
+  // Общая «база» для кнопок (одинаковая высота/форма/типографика)
+  const baseBtn =
+    "inline-flex items-center justify-center rounded-full px-4 py-1.5 text-sm font-semibold whitespace-nowrap shadow-sm focus:outline-none focus-visible:ring-2";
+  const newBtn =
+    `${baseBtn} bg-emerald-600 text-white hover:bg-emerald-500 focus-visible:ring-emerald-400`;
+  const editBtn =
+    `${baseBtn} bg-slate-700 text-slate-100 hover:bg-slate-600 focus-visible:ring-slate-400`;
+  const delBtn =
+    `${baseBtn} bg-rose-600 text-white hover:bg-rose-500 focus-visible:ring-rose-400`;
+
   return (
     <main className="p-6 space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-semibold">Новости</h1>
-        <Link href="/admin/news/new" className="btn btn-primary">
+        <Link href="/admin/news/new" className={newBtn}>
           Новая запись
         </Link>
       </div>
@@ -60,16 +67,16 @@ export default async function Page() {
               <tr key={n.id} className="border-t">
                 <td className="p-3">{n.title}</td>
                 <td className="p-3">{fmt(n.publishedAt ?? n.createdAt)}</td>
-                <td className="p-3">
-                  <div className="flex justify-end gap-2">
-                    <Link href={`/admin/news/${n.id}`} className="btn btn-sm">
+                {/* nowrap + одинаковая высота/поля у кнопок */}
+                <td className="p-3 whitespace-nowrap">
+                  <div className="flex items-center justify-end gap-3">
+                    <Link href={`/admin/news/${n.id}`} className={editBtn}>
                       Редактировать
                     </Link>
 
-                    {/* Удаление через серверный action */}
                     <form action={deleteAction}>
                       <input type="hidden" name="id" value={n.id} />
-                      <button className="btn btn-sm btn-danger" type="submit">
+                      <button type="submit" className={delBtn}>
                         Удалить
                       </button>
                     </form>
