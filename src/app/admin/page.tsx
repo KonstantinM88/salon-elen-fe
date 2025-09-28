@@ -1,11 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/lib/db";
-import { ArticleType } from "@prisma/client";
 
-export const dynamic = "force-dynamic";
-
-function fmt(date: Date | null) {
-  if (!date) return "";
+function fmt(date: Date) {
   return new Intl.DateTimeFormat("ru-RU", {
     day: "2-digit",
     month: "2-digit",
@@ -13,90 +9,61 @@ function fmt(date: Date | null) {
   }).format(date);
 }
 
-/** Универсальная подпись для типа.
- * Поддерживает текущий enum (ARTICLE|PROMO) и старые записи с NEWS.
- */
-type AnyType = ArticleType | "NEWS";
-const TYPE_LABEL: Record<AnyType, string> = {
-  ARTICLE: "ARTICLE",
-  PROMO: "PROMO",
-  NEWS: "NEWS",
-};
-
 export default async function AdminDashboard() {
-  const latest = await prisma.article.findMany({
-    orderBy: [{ createdAt: "desc" }],
-    take: 10,
-    select: {
-      id: true,
-      title: true,
-      slug: true,
-      type: true,
-      publishedAt: true,
-      createdAt: true,
-    },
-  });
+  const [articleCount, bookingCount, latestArticles] = await Promise.all([
+    prisma.article.count(),
+    prisma.booking.count(),
+    prisma.article.findMany({
+      orderBy: [{ publishedAt: "desc" }, { createdAt: "desc" }],
+      take: 5,
+      select: { id: true, title: true, createdAt: true, publishedAt: true },
+    }),
+  ]);
 
   return (
-    <main className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold">Последние публикации</h1>
-        <Link
-          href="/admin/news/new"
-          className="rounded-xl px-3 py-2 bg-emerald-600 hover:bg-emerald-500 transition text-white"
-        >
-          Добавить
-        </Link>
-      </div>
+    <main className="p-6 space-y-8">
+      <section>
+        <h2 className="text-lg font-semibold mb-3">Статистика</h2>
+        <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3">
+          <div className="card">
+            <div className="card-title">Новости</div>
+            <div className="card-value">{articleCount}</div>
+          </div>
+          <div className="card">
+            <div className="card-title">Заявки</div>
+            <div className="card-value">{bookingCount}</div>
+          </div>
+        </div>
+      </section>
 
-      <div className="overflow-x-auto">
-        <table className="min-w-full text-sm">
-          <thead className="text-left text-slate-300">
-            <tr>
-              <th className="py-2 pr-4">Заголовок</th>
-              <th className="py-2 pr-4">Тип</th>
-              <th className="py-2 pr-4">Публикация</th>
-              <th className="py-2 pr-2 text-right">Действия</th>
-            </tr>
-          </thead>
-          <tbody>
-            {latest.map((n) => (
-              <tr key={n.id} className="border-t border-slate-800">
-                <td className="py-2 pr-4">{n.title}</td>
-                <td className="py-2 pr-4">
-                  <span className="rounded-md bg-slate-800 px-2 py-0.5 text-xs">
-                    {TYPE_LABEL[n.type as AnyType]}
-                  </span>
-                </td>
-                <td className="py-2 pr-4">{fmt(n.publishedAt ?? n.createdAt)}</td>
-                <td className="py-2 pr-2">
-                  <div className="flex justify-end gap-2">
-                    <Link
-                      href={`/news/${n.slug}`}
-                      className="rounded-lg px-2 py-1 bg-slate-800 hover:bg-slate-700"
-                    >
-                      Открыть
-                    </Link>
-                    <Link
-                      href={`/admin/news/${n.id}`}
-                      className="rounded-lg px-2 py-1 bg-slate-800 hover:bg-slate-700"
-                    >
-                      Редактировать
-                    </Link>
-                  </div>
-                </td>
-              </tr>
-            ))}
-            {latest.length === 0 && (
-              <tr>
-                <td className="py-4 text-slate-400" colSpan={4}>
-                  Записей пока нет.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+      <section>
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-lg font-semibold">Последние публикации</h2>
+          <Link href="/admin/news/new" className="btn btn-primary">
+            Добавить
+          </Link>
+        </div>
+        <div className="rounded-2xl border divide-y">
+          {latestArticles.map((a) => (
+            <div key={a.id} className="flex items-center justify-between p-3">
+              <div>
+                <div className="font-medium">{a.title}</div>
+                <div className="text-xs opacity-60">
+                  {fmt(a.publishedAt ?? a.createdAt)}
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <Link href={`/admin/news/${a.id}`} className="btn btn-sm">
+                  Редактировать
+                </Link>
+              </div>
+            </div>
+          ))}
+          {latestArticles.length === 0 && (
+            <div className="p-4 opacity-70">Пока нет публикаций</div>
+          )}
+        </div>
+      </section>
     </main>
   );
 }

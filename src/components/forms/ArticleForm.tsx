@@ -1,485 +1,363 @@
 "use client";
 
-import Image from "next/image";
-import { useMemo, useRef, useState, FormEvent, ChangeEvent } from "react";
-import { z } from "zod";
-import { articleInput } from "@/lib/validators";
-type ArticleInput = z.infer<typeof articleInput>;
+import * as React from "react";
+import type { ActionResult } from "@/app/admin/news/actions";
 
-type FieldErrors = Record<string, string[]>;
-type ActionFail = { ok: false; error: string; details?: { fieldErrors?: FieldErrors } };
-type ActionOk = { ok: true; id?: string };
-type ActionResult = ActionOk | ActionFail;
-
-type InitialArticle = Partial<
-  Omit<ArticleInput, "publishedAt" | "expiresAt"> & {
-    publishedAt?: string | Date | null;
-    expiresAt?: string | Date | null;
-  }
->;
-
-type Props = {
-  initial?: InitialArticle;
-  articleId?: string;
-  onSubmit: (fd: FormData) => Promise<ActionResult>;
-  redirectTo?: string;
+export type Initial = {
+  title?: string;
+  slug?: string;
+  excerpt?: string;
+  body?: string;
+  cover?: string | null; // текущая обложка (URL)
+  publishedAt?: string | null;
+  expiresAt?: string | null;
+  seoTitle?: string;
+  seoDesc?: string;
+  ogTitle?: string;
+  ogDesc?: string;
 };
 
-const TITLE_MIN = 3;
-const TITLE_MAX = 80;
-const SLUG_MIN = 3;
-const SLUG_MAX = 60;
-const EXCERPT_MAX = 200;
-const BODY_MIN = 50;
-const BODY_MAX = 5000;
+type Props = {
+  initial?: Initial;
+  articleId?: string;
+  redirectTo?: string;
+  onSubmit: (fd: FormData) => Promise<ActionResult>;
+};
 
-function countWords(s: string): number {
-  const m = s.match(/[\p{L}\p{N}]+/gu);
-  return m ? m.length : 0;
-}
+const LIMITS = {
+  titleMax: 120,
+  slugMax: 120,
+  excerptMax: 300,
+  seoTitleMin: 30,
+  seoTitleMax: 60,
+  seoDescMin: 70,
+  seoDescMax: 160,
+};
 
-/** dd.MM.yyyy HH:mm */
-function formatRu(date: Date): string {
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${pad(date.getDate())}.${pad(date.getMonth() + 1)}.${date.getFullYear()} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
-}
-
-/** DD.MM.YYYY HH:mm | YYYY-MM-DD[ T]HH:mm | ISO */
-function parseDateFlexible(value: string): Date | null {
-  const v = value.trim();
-  if (!v) return null;
-
-  const ru = /^(\d{2})\.(\d{2})\.(\d{4})(?:\s+(\d{2}):(\d{2}))?$/;
-  const mRu = v.match(ru);
-  if (mRu) {
-    const [, dd, mm, yyyy, HH = "00", MM = "00"] = mRu;
-    const d = new Date(`${yyyy}-${mm}-${dd}T${HH}:${MM}:00Z`);
-    return Number.isNaN(d.getTime()) ? null : d;
-  }
-
-  const ymd = /^(\d{4})-(\d{2})-(\d{2})(?:[T\s](\d{2}):(\d{2}))?$/;
-  const mYmd = v.match(ymd);
-  if (mYmd) {
-    const [, yyyy, mm, dd, HH = "00", MM = "00"] = mYmd;
-    const d = new Date(`${yyyy}-${mm}-${dd}T${HH}:${MM}:00Z`);
-    return Number.isNaN(d.getTime()) ? null : d;
-  }
-
-  const d = new Date(v);
-  return Number.isNaN(d.getTime()) ? null : d;
-}
-
-function toRuInput(value?: string | Date | null): string {
-  if (!value) return "";
-  const d = typeof value === "string" ? new Date(value) : value;
-  return Number.isNaN(d.getTime()) ? "" : formatRu(d);
-}
-
-function slugify(s: string) {
-  return s.trim().toLowerCase().replace(/[^\p{L}\p{N}]+/gu, "-").replace(/^-+|-+$/g, "");
-}
-
-function isSlugValid(s: string): boolean {
-  if (s.length < SLUG_MIN || s.length > SLUG_MAX) return false;
-  return /^[\p{L}\p{N}-]+$/u.test(s);
+function toLocalDateTimeValue(input?: string | null): string {
+  if (!input) return "";
+  const d = new Date(input);
+  if (Number.isNaN(d.getTime())) return input;
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  const hh = String(d.getHours()).padStart(2, "0");
+  const mi = String(d.getMinutes()).padStart(2, "0");
+  return `${yyyy}-${mm}-${dd}T${hh}:${mi}`;
 }
 
 export default function ArticleForm({
   initial,
   articleId,
+  redirectTo,
   onSubmit,
-  redirectTo = "/admin/news",
 }: Props) {
-  const [title, setTitle] = useState(initial?.title ?? "");
-  const [slug, setSlug] = useState(initial?.slug ?? "");
-  const [type, setType] = useState<ArticleInput["type"]>(initial?.type ?? "ARTICLE");
-  const [coverFile, setCoverFile] = useState<File | null>(null);
-  const [excerpt, setExcerpt] = useState(initial?.excerpt ?? "");
-  const [body, setBody] = useState(initial?.body ?? "");
+  const [pending, setPending] = React.useState(false);
+  const [serverError, setServerError] = React.useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = React.useState<Record<string, string[]>>(
+    {}
+  );
 
-  // ВАЖНО: если initial нет (создание) — ставим publishedAt = сейчас
-  const defaultPublished = initial?.publishedAt ?? new Date();
-  const [publishedAt, setPublishedAt] = useState<string>(toRuInput(defaultPublished));
-  const [expiresAt, setExpiresAt] = useState<string>(toRuInput(initial?.expiresAt));
+  // Поля (чтобы рисовать счётчики и не терять их)
+  const [title, setTitle] = React.useState(initial?.title ?? "");
+  const [slug, setSlug] = React.useState(initial?.slug ?? "");
+  const [excerpt, setExcerpt] = React.useState(initial?.excerpt ?? "");
+  const [body, setBody] = React.useState(initial?.body ?? "");
+  const [seoTitle, setSeoTitle] = React.useState(initial?.seoTitle ?? "");
+  const [seoDesc, setSeoDesc] = React.useState(initial?.seoDesc ?? "");
+  const [ogTitle, setOgTitle] = React.useState(initial?.ogTitle ?? "");
+  const [ogDesc, setOgDesc] = React.useState(initial?.ogDesc ?? "");
 
-  const [seoTitle, setSeoTitle] = useState(initial?.seoTitle ?? "");
-  const [seoDesc, setSeoDesc] = useState(initial?.seoDesc ?? "");
-  const [ogTitle, setOgTitle] = useState(initial?.ogTitle ?? "");
-  const [ogDesc, setOgDesc] = useState(initial?.ogDesc ?? "");
+  // превью нового файла + текущая обложка
+  const [newFilePreview, setNewFilePreview] = React.useState<string | null>(null);
+  const currentCover = initial?.cover ?? null;
 
-  const [pending, setPending] = useState(false);
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
-  const [rawDetails, setRawDetails] = useState<unknown>(null);
+  React.useEffect(() => {
+    return () => {
+      if (newFilePreview) URL.revokeObjectURL(newFilePreview);
+    };
+  }, [newFilePreview]);
 
-  const coverPreview = useMemo(() => (coverFile ? URL.createObjectURL(coverFile) : ""), [coverFile]);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const wordCount = (s: string) =>
+    s.trim().length ? s.trim().split(/\s+/).length : 0;
 
-  const titleErr = fieldErrors.title?.[0];
-  const slugErr = fieldErrors.slug?.[0];
-  const bodyErr = fieldErrors.body?.[0];
-  const coverErr = fieldErrors.cover?.[0];
-
-  const titleLen = title.length;
-  const titleBad = titleLen > 0 && (titleLen < TITLE_MIN || titleLen > TITLE_MAX);
-  const titleWords = countWords(title);
-
-  const slugLen = slug.length;
-  const slugBad = slugLen > 0 && !isSlugValid(slug);
-
-  const excerptLen = excerpt.length;
-  const excerptBad = excerptLen > EXCERPT_MAX;
-  const excerptWords = countWords(excerpt);
-
-  const bodyLen = body.length;
-  const bodyBad = bodyLen > 0 && (bodyLen < BODY_MIN || bodyLen > BODY_MAX);
-  const bodyWords = countWords(body);
-
-  function onChangeCoverFile(e: ChangeEvent<HTMLInputElement>) {
-    const f = e.target.files?.[0];
-    setCoverFile(f ?? null);
-  }
-
-  async function handleSubmit(e: FormEvent<HTMLFormElement>) {
-    e.preventDefault();
+  async function handleSubmit(formData: FormData) {
     setPending(true);
-    setErrorMsg(null);
+    setServerError(null);
     setFieldErrors({});
-    setRawDetails(null);
-
     try {
-      const fd = new FormData(e.currentTarget);
-      if (articleId) fd.set("id", articleId);
-      if (!fd.has("cover")) fd.set("cover", "");
-
-      // строки → ISO (или удалить поле)
-      const pubDate = parseDateFlexible(publishedAt.trim());
-      if (pubDate) fd.set("publishedAt", pubDate.toISOString());
-      else fd.delete("publishedAt");
-
-      const expDate = parseDateFlexible(expiresAt.trim());
-      if (expDate) fd.set("expiresAt", expDate.toISOString());
-      else fd.delete("expiresAt");
-
-      const res = await onSubmit(fd);
-
-      if (res.ok) {
-        window.location.href = redirectTo;
-        return;
+      const res = await onSubmit(formData);
+      if (!res.ok) {
+        setServerError(res.error);
+        if (res.details?.fieldErrors) setFieldErrors(res.details.fieldErrors);
       }
-
-      setErrorMsg(res.error ?? "Не удалось сохранить");
-      const fe = res.details?.fieldErrors ?? {};
-      setFieldErrors(fe);
-      setRawDetails(res.details ?? null);
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : "Неизвестная ошибка при отправке формы";
-      setErrorMsg(msg);
-      setRawDetails(err);
+      // успешный кейс обрабатывается на странице (redirect/flash)
     } finally {
       setPending(false);
     }
   }
 
-  type AllowedType = ArticleInput["type"];
-  const TYPE_OPTIONS: { value: AllowedType; label: string }[] = [
-    { value: "ARTICLE", label: "Статья" },
-    { value: "NEWS", label: "Новость" },
-  ];
-
   return (
-    <form onSubmit={handleSubmit} className="space-y-6" encType="multipart/form-data">
-      {articleId ? <input type="hidden" name="id" value={articleId} /> : null}
-      <input type="hidden" name="cover" value="" />
+    <form action={handleSubmit} encType="multipart/form-data" className="space-y-8">
+      {articleId && <input type="hidden" name="id" value={articleId} />}
+      {redirectTo && <input type="hidden" name="redirectTo" value={redirectTo} />}
 
-      {errorMsg && (
-        <div role="alert" className="rounded-2xl border border-red-300 bg-red-50 text-red-800 px-4 py-3 space-y-2">
-          <div className="font-medium">Ошибка: {errorMsg}</div>
-          {Object.keys(fieldErrors).length > 0 && (
-            <ul className="list-disc pl-5 text-sm">
-              {Object.entries(fieldErrors).map(([field, arr]) => {
-                const texts = Array.isArray(arr) ? arr : [String(arr ?? "")];
-                return (
-                  <li key={field}>
-                    <span className="font-semibold">{field}:</span> {texts.join("; ")}
-                  </li>
-                );
-              })}
-            </ul>
-          )}
-          {!!rawDetails && (
-            <details className="text-xs opacity-80">
-              <summary className="cursor-pointer">Показать подробности для разработчика</summary>
-              <pre className="mt-2 whitespace-pre-wrap break-all">{JSON.stringify(rawDetails, null, 2)}</pre>
-            </details>
-          )}
+      {serverError && (
+        <div role="alert" className="rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm">
+          {serverError}
         </div>
       )}
 
-      {/* Заголовок */}
-      <label className="block">
-        <div className="flex items-center justify-between">
-          <span className="text-sm">Заголовок</span>
-          <span className="text-xs opacity-70">
-            {titleLen}/{TITLE_MAX} символов • {titleWords} слов (мин. {TITLE_MIN})
-          </span>
-        </div>
-        <input
-          name="title"
-          value={title}
-          onChange={(e) => {
-            const v = e.target.value;
-            setTitle(v);
-            if (!initial?.slug) setSlug(slugify(v));
-          }}
-          className={`mt-1 w-full border rounded-2xl p-3 ${titleBad ? "border-red-400" : ""}`}
-          placeholder="Коротко и ясно (3–80 символов)"
-          {...(titleErr || titleBad ? { "aria-invalid": true as const, "aria-describedby": "err-title" } : {})}
-        />
-        {(titleErr || titleBad) && (
-          <p id="err-title" className="text-xs text-red-500 mt-1">
-            {titleErr ?? `Длина заголовка должна быть от ${TITLE_MIN} до ${TITLE_MAX} символов.`}
-          </p>
-        )}
-      </label>
-
-      {/* Слаг */}
-      <label className="block">
-        <div className="flex items-center justify-between">
-          <span className="text-sm">Слаг (URL)</span>
-          <span className="text-xs opacity-70">
-            {slugLen}/{SLUG_MAX} символов
-          </span>
-        </div>
-        <input
-          name="slug"
-          value={slug}
-          onChange={(e) => setSlug(e.target.value)}
-          onBlur={() => setSlug((s) => slugify(s))}
-          className={`mt-1 w-full border rounded-2xl p-3 ${slugBad ? "border-red-400" : ""}`}
-          placeholder="tolko-latinica-цифры-и-дефисы"
-          {...(slugErr || slugBad ? { "aria-invalid": true as const, "aria-describedby": "err-slug" } : {})}
-        />
-        {(slugErr || slugBad) && (
-          <p id="err-slug" className="text-xs text-red-500 mt-1">
-            {slugErr ?? `Используйте буквы/цифры/дефис. Длина ${SLUG_MIN}–${SLUG_MAX}.`}
-          </p>
-        )}
-      </label>
-
-      {/* Тип */}
-      <label className="block">
-        <span className="text-sm">Тип</span>
-        <select
-          name="type"
-          value={type}
-          onChange={(e) => setType(e.target.value as AllowedType)}
-          className="mt-1 w-full border rounded-2xl p-3"
-        >
-          {TYPE_OPTIONS.map((o) => (
-            <option key={o.value} value={o.value}>
-              {o.label}
-            </option>
-          ))}
-        </select>
-      </label>
-
-      {/* Обложка (файл) */}
-      <label className="block">
-        <span className="text-sm">Обложка (только файл)</span>
-
-        <input
-          ref={fileInputRef}
-          type="file"
-          name="coverFile"
-          accept="image/*"
-          onChange={onChangeCoverFile}
-          className="hidden"
-        />
-
-        <div className="mt-2 flex items-center gap-2">
-          <button
-            type="button"
-            className="rounded-2xl border px-3 py-2"
-            onClick={() => fileInputRef.current?.click()}
-          >
-            Выбрать файл
-          </button>
-          {coverFile && (
-            <button
-              type="button"
-              className="rounded-2xl border px-3 py-2"
-              onClick={() => {
-                if (fileInputRef.current) fileInputRef.current.value = "";
-                setCoverFile(null);
-              }}
-            >
-              Очистить
-            </button>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Заголовок */}
+        <div>
+          <label htmlFor="title" className="text-sm font-medium">
+            Заголовок *
+          </label>
+          <input
+            id="title"
+            name="title"
+            required
+            maxLength={LIMITS.titleMax}
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            className="mt-1 w-full rounded-xl border bg-transparent px-3 py-2 outline-none focus:ring-2 focus:ring-primary-500"
+            placeholder="Например: Наша новая услуга…"
+          />
+          {fieldErrors.title && (
+            <p className="mt-1 text-xs text-red-500">{fieldErrors.title[0]}</p>
           )}
-          <span className="text-xs opacity-70">
-            {coverFile ? `${coverFile.name} · ${(coverFile.size / 1024).toFixed(1)} KB` : "Файл не выбран"}
-          </span>
-        </div>
-
-        {coverErr && (
-          <p id="err-cover" className="text-xs text-red-500 mt-1">
-            {coverErr}
+          <p className="mt-1 text-right text-xs opacity-70">
+            {title.length}/{LIMITS.titleMax}
           </p>
-        )}
-
-        {coverPreview ? (
-          <div className="mt-3 relative aspect-[16/9] overflow-hidden rounded-xl border">
-            <div className="relative h-full w-full">
-              <Image src={coverPreview} alt="Превью" fill sizes="100vw" style={{ objectFit: "cover" }} />
-            </div>
-          </div>
-        ) : (
-          <p className="text-xs opacity-70 mt-1">Поддерживаются JPEG, PNG, WebP. Рекомендуем 16:9.</p>
-        )}
-      </label>
-
-      {/* Краткое описание */}
-      <label className="block">
-        <div className="flex items-center justify-between">
-          <span className="text-sm">Краткое описание</span>
-          <span className="text-xs opacity-70">
-            {excerptLen}/{EXCERPT_MAX} символов • {excerptWords} слов
-          </span>
         </div>
-        <textarea
-          name="excerpt"
-          value={excerpt}
-          onChange={(e) => setExcerpt(e.target.value)}
-          className={`mt-1 w-full border rounded-2xl p-3 ${excerptBad ? "border-red-400" : ""}`}
-          rows={3}
-          placeholder="Короткое резюме (до 200 символов)"
-        />
-        {excerptBad && <p className="text-xs text-red-500 mt-1">Максимум {EXCERPT_MAX} символов.</p>}
-      </label>
 
-      {/* Текст */}
-      <label className="block">
-        <div className="flex items-center justify-between">
-          <span className="text-sm">Текст</span>
-          <span className="text-xs opacity-70">
-            {bodyLen}/{BODY_MAX} символов • {bodyWords} слов (минимум {BODY_MIN})
-          </span>
-        </div>
-        <textarea
-          name="body"
-          value={body}
-          onChange={(e) => setBody(e.target.value)}
-          className={`mt-1 w-full border rounded-2xl p-3 ${bodyBad ? "border-red-400" : ""}`}
-          rows={10}
-          placeholder="Основной текст (минимум 50 символов)"
-          {...(bodyErr || bodyBad ? { "aria-invalid": true as const, "aria-describedby": "err-body" } : {})}
-        />
-        {(bodyErr || bodyBad) && (
-          <p id="err-body" className="text-xs text-red-500 mt-1">
-            {bodyErr ?? `Длина текста должна быть от ${BODY_MIN} до ${BODY_MAX} символов.`}
-          </p>
-        )}
-      </label>
-
-      {/* Даты */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <label className="block">
-          <div className="flex items-center justify-between">
-            <span className="text-sm">Публикация</span>
-            <div className="flex gap-2">
-              <button
-                type="button"
-                className="text-xs underline opacity-80"
-                onClick={() => setPublishedAt(formatRu(new Date()))}
-                title="Поставить текущую дату/время"
-              >
-                Сейчас
-              </button>
-              <button
-                type="button"
-                className="text-xs underline opacity-60"
-                onClick={() => setPublishedAt("")}
-                title="Очистить поле"
-              >
-                Очистить
-              </button>
-            </div>
-          </div>
-
+        {/* Slug */}
+        <div>
+          <label htmlFor="slug" className="text-sm font-medium">
+            Слаг *
+          </label>
           <input
-            type="text"
+            id="slug"
+            name="slug"
+            required
+            maxLength={LIMITS.slugMax}
+            value={slug}
+            onChange={(e) => setSlug(e.target.value)}
+            className="mt-1 w-full rounded-xl border bg-transparent px-3 py-2 outline-none focus:ring-2 focus:ring-primary-500"
+            placeholder="naprimer-novaya-usluga"
+          />
+          {fieldErrors.slug && (
+            <p className="mt-1 text-xs text-red-500">{fieldErrors.slug[0]}</p>
+          )}
+          <p className="mt-1 text-right text-xs opacity-70">
+            {slug.length}/{LIMITS.slugMax}
+          </p>
+        </div>
+
+        {/* Анонс */}
+        <div className="md:col-span-2">
+          <label htmlFor="excerpt" className="text-sm font-medium">
+            Короткое описание
+          </label>
+          <textarea
+            id="excerpt"
+            name="excerpt"
+            rows={3}
+            maxLength={LIMITS.excerptMax}
+            value={excerpt}
+            onChange={(e) => setExcerpt(e.target.value)}
+            className="mt-1 w-full rounded-xl border bg-transparent px-3 py-2 outline-none focus:ring-2 focus:ring-primary-500"
+            placeholder="Одно-два предложения анонса…"
+          />
+          {fieldErrors.excerpt && (
+            <p className="mt-1 text-xs text-red-500">{fieldErrors.excerpt[0]}</p>
+          )}
+          <p className="mt-1 text-right text-xs opacity-70">
+            {excerpt.length}/{LIMITS.excerptMax}
+          </p>
+        </div>
+
+        {/* Текст */}
+        <div className="md:col-span-2">
+          <label htmlFor="body" className="text-sm font-medium">
+            Текст *
+          </label>
+          <textarea
+            id="body"
+            name="body"
+            required
+            rows={12}
+            value={body}
+            onChange={(e) => setBody(e.target.value)}
+            className="mt-1 w-full rounded-xl border bg-transparent px-3 py-2 outline-none focus:ring-2 focus:ring-primary-500"
+            placeholder="Основной текст публикации…"
+          />
+          {fieldErrors.body && (
+            <p className="mt-1 text-xs text-red-500">{fieldErrors.body[0]}</p>
+          )}
+          <p className="mt-1 text-right text-xs opacity-70">слов: {wordCount(body)}</p>
+        </div>
+
+        {/* Обложка + превью */}
+        <div>
+          <label htmlFor="cover" className="text-sm font-medium">
+            Обложка
+          </label>
+          <input
+            id="cover"
+            name="cover"
+            type="file"
+            accept="image/*"
+            onChange={(e) => {
+              const f = e.currentTarget.files?.[0] ?? null;
+              if (!f) {
+                setNewFilePreview(null);
+                return;
+              }
+              const url = URL.createObjectURL(f);
+              setNewFilePreview((prev) => {
+                if (prev) URL.revokeObjectURL(prev);
+                return url;
+              });
+            }}
+            className="mt-1 w-full rounded-xl border bg-transparent px-3 py-2
+                       file:mr-4 file:rounded-lg file:border-0
+                       file:bg-primary-600 file:px-4 file:py-2 file:text-sm file:font-medium file:text-white
+                       hover:file:bg-primary-700"
+          />
+          {fieldErrors.cover && (
+            <p className="mt-1 text-xs text-red-500">{fieldErrors.cover[0]}</p>
+          )}
+
+          {/* Превью */}
+          {(newFilePreview || currentCover) && (
+            <div className="mt-3 rounded-xl border p-2">
+              <div className="text-xs mb-2 opacity-70">Предпросмотр</div>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={newFilePreview ?? currentCover ?? ""}
+                alt="Превью обложки"
+                className="max-h-60 w-auto rounded-lg object-contain"
+              />
+            </div>
+          )}
+          <p className="mt-1 text-xs opacity-70">
+            Рекомендация: 1200×630+, до 10 МБ (JPG/PNG/WEBP/GIF)
+          </p>
+        </div>
+
+        {/* Даты */}
+        <div>
+          <label htmlFor="publishedAt" className="text-sm font-medium">
+            Публиковать с
+          </label>
+          <input
+            id="publishedAt"
             name="publishedAt"
-            value={publishedAt}
-            onChange={(e) => setPublishedAt(e.target.value)}
-            className="mt-1 w-full border rounded-2xl p-3"
-            placeholder="ДД.ММ.ГГГГ ЧЧ:ММ — или YYYY-MM-DD HH:mm"
+            type="datetime-local"
+            defaultValue={toLocalDateTimeValue(initial?.publishedAt ?? null)}
+            className="mt-1 w-full rounded-xl border bg-transparent px-3 py-2 outline-none focus:ring-2 focus:ring-primary-500"
           />
-        </label>
-
-        <label className="block">
-          <span className="text-sm">Срок действия (до)</span>
+        </div>
+        <div>
+          <label htmlFor="expiresAt" className="text-sm font-medium">
+            Скрыть после
+          </label>
           <input
-            type="text"
+            id="expiresAt"
             name="expiresAt"
-            value={expiresAt}
-            onChange={(e) => setExpiresAt(e.target.value)}
-            className="mt-1 w-full border rounded-2xl p-3"
-            placeholder="ДД.ММ.ГГГГ ЧЧ:ММ — или YYYY-MM-DD HH:mm (можно пусто)"
+            type="datetime-local"
+            defaultValue={toLocalDateTimeValue(initial?.expiresAt ?? null)}
+            className="mt-1 w-full rounded-xl border bg-transparent px-3 py-2 outline-none focus:ring-2 focus:ring-primary-500"
           />
-        </label>
-      </div>
+        </div>
 
-      {/* SEO */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <label className="block">
-          <span className="text-sm">SEO Title</span>
+        {/* SEO */}
+        <div>
+          <label htmlFor="seoTitle" className="text-sm font-medium">
+            SEO Title
+          </label>
           <input
+            id="seoTitle"
             name="seoTitle"
             value={seoTitle}
             onChange={(e) => setSeoTitle(e.target.value)}
-            className="mt-1 w-full border rounded-2xl p-3"
-            placeholder="Если пусто — возьмём заголовок"
+            className="mt-1 w-full rounded-xl border bg-transparent px-3 py-2 outline-none focus:ring-2 focus:ring-primary-500"
           />
-        </label>
+          <p
+            className={`mt-1 text-right text-xs ${
+              seoTitle.length === 0 ||
+              (seoTitle.length >= LIMITS.seoTitleMin &&
+                seoTitle.length <= LIMITS.seoTitleMax)
+                ? "opacity-70"
+                : "text-red-500"
+            }`}
+          >
+            {seoTitle.length} символов (рекомендуется {LIMITS.seoTitleMin}–{LIMITS.seoTitleMax})
+          </p>
+        </div>
 
-        <label className="block">
-          <span className="text-sm">SEO Description</span>
+        <div>
+          <label htmlFor="seoDesc" className="text-sm font-medium">
+            SEO Description
+          </label>
           <input
+            id="seoDesc"
             name="seoDesc"
             value={seoDesc}
             onChange={(e) => setSeoDesc(e.target.value)}
-            className="mt-1 w-full border rounded-2xl p-3"
-            placeholder="Если пусто — возьмём краткое описание"
+            className="mt-1 w-full rounded-xl border bg-transparent px-3 py-2 outline-none focus:ring-2 focus:ring-primary-500"
           />
-        </label>
+          <p
+            className={`mt-1 text-right text-xs ${
+              seoDesc.length === 0 ||
+              (seoDesc.length >= LIMITS.seoDescMin &&
+                seoDesc.length <= LIMITS.seoDescMax)
+                ? "opacity-70"
+                : "text-red-500"
+            }`}
+          >
+            {seoDesc.length} символов (рекомендуется {LIMITS.seoDescMin}–{LIMITS.seoDescMax})
+          </p>
+        </div>
 
-        <label className="block">
-          <span className="text-sm">OG Title</span>
+        <div>
+          <label htmlFor="ogTitle" className="text-sm font-medium">
+            OG Title
+          </label>
           <input
+            id="ogTitle"
             name="ogTitle"
             value={ogTitle}
             onChange={(e) => setOgTitle(e.target.value)}
-            className="mt-1 w-full border rounded-2xl p-3"
+            className="mt-1 w-full rounded-xl border bg-transparent px-3 py-2 outline-none focus:ring-2 focus:ring-primary-500"
           />
-        </label>
-
-        <label className="block">
-          <span className="text-sm">OG Description</span>
+        </div>
+        <div>
+          <label htmlFor="ogDesc" className="text-sm font-medium">
+            OG Description
+          </label>
           <input
+            id="ogDesc"
             name="ogDesc"
             value={ogDesc}
             onChange={(e) => setOgDesc(e.target.value)}
-            className="mt-1 w-full border rounded-2xl p-3"
+            className="mt-1 w-full rounded-xl border bg-transparent px-3 py-2 outline-none focus:ring-2 focus:ring-primary-500"
           />
-        </label>
+        </div>
       </div>
 
-      <div className="flex items-center gap-3">
-        <button className="rounded-2xl border px-4 py-2 disabled:opacity-60" disabled={pending}>
-          {pending ? "Сохранение..." : "Сохранить"}
+      <div className="flex justify-end">
+        <button
+          type="submit"
+          disabled={pending}
+          className="rounded-xl bg-primary-600 px-6 py-2.5 text-sm font-semibold text-white shadow-lg shadow-primary-600/20
+                     hover:bg-primary-700 focus:ring-4 focus:ring-primary-400/40
+                     disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          {pending ? "Сохраняем…" : "Сохранить"}
         </button>
-        <span className="text-xs opacity-60">После сохранения произойдёт переход к списку</span>
       </div>
     </form>
   );

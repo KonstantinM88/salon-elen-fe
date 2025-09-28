@@ -1,103 +1,67 @@
 import Link from "next/link";
 import { prisma } from "@/lib/db";
-import { revalidatePath } from "next/cache";
-import { ArticleType } from "@prisma/client";
+import { deleteArticle } from "./actions";
 
 export const dynamic = "force-dynamic";
 
-function fmt(date: Date | null) {
-  if (!date) return "";
+function fmt(d: Date) {
   return new Intl.DateTimeFormat("ru-RU", {
     day: "2-digit",
     month: "2-digit",
     year: "numeric",
     hour: "2-digit",
     minute: "2-digit",
-  }).format(date);
+  }).format(d);
 }
 
-// поддерживаем и старые записи с NEWS
-type AnyType = ArticleType | "NEWS";
-const TYPE_LABEL: Record<AnyType, string> = {
-  ARTICLE: "ARTICLE",
-  PROMO: "PROMO",
-  NEWS: "NEWS",
-};
+async function deleteAction(formData: FormData): Promise<void> {
+  "use server";
+  await deleteArticle(formData);
+}
 
-export default async function NewsList() {
+export default async function Page() {
   const items = await prisma.article.findMany({
     orderBy: [{ createdAt: "desc" }],
     select: {
       id: true,
       title: true,
       slug: true,
-      type: true,
       publishedAt: true,
       createdAt: true,
     },
   });
 
-  // server action для удаления
-  async function deleteAction(formData: FormData) {
-    "use server";
-    const id = String(formData.get("id") || "");
-    if (!id) return;
-
-    await prisma.article.delete({ where: { id } });
-
-    revalidatePath("/admin/news");
-    revalidatePath("/admin");
-    revalidatePath("/news");
-    revalidatePath("/");
-  }
-
   return (
-    <main className="space-y-6">
+    <main className="p-6 space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-semibold">Новости</h1>
-        <Link
-          href="/admin/news/new"
-          className="rounded-xl px-3 py-2 bg-emerald-600 hover:bg-emerald-500 transition text-white"
-        >
+        <Link href="/admin/news/new" className="btn btn-primary">
           Новая запись
         </Link>
       </div>
 
-      <div className="overflow-x-auto">
+      <div className="overflow-x-auto rounded-2xl border">
         <table className="min-w-full text-sm">
-          <thead className="text-left text-slate-300">
+          <thead className="bg-muted/50 text-muted-foreground">
             <tr>
-              <th className="py-2 pr-4">Заголовок</th>
-              <th className="py-2 pr-4">Тип</th>
-              <th className="py-2 pr-4">Публикация</th>
-              <th className="py-2 pr-2 text-right">Действия</th>
+              <th className="p-3 text-left">Заголовок</th>
+              <th className="p-3 text-left">Публикация</th>
+              <th className="p-3 text-left">Действия</th>
             </tr>
           </thead>
           <tbody>
             {items.map((n) => (
-              <tr key={n.id} className="border-t border-slate-800">
-                <td className="py-2 pr-4">{n.title}</td>
-                <td className="py-2 pr-4">
-                  <span className="rounded-md bg-slate-800 px-2 py-0.5 text-xs">
-                    {TYPE_LABEL[n.type as AnyType]}
-                  </span>
-                </td>
-                <td className="py-2 pr-4">{fmt(n.publishedAt ?? n.createdAt)}</td>
-                <td className="py-2 pr-2">
+              <tr key={n.id} className="border-t">
+                <td className="p-3">{n.title}</td>
+                <td className="p-3">{fmt(n.publishedAt ?? n.createdAt)}</td>
+                <td className="p-3">
                   <div className="flex justify-end gap-2">
-                    <Link
-                      href={`/admin/news/${n.id}`}
-                      className="rounded-lg px-2 py-1 bg-slate-800 hover:bg-slate-700"
-                    >
+                    <Link href={`/admin/news/${n.id}`} className="btn btn-sm">
                       Редактировать
                     </Link>
-
                     <form action={deleteAction}>
                       <input type="hidden" name="id" value={n.id} />
-                      <button
-                        className="rounded-lg px-2 py-1 bg-rose-700/90 hover:bg-rose-600 text-white"
-                        aria-label={`Удалить "${n.title}"`}
-                      >
+                      <button className="btn btn-sm btn-danger" type="submit">
                         Удалить
                       </button>
                     </form>
@@ -105,10 +69,9 @@ export default async function NewsList() {
                 </td>
               </tr>
             ))}
-
             {items.length === 0 && (
               <tr>
-                <td className="py-4 text-slate-400" colSpan={4}>
+                <td className="p-4 opacity-70" colSpan={3}>
                   Записей пока нет.
                 </td>
               </tr>
