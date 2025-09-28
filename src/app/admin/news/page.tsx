@@ -1,6 +1,8 @@
+// src/app/admin/news/page.tsx
 import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { deleteArticle } from "./actions";
+import { revalidatePath } from "next/cache";
 
 export const dynamic = "force-dynamic";
 
@@ -14,9 +16,13 @@ function fmt(d: Date) {
   }).format(d);
 }
 
+// Серверный action для формы удаления.
+// Важно: возвращаем Promise<void> и ревалидируем страницу списка.
 async function deleteAction(formData: FormData): Promise<void> {
   "use server";
   await deleteArticle(formData);
+  // Обновим серверный рендер этой страницы, чтобы удалённая запись исчезла
+  revalidatePath("/admin/news");
 }
 
 export default async function Page() {
@@ -59,6 +65,8 @@ export default async function Page() {
                     <Link href={`/admin/news/${n.id}`} className="btn btn-sm">
                       Редактировать
                     </Link>
+
+                    {/* Удаление через серверный action */}
                     <form action={deleteAction}>
                       <input type="hidden" name="id" value={n.id} />
                       <button className="btn btn-sm btn-danger" type="submit">
@@ -69,6 +77,7 @@ export default async function Page() {
                 </td>
               </tr>
             ))}
+
             {items.length === 0 && (
               <tr>
                 <td className="p-4 opacity-70" colSpan={3}>

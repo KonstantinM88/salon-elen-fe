@@ -4,6 +4,8 @@ import { prisma } from "@/lib/db";
 import { saveImageFile } from "@/lib/upload";
 import { ArticleType, Prisma } from "@prisma/client";
 import { z } from "zod";
+import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 
 /* =========================
  * ВСПОМОГАТЕЛЬНЫЕ ТИПЫ
@@ -38,7 +40,7 @@ function isKnownPrismaError(
  * =======================*/
 
 const ArticleSchema = z.object({
-  // тип на стороне формы можно не показывать; в БД по умолчанию ARTICLE
+  // Тип можно не выводить в форме — по умолчанию ARTICLE
   type: z
     .nativeEnum(ArticleType)
     .optional()
@@ -52,7 +54,8 @@ const ArticleSchema = z.object({
   excerpt: z.string().optional(),
   body: z.string().min(1, "Текст обязателен"),
 
-  publishedAt: z.string().optional(), // "YYYY-MM-DDTHH:mm" из <input type="datetime-local">
+  // значения из <input type="datetime-local">
+  publishedAt: z.string().optional(),
   expiresAt: z.string().optional(),
 
   seoTitle: z.string().optional(),
@@ -65,9 +68,13 @@ const ArticleSchema = z.object({
  * ПАРСИНГ ДАТ ИЗ СТРОК ФОРМЫ
  * =======================*/
 
-function toDates(input: { publishedAt?: string; expiresAt?: string }) {
-  const input_published = input.publishedAt?.trim() ?? "";
-  const input_expires = input.expiresAt?.trim() ?? "";
+/** Преобразует значения из формы в Date|null */
+function toDates(input: { publishedAt?: string; expiresAt?: string }): {
+  publishedAt: Date | null;
+  expiresAt: Date | null;
+} {
+  const input_published = (input.publishedAt ?? "").trim();
+  const input_expires = (input.expiresAt ?? "").trim();
 
   const publishedAt =
     input_published !== "" ? new Date(input_published) : null;
@@ -88,7 +95,7 @@ async function prepareData(
       data: z.infer<typeof ArticleSchema>;
       publishedAt: Date | null;
       expiresAt: Date | null;
-      coverSrc?: string | null;
+      coverSrc?: string | null; // undefined — не трогать; null — очистить; string — обновить
     }
   | ActionFail
 > {
@@ -127,19 +134,27 @@ async function prepareData(
   // даты
   const { publishedAt, expiresAt } = toDates(parsed.data);
 
-  // обложка (если загружали)
+  // обложка — поддерживаем name="coverFile" ИЛИ name="cover"
   let coverSrc: string | null | undefined = undefined;
-  const cover = fd.get("cover");
-  if (cover instanceof File && cover.size > 0) {
-    try {
-      const saved = await saveImageFile(cover, { dir: "uploads" });
-      coverSrc = saved.src; // /uploads/xxx.webp
-    } catch (err) {
-      return {
-        ok: false,
-        error: "Не удалось сохранить изображение",
-      };
+  const coverCandidate = fd.get("coverFile") ?? fd.get("cover");
+  if (coverCandidate instanceof File) {
+    if (coverCandidate.size > 0) {
+      try {
+        const saved = await saveImageFile(coverCandidate, { dir: "uploads" });
+        coverSrc = saved.src; // /uploads/xxx.webp
+      } catch {
+        return { ok: false, error: "Не удалось сохранить изображение" };
+      }
+    } else {
+      // Пустой файл пришёл — считаем, что поле не менялось
+      coverSrc = undefined;
     }
+  } else if (coverCandidate === null) {
+    // Поля нет — не трогаем cover
+    coverSrc = undefined;
+  } else if (typeof coverCandidate === "string" && coverCandidate === "") {
+    // Явно хотели очистить (например, скрытым input с пустой строкой)
+    coverSrc = null;
   }
 
   return {
@@ -202,6 +217,19 @@ export async function createArticle(fd: FormData): Promise<ActionResult> {
   }
 }
 
+/** Удобный вариант: создать и сразу перейти в /admin/news */
+export async function createArticleAndRedirect(fd: FormData): Promise<void> {
+  const res = await createArticle(fd);
+  if (res.ok) {
+    revalidatePath("/admin/news");
+    redirect("/admin/news");
+  }
+  // Если не ок — пробросим, пусть страница покажет ошибку как раньше
+  throw new Error(
+    (res as ActionFail).error || "Не удалось сохранить запись (unknown)"
+  );
+}
+
 /* =========================
  * ОБНОВЛЕНИЕ
  * =======================*/
@@ -222,12 +250,18 @@ export async function updateArticle(
         slug: prep.data.slug,
         excerpt: prep.data.excerpt || undefined,
         body: prep.data.body,
-        // cover: если undefined — не трогаем, если null — обнулим, если строка — обновим
+
+        // cover:
+        //  - undefined — не трогаем
+        //  - null — обнулим
+        //  - string — обновим
         ...(prep.coverSrc === undefined
           ? {}
           : { cover: prep.coverSrc ?? null }),
 
-        // publishedAt: если пустая строка в форме — сохраняем null. Если не было поля — оставим как есть.
+        // Даты:
+        //  - null — сохраняем null
+        //  - undefined — оставляем как есть
         publishedAt:
           prep.publishedAt === null ? null : prep.publishedAt ?? undefined,
         expiresAt: prep.expiresAt === null ? null : prep.expiresAt ?? undefined,
@@ -259,6 +293,21 @@ export async function updateArticle(
   }
 }
 
+/** Удобный вариант: обновить и сразу вернуться на список */
+export async function updateArticleAndRedirect(
+  id: string,
+  fd: FormData
+): Promise<void> {
+  const res = await updateArticle(id, fd);
+  if (res.ok) {
+    revalidatePath("/admin/news");
+    redirect("/admin/news");
+  }
+  throw new Error(
+    (res as ActionFail).error || "Не удалось сохранить запись (unknown)"
+  );
+}
+
 /* =========================
  * УДАЛЕНИЕ
  * =======================*/
@@ -278,4 +327,16 @@ export async function deleteArticle(fd: FormData): Promise<ActionResult> {
     }
     return { ok: false, error: "Не удалось удалить запись" };
   }
+}
+
+/** Вариант для формы в списке: удалить + revalidate + redirect */
+export async function deleteArticleAndRefresh(fd: FormData): Promise<void> {
+  const res = await deleteArticle(fd);
+  // Даже если запись уже удалена — просто обновим список.
+  if (!res.ok) {
+    // Не роняем UX, но лог в консоль
+    console.warn("deleteArticle fail:", res.error);
+  }
+  revalidatePath("/admin/news");
+  redirect("/admin/news");
 }

@@ -1,13 +1,17 @@
+// src/app/admin/news/[id]/page.tsx
 import { prisma } from "@/lib/db";
 import ArticleForm from "@/components/forms/ArticleForm";
 import { updateArticle, type ActionResult } from "../actions";
-import { redirect, notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
 
-// В Next.js 15 params нужно await-ить
+// Страница рендерится на каждый запрос (чтобы видеть свежие данные)
+export const dynamic = "force-dynamic";
+
+// В Next.js 15 params — Promise и его нужно await-ить
 type PageProps = { params: Promise<{ id: string }> };
 
 export default async function Page({ params }: PageProps) {
-  // ✅ Правильное чтение динамического параметра
   const { id } = await params;
 
   const item = await prisma.article.findUnique({
@@ -25,19 +29,20 @@ export default async function Page({ params }: PageProps) {
       seoDesc: true,
       ogTitle: true,
       ogDesc: true,
+      // type можно не использовать, если в форме ты его не редактируешь
       type: true,
     },
   });
 
   if (!item) return notFound();
 
+  // ArticleForm ожидает строки или пусто — отдаём ISO-строки
   const initial = {
     title: item.title,
     slug: item.slug,
     excerpt: item.excerpt ?? "",
     body: item.body,
     cover: item.cover ?? null,
-    // форма ожидает строки (ISO) либо пусто
     publishedAt: item.publishedAt ? item.publishedAt.toISOString() : "",
     expiresAt: item.expiresAt ? item.expiresAt.toISOString() : "",
     seoTitle: item.seoTitle ?? "",
@@ -48,7 +53,7 @@ export default async function Page({ params }: PageProps) {
 
   return (
     <main className="p-6 space-y-6">
-      <h1 className="text-xl font-semibold">Редактировать</h1>
+      <h1 className="text-xl font-semibold">Редактировать запись</h1>
 
       <ArticleForm
         initial={initial}
@@ -57,10 +62,14 @@ export default async function Page({ params }: PageProps) {
           "use server";
           const res = await updateArticle(item.id, fd);
           if (res.ok) {
+            // гарантированно обновим список и вернёмся на /admin/news
+            revalidatePath("/admin/news");
             redirect("/admin/news");
           }
+          // Вернём типобезопасный результат, чтобы форма показала ошибку (если она есть)
           return res as ActionResult;
         }}
+        redirectTo="/admin/news"
       />
     </main>
   );
