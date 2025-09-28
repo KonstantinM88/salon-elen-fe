@@ -3,30 +3,37 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-type Item = { href: string; label: string };
+type NavItem = { href: string; label: string };
 
-const items: Item[] = [
-  { href: "/admin", label: "Дашборд" },
+const NAV: NavItem[] = [
+  { href: "/admin",          label: "Дашборд" },
+  { href: "/admin/news",     label: "Новости" },
   { href: "/admin/services", label: "Услуги" },
-  { href: "/admin/bookings", label: "Записи" },
-  { href: "/admin/news", label: "Новости/Акции" },
-  // { href: "/admin/media", label: "Медиа" }, // добавишь позже
+  { href: "/admin/bookings", label: "Заявки" },
 ];
 
 export default function AdminNav() {
   const pathname = usePathname();
+
   return (
-    <nav className="flex flex-col gap-1">
-      {items.map((it) => {
-        const active = pathname === it.href || pathname.startsWith(it.href + "/");
+    <nav className="space-y-3">
+      {NAV.map(({ href, label }) => {
+        const active = pathname === href || pathname.startsWith(href + "/");
+        const base =
+          "block w-full rounded-2xl border px-4 py-2 text-sm transition";
+        const activeCls =
+          "border-slate-600 bg-slate-800 text-white shadow-sm";
+        const idleCls =
+          "border-slate-800/70 bg-slate-900/40 text-slate-200 hover:bg-slate-800/60";
+
         return (
           <Link
-            key={it.href}
-            href={it.href}
-            className={`rounded-xl px-3 py-2 text-sm transition
-              ${active ? "bg-black text-white" : "hover:bg-neutral-100"}`}
+            key={href}
+            href={href}
+            aria-current={active ? "page" : undefined}
+            className={`${base} ${active ? activeCls : idleCls}`}
           >
-            {it.label}
+            {label}
           </Link>
         );
       })}
