@@ -213,42 +213,56 @@ export default function ArticleForm({
           <p className="mt-1 text-right text-xs opacity-70">слов: {wordCount(body)}</p>
         </div>
 
-        {/* --- Ряд: Обложка (слева) + Публиковать с (справа) --- */}
-        <div>
-          <label className="text-sm font-medium">Обложка</label>
-          <div className="mt-1 flex items-center gap-3 rounded-2xl border bg-transparent px-3 py-2">
-            <input
-              id="cover"
-              name="cover"
-              type="file"
-              accept="image/*"
-              onChange={(e) => {
-                const f = e.currentTarget.files?.[0] ?? null;
-                if (!f) {
-                  setNewFilePreview(null);
-                  setFileLabel("Файл не выбран");
-                  return;
-                }
-                setFileLabel(f.name);
-                const url = URL.createObjectURL(f);
-                setNewFilePreview((prev) => {
-                  if (prev) URL.revokeObjectURL(prev);
-                  return url;
-                });
-              }}
-              className="sr-only"
-            />
-            <label
-              htmlFor="cover"
-              className="btn btn-primary rounded-full px-5 py-2"
-            >
-              Выберите файл
-            </label>
-            <span className="max-w-[18rem] truncate text-xs opacity-80">
-              {fileLabel}
-            </span>
-          </div>
-        </div>
+
+
+{/* --- Обложка: одинаковая высота с input-ами, кнопка-пилюля --- */}
+<div>
+  <label htmlFor="cover" className="text-sm font-medium">Обложка</label>
+
+  {/* обёртка — как текстовый инпут: border + та же высота */}
+  <div className="mt-1 flex items-center rounded-xl border px-2 h-10">
+    {/* реальный input — скрыт */}
+    <input
+      id="cover"
+      name="cover"
+      type="file"
+      accept="image/*"
+      onChange={(e) => {
+        const f = e.currentTarget.files?.[0] ?? null;
+        if (!f) {
+          setNewFilePreview(null);
+          setFileLabel("Файл не выбран");
+          return;
+        }
+        setFileLabel(f.name);
+        const url = URL.createObjectURL(f);
+        setNewFilePreview((prev) => {
+          if (prev) URL.revokeObjectURL(prev);
+          return url;
+        });
+      }}
+      className="sr-only"
+    />
+
+    {/* видимая кнопка — «пилюля»; по высоте подгоняем под h-10 контейнера */}
+    <label
+      htmlFor="cover"
+      className="shrink-0 inline-flex items-center rounded-full px-4 py-1.5
+                 bg-emerald-600 text-white text-sm font-medium
+                 hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-400"
+    >
+      Выберите файл
+    </label>
+
+    {/* имя файла — чтобы не рвало сетку, ограничиваем и троетим */}
+    <span className="ml-3 truncate text-sm opacity-80">
+      {fileLabel}
+    </span>
+  </div>
+</div>
+
+
+
 
         <div>
           <label htmlFor="publishedAt" className="text-sm font-medium">
@@ -268,6 +282,9 @@ export default function ArticleForm({
             </p>
           )}
         </div>
+
+
+
 
         {/* Подсказка к обложке — отдельной строкой на всю ширину → первая строка ровная */}
         <div className="md:col-span-2">
