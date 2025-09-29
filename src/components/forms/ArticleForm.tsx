@@ -1,3 +1,4 @@
+// src/components/forms/ArticleForm.tsx
 "use client";
 
 import * as React from "react";
@@ -8,7 +9,7 @@ export type Initial = {
   slug?: string;
   excerpt?: string;
   body?: string;
-  cover?: string | null; // текущая обложка (URL)
+  cover?: string | null;
   publishedAt?: string | null;
   expiresAt?: string | null;
   seoTitle?: string;
@@ -37,7 +38,7 @@ const LIMITS = {
 function toLocalDateTimeValue(input?: string | null): string {
   if (!input) return "";
   const d = new Date(input);
-  if (Number.isNaN(d.getTime())) return input;
+  if (Number.isNaN(d.getTime())) return input ?? "";
   const yyyy = d.getFullYear();
   const mm = String(d.getMonth() + 1).padStart(2, "0");
   const dd = String(d.getDate()).padStart(2, "0");
@@ -58,7 +59,7 @@ export default function ArticleForm({
     {}
   );
 
-  // Поля (чтобы рисовать счётчики и не терять их)
+  // управляемые поля — для счётчиков/подсказок
   const [title, setTitle] = React.useState(initial?.title ?? "");
   const [slug, setSlug] = React.useState(initial?.slug ?? "");
   const [excerpt, setExcerpt] = React.useState(initial?.excerpt ?? "");
@@ -68,8 +69,11 @@ export default function ArticleForm({
   const [ogTitle, setOgTitle] = React.useState(initial?.ogTitle ?? "");
   const [ogDesc, setOgDesc] = React.useState(initial?.ogDesc ?? "");
 
-  // превью нового файла + текущая обложка
-  const [newFilePreview, setNewFilePreview] = React.useState<string | null>(null);
+  // файл + предпросмотр
+  const [newFilePreview, setNewFilePreview] = React.useState<string | null>(
+    null
+  );
+  const [fileLabel, setFileLabel] = React.useState("Файл не выбран");
   const currentCover = initial?.cover ?? null;
 
   React.useEffect(() => {
@@ -91,24 +95,29 @@ export default function ArticleForm({
         setServerError(res.error);
         if (res.details?.fieldErrors) setFieldErrors(res.details.fieldErrors);
       }
-      // успешный кейс обрабатывается на странице (redirect/flash)
+      // успешный редирект выполняется на странице
     } finally {
       setPending(false);
     }
   }
 
+  // ⛳ ВАЖНО: НЕ указываем encType/method — их задаёт React/Next для server action
   return (
-    <form action={handleSubmit} encType="multipart/form-data" className="space-y-8">
+    <form action={handleSubmit} className="space-y-8">
       {articleId && <input type="hidden" name="id" value={articleId} />}
       {redirectTo && <input type="hidden" name="redirectTo" value={redirectTo} />}
 
       {serverError && (
-        <div role="alert" className="rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm">
+        <div
+          role="alert"
+          className="rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm"
+        >
           {serverError}
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      {/* Сетка 2 колонки, элементы по верху — идеально ровные ряды */}
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2 items-start">
         {/* Заголовок */}
         <div>
           <label htmlFor="title" className="text-sm font-medium">
@@ -123,6 +132,7 @@ export default function ArticleForm({
             onChange={(e) => setTitle(e.target.value)}
             className="mt-1 w-full rounded-xl border bg-transparent px-3 py-2 outline-none focus:ring-2 focus:ring-primary-500"
             placeholder="Например: Наша новая услуга…"
+            title="Обязательное поле. До 120 символов."
           />
           {fieldErrors.title && (
             <p className="mt-1 text-xs text-red-500">{fieldErrors.title[0]}</p>
@@ -146,6 +156,8 @@ export default function ArticleForm({
             onChange={(e) => setSlug(e.target.value)}
             className="mt-1 w-full rounded-xl border bg-transparent px-3 py-2 outline-none focus:ring-2 focus:ring-primary-500"
             placeholder="naprimer-novaya-usluga"
+            pattern="^[a-z0-9-]+$"
+            title="Только строчные латинские буквы, цифры и дефисы"
           />
           {fieldErrors.slug && (
             <p className="mt-1 text-xs text-red-500">{fieldErrors.slug[0]}</p>
@@ -169,6 +181,7 @@ export default function ArticleForm({
             onChange={(e) => setExcerpt(e.target.value)}
             className="mt-1 w-full rounded-xl border bg-transparent px-3 py-2 outline-none focus:ring-2 focus:ring-primary-500"
             placeholder="Одно-два предложения анонса…"
+            title="Необязательно. До 300 символов."
           />
           {fieldErrors.excerpt && (
             <p className="mt-1 text-xs text-red-500">{fieldErrors.excerpt[0]}</p>
@@ -192,6 +205,7 @@ export default function ArticleForm({
             onChange={(e) => setBody(e.target.value)}
             className="mt-1 w-full rounded-xl border bg-transparent px-3 py-2 outline-none focus:ring-2 focus:ring-primary-500"
             placeholder="Основной текст публикации…"
+            title="Обязательное поле"
           />
           {fieldErrors.body && (
             <p className="mt-1 text-xs text-red-500">{fieldErrors.body[0]}</p>
@@ -199,55 +213,43 @@ export default function ArticleForm({
           <p className="mt-1 text-right text-xs opacity-70">слов: {wordCount(body)}</p>
         </div>
 
-        {/* Обложка + превью */}
+        {/* --- Ряд: Обложка (слева) + Публиковать с (справа) --- */}
         <div>
-          <label htmlFor="cover" className="text-sm font-medium">
-            Обложка
-          </label>
-          <input
-            id="cover"
-            name="cover"
-            type="file"
-            accept="image/*"
-            onChange={(e) => {
-              const f = e.currentTarget.files?.[0] ?? null;
-              if (!f) {
-                setNewFilePreview(null);
-                return;
-              }
-              const url = URL.createObjectURL(f);
-              setNewFilePreview((prev) => {
-                if (prev) URL.revokeObjectURL(prev);
-                return url;
-              });
-            }}
-            className="mt-1 w-full rounded-xl border bg-transparent px-3 py-2
-                       file:mr-4 file:rounded-lg file:border-0
-                       file:bg-primary-600 file:px-4 file:py-2 file:text-sm file:font-medium file:text-white
-                       hover:file:bg-primary-700"
-          />
-          {fieldErrors.cover && (
-            <p className="mt-1 text-xs text-red-500">{fieldErrors.cover[0]}</p>
-          )}
-
-          {/* Превью */}
-          {(newFilePreview || currentCover) && (
-            <div className="mt-3 rounded-xl border p-2">
-              <div className="text-xs mb-2 opacity-70">Предпросмотр</div>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={newFilePreview ?? currentCover ?? ""}
-                alt="Превью обложки"
-                className="max-h-60 w-auto rounded-lg object-contain"
-              />
-            </div>
-          )}
-          <p className="mt-1 text-xs opacity-70">
-            Рекомендация: 1200×630+, до 10 МБ (JPG/PNG/WEBP/GIF)
-          </p>
+          <label className="text-sm font-medium">Обложка</label>
+          <div className="mt-1 flex items-center gap-3 rounded-2xl border bg-transparent px-3 py-2">
+            <input
+              id="cover"
+              name="cover"
+              type="file"
+              accept="image/*"
+              onChange={(e) => {
+                const f = e.currentTarget.files?.[0] ?? null;
+                if (!f) {
+                  setNewFilePreview(null);
+                  setFileLabel("Файл не выбран");
+                  return;
+                }
+                setFileLabel(f.name);
+                const url = URL.createObjectURL(f);
+                setNewFilePreview((prev) => {
+                  if (prev) URL.revokeObjectURL(prev);
+                  return url;
+                });
+              }}
+              className="sr-only"
+            />
+            <label
+              htmlFor="cover"
+              className="btn btn-primary rounded-full px-5 py-2"
+            >
+              Выберите файл
+            </label>
+            <span className="max-w-[18rem] truncate text-xs opacity-80">
+              {fileLabel}
+            </span>
+          </div>
         </div>
 
-        {/* Даты */}
         <div>
           <label htmlFor="publishedAt" className="text-sm font-medium">
             Публиковать с
@@ -258,8 +260,23 @@ export default function ArticleForm({
             type="datetime-local"
             defaultValue={toLocalDateTimeValue(initial?.publishedAt ?? null)}
             className="mt-1 w-full rounded-xl border bg-transparent px-3 py-2 outline-none focus:ring-2 focus:ring-primary-500"
+            title="Если оставить пустым — публикация сразу после сохранения"
           />
+          {fieldErrors.publishedAt && (
+            <p className="mt-1 text-xs text-red-500">
+              {fieldErrors.publishedAt[0]}
+            </p>
+          )}
         </div>
+
+        {/* Подсказка к обложке — отдельной строкой на всю ширину → первая строка ровная */}
+        <div className="md:col-span-2">
+          <p className="text-xs opacity-70">
+            Рекомендация по обложке: 1200×630+, до 10 МБ (JPG/PNG/WEBP/GIF)
+          </p>
+        </div>
+
+        {/* Скрыть после */}
         <div>
           <label htmlFor="expiresAt" className="text-sm font-medium">
             Скрыть после
@@ -271,7 +288,27 @@ export default function ArticleForm({
             defaultValue={toLocalDateTimeValue(initial?.expiresAt ?? null)}
             className="mt-1 w-full rounded-xl border bg-transparent px-3 py-2 outline-none focus:ring-2 focus:ring-primary-500"
           />
+          {fieldErrors.expiresAt && (
+            <p className="mt-1 text-xs text-red-500">
+              {fieldErrors.expiresAt[0]}
+            </p>
+          )}
         </div>
+
+        {/* Предпросмотр — своей строкой на всю ширину */}
+        {(newFilePreview || currentCover) && (
+          <div className="md:col-span-2">
+            <div className="mt-1 rounded-xl border p-2">
+              <div className="mb-2 text-xs opacity-70">Предпросмотр</div>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={newFilePreview ?? currentCover ?? ""}
+                alt="Превью обложки"
+                className="max-h-60 w-auto rounded-lg object-contain"
+              />
+            </div>
+          </div>
+        )}
 
         {/* SEO */}
         <div>
@@ -348,13 +385,14 @@ export default function ArticleForm({
         </div>
       </div>
 
+      {/* Кнопка-сабмит — «пилюля» */}
       <div className="flex justify-end">
         <button
           type="submit"
           disabled={pending}
-          className="rounded-xl bg-primary-600 px-6 py-2.5 text-sm font-semibold text-white shadow-lg shadow-primary-600/20
-                     hover:bg-primary-700 focus:ring-4 focus:ring-primary-400/40
-                     disabled:cursor-not-allowed disabled:opacity-60"
+          className="inline-flex items-center rounded-full px-6 py-2.5 text-sm font-medium
+                     bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm
+                     disabled:opacity-60 disabled:cursor-not-allowed"
         >
           {pending ? "Сохраняем…" : "Сохранить"}
         </button>
