@@ -1,40 +1,56 @@
-import Image from "next/image";
 import Link from "next/link";
+import Image from "next/image";
+import type { ReactNode } from "react";
 
 type Props = {
-  href?: string;
+  href?: string;              // можно опустить — тогда не ссылка
   src: string;
   alt: string;
   title: string;
-  children?: React.ReactNode;
-  ratio?: "square" | "video" | "photo"; // 1:1 | 16:9 | 3:2
+  children?: ReactNode;       // любой контент
+  className?: string;
 };
 
-const ratioClass = {
-  square: "aspect-square",
-  video: "aspect-video",
-  photo: "aspect-[3/2]",
-};
-
-export default function ImageCard({ href, src, alt, title, children, ratio = "photo" }: Props) {
-  const body = (
-    <article className="rounded-2xl border border-gray-200/70 dark:border-gray-800 overflow-hidden bg-white dark:bg-gray-900 hover:shadow-md transition">
-      <div className={`relative ${ratioClass[ratio]}`}>
+export default function ImageCard({
+  href,
+  src,
+  alt,
+  title,
+  children,
+  className,
+}: Props) {
+  const inner = (
+    <>
+      <div className="relative aspect-[16/10] overflow-hidden">
         <Image
           src={src}
           alt={alt}
           fill
-          className="object-cover"
-          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-          priority={false}
+          sizes="(max-width: 768px) 100vw, 33vw"
+          className="object-cover transition-transform duration-500 group-hover:scale-105 will-change-transform"
         />
       </div>
-      <div className="p-4 sm:p-5">
-        <h3 className="font-medium text-lg">{title}</h3>
-        {children && <div className="mt-2 text-sm text-gray-700 dark:text-gray-300">{children}</div>}
+      <div className="p-4">
+        <h3 className="font-medium">{title}</h3>
+        {children ? (
+          // БЫЛО <p>…</p> — заменили на div, чтобы не было вложенных p
+          <div className="mt-1 text-sm text-gray-600 dark:text-gray-300">
+            {children}
+          </div>
+        ) : null}
       </div>
-    </article>
+    </>
   );
 
-  return href ? <Link href={href} className="block">{body}</Link> : body;
+  const cls =
+    "group block rounded-2xl border hover:shadow-md transition overflow-hidden " +
+    (className ?? "");
+
+  return href ? (
+    <Link href={href} className={cls}>
+      {inner}
+    </Link>
+  ) : (
+    <div className={cls}>{inner}</div>
+  );
 }

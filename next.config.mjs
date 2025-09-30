@@ -7,6 +7,7 @@ const nextConfig = {
       // опционально: если используешь внешние URL
       remotePatterns: [{ protocol: "https", hostname: "lbar.com.ua" }],
       formats: ["image/avif", "image/webp"],
+      deviceSizes: [360, 640, 768, 1024, 1280, 1536, 1920, 2400],
     },
   };
   
