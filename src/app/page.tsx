@@ -65,39 +65,20 @@ export default async function Page() {
     <main>
 
 
- {/* HERO – широкоформатно, картинка целиком */}
-<section className="relative isolate overflow-hidden w-full min-h-[clamp(460px,72svh,840px)]">
-  <div className="container relative z-10 pt-16 sm:pt-24 pb-16 sm:pb-28">
-    <div className="max-w-2xl">
-      <h1 className="text-3xl sm:text-5xl font-semibold tracking-tight">
+{/* HERO — mobile: текст СВЕРХУ и СНИЗУ вне картинки; desktop: как раньше */}
+<section className="relative isolate w-full">
+  {/* ===== MOBILE LAYOUT (до md) ===== */}
+  <div className="md:hidden">
+    {/* верхний заголовок — над фото */}
+    <div className="container pt-4">
+      <h1 className="text-[26px] leading-[1.15] font-semibold tracking-tight text-[#F5F3EE]">
         Salon Elen — красота и уход в Halle
       </h1>
-      <p className="mt-4 text-gray-700 dark:text-gray-300">
-        Парикмахерские услуги, маникюр, уход за кожей и макияж. Запишитесь онлайн — это быстро и удобно.
-      </p>
-      <div className="mt-6 flex gap-3">
-        <Link href="/booking" className="btn">Записаться</Link>
-        <Link href="/services" className="btn border-gray-300 dark:border-gray-700 bg-transparent">Услуги</Link>
-      </div>
     </div>
-  </div>
 
-  {/* Фон HERO */}
-  <div className="absolute inset-0 -z-10 bg-[#efe7de] dark:bg-[#0f1216]">
-    {/* Мобила */}
-    <div className="md:hidden absolute inset-0">
-      <Image
-        src="/images/hero-mobile.webp"
-        alt="Salon Elen"
-        fill
-        priority
-        fetchPriority="high"
-        loading="eager"
-        sizes="100vw"
-        style={{ objectFit: "contain" }}
-        placeholder="blur"
-        blurDataURL="data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHdpZHRoPScxJyBoZWlnaHQ9JzEnPjxyZWN0IHdpZHRoPScxJyBoZWlnaHQ9JzEnIGZpbGw9JyNlZmU3ZGUnLz48L3N2Zz4="
-      />
+    {/* само изображение по центру, без перекрытий */}
+    <div className="relative w-full mt-2">
+      {/* подложка (мягкая, чтобы не было полос) */}
       <div
         aria-hidden
         className="absolute inset-0 -z-10 blur-2xl opacity-50"
@@ -109,39 +90,96 @@ export default async function Page() {
           filter: "blur(40px)",
         }}
       />
+      {/* само фото (целиком) */}
+      <div className="relative aspect-[3/4] w-full">
+        <Image
+          src="/images/hero-mobile.webp"
+          alt="Salon Elen"
+          fill
+          sizes="100vw"
+          className="object-contain"
+          priority
+          placeholder="blur"
+          blurDataURL="data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHdpZHRoPScxJyBoZWlnaHQ9JzEnPjxyZWN0IHdpZHRoPScxJyBoZWlnaHQ9JzEnIGZpbGw9JyNlZmU3ZGUnLz48L3N2Zz4="
+        />
+      </div>
     </div>
 
-    {/* Десктоп */}
-    <div className="hidden md:block absolute inset-0">
-      <Image
-        src="/images/hero.webp"
-        alt="Salon Elen"
-        fill
-        priority
-        fetchPriority="high"
-        loading="eager"
-        sizes="100vw"
-        style={{ objectFit: "contain" }}
-        placeholder="blur"
-        blurDataURL="data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHdpZHRoPScxJyBoZWlnaHQ9JzEnPjxyZWN0IHdpZHRoPScxJyBoZWlnaHQ9JzEnIGZpbGw9JyNlZmU3ZGUnLz48L3N2Zz4="
-      />
-      <div
-        aria-hidden
-        className="absolute inset-0 -z-10 blur-2xl opacity-50"
-        style={{
-          backgroundImage: 'url("/images/hero.webp")',
-          backgroundSize: "cover",
-          backgroundPosition: "center",
-          transform: "scale(1.05)",
-          filter: "blur(40px)",
-        }}
-      />
+    {/* нижний блок — под фото */}
+    <div className="container pb-6 mt-4">
+      <p className="text-[14px] leading-relaxed text-[#F5F3EE]/95">
+        Парикмахерские услуги, маникюр, уход за кожей и макияж. Запишитесь онлайн — это быстро и удобно.
+      </p>
+      <div className="mt-4 flex gap-3">
+        <Link
+          href="/booking"
+          className="rounded-full px-4 py-2 text-sm font-medium text-[#F5F3EE] bg-white/15 hover:bg-white/25 border border-white/20 backdrop-blur transition"
+        >
+          Записаться
+        </Link>
+        <Link
+          href="/services"
+          className="rounded-full px-4 py-2 text-sm font-medium text-[#F5F3EE]/90 hover:text-[#F5F3EE] border border-white/25 hover:bg-white/10 transition"
+        >
+          Услуги
+        </Link>
+      </div>
+    </div>
+  </div>
+
+  {/* ===== DESKTOP LAYOUT (от md) — широкий, текст слева поверх, фото целиком ===== */}
+  <div className="hidden md:block relative min-h-[clamp(520px,75vh,860px)]">
+    <div className="container relative z-10 pt-20 pb-16 max-w-2xl">
+      <h1 className="text-5xl font-semibold tracking-tight text-[#F5F3EE] drop-shadow-[0_2px_8px_rgba(0,0,0,0.35)]">
+        Salon Elen — красота и уход в Halle
+      </h1>
+      <p className="mt-4 text-base text-[#F5F3EE]/95 drop-shadow-[0_1px_6px_rgba(0,0,0,0.35)]">
+        Парикмахерские услуги, маникюр, уход за кожей и макияж. Запишитесь онлайн — это быстро и удобно.
+      </p>
+      <div className="mt-6 flex gap-3">
+        <Link
+          href="/booking"
+          className="rounded-full px-5 py-2.5 text-sm font-medium text-[#F5F3EE] bg-white/15 hover:bg-white/25 border border-white/20 backdrop-blur transition"
+        >
+          Записаться
+        </Link>
+        <Link
+          href="/services"
+          className="rounded-full px-5 py-2.5 text-sm font-medium text-[#F5F3EE]/90 hover:text-[#F5F3EE] border border-white/25 hover:bg-white/10 transition"
+        >
+          Услуги
+        </Link>
+      </div>
     </div>
 
-    {/* Лёгкое затемнение для читабельности текста */}
-    <div className="absolute inset-0 bg-white/35 dark:bg-black/55" />
+    {/* фон для десктопа */}
+    <Image
+      src="/images/hero.webp"
+      alt="Salon Elen"
+      fill
+      sizes="100vw"
+      className="object-contain [object-position:58%_50%]"
+      priority
+      placeholder="blur"
+      blurDataURL="data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHdpZHRoPScxJyBoZWlnaHQ9JzEnPjxyZWN0IHdpZHRoPScxJyBoZWlnaHQ9JzEnIGZpbGw9JyNlZmU3ZGUnLz48L3N2Zz4="
+    />
+    <div
+      aria-hidden
+      className="absolute inset-0 -z-10 blur-2xl opacity-50"
+      style={{
+        backgroundImage: 'url("/images/hero.webp")',
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+        transform: "scale(1.05)",
+        filter: "blur(40px)",
+      }}
+    />
+    {/* лёгкий градиент слева для контраста текста */}
+    <div className="absolute inset-0 bg-gradient-to-r from-black/40 via-black/20 to-transparent" />
   </div>
 </section>
+
+
 
 
 
