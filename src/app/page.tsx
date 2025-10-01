@@ -106,9 +106,30 @@ export default async function Page() {
             </p>
             <div className="mt-4 flex gap-3">
               {/* Мобильная «живая» кнопка — делаем компактнее высоту/паддинги */}
-              <CTAButton href="/booking" idle="aura" className="h-10 px-5 text-sm">
+              {/* <CTAButton href="/booking" idle="aura" className="h-10 px-5 text-sm">
+  Записаться
+</CTAButton> */}
+{/* Мобильная «живая» кнопка — ярче и заметнее */}
+<CTAButton
+  href="/booking"
+  ariaLabel="Записаться онлайн"
+  idle="aura"
+  cycleBg
+  cycleText={[
+    "Записаться",
+    "Свободные слоты сегодня",
+    "3 минуты — и готово",
+    "Мастер ждёт вас"
+  ]}
+  cycleIntervalMs={4200} // меняем чуть реже
+  hoverText="Записаться сейчас"
+  pressText="Открываю запись…"
+  className="cta-boost idle-sheen"
+>
   Записаться
 </CTAButton>
+
+
 
 
               <Link

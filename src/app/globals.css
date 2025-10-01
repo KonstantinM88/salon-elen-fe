@@ -322,3 +322,75 @@ html { scroll-behavior: smooth; }
       0 0 0 0 rgba(255,255,255,0.00);
   }
 }
+
+/* ========= MOBILE CTA BOOST (усиление эффектов на мобильных) ========= */
+/* таргетим устройства без ховера и/или узкие экраны */
+@media (hover: none) and (pointer: coarse), (max-width: 767px) {
+  /* — блик чаще и контрастнее — */
+  .cta-boost-mobile.btn-primary::after {
+    /* используем тот же keyframes: btn-sheen-loop */
+    animation-duration: 3.8s !important; /* было 5.5s */
+    opacity: .40 !important;            /* было .25 */
+  }
+
+  /* — аура быстрее — */
+  .cta-boost-mobile.idle-aura {
+    animation-duration: 2.6s !important; /* было 3.6s */
+  }
+
+  /* — тёплый градиент заметнее — */
+  .cta-boost-mobile.idle-gradient {
+    animation-duration: 6.5s !important;  /* было 9s */
+    background-size: 260% 260% !important;/* было 220% */
+  }
+
+  /* — добавим чуть более заметную тень — */
+  .cta-boost-mobile {
+    box-shadow:
+      0 8px 26px rgba(255,255,255,0.16),
+      0 0 0 0 rgba(255,255,255,0.00);
+  }
+  .cta-boost-mobile:active {
+    box-shadow:
+      0 6px 18px rgba(255,255,255,0.14),
+      0 0 0 0 rgba(255,255,255,0.00);
+  }
+}
+
+/* уважение к reduced motion — мобильный буст тоже глушим */
+@media (prefers-reduced-motion: reduce) {
+  :root:not([data-allow-motion="true"]) .cta-boost-mobile.btn-primary::after,
+  :root:not([data-allow-motion="true"]) .cta-boost-mobile.idle-aura,
+  :root:not([data-allow-motion="true"]) .cta-boost-mobile.idle-gradient {
+    animation: none !important;
+  }
+}
+
+/* ==== subtle background color cycle for the button ==== */
+@keyframes btn-bg-cycle {
+  0%   { background-color: #ffffff; }
+  50%  { background-color: #fff4ea; } /* тёплый молочный оттенок */
+  100% { background-color: #ffffff; }
+}
+
+/* плавное текстовое появление при смене надписи */
+@keyframes btn-text-fade {
+  0%   { opacity: 0; transform: translateY(4px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+/* включатели (простые классы, без @utility) */
+.btn-cycle-bg {
+  animation: btn-bg-cycle 8s ease-in-out infinite;
+}
+.btn-text-fade {
+  animation: btn-text-fade 260ms ease both;
+}
+
+/* на десктопе — чуть заметнее перелив (быстрее) */
+@media (min-width: 1024px) and (hover: hover) and (pointer: fine) {
+  .btn-cycle-bg {
+    animation-duration: 6.5s;
+  }
+}
+

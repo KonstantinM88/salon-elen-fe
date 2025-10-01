@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import { useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 type IdleMode = "breathe" | "sheen" | "aura" | "gradient" | "none";
 
@@ -9,16 +9,75 @@ export default function CTAButton({
   children,
   className,
   ariaLabel,
-  idle = "sheen", // режим в покое по умолчанию
+  idle = "sheen",
+  cycleText,
+  cycleIntervalMs = 4000,
+  hoverText,
+  pressText,
+  cycleBg = false,
 }: {
   href: string;
-  children: React.ReactNode;
+  children: React.ReactNode;           // базовая надпись, например "Записаться"
   className?: string;
-  ariaLabel?: string;
+  ariaLabel?: string;                  // постоянная aria-метка, чтобы не дёргать скринридер
   idle?: IdleMode;
+  cycleText?: string[];                // массив фраз для ротации
+  cycleIntervalMs?: number;            // интервал переключения
+  hoverText?: string;                  // текст при hover/focus
+  pressText?: string;                  // текст при mousedown/press
+  cycleBg?: boolean;                   // плавный тёплый перелив фона
 }) {
   const ref = useRef<HTMLAnchorElement>(null);
 
+  // ---- текстовая ротация с учётом reduced motion и паузой при hover/focus ----
+  const baseText = useMemo(() => {
+    // children гарантированно строка в нашем кейсе
+    return typeof children === "string" ? children : "";
+  }, [children]);
+
+  const phrases = useMemo(() => {
+    const arr = (cycleText && cycleText.length > 0) ? cycleText : [];
+    // исключаем дубли с базовым текстом подряд
+    return [baseText, ...arr.filter(t => t && t !== baseText)];
+  }, [baseText, cycleText]);
+
+  const [index, setIndex] = useState(0);
+  const [isHoverOrFocus, setHold] = useState(false);
+  const [isPress, setPress] = useState(false);
+  const reduce = useMemo(
+    () => typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches,
+    []
+  );
+
+  useEffect(() => {
+    if (reduce || phrases.length <= 1) return;   // не крутим текст при reduced motion
+    if (isHoverOrFocus || isPress) return;       // делаем паузу при взаимодействии
+    const id = setInterval(() => {
+      setIndex(i => (i + 1) % phrases.length);
+    }, Math.max(1800, cycleIntervalMs));         // защитим от слишком маленьких интервалов
+    return () => clearInterval(id);
+  }, [phrases.length, cycleIntervalMs, reduce, isHoverOrFocus, isPress]);
+
+  const currentLabel = useMemo(() => {
+    if (isPress && pressText) return pressText;
+    if (isHoverOrFocus && hoverText) return hoverText;
+    return phrases[index] ?? baseText;
+  }, [isPress, pressText, isHoverOrFocus, hoverText, phrases, index, baseText]);
+
+  const onMouseEnter = () => setHold(true);
+  const onMouseLeave = () => { setHold(false); setPress(false); };
+  const onFocus = () => setHold(true);
+  const onBlur = () => { setHold(false); setPress(false); };
+  const onMouseDown = () => setPress(true);
+  const onMouseUp = () => setPress(false);
+  const onKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" || e.key === " ") setPress(true);
+  };
+  const onKeyUp = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" || e.key === " ") setPress(false);
+  };
+
+  // ripple по клику
   const onClick = (e: React.MouseEvent) => {
     const el = ref.current;
     if (!el) return;
@@ -48,25 +107,34 @@ export default function CTAButton({
     <Link
       ref={ref}
       href={href}
-      aria-label={ariaLabel}
+      aria-label={ariaLabel || baseText}  // aria остаётся стабильной
       onClick={onClick}
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
+      onMouseDown={onMouseDown}
+      onMouseUp={onMouseUp}
+      onFocus={onFocus}
+      onBlur={onBlur}
+      onKeyDown={onKeyDown}
+      onKeyUp={onKeyUp}
       className={[
-        // base
         "btn-primary relative inline-flex h-12 px-7 items-center justify-center rounded-full",
-        "bg-white text-gray-900 font-medium",
+        // фон и текст
+        "text-gray-900 font-medium",
+        cycleBg ? "btn-cycle-bg" : "bg-white",
+        // тени/взаимодействие
         "shadow-[0_6px_22px_rgba(255,255,255,0.10)] hover:shadow-[0_10px_28px_rgba(255,255,255,0.16)]",
-        // interaction
         "transition-transform duration-300 will-transform btn-primary-sheen btn-primary-hover-shimmer",
-        "hover:-translate-y-0.5 active:translate-y-0",
-        "focus-visible:focus-ring",
-        // idle mode
+        "hover:-translate-y-0.5 active:translate-y-0 focus-visible:focus-ring",
+        // idle режимы (аура/градиент/блик и т.п.)
         idleClass,
-        // не мешаем hover/focus анимациями покоя
+        // чтобы idle-анимация не спорила при реальном взаимодействии
         "hover:animation-none focus:animation-none",
         className || "",
       ].join(" ")}
     >
-      {children}
+      {/* визуальная надпись; aria-live выключен, чтобы не мешать читателям экрана */}
+      <span aria-hidden className="btn-text-fade">{currentLabel}</span>
     </Link>
   );
 }
