@@ -18,9 +18,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="ru" className="dark" suppressHydrationWarning>
+    // data-allow-motion="true" — принудительно включает idle-анимации,
+    // даже если у пользователя включено «уменьшение движения».
+    // Убери атрибут, если хочешь уважать системные настройки.
+    <html lang="ru" className="dark" suppressHydrationWarning data-allow-motion="true">
       <head>
-        {/* Preload hero изображений без ошибок типов */}
+        {/* Preload hero изображений */}
         <link
           rel="preload"
           as="image"
@@ -38,14 +41,8 @@ export default function RootLayout({
       </head>
 
       <body className="bg-white text-gray-900 dark:bg-gray-900 dark:text-gray-100 antialiased">
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="dark"
-          enableSystem={false}
-        >
+        <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
           <SiteHeader />
-          {/* ВАЖНО: без container — чтобы hero был full-width.
-              Внутри страниц используем <section><div className='container'>…</div></section> */}
           <main>{children}</main>
           <SiteFooter />
         </ThemeProvider>
