@@ -1,7 +1,8 @@
-import Link from "next/link";
+import Link from "next/link"; 
 import Image from "next/image";
 import Section from "@/components/section";
-import CTAButton from "@/components/cta-button"; // ← живая кнопка
+// import CTAButton from "@/components/cta-button"; // ← больше не используем в герое
+import RainbowCTA from "@/components/RainbowCTA";   // ← новая градиентная кнопка
 import { prisma } from "@/lib/db";
 
 /* ---------- Типы ---------- */
@@ -61,7 +62,7 @@ export default async function Page() {
 
   return (
     <main>
-      {/* HERO — mobile старый layout, но кнопка заменена на CTAButton; desktop — обновлённый тёмный */}
+      {/* HERO — mobile и desktop с новой градиентной кнопкой RainbowCTA */}
       <section className="relative isolate w-full">
         {/* ===== MOBILE (до md) ===== */}
         <div className="md:hidden">
@@ -105,32 +106,13 @@ export default async function Page() {
               Парикмахерские услуги, маникюр, уход за кожей и макияж. Запишитесь онлайн — это быстро и удобно.
             </p>
             <div className="mt-4 flex gap-3">
-              {/* Мобильная «живая» кнопка — делаем компактнее высоту/паддинги */}
-              {/* <CTAButton href="/booking" idle="aura" className="h-10 px-5 text-sm">
-  Записаться
-</CTAButton> */}
-{/* Мобильная «живая» кнопка — ярче и заметнее */}
-<CTAButton
-  href="/booking"
-  ariaLabel="Записаться онлайн"
-  idle="aura"
-  cycleBg
-  cycleText={[
-    "Записаться",
-    "Свободные слоты сегодня",
-    "3 минуты — и готово",
-    "Мастер ждёт вас"
-  ]}
-  cycleIntervalMs={4200} // меняем чуть реже
-  hoverText="Записаться сейчас"
-  pressText="Открываю запись…"
-  className="cta-boost idle-sheen"
->
-  Записаться
-</CTAButton>
-
-
-
+              {/* Мобильная новая кнопка — компактнее и можно включить idle-анимацию */}
+              <RainbowCTA
+                href="/booking"
+                label="Записаться"
+                className="h-10 px-5 text-[14px]"  /* уменьшили габариты */
+                idle                                     /* всегда переливается мягко */
+              />
 
               <Link
                 href="/services"
@@ -181,19 +163,13 @@ export default async function Page() {
                   </p>
 
                   <div className="mt-7 flex items-center gap-4">
-                    {/* Десктопная «живая» кнопка */}
-                    {/* <CTAButton href="/booking" idle="sheen">Записаться</CTAButton> */}
-                    {/* Десктопная «живая» кнопка — делаем заметнее */}
-<CTAButton
-  href="/booking"
-  ariaLabel="Записаться онлайн"
-  idle="gradient"                            // мягкий тёплый перелив
-  className="cta-boost idle-sheen"           // + редкий автоблик и усиление для десктопа
->
-  Записаться
-</CTAButton>
-
-
+                    {/* Десктопная новая кнопка — чуть крупнее и idle-анимация */}
+                    <RainbowCTA
+                      href="/booking"
+                      label="Записаться"
+                      className="h-12 px-7 text-[15px]"
+                      idle   /* всегда переливается (в покое тоже) */
+                    />
 
                     <Link
                       href="/services"
@@ -337,6 +313,7 @@ export default async function Page() {
               Выберите удобное время и запишитесь онлайн.
             </p>
             <div className="mt-6">
+              {/* Здесь можно тоже поставить RainbowCTA, если хочешь единый стиль */}
               <Link href="/booking" className="btn">Записаться</Link>
             </div>
           </div>
