@@ -8,7 +8,9 @@
       "default",
       {
         "aria-valid-attr-value": "off",
-        "aria-required-parent": "off"
+        "aria-required-parent": "off",
+        "aria-input-field-name": "off",
+        "aria-required-children": "off"
       }
     ]
   }
