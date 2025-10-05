@@ -1,212 +1,175 @@
-import { prisma } from '@/lib/db';
-import { createService, updateService, deleteService } from './actions';
+// src/app/admin/services/page.tsx
+import { prisma } from "@/lib/db";
+import { createService, updateService, deleteService } from "./actions";
 
-export const dynamic = 'force-dynamic';
-
-function euro(cents: number): string {
-  return (cents / 100).toFixed(2).replace('.', ',');
+function euro(cents: number | null): string {
+  if (cents === null) return "—";
+  return new Intl.NumberFormat("de-DE", {
+    style: "currency",
+    currency: "EUR",
+  }).format((cents ?? 0) / 100);
 }
 
+export const dynamic = "force-dynamic";
+
 export default async function AdminServicesPage() {
-  const rows = await prisma.service.findMany({
-    orderBy: [{ id: 'asc' }],
+  const services = await prisma.service.findMany({
+    orderBy: { name: "asc" },
+    select: {
+      id: true,
+      createdAt: true,
+      name: true, // было title
+      slug: true,
+      durationMin: true,
+      priceCents: true,
+      isActive: true,
+      updatedAt: true,
+    },
   });
 
   return (
     <main className="container py-8 space-y-8">
-      <header className="flex items-end justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Услуги</h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400">
-            Управляйте списком услуг, ценами, длительностью и описанием
-          </p>
-        </div>
-      </header>
+      <h1 className="text-2xl font-semibold">Услуги</h1>
 
-      {/* Добавление */}
-      <section className="rounded-xl border border-gray-200 dark:border-gray-800 p-4 sm:p-6">
-        <h2 className="font-medium mb-4">Добавить услугу</h2>
-
-        <form action={createService} className="grid gap-3 sm:grid-cols-5">
-          <div className="sm:col-span-2">
-            <label htmlFor="new-title" className="block text-sm mb-1">
-              Название*
-            </label>
-            <input id="new-title" name="title" className="input w-full" required />
-          </div>
-
-          <div>
-            <label htmlFor="new-slug" className="block text-sm mb-1">
-              Слаг (если пусто — из названия)
-            </label>
-            <input id="new-slug" name="slug" className="input w-full" />
-          </div>
-
-          <div>
-            <label htmlFor="new-price" className="block text-sm mb-1">
-              Цена, €
-            </label>
+      {/* Create */}
+      <section className="rounded-xl border border-white/10 p-4">
+        <h2 className="text-lg font-medium mb-3">Добавить услугу</h2>
+        <form action={createService} className="grid gap-3 md:grid-cols-5 items-end">
+          <div className="md:col-span-2">
+            <label className="block text-sm mb-1">Название</label>
             <input
-              id="new-price"
+              name="name"
+              className="w-full rounded-lg border bg-transparent px-3 py-2"
+              placeholder="Стрижка"
+              required
+            />
+          </div>
+          <div>
+            <label className="block text-sm mb-1">Slug</label>
+            <input
+              name="slug"
+              className="w-full rounded-lg border bg-transparent px-3 py-2"
+              placeholder="haircut"
+            />
+          </div>
+          <div>
+            <label className="block text-sm mb-1">Цена (€)</label>
+            <input
               name="priceEuro"
               type="number"
               step="0.01"
-              className="input w-full"
+              min="0"
+              className="w-full rounded-lg border bg-transparent px-3 py-2"
               required
             />
           </div>
-
           <div>
-            <label htmlFor="new-duration" className="block text-sm mb-1">
-              Мин.*
-            </label>
+            <label className="block text-sm mb-1">Длительность (мин)</label>
             <input
-              id="new-duration"
               name="durationMin"
               type="number"
-              className="input w-full"
+              min="1"
+              className="w-full rounded-lg border bg-transparent px-3 py-2"
               required
             />
           </div>
-
-          <div className="sm:col-span-5">
-            <label htmlFor="new-description" className="block text-sm mb-1">
-              Описание (необязательно)
-            </label>
-            <textarea
-              id="new-description"
-              name="description"
-              className="input w-full min-h-[88px]"
-            />
-          </div>
-
-          <div className="sm:col-span-5">
-            <button className="btn">Сохранить</button>
+          <div className="md:col-span-5">
+            <button className="rounded-full px-4 py-2 border hover:bg-white/10 transition">
+              Создать
+            </button>
           </div>
         </form>
       </section>
 
-      {/* Таблица */}
-      <div className="overflow-x-auto rounded-xl border border-gray-200 dark:border-gray-800">
+      {/* List */}
+      <section className="rounded-xl border border-white/10 overflow-x-auto">
         <table className="min-w-full text-sm">
-          <thead className="bg-gray-50 dark:bg-gray-900/40">
+          <thead className="bg-white/5">
             <tr className="[&>th]:px-3 [&>th]:py-2 text-left">
               <th>ID</th>
               <th>Название</th>
-              <th>Слаг</th>
-              <th>Цена, €</th>
-              <th>Мин.</th>
-              <th>Описание</th>
+              <th>Slug</th>
+              <th>Цена</th>
+              <th>Мин</th>
+              <th>Активна</th>
+              <th>Обновлена</th>
               <th></th>
             </tr>
           </thead>
-          <tbody className="[&>tr:nth-child(even)]:bg-black/5">
-            {rows.map((s) => (
-              <tr key={s.id} className="[&>td]:px-3 [&>td]:py-2 align-top">
+          <tbody>
+            {services.map((s) => (
+              <tr
+                key={s.id}
+                className="[&>td]:px-3 [&>td]:py-2 align-top border-t border-white/10"
+              >
                 <td className="whitespace-nowrap">{s.id}</td>
-                <td className="min-w-[14rem]">{s.title}</td>
+                <td className="min-w-[14rem]">{s.name}</td>
                 <td className="min-w-[10rem]">{s.slug}</td>
                 <td>{euro(s.priceCents)}</td>
                 <td>{s.durationMin}</td>
-                <td className="max-w-[40ch] text-gray-700 dark:text-gray-300">
-                  {s.description ?? <span className="text-gray-400">—</span>}
+                <td>{s.isActive ? "Да" : "Нет"}</td>
+                <td className="whitespace-nowrap">
+                  {new Date(s.updatedAt).toLocaleString()}
                 </td>
-                <td className="min-w-[18rem]">
-                  {/* Inline-редактирование */}
-                  <form action={updateService} className="grid gap-2 sm:grid-cols-5">
-                    <input type="hidden" name="id" value={s.id} />
+                <td className="min-w-[22rem]">
+                  {/* Update form */}
+                  <form
+                    action={updateService}
+                    className="grid gap-2 md:grid-cols-[1fr,1fr,8rem,8rem,auto]"
+                  >
+                    <input type="hidden" name="id" value={String(s.id)} />
+                    <input
+                      name="name"
+                      defaultValue={s.name}
+                      className="rounded-lg border bg-transparent px-3 py-1.5"
+                    />
+                    <input
+                      name="slug"
+                      defaultValue={s.slug}
+                      className="rounded-lg border bg-transparent px-3 py-1.5"
+                    />
+                    <input
+                      name="priceEuro"
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      defaultValue={
+                        s.priceCents !== null ? (s.priceCents / 100).toFixed(2) : ""
+                      }
+                      className="rounded-lg border bg-transparent px-3 py-1.5"
+                    />
+                    <input
+                      name="durationMin"
+                      type="number"
+                      min="1"
+                      defaultValue={s.durationMin}
+                      className="rounded-lg border bg-transparent px-3 py-1.5"
+                    />
+                    <button className="rounded-full px-3 py-1.5 border hover:bg-white/10 transition">
+                      Сохранить
+                    </button>
+                  </form>
 
-                    <div className="sm:col-span-2">
-                      <label htmlFor={`title-${s.id}`} className="sr-only">
-                        Название
-                      </label>
-                      <input
-                        id={`title-${s.id}`}
-                        name="title"
-                        defaultValue={s.title}
-                        className="input w-full"
-                      />
-                    </div>
-
-                    <div>
-                      <label htmlFor={`slug-${s.id}`} className="sr-only">
-                        Слаг
-                      </label>
-                      <input
-                        id={`slug-${s.id}`}
-                        name="slug"
-                        defaultValue={s.slug}
-                        className="input w-full"
-                      />
-                    </div>
-
-                    <div>
-                      <label htmlFor={`price-${s.id}`} className="sr-only">
-                        Цена, €
-                      </label>
-                      <input
-                        id={`price-${s.id}`}
-                        name="priceEuro"
-                        type="number"
-                        step="0.01"
-                        defaultValue={euro(s.priceCents)}
-                        className="input w-full"
-                      />
-                    </div>
-
-                    <div>
-                      <label htmlFor={`duration-${s.id}`} className="sr-only">
-                        Мин.
-                      </label>
-                      <input
-                        id={`duration-${s.id}`}
-                        name="durationMin"
-                        type="number"
-                        defaultValue={String(s.durationMin)}
-                        className="input w-full"
-                      />
-                    </div>
-
-                    <div className="sm:col-span-5">
-                      <label htmlFor={`desc-${s.id}`} className="sr-only">
-                        Описание
-                      </label>
-                      <textarea
-                        id={`desc-${s.id}`}
-                        name="description"
-                        defaultValue={s.description ?? ''}
-                        className="input w-full min-h-[72px]"
-                      />
-                    </div>
-
-                    <div className="sm:col-span-5 flex gap-2">
-                      <button className="btn">Обновить</button>
-
-                      {/* Вторая операция в той же форме */}
-                      <button
-                        className="btn border-red-300 dark:border-red-700 bg-transparent"
-                        // name="id"
-                        // value={s.id}
-                        formAction={deleteService}
-                      >
-                        Удалить
-                      </button>
-                    </div>
+                  {/* Delete form */}
+                  <form action={deleteService} className="mt-2">
+                    <input type="hidden" name="id" value={String(s.id)} />
+                    <button className="rounded-full px-3 py-1.5 border border-rose-500 text-rose-500 hover:bg-rose-500/10 transition">
+                      Удалить
+                    </button>
                   </form>
                 </td>
               </tr>
             ))}
-
-            {rows.length === 0 && (
+            {services.length === 0 && (
               <tr>
-                <td colSpan={7} className="px-3 py-6 text-center text-gray-500">
-                  Пока нет услуг — добавьте первую выше
+                <td className="px-3 py-6 text-center text-gray-500" colSpan={8}>
+                  Услуг пока нет
                 </td>
               </tr>
             )}
           </tbody>
         </table>
-      </div>
+      </section>
     </main>
   );
 }

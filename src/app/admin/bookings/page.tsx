@@ -1,110 +1,85 @@
-import { prisma } from "@/lib/db";
-import { setStatus, removeBooking } from "./actions";
-import type { Booking } from "@prisma/client";
+// src/app/admin/bookings/page.tsx
+import { prisma } from "@/lib/prisma";
+import { AppointmentStatus } from "@prisma/client";
+import { setStatus, remove } from "./actions";
 
-export const dynamic = "force-dynamic"; // всегда свежие данные
-
-type BookingStatus = Booking["status"]; // "NEW" | "CONFIRMED" | "CANCELED"
-const ALLOWED_STATUSES = ["NEW", "CONFIRMED", "CANCELED"] as const;
-
-function isBookingStatus(v: unknown): v is BookingStatus {
-  return (
-    typeof v === "string" && (ALLOWED_STATUSES as readonly string[]).includes(v)
-  );
-}
+export const dynamic = "force-dynamic";
 
 export default async function AdminBookingsPage() {
-  const rows = await prisma.booking.findMany({
+  const rows = await prisma.appointment.findMany({
     orderBy: { createdAt: "desc" },
     take: 200,
     select: {
       id: true,
-      customer: true,
+      createdAt: true,
+      customerName: true,
       phone: true,
       email: true,
-      date: true,
+      notes: true,
+      startAt: true,
+      endAt: true,
       status: true,
-      note: true,
-      createdAt: true,
-      service: { select: { title: true } },
+      service: { select: { name: true, slug: true } },
     },
   });
 
   return (
-    <main className="container py-8 space-y-6">
-      <h1 className="text-2xl font-semibold">Заявки ({rows.length})</h1>
+    <div className="container py-8">
+      <h1 className="text-2xl font-semibold mb-6">Заявки (онлайн-запись)</h1>
 
-      <div className="overflow-x-auto rounded-xl border border-gray-200 dark:border-gray-800">
+      <div className="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-800">
         <table className="min-w-full text-sm">
           <thead className="bg-gray-50 dark:bg-gray-900/40">
-            <tr className="[&>th]:px-3 [&>th]:py-2 text-left">
-              <th>ID</th>
-              <th>Создана</th>
-              <th>Клиент</th>
-              <th>Телефон</th>
-              <th>Email</th>
-              <th>Услуга</th>
-              <th>Дата</th>
-              <th>Статус</th>
-              <th>Комментарий</th>
-              <th></th>
+            <tr>
+              <th className="px-3 py-2 text-left">Когда создано</th>
+              <th className="px-3 py-2 text-left">Клиент</th>
+              <th className="px-3 py-2 text-left">Услуга</th>
+              <th className="px-3 py-2 text-left">Время</th>
+              <th className="px-3 py-2 text-left">Статус</th>
+              <th className="px-3 py-2"></th>
             </tr>
           </thead>
-          <tbody className="[&>tr:nth-child(even)]:bg-black/5">
-            {rows.map((b) => (
-              <tr key={b.id} className="[&>td]:px-3 [&>td]:py-2 align-top">
-                <td>{b.id}</td>
-                <td>{b.createdAt.toLocaleString()}</td>
-                <td>{b.customer}</td>
-                <td>{b.phone}</td>
-                <td>{b.email ?? "-"}</td>
-                <td>{b.service?.title ?? "-"}</td>
-                <td>{b.date.toLocaleString()}</td>
-
-                <td>
-                  <form
-                    action={async (formData: FormData) => {
-                      "use server";
-                      const id = b.id;
-
-                      const raw = formData.get("status");
-                      if (!isBookingStatus(raw)) {
-                        // можно залогировать/показать тост
-                        return;
-                      }
-
-                      await setStatus(id, raw);
-                    }}
-                  >
-                    <label htmlFor={`status-${b.id}`} className="sr-only">Статус заявки</label>
-                    <select
-                      id={`status-${b.id}`}
-                      name="status"
-                      defaultValue={b.status as string}
-                      className="rounded-md border bg-transparent px-2 py-1"
-                    >
-                      <option value="NEW">NEW</option>
-                      <option value="CONFIRMED">CONFIRMED</option>
-                      <option value="CANCELED">CANCELED</option>
-                    </select>
-                    <button className="ml-2 rounded-md border px-2 py-1">
-                      Сохранить
+          <tbody>
+            {rows.map((r) => (
+              <tr key={r.id} className="border-t border-gray-100 dark:border-gray-800">
+                <td className="px-3 py-2 whitespace-nowrap">
+                  {r.createdAt.toLocaleString()}
+                </td>
+                <td className="px-3 py-2">
+                  <div className="font-medium">{r.customerName}</div>
+                  <div className="text-xs text-gray-500">{r.phone}{r.email ? ` • ${r.email}` : ""}</div>
+                </td>
+                <td className="px-3 py-2">
+                  <div>{r.service?.name ?? "—"}</div>
+                </td>
+                <td className="px-3 py-2">
+                  {r.startAt.toLocaleString()} — {r.endAt.toLocaleTimeString()}
+                </td>
+                <td className="px-3 py-2">{r.status}</td>
+                <td className="px-3 py-2">
+                  <form action={async (formData) => {
+                    "use server";
+                    await setStatus(r.id, AppointmentStatus.CONFIRMED);
+                  }}>
+                    <button className="rounded-full px-3 py-1 text-xs bg-emerald-600 text-white mr-2">
+                      Подтвердить
                     </button>
                   </form>
-                </td>
 
-                <td className="max-w-[20ch] truncate" title={b.note ?? ""}>
-                  {b.note ?? ""}
-                </td>
+                  <form action={async () => {
+                    "use server";
+                    await setStatus(r.id, AppointmentStatus.CANCELED);
+                  }}>
+                    <button className="rounded-full px-3 py-1 text-xs bg-amber-600 text-white mr-2">
+                      Отменить
+                    </button>
+                  </form>
 
-                <td>
-                  <form
-                    action={async () => {
-                      "use server";
-                      await removeBooking(b.id);
-                    }}
-                  >
-                    <button className="rounded-md border px-2 py-1">
+                  <form action={async () => {
+                    "use server";
+                    await remove(r.id);
+                  }}>
+                    <button className="rounded-full px-3 py-1 text-xs bg-rose-600 text-white">
                       Удалить
                     </button>
                   </form>
@@ -114,17 +89,14 @@ export default async function AdminBookingsPage() {
 
             {rows.length === 0 && (
               <tr>
-                <td
-                  colSpan={10}
-                  className="px-3 py-6 text-center text-gray-500"
-                >
-                  Заявок пока нет
+                <td className="px-3 py-6 text-center text-gray-500" colSpan={6}>
+                  Записей пока нет
                 </td>
               </tr>
             )}
           </tbody>
         </table>
       </div>
-    </main>
+    </div>
   );
 }

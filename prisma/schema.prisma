@@ -1,87 +1,113 @@
-datasource db {
-  provider = "postgresql" // если Neon — ставь "postgresql"
-  url      = env("DATABASE_URL")                  // пулер (основные запросы)
-  directUrl         = env("DIRECT_URL")           // прямое соединение
- // shadowDatabaseUrl = env("SHADOW_DATABASE_URL")  // для shadow-базы в migrate dev
-}
-
+// prisma/schema.prisma
 generator client {
   provider = "prisma-client-js"
 }
 
-enum BookingStatus {
-  NEW
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+/* ───────── Твои модели контента ───────── */
+
+enum ArticleType {
+  NEWS
+  PROMO
+  ARTICLE
+}
+
+model Article {
+  id          String       @id @default(cuid())
+  slug        String       @unique
+  title       String
+  excerpt     String?
+  cover       String?
+  type        ArticleType  @default(NEWS)
+  content     String?
+  publishedAt DateTime?
+  expiresAt   DateTime?
+
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  @@index([publishedAt])
+  @@index([expiresAt])
+}
+
+model Booking {
+  id        String   @id @default(cuid())
+  name      String
+  phone     String
+  email     String?
+  message   String?
+  createdAt DateTime @default(now())
+}
+
+/* ───────── Модели онлайн-записи ───────── */
+
+model Service {
+  id          String   @id @default(cuid())
+  name        String   @map("title")  // ← в БД колонка title, в коде поле name
+  slug        String   @unique
+  durationMin Int
+  priceCents  Int?
+  isActive    Boolean  @default(true)
+
+  appointments Appointment[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([isActive])
+  @@index([slug])
+  @@map("Service")
+}
+
+enum AppointmentStatus {
+  PENDING
   CONFIRMED
   CANCELED
 }
 
-model Service {
-  id          Int      @id @default(autoincrement())
-  slug        String   @unique
-  title       String
-  description String?
-  priceCents  Int
-  durationMin Int
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+model Appointment {
+  id           String             @id @default(cuid())
+  serviceId    String
+  service      Service            @relation(fields: [serviceId], references: [id])
 
-  bookings Booking[]
+  startAt      DateTime
+  endAt        DateTime
+
+  customerName String
+  phone        String
+  email        String?
+  notes        String?
+
+  status       AppointmentStatus  @default(PENDING)
+
+  createdAt    DateTime           @default(now())
+
+  @@index([startAt, endAt])
+  @@index([serviceId])
+  @@index([status])
+  @@unique([serviceId, startAt])
 }
 
-model Booking {
-  id        Int           @id @default(autoincrement())
-  customer  String
-  phone     String
-  email     String?
-  serviceId Int
-  date      DateTime
-  note      String?
-  status    BookingStatus @default(NEW)
-  createdAt DateTime      @default(now())
-
-  service Service @relation(fields: [serviceId], references: [id])
+model WorkingHours {
+  id           String  @id @default(cuid())
+  weekday      Int
+  startMinutes Int
+  endMinutes   Int
+  isClosed     Boolean @default(false)
+  createdAt    DateTime @default(now())
+  @@unique([weekday])
 }
 
-model ContactMessage {
-  id        Int      @id @default(autoincrement())
-  name      String
-  email     String
-  message   String
-  createdAt DateTime @default(now())
-}
-
-// === Added by patch: Articles & Media models ===
-enum ArticleType {
-  ARTICLE
-  NEWS
-}
-
-model Article {
-  id          String      @id @default(cuid())
-  type        ArticleType @default(ARTICLE)
-  title       String
-  slug        String      @unique
-  excerpt     String?
-  body        String
-  cover       String?
-  publishedAt DateTime?
-  expiresAt   DateTime?
-  seoTitle    String?
-  seoDesc     String?
-  ogTitle     String?
-  ogDesc      String?
-  createdAt   DateTime    @default(now())
-}
-
-model Media {
-  id        String   @id @default(cuid())
-  album     String?
-  title     String?
-  alt       String?
-  desc      String?
-  src       String // URL or path
-  width     Int?
-  height    Int?
-  tags      String[] @default([])
-  createdAt DateTime @default(now())
+model TimeOff {
+  id           String  @id @default(cuid())
+  date         DateTime
+  startMinutes Int
+  endMinutes   Int
+  reason       String?
+  createdAt    DateTime @default(now())
+  @@index([date])
 }

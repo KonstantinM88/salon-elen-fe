@@ -1,29 +1,31 @@
+// src/app/admin/bookings/actions.ts
 "use server";
 
-import { prisma } from "@/lib/db";
-import type { Booking } from "@prisma/client";
+import { prisma } from "@/lib/prisma";
+import { AppointmentStatus } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 
 type Result = { ok: true } | { ok: false; error: string };
-type BookingStatus = Booking["status"];
 
-
-export async function setStatus(id: number, status: BookingStatus): Promise<Result> {
+export async function setStatus(id: string, status: AppointmentStatus): Promise<Result> {
   try {
-    await prisma.booking.update({ where: { id }, data: { status } });
+    await prisma.appointment.update({
+      where: { id },
+      data: { status },
+    });
     revalidatePath("/admin/bookings");
     return { ok: true };
   } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : "Ошибка" };
+    return { ok: false, error: "Не удалось обновить статус" };
   }
 }
 
-export async function removeBooking(id: number): Promise<Result> {
+export async function remove(id: string): Promise<Result> {
   try {
-    await prisma.booking.delete({ where: { id } });
+    await prisma.appointment.delete({ where: { id } });
     revalidatePath("/admin/bookings");
     return { ok: true };
-  } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : "Ошибка" };
+  } catch {
+    return { ok: false, error: "Не удалось удалить запись" };
   }
 }

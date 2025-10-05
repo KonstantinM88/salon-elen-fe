@@ -1,76 +1,71 @@
 // src/app/admin/news/[id]/page.tsx
-import { prisma } from "@/lib/db";
-import ArticleForm from "@/components/forms/ArticleForm";
-import { updateArticle, type ActionResult } from "../actions";
-import { notFound, redirect } from "next/navigation";
-import { revalidatePath } from "next/cache";
+import { notFound } from "next/navigation";
+import { prisma } from "@/lib/prisma";
 
-// Страница рендерится на каждый запрос (чтобы видеть свежие данные)
 export const dynamic = "force-dynamic";
 
-// В Next.js 15 params — Promise и его нужно await-ить
-type PageProps = { params: Promise<{ id: string }> };
+type PageProps = {
+  params: { id: string };
+};
 
-export default async function Page({ params }: PageProps) {
-  const { id } = await params;
-
-  const item = await prisma.article.findUnique({
-    where: { id },
+export default async function AdminNewsEditPage({ params }: PageProps) {
+  const article = await prisma.article.findUnique({
+    where: { id: params.id },
     select: {
       id: true,
-      title: true,
       slug: true,
+      title: true,
       excerpt: true,
-      body: true,
+      // ВАЖНО: в схеме это поле называется content (не body)
+      content: true,
       cover: true,
+      type: true,
       publishedAt: true,
       expiresAt: true,
-      seoTitle: true,
-      seoDesc: true,
-      ogTitle: true,
-      ogDesc: true,
-      // type можно не использовать, если в форме ты его не редактируешь
-      type: true,
     },
   });
 
-  if (!item) return notFound();
+  if (!article) return notFound();
 
-  // ArticleForm ожидает строки или пусто — отдаём ISO-строки
-  const initial = {
-    title: item.title,
-    slug: item.slug,
-    excerpt: item.excerpt ?? "",
-    body: item.body,
-    cover: item.cover ?? null,
-    publishedAt: item.publishedAt ? item.publishedAt.toISOString() : "",
-    expiresAt: item.expiresAt ? item.expiresAt.toISOString() : "",
-    seoTitle: item.seoTitle ?? "",
-    seoDesc: item.seoDesc ?? "",
-    ogTitle: item.ogTitle ?? "",
-    ogDesc: item.ogDesc ?? "",
-  };
-
+  // Минимальная разметка (можете заменить своим редактором)
   return (
-    <main className="p-6 space-y-6">
-      <h1 className="text-xl font-semibold">Редактировать запись</h1>
+    <main className="container py-8">
+      <h1 className="text-2xl font-semibold">Редактирование новости</h1>
 
-      <ArticleForm
-        initial={initial}
-        articleId={item.id}
-        onSubmit={async (fd) => {
-          "use server";
-          const res = await updateArticle(item.id, fd);
-          if (res.ok) {
-            // гарантированно обновим список и вернёмся на /admin/news
-            revalidatePath("/admin/news");
-            redirect("/admin/news");
-          }
-          // Вернём типобезопасный результат, чтобы форма показала ошибку (если она есть)
-          return res as ActionResult;
-        }}
-        redirectTo="/admin/news"
-      />
+      <div className="mt-6 grid gap-4">
+        <div>
+          <div className="text-sm text-gray-500">Заголовок</div>
+          <div className="font-medium">{article.title}</div>
+        </div>
+
+        <div>
+          <div className="text-sm text-gray-500">Slug</div>
+          <div className="font-mono">{article.slug}</div>
+        </div>
+
+        <div>
+          <div className="text-sm text-gray-500">Краткое описание</div>
+          <div>{article.excerpt}</div>
+        </div>
+
+        <div>
+          <div className="text-sm text-gray-500">Содержимое</div>
+          <pre className="whitespace-pre-wrap rounded bg-neutral-900/5 p-3">
+            {article.content}
+          </pre>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <div className="text-sm text-gray-500">Опубликована</div>
+            <div>{article.publishedAt ? new Date(article.publishedAt).toLocaleString() : "—"}</div>
+          </div>
+          <div>
+            <div className="text-sm text-gray-500">Истекает</div>
+            <div>{article.expiresAt ? new Date(article.expiresAt).toLocaleString() : "—"}</div>
+          </div>
+        </div>
+      </div>
     </main>
   );
 }

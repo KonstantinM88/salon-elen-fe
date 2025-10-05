@@ -40,7 +40,6 @@ function isKnownPrismaError(
  * =======================*/
 
 const ArticleSchema = z.object({
-  // Тип можно не выводить в форме — по умолчанию ARTICLE
   type: z
     .nativeEnum(ArticleType)
     .optional()
@@ -58,6 +57,7 @@ const ArticleSchema = z.object({
   publishedAt: z.string().optional(),
   expiresAt: z.string().optional(),
 
+  // Эти поля можно оставить в форме, но в БД их нет — игнорируем
   seoTitle: z.string().optional(),
   seoDesc: z.string().optional(),
   ogTitle: z.string().optional(),
@@ -68,7 +68,6 @@ const ArticleSchema = z.object({
  * ПАРСИНГ ДАТ ИЗ СТРОК ФОРМЫ
  * =======================*/
 
-/** Преобразует значения из формы в Date|null */
 function toDates(input: { publishedAt?: string; expiresAt?: string }): {
   publishedAt: Date | null;
   expiresAt: Date | null;
@@ -95,11 +94,10 @@ async function prepareData(
       data: z.infer<typeof ArticleSchema>;
       publishedAt: Date | null;
       expiresAt: Date | null;
-      coverSrc?: string | null; // undefined — не трогать; null — очистить; string — обновить
+      coverSrc?: string | null; // undefined — не трогаем; null — очистить; string — обновить
     }
   | ActionFail
 > {
-  // собираем значения из формы
   const raw = {
     type: fd.get("type")?.toString(),
     title: fd.get("title")?.toString() ?? "",
@@ -110,13 +108,13 @@ async function prepareData(
     publishedAt: fd.get("publishedAt")?.toString(),
     expiresAt: fd.get("expiresAt")?.toString(),
 
+    // SEO поля могут присутствовать в форме, но дальше не пишем их в БД
     seoTitle: fd.get("seoTitle")?.toString() ?? "",
     seoDesc: fd.get("seoDesc")?.toString() ?? "",
     ogTitle: fd.get("ogTitle")?.toString() ?? "",
     ogDesc: fd.get("ogDesc")?.toString() ?? "",
   };
 
-  // валидируем
   const parsed = ArticleSchema.safeParse(raw);
   if (!parsed.success) {
     const fieldErrors: FieldErrors = {};
@@ -131,29 +129,24 @@ async function prepareData(
     };
   }
 
-  // даты
   const { publishedAt, expiresAt } = toDates(parsed.data);
 
-  // обложка — поддерживаем name="coverFile" ИЛИ name="cover"
   let coverSrc: string | null | undefined = undefined;
   const coverCandidate = fd.get("coverFile") ?? fd.get("cover");
   if (coverCandidate instanceof File) {
     if (coverCandidate.size > 0) {
       try {
         const saved = await saveImageFile(coverCandidate, { dir: "uploads" });
-        coverSrc = saved.src; // /uploads/xxx.webp
+        coverSrc = saved.src;
       } catch {
         return { ok: false, error: "Не удалось сохранить изображение" };
       }
     } else {
-      // Пустой файл пришёл — считаем, что поле не менялось
       coverSrc = undefined;
     }
   } else if (coverCandidate === null) {
-    // Поля нет — не трогаем cover
     coverSrc = undefined;
   } else if (typeof coverCandidate === "string" && coverCandidate === "") {
-    // Явно хотели очистить (например, скрытым input с пустой строкой)
     coverSrc = null;
   }
 
@@ -175,30 +168,25 @@ export async function createArticle(fd: FormData): Promise<ActionResult> {
   if (!prep.ok) return prep;
 
   try {
-    // Если дата публикации пустая — публикуем сейчас
     const publishedAtFinal = prep.publishedAt ?? new Date();
 
     const created = await prisma.article.create({
       data: {
-        type: prep.data.type, // по умолчанию ARTICLE
+        type: prep.data.type,
         title: prep.data.title,
         slug: prep.data.slug,
         excerpt: prep.data.excerpt || undefined,
-        body: prep.data.body,
+        content: prep.data.body,            // ← пишем в content
         cover: prep.coverSrc ?? undefined,
         publishedAt: publishedAtFinal,
         expiresAt: prep.expiresAt ?? undefined,
-        seoTitle: prep.data.seoTitle || undefined,
-        seoDesc: prep.data.seoDesc || undefined,
-        ogTitle: prep.data.ogTitle || undefined,
-        ogDesc: prep.data.ogDesc || undefined,
+        // SEO-поля намеренно не пишем — их нет в схеме
       },
       select: { id: true },
     });
 
     return { ok: true, id: created.id };
   } catch (e: unknown) {
-    // Уникальный индекс: slug уже занят
     if (isKnownPrismaError(e, "P2002")) {
       return {
         ok: false,
@@ -206,8 +194,6 @@ export async function createArticle(fd: FormData): Promise<ActionResult> {
         details: { fieldErrors: { slug: ["Slug уже занят"] } },
       };
     }
-
-    // Логируем прочее
     if (isKnownPrismaError(e)) {
       console.error("Prisma error:", e.code, e.meta);
     } else {
@@ -217,14 +203,12 @@ export async function createArticle(fd: FormData): Promise<ActionResult> {
   }
 }
 
-/** Удобный вариант: создать и сразу перейти в /admin/news */
 export async function createArticleAndRedirect(fd: FormData): Promise<void> {
   const res = await createArticle(fd);
   if (res.ok) {
     revalidatePath("/admin/news");
     redirect("/admin/news");
   }
-  // Если не ок — пробросим, пусть страница покажет ошибку как раньше
   throw new Error(
     (res as ActionFail).error || "Не удалось сохранить запись (unknown)"
   );
@@ -249,27 +233,13 @@ export async function updateArticle(
         title: prep.data.title,
         slug: prep.data.slug,
         excerpt: prep.data.excerpt || undefined,
-        body: prep.data.body,
-
-        // cover:
-        //  - undefined — не трогаем
-        //  - null — обнулим
-        //  - string — обновим
-        ...(prep.coverSrc === undefined
-          ? {}
-          : { cover: prep.coverSrc ?? null }),
-
-        // Даты:
-        //  - null — сохраняем null
-        //  - undefined — оставляем как есть
+        content: prep.data.body,            // ← пишем в content
+        ...(prep.coverSrc === undefined ? {} : { cover: prep.coverSrc ?? null }),
         publishedAt:
           prep.publishedAt === null ? null : prep.publishedAt ?? undefined,
-        expiresAt: prep.expiresAt === null ? null : prep.expiresAt ?? undefined,
-
-        seoTitle: prep.data.seoTitle || undefined,
-        seoDesc: prep.data.seoDesc || undefined,
-        ogTitle: prep.data.ogTitle || undefined,
-        ogDesc: prep.data.ogDesc || undefined,
+        expiresAt:
+          prep.expiresAt === null ? null : prep.expiresAt ?? undefined,
+        // SEO-поля намеренно не пишем
       },
       select: { id: true },
     });
@@ -283,7 +253,6 @@ export async function updateArticle(
         details: { fieldErrors: { slug: ["Slug уже занят"] } },
       };
     }
-
     if (isKnownPrismaError(e)) {
       console.error("Prisma error:", e.code, e.meta);
     } else {
@@ -293,7 +262,6 @@ export async function updateArticle(
   }
 }
 
-/** Удобный вариант: обновить и сразу вернуться на список */
 export async function updateArticleAndRedirect(
   id: string,
   fd: FormData
@@ -329,12 +297,9 @@ export async function deleteArticle(fd: FormData): Promise<ActionResult> {
   }
 }
 
-/** Вариант для формы в списке: удалить + revalidate + redirect */
 export async function deleteArticleAndRefresh(fd: FormData): Promise<void> {
   const res = await deleteArticle(fd);
-  // Даже если запись уже удалена — просто обновим список.
   if (!res.ok) {
-    // Не роняем UX, но лог в консоль
     console.warn("deleteArticle fail:", res.error);
   }
   revalidatePath("/admin/news");

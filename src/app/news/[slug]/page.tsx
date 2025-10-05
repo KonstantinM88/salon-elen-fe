@@ -19,12 +19,12 @@ function splitToBlocks(raw: string): string[] {
   const text = raw.trim().replace(/\r\n/g, "\n");
   if (!text) return [];
 
-  // 1) Нормальный случай: абзацы разделены пустой строкой
+  // 1) Абзацы разделены пустой строкой
   if (/\n{2,}/.test(text)) {
     return text.split(/\n{2,}/);
   }
 
-  // 2) Есть одинарные переносы — попробуем группировать строки
+  // 2) Одинарные переносы — группируем строки
   const lines = text.split("\n");
   if (lines.length > 1) {
     const blocks: string[] = [];
@@ -69,7 +69,6 @@ function splitToBlocks(raw: string): string[] {
   }
 
   // 3) Переносов нет — делим по предложениям
-  //   Разбиваем "…!", "…?", "…" + пробел/конец строки.
   const parts: string[] = [];
   const re = /([^.!?…]+[.!?…]+)(\s+|$)/gu;
   let m: RegExpExecArray | null;
@@ -79,9 +78,9 @@ function splitToBlocks(raw: string): string[] {
     i = re.lastIndex;
   }
   if (i < text.length) parts.push(text.slice(i).trim());
-  if (parts.length <= 1) return [text]; // ничего не вышло — отдадим как есть
+  if (parts.length <= 1) return [text];
 
-  // Сгруппируем предложения в абзацы примерно по 350–450 символов
+  // Сгруппируем предложения в абзацы ~350–450 символов
   const blocks: string[] = [];
   let acc = "";
 
@@ -156,6 +155,8 @@ export default async function Page({
         { OR: [{ expiresAt: null }, { expiresAt: { gte: new Date() } }] },
       ],
     },
+    // Можно явно перечислить поля, но и без select тип уже знает content
+    // select: { id: true, slug: true, title: true, excerpt: true, cover: true, content: true, publishedAt: true, expiresAt: true, type: true },
   });
   if (!item) return notFound();
 
@@ -202,7 +203,8 @@ export default async function Page({
           </figure>
         )}
 
-        {item.body && <RichBody body={item.body} />}
+        {/* ВАЖНО: используем content вместо body */}
+        {item.content && <RichBody body={item.content} />}
       </article>
     </main>
   );

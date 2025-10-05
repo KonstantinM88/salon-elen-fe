@@ -3,6 +3,8 @@
 import { prisma } from '@/lib/db';
 import { revalidatePath } from 'next/cache';
 
+/* helpers */
+
 function slugify(input: string): string {
   return input
     .trim()
@@ -13,7 +15,6 @@ function slugify(input: string): string {
     .replace(/(^-|-$)+/g, '');
 }
 
-// Вспомогалки парсинга
 function toEuro(value: FormDataEntryValue | null): number | null {
   const n = Number(String(value ?? '').trim().replace(',', '.'));
   return Number.isFinite(n) && n > 0 ? n : null;
@@ -23,34 +24,28 @@ function toInt(value: FormDataEntryValue | null): number | null {
   return Number.isInteger(n) && n > 0 ? n : null;
 }
 
-// ВАЖНО: server actions возвращают void | Promise<void>
+/* server actions: void | Promise<void> */
 
 export async function createService(formData: FormData): Promise<void> {
-  const title = String(formData.get('title') ?? '').trim();
+  const name = String(formData.get('name') ?? '').trim();
   const slugRaw = String(formData.get('slug') ?? '').trim();
   const priceEuro = toEuro(formData.get('priceEuro'));
   const durationMin = toInt(formData.get('durationMin'));
-  const description = (String(formData.get('description') ?? '').trim() || null) as string | null;
 
-  if (!title || !priceEuro || !durationMin) {
-    // Валидация провалена — просто ничего не делаем.
-    return;
-  }
+  if (!name || !priceEuro || !durationMin) return;
 
-  const slug = slugRaw ? slugify(slugRaw) : slugify(title);
+  const slug = slugRaw ? slugify(slugRaw) : slugify(name);
 
   try {
     await prisma.service.create({
       data: {
-        title,
+        name,
         slug,
         priceCents: Math.round(priceEuro * 100),
         durationMin,
-        description,
       },
     });
   } catch (e) {
-    // В dev можно залогировать
     console.error('createService error:', e);
   } finally {
     revalidatePath('/admin/services');
@@ -58,26 +53,24 @@ export async function createService(formData: FormData): Promise<void> {
 }
 
 export async function updateService(formData: FormData): Promise<void> {
-  const id = toInt(formData.get('id'));
-  const title = String(formData.get('title') ?? '').trim();
+  const id = String(formData.get('id') ?? '').trim(); // cuid string
+  const name = String(formData.get('name') ?? '').trim();
   const slugRaw = String(formData.get('slug') ?? '').trim();
   const priceEuro = toEuro(formData.get('priceEuro'));
   const durationMin = toInt(formData.get('durationMin'));
-  const description = (String(formData.get('description') ?? '').trim() || null) as string | null;
 
-  if (!id || !title || !priceEuro || !durationMin) return;
+  if (!id || !name || !priceEuro || !durationMin) return;
 
-  const slug = slugify(slugRaw || title);
+  const slug = slugify(slugRaw || name);
 
   try {
     await prisma.service.update({
       where: { id },
       data: {
-        title,
+        name,
         slug,
         priceCents: Math.round(priceEuro * 100),
         durationMin,
-        description,
       },
     });
   } catch (e) {
@@ -88,7 +81,7 @@ export async function updateService(formData: FormData): Promise<void> {
 }
 
 export async function deleteService(formData: FormData): Promise<void> {
-  const id = toInt(formData.get('id'));
+  const id = String(formData.get('id') ?? '').trim(); // cuid string
   if (!id) return;
 
   try {
