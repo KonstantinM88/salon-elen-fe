@@ -1,5 +1,10 @@
+// src/app/admin/page.tsx
 import Link from "next/link";
 import { prisma } from "@/lib/db";
+import { AppointmentStatus } from "@prisma/client";
+
+export const revalidate = 0;             // отключаем ISR
+export const dynamic = "force-dynamic";  // принудительно динамическая страница
 
 function fmt(date: Date) {
   return new Intl.DateTimeFormat("ru-RU", {
@@ -10,9 +15,13 @@ function fmt(date: Date) {
 }
 
 export default async function AdminDashboard() {
-  const [articleCount, bookingCount, latestArticles] = await Promise.all([
+  const [articleCount, appointmentCount, latestArticles] = await Promise.all([
     prisma.article.count(),
-    prisma.booking.count(),
+    prisma.appointment.count({
+      where: {
+        status: { in: [AppointmentStatus.PENDING, AppointmentStatus.CONFIRMED] },
+      },
+    }),
     prisma.article.findMany({
       orderBy: [{ publishedAt: "desc" }, { createdAt: "desc" }],
       take: 5,
@@ -31,7 +40,7 @@ export default async function AdminDashboard() {
           </div>
           <div className="card">
             <div className="card-title">Заявки</div>
-            <div className="card-value">{bookingCount}</div>
+            <div className="card-value">{appointmentCount}</div>
           </div>
         </div>
       </section>

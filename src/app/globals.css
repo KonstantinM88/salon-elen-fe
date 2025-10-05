@@ -10,7 +10,7 @@
     @apply h-full;
   }
 
-  /* рендерим системные селекты в тёмной схеме */
+  /* рендерим системные селекты в тёмной схеме в dark-режиме */
   .dark select {
     color-scheme: dark;
   }
@@ -28,6 +28,39 @@
   /* (необязательно, но полезно для скроллбаров и форм) */
   :root { color-scheme: light; }
   .dark { color-scheme: dark; }
+
+  /* ──────────────────────────────────────────────────────────
+     Native select — тёмная выпадашка + читабельные option'ы
+     ────────────────────────────────────────────────────────── */
+  /* базовые цвета для нативного селекта */
+  select,
+  select option {
+    background-color: var(--card);
+    color: var(--foreground);
+  }
+  /* усиление контраста в тёмной теме */
+  .dark select,
+  .dark select option {
+    background-color: oklch(0.13 0.02 260); /* чуть темнее card */
+    color: var(--foreground);
+  }
+  /* «плейсхолдер» (Выберите услугу…) чуть бледнее */
+  select option[disabled][value=""] {
+    color: color-mix(in oklab, var(--foreground) 55%, transparent);
+  }
+  /* фокус у селекта (аккуратное кольцо) */
+  select:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px color-mix(in oklab, var(--ring) 60%, transparent);
+    border-color: var(--ring);
+  }
+  /* уважение к high-contrast/forced-colors в Windows */
+  @media (forced-colors: active) {
+    select, select option {
+      background-color: Canvas;
+      color: CanvasText;
+    }
+  }
 }
 
 /* слегка сгладить переходы у изображений */
@@ -508,5 +541,3 @@ html { scroll-behavior: smooth; }
     animation: none !important;
   }
 }
-
-
