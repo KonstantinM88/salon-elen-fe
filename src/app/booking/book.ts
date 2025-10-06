@@ -1,111 +1,139 @@
-// src/app/booking/book.ts
 "use server";
 
-import { prisma } from "@/lib/db";
 import { revalidatePath } from "next/cache";
+import { prisma } from "@/lib/db";
 import { BookingSchema } from "@/lib/validation/booking";
+import { addMinutes, parseISO } from "date-fns";
+import { AppointmentStatus } from "@prisma/client";
 
 export type BookState = {
   ok: boolean;
   formError?: string;
-  fieldErrors?: Record<string, string>;
+  fieldErrors?: Partial<Record<keyof typeof formKeys, string>>;
 };
 
-export async function book(
-  _prev: BookState,
-  formData: FormData
-): Promise<BookState> {
+const formKeys = {
+  serviceSlug: true,
+  dateISO: true,
+  startMin: true,
+  endMin: true,
+  name: true,
+  phone: true,
+  email: true,
+  birthDate: true,
+  source: true,
+  notes: true,
+} as const;
+
+export async function book(_: BookState, formData: FormData): Promise<BookState> {
   try {
-    // 1) собираем payload из FormData
-    const raw = {
+    const payload = {
       serviceSlug: String(formData.get("serviceSlug") ?? ""),
       dateISO: String(formData.get("dateISO") ?? ""),
-      startMin: Number(formData.get("startMin")),
-      endMin: Number(formData.get("endMin")),
+      startMin: Number(formData.get("startMin") ?? NaN),
+      endMin: Number(formData.get("endMin") ?? NaN),
       name: String(formData.get("name") ?? ""),
       phone: String(formData.get("phone") ?? ""),
       email: String(formData.get("email") ?? ""),
       birthDate: String(formData.get("birthDate") ?? ""),
-      source: formData.get("source")
-        ? String(formData.get("source"))
-        : undefined,
-      notes: formData.get("notes") ? String(formData.get("notes")) : undefined,
+      source: (formData.get("source") ? String(formData.get("source")) : undefined),
+      notes: (formData.get("notes") ? String(formData.get("notes")) : undefined),
     };
 
-    // 2) серверная валидация (зеркалит клиентскую)
-    const parsed = BookingSchema.safeParse(raw);
+    const parsed = BookingSchema.safeParse(payload);
     if (!parsed.success) {
-      const fieldErrors: Record<string, string> = {};
+      const fe: Record<string, string> = {};
       for (const issue of parsed.error.issues) {
-        const key = String(issue.path?.[0] ?? "form");
-        if (!fieldErrors[key]) fieldErrors[key] = issue.message;
+        const k = String(issue.path?.[0] ?? "");
+        if (k) fe[k] = issue.message;
       }
-      return { ok: false, fieldErrors };
+      return { ok: false, fieldErrors: fe };
     }
     const data = parsed.data;
 
-    // 3) проверяем услугу
+    // 1) сервис
     const service = await prisma.service.findUnique({
       where: { slug: data.serviceSlug },
-      select: { id: true, isActive: true },
+      select: { id: true, durationMin: true, isActive: true },
     });
     if (!service || !service.isActive) {
-      return { ok: false, formError: "Услуга недоступна" };
+      return { ok: false, fieldErrors: { serviceSlug: "Сервис недоступен" } };
     }
 
-    // 4) считаем UTC время начала/конца
-    const dayStartUTC = new Date(`${data.dateISO}T00:00:00.000Z`);
-    const startAt = new Date(dayStartUTC.getTime() + data.startMin * 60000);
-    const endAt = new Date(dayStartUTC.getTime() + data.endMin * 60000);
+    // 2) расчёт времени
+    const day = parseISO(data.dateISO);
+    const startAt = addMinutes(day, data.startMin);
+    const endAt = addMinutes(day, data.endMin);
 
-    // 5) анти-гонка: проверка пересечений с буфером 10 минут ко всем записям
-    const GAP_MIN = 10;
-    const gStart = new Date(startAt.getTime() - GAP_MIN * 60000);
-    const gEnd = new Date(endAt.getTime() + GAP_MIN * 60000);
+    // 3) транзакция: клиент + проверка пересечения + запись
+    await prisma.$transaction(async (tx) => {
+      // клиент по email/телефону
+      const client =
+        (await tx.client.findFirst({
+          where: {
+            OR: [
+              { email: data.email.toLowerCase() },
+              { phone: data.phone },
+            ],
+          },
+          select: { id: true },
+        })) ??
+        (await tx.client.create({
+          data: {
+            name: data.name.trim(),
+            phone: data.phone.trim(),
+            email: data.email.trim().toLowerCase(),
+            birthDate: parseISO(data.birthDate),
+            referral: data.source ?? null,
+            notes: data.notes ?? null,
+          },
+          select: { id: true },
+        }));
 
-    const conflict = await prisma.appointment.findFirst({
-      where: {
-        status: { in: ["PENDING", "CONFIRMED"] },
-        startAt: { lt: gEnd },
-        endAt: { gt: gStart },
-      },
-      select: { id: true },
+      // пересечения: (startAt < checkEnd) AND (endAt > checkStart)
+      const checkStart = startAt;
+      const checkEnd = endAt;
+
+      const overlap = await tx.appointment.findFirst({
+        where: {
+          status: { in: [AppointmentStatus.PENDING, AppointmentStatus.CONFIRMED] },
+          startAt: { lt: checkEnd },     // было синтаксически неверно
+          endAt:   { gt: checkStart },   // было синтаксически неверно
+        },
+        select: { id: true },
+      });
+
+      if (overlap) {
+        throw new Error("В это время уже есть запись");
+      }
+
+      // создание визита
+      await tx.appointment.create({
+        data: {
+          serviceId: service.id,
+          clientId: client.id,
+          startAt,
+          endAt,
+          customerName: data.name.trim(), // сохраняем снимок имени
+          phone: data.phone.trim(),
+          email: data.email.trim().toLowerCase(),
+          notes: data.notes ?? null,
+          status: AppointmentStatus.PENDING,
+        },
+      });
     });
-    if (conflict) {
-      return {
-        ok: false,
-        formError:
-          "Этот интервал успели занять. Обновите слоты и выберите другое время.",
-      };
-    }
 
-    // 6) создаём запись
-    await prisma.appointment.create({
-      data: {
-        serviceId: service.id,
-        startAt,
-        endAt,
-        customerName: data.name,
-        phone: data.phone,
-        email: data.email,
-        // сохраним вспомогательную инфу в notes
-        notes: [
-          data.notes?.trim() || null,
-          data.source ? `Источник: ${data.source}` : null,
-          data.birthDate ? `ДР: ${data.birthDate}` : null,
-        ]
-          .filter(Boolean)
-          .join(" | "),
-        status: "PENDING",
-      },
-    });
-
-    // 7) обновим админку
+    // Обновим админ-страницы
+    revalidatePath("/admin");
     revalidatePath("/admin/bookings");
+    revalidatePath("/admin/clients");
 
     return { ok: true };
   } catch (e) {
-    console.error("book action error:", e);
-    return { ok: false, formError: "Сервер недоступен" };
+    const msg =
+      process.env.NODE_ENV === "development"
+        ? String(e)
+        : "Сервер недоступен";
+    return { ok: false, formError: msg };
   }
 }

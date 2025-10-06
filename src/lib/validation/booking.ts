@@ -1,54 +1,47 @@
+// src/lib/validation/booking.ts
 import { z } from "zod";
 
-/** YYYY-MM-DD */
-const ISODate = z
-  .string()
-  .regex(/^\d{4}-\d{2}-\d{2}$/, "Некорректная дата");
-
-function is18Plus(iso: string): boolean {
-  const d = new Date(`${iso}T00:00:00Z`);
-  if (!Number.isFinite(d.getTime())) return false;
-  const now = new Date();
-  const y = now.getUTCFullYear() - 18;
-  const m = now.getUTCMonth();
-  const day = now.getUTCDate();
-  const threshold = new Date(Date.UTC(y, m, day));
-  return d.getTime() <= threshold.getTime();
+function isValidISODate(dateISO: string): boolean {
+  return /^\d{4}-\d{2}-\d{2}$/.test(dateISO);
 }
 
-/** Единая схема (значения приходят строкой из FormData, числа коэрцим) */
+function toAge(dateISO: string): number {
+  const [y, m, d] = dateISO.split("-").map((v) => Number(v));
+  const bd = new Date(Date.UTC(y, m - 1, d));
+  const now = new Date();
+  let age = now.getUTCFullYear() - bd.getUTCFullYear();
+  const mDiff = now.getUTCMonth() - bd.getUTCMonth();
+  if (mDiff < 0 || (mDiff === 0 && now.getUTCDate() < bd.getUTCDate())) {
+    age -= 1;
+  }
+  return age;
+}
+
 export const BookingSchema = z
   .object({
     serviceSlug: z.string().min(1, "Выберите услугу"),
-    dateISO: ISODate,
-    startMin: z.coerce.number().int().nonnegative(),
-    endMin: z.coerce.number().int().nonnegative(),
-    name: z.string().trim().min(1, "Укажите имя"),
+    dateISO: z
+      .string()
+      .refine(isValidISODate, "Дата должна быть в формате YYYY-MM-DD"),
+    startMin: z.number().int().min(0, "Выберите время"),
+    endMin: z.number().int().min(1, "Выберите время"),
+    name: z.string().trim().min(2, "Минимум 2 символа"),
     phone: z
       .string()
       .trim()
-      .regex(/^[\d\s+()\-]{6,}$/, "Укажите корректный телефон"),
-    email: z.string().email("Некорректный e-mail"),
-    birthDate: ISODate.refine(is18Plus, "Только 18+"),
-    source: z.string().optional().default(""),
-    notes: z.string().optional().default(""),
+      .regex(/^[\d\s+()\-]{6,}$/, "Некорректный телефон"),
+    email: z.string().trim().email("Некорректный e-mail"),
+    birthDate: z
+      .string()
+      .refine(isValidISODate, "Дата рождения в формате YYYY-MM-DD")
+      .refine((v) => toAge(v) >= 18, "Возраст должен быть 18+"),
+    // источник (Facebook вместо «Проходил мимо»)
+    source: z.enum(["Google", "Instagram", "Friends", "Facebook", "Other"]).optional(),
+    notes: z.string().trim().max(1000, "Слишком длинный комментарий").optional(),
   })
-  .refine((d) => d.endMin > d.startMin, {
+  .refine((v) => v.endMin > v.startMin, {
+    message: "Время окончания должно быть позже начала",
     path: ["endMin"],
-    message: "Конец должен быть позже начала",
   });
 
-/** Ключи полей формы */
-export type BookingFields = keyof z.infer<typeof BookingSchema>;
-
-/** Преобразование ошибок Zod → плоский словарь field->message */
-export function zodToFieldErrors(
-  err: z.ZodError
-): Partial<Record<BookingFields, string>> {
-  const out: Partial<Record<BookingFields, string>> = {};
-  for (const issue of err.issues) {
-    const k = issue.path[0] as BookingFields | undefined;
-    if (k && !out[k]) out[k] = issue.message;
-  }
-  return out;
-}
+export type BookingInput = z.infer<typeof BookingSchema>;

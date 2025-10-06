@@ -14,20 +14,16 @@ import { book, type BookState } from "@/app/booking/book";
 import { BookingSchema } from "@/lib/validation/booking";
 
 /* ---------- типы пропсов ---------- */
-
 type Service = { slug: string; name: string; durationMin: number };
 type Props = { services: Service[] };
-
 type Slot = { start: number; end: number };
 
 /* ---------- утилиты ---------- */
-
 function m2hhmm(min: number): string {
   const h = Math.floor(min / 60);
   const m = min % 60;
   return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
 }
-
 function todayISO(): string {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(
@@ -41,42 +37,38 @@ const LS_PHONE = "booking:phone";
 const LS_EMAIL = "booking:email";
 
 /* =============================================================== */
-
 export default function PublicBookingForm({ services }: Props) {
   const router = useRouter();
 
-  /* выбор услуги/даты */
+  // выбор услуги/даты
   const [serviceSlug, setServiceSlug] = useState<string>("");
   const [dateISO, setDateISO] = useState<string>(todayISO());
 
-  /* дропдаун услуг */
+  // дропдаун
   const [ddOpen, setDdOpen] = useState(false);
   const ddRef = useRef<HTMLDivElement | null>(null);
 
-  /* слоты */
+  // слоты
   const [slots, setSlots] = useState<Slot[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedKey, setSelectedKey] = useState<string>("");
 
-  /* поля формы */
+  // поля
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
-  const [birthDate, setBirthDate] = useState(""); // YYYY-MM-DD
+  const [birthDate, setBirthDate] = useState("");
   const [source, setSource] = useState<string>("");
   const [notes, setNotes] = useState("");
 
-  /* общий алерт формы */
   const [formError, setFormError] = useState<string>("");
-
-  /* модалка успеха */
   const [successOpen, setSuccessOpen] = useState(false);
 
-  /* server action */
+  // server action
   const initial: BookState = { ok: false };
   const [serverState, formAction, isPending] = useActionState(book, initial);
 
-  /* автоподстановка из LS */
+  // автозаполнение LS
   useEffect(() => {
     try {
       const n = localStorage.getItem(LS_NAME);
@@ -103,7 +95,7 @@ export default function PublicBookingForm({ services }: Props) {
     } catch {}
   }, [email]);
 
-  /* закрыть дропдаун по клику вне */
+  // закрытие дропдауна
   useEffect(() => {
     function onDoc(e: MouseEvent) {
       if (!ddRef.current) return;
@@ -113,19 +105,18 @@ export default function PublicBookingForm({ services }: Props) {
     return () => document.removeEventListener("mousedown", onDoc);
   }, [ddOpen]);
 
-  /* выбранный слот */
+  // выбранный слот
   const slotMap = useMemo(() => {
     const m = new Map<string, Slot>();
     for (const s of slots) {
-      if (Number.isFinite(s.start) && Number.isFinite(s.end)) {
+      if (Number.isFinite(s.start) && Number.isFinite(s.end))
         m.set(`${s.start}-${s.end}`, s);
-      }
     }
     return m;
   }, [slots]);
   const selectedSlot = selectedKey ? slotMap.get(selectedKey) : undefined;
 
-  /* реакция на ответ сервера */
+  // ответ сервера
   useEffect(() => {
     setFormError(serverState.formError ?? "");
     if (serverState.ok) {
@@ -135,7 +126,7 @@ export default function PublicBookingForm({ services }: Props) {
     }
   }, [serverState]);
 
-  /* загрузка слотов */
+  // загрузка слотов
   const loadSlots = React.useCallback(async () => {
     setFormError("");
     setSelectedKey("");
@@ -179,7 +170,7 @@ export default function PublicBookingForm({ services }: Props) {
     }
   }, [serviceSlug, dateISO]);
 
-  /* клиентская валидация (без setState — только вычисляем) */
+  // клиентская валидация
   const { clientOk, clientErrors } = useMemo(() => {
     const payload = {
       serviceSlug,
@@ -196,7 +187,6 @@ export default function PublicBookingForm({ services }: Props) {
     const r = BookingSchema.safeParse(payload);
     if (r.success)
       return { clientOk: true, clientErrors: {} as Record<string, string> };
-
     const errs: Record<string, string> = {};
     for (const issue of r.error.issues) {
       const key = String(issue.path?.[0] ?? "");
@@ -215,7 +205,6 @@ export default function PublicBookingForm({ services }: Props) {
     notes,
   ]);
 
-  // объединяем клиентские и серверные ошибки (серверные имеют приоритет)
   const errors = useMemo(() => {
     const server = (serverState.fieldErrors ?? {}) as Record<string, string>;
     return { ...clientErrors, ...server };
@@ -223,24 +212,11 @@ export default function PublicBookingForm({ services }: Props) {
 
   const selectedService = services.find((s) => s.slug === serviceSlug) ?? null;
 
-  /* --------------------------- UI --------------------------- */
-
-  // общие классы и «тёмно-синяя» заливка для системного select/option
-  const selectCls =
-    "w-full rounded-lg border px-3 py-2 border-gray-300 dark:border-gray-700 " +
-    "bg-white text-gray-900 dark:bg-slate-900 dark:text-gray-100";
-  const optionCls = "dark:bg-slate-900 dark:text-gray-100";
-  const optionStyle: React.CSSProperties = {
-    // fallback для браузеров, игнорирующих классы на <option>
-    backgroundColor: "rgb(15 23 42)", // slate-900
-    color: "rgb(243 244 246)", // gray-100
-  };
-
   return (
     <div className="space-y-6">
-      {/* выбор услуги/даты */}
+      {/* услуга/дата */}
       <div className="grid sm:grid-cols-2 gap-3">
-        {/* кастомный тёмный дропдаун */}
+        {/* дропдаун услуг */}
         <div ref={ddRef} className="relative">
           <label className="block text-sm mb-1">Услуга</label>
           <button
@@ -284,16 +260,13 @@ export default function PublicBookingForm({ services }: Props) {
               className={[
                 "absolute z-20 mt-2 w-full max-h-72 overflow-auto rounded-lg border shadow-lg",
                 "bg-white text-gray-900 border-gray-200",
-                "dark:bg-gray-900 dark:text-gray-100 dark:border-gray-700",
+                // тёмно-синий фон для тёмной темы
+                "dark:bg-[#0B1220] dark:text-gray-100 dark:border-gray-700",
               ].join(" ")}
             >
-              <li
-                aria-disabled="true"
-                className="px-3 py-2 text-sm opacity-60 select-none"
-              >
+              <li className="px-3 py-2 text-sm opacity-60 select-none">
                 Выберите услугу…
               </li>
-
               {services.map((s) => {
                 const active = s.slug === serviceSlug;
                 return (
@@ -312,7 +285,7 @@ export default function PublicBookingForm({ services }: Props) {
                         "w-full text-left px-3 py-2 transition",
                         active
                           ? "bg-primary/10 dark:bg-white/10"
-                          : "hover:bg-gray-100 dark:hover:bg-gray-800",
+                          : "hover:bg-gray-100 dark:hover:bg-white/5",
                       ].join(" ")}
                     >
                       {s.name} ({s.durationMin} мин)
@@ -354,7 +327,6 @@ export default function PublicBookingForm({ services }: Props) {
         </div>
       </div>
 
-      {/* общий алерт */}
       {(formError || serverState.formError) && (
         <div className="rounded-lg border border-rose-500/50 bg-rose-500/10 px-3 py-2 text-rose-200">
           {formError || serverState.formError}
@@ -368,7 +340,6 @@ export default function PublicBookingForm({ services }: Props) {
           {slots.length === 0 && !loading && (
             <span className="opacity-70 text-sm">Нет свободных окон.</span>
           )}
-
           {slots.map((s) => {
             const key = `${s.start}-${s.end}`;
             const isSelected = selectedKey === key;
@@ -397,7 +368,7 @@ export default function PublicBookingForm({ services }: Props) {
         )}
       </div>
 
-      {/* ФОРМА — используем action={formAction} */}
+      {/* форма */}
       <form action={formAction} className="grid sm:grid-cols-2 gap-3">
         <input type="hidden" name="serviceSlug" value={serviceSlug} />
         <input type="hidden" name="dateISO" value={dateISO} />
@@ -472,34 +443,20 @@ export default function PublicBookingForm({ services }: Props) {
           )}
         </div>
 
-        {/* Как вы узнали о нас — нативный select, но с тёмно-синей темой */}
         <div className="sm:col-span-2">
           <label className="block text-sm mb-1">Как вы узнали о нас</label>
           <select
-            className={selectCls}
+            className="w-full rounded-lg border bg-transparent px-3 py-2 border-gray-300 dark:border-gray-700"
             name="source"
             value={source}
             onChange={(e) => setSource(e.target.value)}
           >
-            <option value="" className={optionCls} style={optionStyle}>
-              — выберите вариант —
-            </option>
-            <option value="Google" className={optionCls} style={optionStyle}>
-              Google
-            </option>
-            <option value="Instagram" className={optionCls} style={optionStyle}>
-              Instagram
-            </option>
-            {/* был Walk-in → теперь Facebook */}
-            <option value="Facebook" className={optionCls} style={optionStyle}>
-              Facebook
-            </option>
-            <option value="Friends" className={optionCls} style={optionStyle}>
-              Знакомые
-            </option>
-            <option value="Other" className={optionCls} style={optionStyle}>
-              Другое
-            </option>
+            <option value="">— выберите вариант —</option>
+            <option value="Google">Google</option>
+            <option value="Instagram">Instagram</option>
+            <option value="Friends">Знакомые</option>
+            <option value="Facebook">Facebook</option>
+            <option value="Other">Другое</option>
           </select>
           {errors["source"] && (
             <p className="mt-1 text-xs text-rose-400">{errors["source"]}</p>
@@ -533,7 +490,6 @@ export default function PublicBookingForm({ services }: Props) {
         </div>
       </form>
 
-      {/* dev-debug */}
       {process.env.NODE_ENV === "development" && (
         <details className="rounded-lg border border-white/10 p-3">
           <summary className="cursor-pointer opacity-70">dev debug</summary>
@@ -561,7 +517,6 @@ export default function PublicBookingForm({ services }: Props) {
         </details>
       )}
 
-      {/* модалка успеха */}
       {successOpen && (
         <div
           role="dialog"
@@ -597,6 +552,23 @@ export default function PublicBookingForm({ services }: Props) {
           </div>
         </div>
       )}
+
+      {/* Глобальная правка цвета выпадающего окна у native <select> */}
+      <style jsx global>{`
+        :root { --site-dark: #0B1220; }
+
+        /* Цвет фона вариантов select в тёмной теме (Chrome/Edge/Firefox/Safari) */
+        .dark select option,
+        .dark select optgroup {
+          background-color: var(--site-dark) !important;
+          color: #e5e7eb !important; /* text-gray-200 */
+        }
+        /* Подсветка hover/selected в тёмной теме — чуть светлее */
+        .dark select option:checked,
+        .dark select option:hover {
+          background-color: #0f1a2b !important;
+        }
+      `}</style>
     </div>
   );
 }

@@ -10,6 +10,7 @@ const NAV: NavItem[] = [
   { href: "/admin/news",     label: "Новости" },
   { href: "/admin/services", label: "Услуги" },
   { href: "/admin/bookings", label: "Заявки" },
+  { href: "/admin/clients", label: "Клиенты" }
 ];
 
 export default function AdminNav() {

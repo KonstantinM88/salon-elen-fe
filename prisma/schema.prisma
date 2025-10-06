@@ -8,7 +8,7 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-/* ───────── Твои модели контента ───────── */
+/* ───────── Контент ───────── */
 
 enum ArticleType {
   NEWS
@@ -34,6 +34,7 @@ model Article {
   @@index([expiresAt])
 }
 
+/* ───────── Старая форма обратной связи (оставляем как есть) ───────── */
 model Booking {
   id        String   @id @default(cuid())
   name      String
@@ -43,11 +44,11 @@ model Booking {
   createdAt DateTime @default(now())
 }
 
-/* ───────── Модели онлайн-записи ───────── */
+/* ───────── Онлайн-запись ───────── */
 
 model Service {
   id          String   @id @default(cuid())
-  name        String   @map("title")  // ← в БД колонка title, в коде поле name
+  name        String   @map("title")  // в БД колонка title
   slug        String   @unique
   durationMin Int
   priceCents  Int?
@@ -67,29 +68,54 @@ enum AppointmentStatus {
   PENDING
   CONFIRMED
   CANCELED
+  DONE          // ← добавили для метрик визитов
+}
+
+/* ───────── Новый клиент ───────── */
+model Client {
+  id        String   @id @default(cuid())
+  name      String
+  phone     String   @unique
+  email     String   @unique
+  birthDate DateTime
+  referral  String?
+  notes     String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  appointments Appointment[]
+
+  @@map("Client")
 }
 
 model Appointment {
-  id           String             @id @default(cuid())
-  serviceId    String
-  service      Service            @relation(fields: [serviceId], references: [id])
+  id            String             @id @default(cuid())
 
-  startAt      DateTime
-  endAt        DateTime
+  serviceId     String
+  service       Service            @relation(fields: [serviceId], references: [id])
 
-  customerName String
-  phone        String
-  email        String?
-  notes        String?
+  clientId      String?
+  client        Client?            @relation(fields: [clientId], references: [id])
 
-  status       AppointmentStatus  @default(PENDING)
+  startAt       DateTime
+  endAt         DateTime
 
-  createdAt    DateTime           @default(now())
+  customerName  String             // сохраняем «как представился»
+  phone         String
+  email         String?
+  notes         String?
 
+  status        AppointmentStatus  @default(PENDING)
+
+  createdAt     DateTime           @default(now())
+
+  @@index([clientId])
   @@index([startAt, endAt])
   @@index([serviceId])
   @@index([status])
   @@unique([serviceId, startAt])
+  @@map("Appointment")
 }
 
 model WorkingHours {
@@ -111,5 +137,3 @@ model TimeOff {
   createdAt    DateTime @default(now())
   @@index([date])
 }
-
-
