@@ -114,6 +114,7 @@ export default async function AdminClientsPage(props: { searchParams: SearchPara
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold">Клиенты</h1>
         <div className="flex gap-2">
+        <Link href="/admin/clients/new" className="btn btn-primary">Добавить</Link>
           <Link href="/admin/clients" className="btn">Все</Link>
           <Link href="/admin/clients?filter=birthdays" className="btn">Ближайшие ДР</Link>
         </div>

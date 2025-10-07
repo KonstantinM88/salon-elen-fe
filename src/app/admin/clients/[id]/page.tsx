@@ -3,11 +3,13 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { AppointmentStatus, $Enums } from "@prisma/client";
+import DeleteClientForm from "./DeleteClientForm";
 
 export const dynamic = "force-dynamic";
 
+// ВАЖНО: в Next 15 searchParams/params — асинхронные
 type PageProps = {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 };
 
 function fmtDate(d: Date): string {
@@ -28,9 +30,11 @@ function fmtDateTime(d: Date): string {
   }).format(d);
 }
 
-export default async function AdminClientPage({ params }: PageProps) {
+export default async function AdminClientPage(props: PageProps) {
+  const { id } = await props.params;
+
   const client = await prisma.client.findUnique({
-    where: { id: params.id },
+    where: { id },
     select: {
       id: true,
       name: true,
@@ -48,7 +52,7 @@ export default async function AdminClientPage({ params }: PageProps) {
           startAt: true,
           endAt: true,
           status: true,
-          service: { select: { slug: true, name: true } }, // <-- name вместо title
+          service: { select: { slug: true, name: true } },
         },
       },
     },
@@ -56,7 +60,7 @@ export default async function AdminClientPage({ params }: PageProps) {
 
   if (!client) return notFound();
 
-  // Активные статусы — как Set, чтобы тип аргумента совпадал с $Enums.AppointmentStatus
+  // Активные статусы — CONFIRMED + DONE
   const ACTIVE = new Set<$Enums.AppointmentStatus>([
     AppointmentStatus.CONFIRMED,
     AppointmentStatus.DONE,
@@ -69,9 +73,13 @@ export default async function AdminClientPage({ params }: PageProps) {
     <main className="p-6 space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold">Клиент: {client.name}</h1>
-        <Link href="/admin/clients" className="btn">
-          ← К списку
-        </Link>
+        <div className="flex gap-2">
+          <Link href="/admin/clients" className="btn">
+            ← К списку
+          </Link>
+          {/* Кнопка / форма удаления */}
+          <DeleteClientForm clientId={client.id} clientName={client.name} />
+        </div>
       </div>
 
       {/* Профиль */}
@@ -109,19 +117,13 @@ export default async function AdminClientPage({ params }: PageProps) {
         </div>
       </section>
 
-      {/* Быстрые контакты */}
+      {/* Контакты */}
       <section className="rounded-2xl border p-4">
         <h2 className="text-lg font-medium mb-3">Контакты</h2>
         <div className="flex flex-wrap gap-2">
-          {/* Позвонить */}
-          <a
-            className="btn"
-            href={`tel:${client.phone.replace(/[^\d+]/g, "")}`}
-          >
+          <a className="btn" href={`tel:${client.phone.replace(/\s+/g, "")}`}>
             Позвонить
           </a>
-
-          {/* WhatsApp */}
           <a
             className="btn"
             href={`https://wa.me/${client.phone.replace(/[^\d]/g, "")}`}
@@ -130,8 +132,6 @@ export default async function AdminClientPage({ params }: PageProps) {
           >
             Написать в WhatsApp
           </a>
-
-          {/* Telegram (оставляю твою текущую логику) */}
           <a
             className="btn"
             href={`https://t.me/${client.phone.replace(/[^\d+]/g, "")}`}
@@ -140,7 +140,6 @@ export default async function AdminClientPage({ params }: PageProps) {
           >
             Написать в Telegram
           </a>
-
           {client.email && (
             <a className="btn" href={`mailto:${client.email}`}>
               Отправить e-mail
@@ -186,8 +185,8 @@ export default async function AdminClientPage({ params }: PageProps) {
                       {new Intl.DateTimeFormat("ru-RU", {
                         hour: "2-digit",
                         minute: "2-digit",
-                      }).format(a.startAt)}
-                      {" — "}
+                      }).format(a.startAt)}{" "}
+                      —{" "}
                       {new Intl.DateTimeFormat("ru-RU", {
                         hour: "2-digit",
                         minute: "2-digit",
@@ -198,10 +197,10 @@ export default async function AdminClientPage({ params }: PageProps) {
                       {a.status === AppointmentStatus.CONFIRMED
                         ? "Подтверждён"
                         : a.status === AppointmentStatus.DONE
-                        ? "Завершён"
-                        : a.status === AppointmentStatus.CANCELED
-                        ? "Отменён"
-                        : "Ожидает"}
+                          ? "Завершён"
+                          : a.status === AppointmentStatus.CANCELED
+                            ? "Отменён"
+                            : "Ожидает"}
                     </td>
                   </tr>
                 ))}
