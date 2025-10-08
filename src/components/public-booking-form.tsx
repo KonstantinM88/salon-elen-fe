@@ -774,39 +774,57 @@ export default function PublicBookingForm({ categories }: Props) {
 
       {/* Локально — “золотой” перелив текста имени */}
       <style jsx>{`
-        .goldy-text {
-          font-weight: 600;                 /* лёгкий жир */
-          color: #f5d76e;                   /* fallback-цвет */
-          text-shadow: 0 0 8px rgba(245, 215, 110, 0.45);
-          caret-color: #ffe08a;
+  /* Базовый вид: читаемое "золото" везде */
+  .goldy-text {
+    font-weight: 600; /* полужирный */
+    color: #f5d76e; /* читаемый цвет */
+    text-shadow: 0 0 8px rgba(245, 215, 110, 0.45); /* лёгкое свечение */
+    caret-color: #ffe08a;
+    transition: text-shadow 200ms ease; /* плавное появление свечения при вводе */
+  }
+  /* .goldy-text:focus {
+    text-shadow: 0 0 12px rgba(245, 215, 110, 0.65); /* усиливаем свечение при фокусе */
+  } */
 
-          background-image: linear-gradient(
-            110deg,
-            #b3903b 0%,
-            #f5d76e 25%,
-            #fff3c4 50%,
-            #f5d76e 75%,
-            #b3903b 100%
-          );
-          background-size: 200% auto;
-          background-position: 0% center;
+  /* Перелив включаем ТОЛЬКО для не-формовых элементов */
+  @supports (-webkit-background-clip: text) {
+    .goldy-text:not(input):not(textarea) {
+      background-image: linear-gradient(
+        110deg,
+        #b3903b 0%,
+        #f5d76e 25%,
+        #fff3c4 50%,
+        #f5d76e 75%,
+        #b3903b 100%
+      );
+      background-size: 200% auto;
+      background-position: 0% center;
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      color: transparent;
+      animation: goldShimmer 4s linear infinite;
+    }
+  }
 
-          -webkit-background-clip: text;
-          background-clip: text;
-          -webkit-text-fill-color: transparent;
+  @keyframes goldShimmer {
+    to { background-position: -200% center; }
+  }
 
-          animation: goldShimmer 4s linear infinite;
-          transition: text-shadow 200ms ease;
-        }
+  /* Явно отключаем градиент у input/textarea на мобильных браузерах */
+  input.goldy-text, textarea.goldy-text {
+    background-image: none !important;
+    -webkit-background-clip: border-box !important;
+    background-clip: border-box !important;
+    -webkit-text-fill-color: initial !important;
+    animation: none !important;
+  }
 
-        @keyframes goldShimmer {
-          to { background-position: -200% center; }
-        }
+  @media (prefers-reduced-motion: reduce) {
+    .goldy-text:not(input):not(textarea) { animation: none; }
+  }
+`}</style>
 
-        @media (prefers-reduced-motion: reduce) {
-          .goldy-text { animation: none; }
-        }
-      `}</style>
     </div>
   );
 }
