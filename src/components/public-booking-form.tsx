@@ -70,6 +70,7 @@ export default function PublicBookingForm({ categories }: Props) {
 
   // слоты
   const [slots, setSlots] = useState<Slot[]>([]);
+  const [slotsOpen, setSlotsOpen] = useState<boolean>(false);
   const [loading, setLoading] = useState(false);
   const [selectedKey, setSelectedKey] = useState<string>("");
 
@@ -134,6 +135,8 @@ export default function PublicBookingForm({ categories }: Props) {
     return categories.find((c) => c.id === categoryId)?.children ?? [];
   }, [categories, categoryId]);
   const hasChildren = currentChildren.length > 0;
+  const selectedService =
+    currentChildren.find((s) => s.slug === serviceSlug) ?? null;
 
   // выбранный слот
   const slotMap = useMemo(() => {
@@ -145,10 +148,6 @@ export default function PublicBookingForm({ categories }: Props) {
     return m;
   }, [slots]);
   const selectedSlot = selectedKey ? slotMap.get(selectedKey) : undefined;
-
-  // отображаемая подуслуга
-  const selectedService =
-    currentChildren.find((s) => s.slug === serviceSlug) ?? null;
 
   // ответ сервера
   useEffect(() => {
@@ -166,7 +165,43 @@ export default function PublicBookingForm({ categories }: Props) {
     setServiceSlug(first);
     setSlots([]);
     setSelectedKey("");
+    setSlotsOpen(false);
   }, [categoryId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // если получили список слотов — разворачиваем блок
+  useEffect(() => {
+    if (slots.length > 0) setSlotsOpen(true);
+  }, [slots.length]);
+
+  // ===== Автоподстановка даты рождения из профиля =====
+  useEffect(() => {
+    // если имя и телефон заполнены, а дата рождения ещё пустая — пробуем подтянуть
+    const n = name.trim();
+    const p = phone.trim();
+    if (!n || !p || birthDate) return;
+
+    const ctrl = new AbortController();
+    const t = setTimeout(async () => {
+      try {
+        const url = `/api/clients/lookup?name=${encodeURIComponent(n)}&phone=${encodeURIComponent(
+          p
+        )}`;
+        const res = await fetch(url, { signal: ctrl.signal, cache: "no-store" });
+        if (!res.ok) return;
+        const data: { ok: boolean; birthDateISO: string | null } = await res.json();
+        if (data.ok && data.birthDateISO && !birthDate) {
+          setBirthDate(data.birthDateISO);
+        }
+      } catch {
+        /* ignore */
+      }
+    }, 400); // лёгкий дебаунс
+
+    return () => {
+      clearTimeout(t);
+      ctrl.abort();
+    };
+  }, [name, phone, birthDate]);
 
   // загрузка слотов
   const loadSlots = React.useCallback(async () => {
@@ -175,7 +210,19 @@ export default function PublicBookingForm({ categories }: Props) {
     setSlots([]);
     setLoading(true);
     try {
-      if (!serviceSlug || !dateISO) return;
+      if (!serviceSlug && !dateISO) {
+        setFormError("Выберите подуслугу и дату.");
+        return;
+      }
+      if (!serviceSlug) {
+        setFormError("Сначала выберите подуслугу.");
+        return;
+      }
+      if (!dateISO) {
+        setFormError("Сначала выберите дату.");
+        return;
+      }
+
       const url = `/api/availability?serviceSlug=${encodeURIComponent(
         serviceSlug
       )}&dateISO=${encodeURIComponent(dateISO)}`;
@@ -201,11 +248,14 @@ export default function PublicBookingForm({ categories }: Props) {
             .sort((a, b) => a.start - b.start)
         : [];
       setSlots(clean);
+      if (clean.length === 0) {
+        setFormError("На выбранную дату нет свободных окон. Попробуйте другую дату.");
+      }
     } catch (e) {
       setFormError(
         process.env.NODE_ENV === "development"
-          ? `loadSlots error: ${String(e)}`
-          : "Ошибка загрузки слотов"
+          ? `Ошибка загрузки слотов: ${String(e)}`
+          : "Ошибка загрузки слотов. Попробуйте обновить страницу."
       );
     } finally {
       setLoading(false);
@@ -232,7 +282,14 @@ export default function PublicBookingForm({ categories }: Props) {
     const errs: Record<string, string> = {};
     for (const issue of r.error.issues) {
       const key = String(issue.path?.[0] ?? "");
-      if (key && !errs[key]) errs[key] = issue.message;
+      if (key && !errs[key]) {
+        // дружелюбное сообщение вместо "expected number, received NaN"
+        if (key === "startMin") {
+          errs[key] = "Не выбрано время. Нажмите на свободный слот.";
+        } else {
+          errs[key] = issue.message;
+        }
+      }
     }
     return { clientOk: false, clientErrors: errs };
   }, [
@@ -457,45 +514,56 @@ export default function PublicBookingForm({ categories }: Props) {
           >
             {loading ? "Загрузка…" : "Показать свободные слоты"}
           </button>
+          {formError && (
+            <p className="mt-2 text-xs text-amber-400">{formError}</p>
+          )}
         </div>
       </div>
 
-      {(formError || serverState.formError) && (
-        <div className="rounded-lg border border-rose-500/50 bg-rose-500/10 px-3 py-2 text-rose-200">
-          {formError || serverState.formError}
-        </div>
-      )}
-
       {/* слоты */}
       <div>
-        <p className="text-sm mb-2 opacity-80">Выберите время:</p>
-        <div className="flex flex-wrap gap-2">
-          {slots.length === 0 && !loading && (
-            <span className="opacity-70 text-sm">Нет свободных окон.</span>
-          )}
-          {slots.map((s) => {
-            const key = `${s.start}-${s.end}`;
-            const isSelected = selectedKey === key;
-            return (
-              <button
-                key={key}
-                type="button"
-                onClick={() =>
-                  setSelectedKey((prev) => (prev === key ? "" : key))
-                }
-                className={[
-                  "rounded-full px-3 py-1.5 border transition",
-                  isSelected
-                    ? "bg-white/10 border-white/50"
-                    : "hover:bg-white/10 border-gray-300 dark:border-gray-700",
-                ].join(" ")}
-                aria-pressed={isSelected ? "true" : "false"}
-              >
-                {m2hhmm(s.start)}–{m2hhmm(s.end)}
-              </button>
-            );
-          })}
+        <div className="flex items-center justify-between mb-2">
+          <p className="text-sm opacity-80">Выберите время:</p>
+          <button
+            type="button"
+            onClick={() => setSlotsOpen((v) => !v)}
+            className="text-xs underline underline-offset-2 opacity-70 hover:opacity-100"
+          >
+            {slotsOpen ? "Скрыть слоты" : "Показать слоты"}
+          </button>
         </div>
+
+        {slotsOpen && (
+          <div className="flex flex-wrap gap-2">
+            {slots.length === 0 && !loading && (
+              <span className="opacity-70 text-sm">Нет свободных окон.</span>
+            )}
+            {slots.map((s) => {
+              const key = `${s.start}-${s.end}`;
+              const isSelected = selectedKey === key;
+              return (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => {
+                    const next = selectedKey === key ? "" : key;
+                    setSelectedKey(next);
+                    if (next) setSlotsOpen(false); // автосворачивание после выбора
+                  }}
+                  className={[
+                    "rounded-full px-3 py-1.5 border transition",
+                    isSelected
+                      ? "bg-white/10 border-white/50"
+                      : "hover:bg-white/10 border-gray-300 dark:border-gray-700",
+                  ].join(" ")}
+                  aria-pressed={isSelected ? "true" : "false"}
+                >
+                  {m2hhmm(s.start)}–{m2hhmm(s.end)}
+                </button>
+              );
+            })}
+          </div>
+        )}
         {errors["startMin"] && (
           <p className="mt-1 text-xs text-rose-400">{errors["startMin"]}</p>
         )}
@@ -515,7 +583,10 @@ export default function PublicBookingForm({ categories }: Props) {
         <div>
           <label className="block text-sm mb-1">Имя</label>
           <input
-            className="w-full rounded-lg border bg-transparent px-3 py-2 border-gray-300 dark:border-gray-700"
+            className={[
+              "w-full rounded-lg border bg-transparent px-3 py-2 border-gray-300 dark:border-gray-700",
+              name.trim() ? "goldy-text" : "",
+            ].join(" ")}
             name="name"
             value={name}
             onChange={(e) => setName(e.target.value)}
@@ -687,10 +758,9 @@ export default function PublicBookingForm({ categories }: Props) {
         </div>
       )}
 
-      {/* Глобальная правка цвета выпадающего окна у native <select> */}
+      {/* Глобально — цвет опций <select> в тёмной теме */}
       <style jsx global>{`
         :root { --site-dark: #0B1220; }
-
         .dark select option,
         .dark select optgroup {
           background-color: var(--site-dark) !important;
@@ -699,6 +769,42 @@ export default function PublicBookingForm({ categories }: Props) {
         .dark select option:checked,
         .dark select option:hover {
           background-color: #0f1a2b !important;
+        }
+      `}</style>
+
+      {/* Локально — “золотой” перелив текста имени */}
+      <style jsx>{`
+        .goldy-text {
+          font-weight: 600;                 /* лёгкий жир */
+          color: #f5d76e;                   /* fallback-цвет */
+          text-shadow: 0 0 8px rgba(245, 215, 110, 0.45);
+          caret-color: #ffe08a;
+
+          background-image: linear-gradient(
+            110deg,
+            #b3903b 0%,
+            #f5d76e 25%,
+            #fff3c4 50%,
+            #f5d76e 75%,
+            #b3903b 100%
+          );
+          background-size: 200% auto;
+          background-position: 0% center;
+
+          -webkit-background-clip: text;
+          background-clip: text;
+          -webkit-text-fill-color: transparent;
+
+          animation: goldShimmer 4s linear infinite;
+          transition: text-shadow 200ms ease;
+        }
+
+        @keyframes goldShimmer {
+          to { background-position: -200% center; }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+          .goldy-text { animation: none; }
         }
       `}</style>
     </div>
