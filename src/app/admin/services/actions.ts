@@ -3,8 +3,6 @@
 import { prisma } from '@/lib/db';
 import { revalidatePath } from 'next/cache';
 
-/* helpers */
-
 function slugify(input: string): string {
   return input
     .trim()
@@ -15,80 +13,184 @@ function slugify(input: string): string {
     .replace(/(^-|-$)+/g, '');
 }
 
-function toEuro(value: FormDataEntryValue | null): number | null {
-  const n = Number(String(value ?? '').trim().replace(',', '.'));
-  return Number.isFinite(n) && n > 0 ? n : null;
+function toInt(v: FormDataEntryValue | null, fallback: number): number {
+  if (typeof v !== 'string') return fallback;
+  const n = Number(v.trim());
+  return Number.isFinite(n) ? Math.max(0, Math.trunc(n)) : fallback;
 }
-function toInt(value: FormDataEntryValue | null): number | null {
-  const n = Number(String(value ?? '').trim());
-  return Number.isInteger(n) && n > 0 ? n : null;
+function toMoney(v: FormDataEntryValue | null): number | null {
+  if (typeof v !== 'string') return null;
+  const t = v.trim();
+  if (!t) return null;
+  const n = Number(t.replace(',', '.'));
+  return Number.isFinite(n) ? Math.max(0, Math.round(n * 100)) : null;
 }
-
-/* server actions: void | Promise<void> */
 
 export async function createService(formData: FormData): Promise<void> {
   const name = String(formData.get('name') ?? '').trim();
-  const slugRaw = String(formData.get('slug') ?? '').trim();
-  const priceEuro = toEuro(formData.get('priceEuro'));
-  const durationMin = toInt(formData.get('durationMin'));
+  const rawSlug = String(formData.get('slug') ?? '').trim();
+  const description = String(formData.get('description') ?? '').trim() || null;
+  const kind = String(formData.get('kind') ?? 'category') === 'service' ? 'service' : 'category';
+  const isActive = String(formData.get('isActive') ?? 'on') === 'on';
 
-  if (!name || !priceEuro || !durationMin) return;
+  const slug = rawSlug ? slugify(rawSlug) : slugify(name || 'service');
 
-  const slug = slugRaw ? slugify(slugRaw) : slugify(name);
+  let parentId: string | null = null;
+  let durationMin = 0;
+  let priceCents: number | null = null;
 
-  try {
-    await prisma.service.create({
-      data: {
-        name,
-        slug,
-        priceCents: Math.round(priceEuro * 100),
-        durationMin,
-      },
-    });
-  } catch (e) {
-    console.error('createService error:', e);
-  } finally {
-    revalidatePath('/admin/services');
+  if (kind === 'service') {
+    parentId = String(formData.get('parentId') ?? '').trim() || null;
+    durationMin = toInt(formData.get('durationMin'), 0);
+    priceCents = toMoney(formData.get('price'));
   }
+
+  if (!name) {
+    revalidatePath('/admin/services');
+    return;
+  }
+
+  await prisma.service.create({
+    data: {
+      name,
+      slug,
+      description,
+      isActive,
+      durationMin, // 0 для категории
+      priceCents,  // null для категории
+      parentId,    // null для категории
+    },
+  });
+
+  revalidatePath('/admin/services');
 }
 
 export async function updateService(formData: FormData): Promise<void> {
-  const id = String(formData.get('id') ?? '').trim(); // cuid string
-  const name = String(formData.get('name') ?? '').trim();
-  const slugRaw = String(formData.get('slug') ?? '').trim();
-  const priceEuro = toEuro(formData.get('priceEuro'));
-  const durationMin = toInt(formData.get('durationMin'));
-
-  if (!id || !name || !priceEuro || !durationMin) return;
-
-  const slug = slugify(slugRaw || name);
-
-  try {
-    await prisma.service.update({
-      where: { id },
-      data: {
-        name,
-        slug,
-        priceCents: Math.round(priceEuro * 100),
-        durationMin,
-      },
-    });
-  } catch (e) {
-    console.error('updateService error:', e);
-  } finally {
+  const id = String(formData.get('id') ?? '').trim();
+  if (!id) {
     revalidatePath('/admin/services');
+    return;
   }
+
+  const name = String(formData.get('name') ?? '').trim() || undefined;
+  const rawSlug = String(formData.get('slug') ?? '').trim();
+  const slug = rawSlug ? slugify(rawSlug) : undefined;
+  const description = ((): string | null | undefined => {
+    const v = formData.get('description');
+    if (typeof v !== 'string') return undefined;
+    const t = v.trim();
+    return t === '' ? null : t;
+  })();
+
+  const nextKind: 'category' | 'service' | undefined =
+    String(formData.get('kind') ?? '') === 'service'
+      ? 'service'
+      : String(formData.get('kind') ?? '') === 'category'
+      ? 'category'
+      : undefined;
+
+  const isActive =
+    String(formData.get('isActive') ?? '') ?
+      (String(formData.get('isActive')) === 'on') :
+      undefined;
+
+  const current = await prisma.service.findUnique({
+    where: { id },
+    select: { parentId: true },
+  });
+
+  let parentId: string | null | undefined = undefined;
+  let durationMin: number | undefined = undefined;
+  let priceCents: number | null | undefined = undefined;
+
+  if (nextKind === 'category') {
+    parentId = null;
+    durationMin = 0;
+    priceCents = null;
+  } else if (nextKind === 'service') {
+    parentId = String(formData.get('parentId') ?? '').trim() || null;
+    durationMin = toInt(formData.get('durationMin'), 0);
+    priceCents = toMoney(formData.get('price'));
+  } else {
+    if (formData.get('parentId') !== null) {
+      const p = String(formData.get('parentId') ?? '').trim();
+      parentId = p ? p : null;
+    }
+    if (formData.get('durationMin') !== null) {
+      durationMin = toInt(formData.get('durationMin'), 0);
+    }
+    if (formData.get('price') !== null) {
+      priceCents = toMoney(formData.get('price'));
+    }
+  }
+
+  // самоссылка запрещена
+  if (parentId && parentId === id) {
+    parentId = current?.parentId ?? null;
+  }
+
+  await prisma.service.update({
+    where: { id },
+    data: {
+      ...(name !== undefined ? { name } : {}),
+      ...(slug !== undefined ? { slug } : {}),
+      ...(description !== undefined ? { description } : {}),
+      ...(isActive !== undefined ? { isActive } : {}),
+      ...(parentId !== undefined ? { parentId } : {}),
+      ...(durationMin !== undefined ? { durationMin } : {}),
+      ...(priceCents !== undefined ? { priceCents } : {}),
+    },
+  });
+
+  revalidatePath('/admin/services');
 }
 
+/**
+ * Полное удаление услуги/категории:
+ * 1) Собираем id самой услуги и всех её потомков (многоуровнево).
+ * 2) Удаляем все связанные Appointment по этим serviceId.
+ * 3) Удаляем сначала детей, затем саму услугу.
+ *
+ * ВНИМАНИЕ: операция необратима — история записей по этой услуге будет удалена.
+ */
 export async function deleteService(formData: FormData): Promise<void> {
-  const id = String(formData.get('id') ?? '').trim(); // cuid string
+  const id = String(formData.get('id') ?? '').trim();
   if (!id) return;
 
-  try {
-    await prisma.service.delete({ where: { id } });
-  } catch (e) {
-    console.error('deleteService error:', e);
-  } finally {
-    revalidatePath('/admin/services');
-  }
+  await prisma.$transaction(async (tx) => {
+    // 1) Соберём всех потомков (BFS)
+    const toDelete = new Set<string>([id]);
+    let frontier: string[] = [id];
+
+    while (frontier.length > 0) {
+      const children = await tx.service.findMany({
+        where: { parentId: { in: frontier } },
+        select: { id: true },
+      });
+      const next: string[] = [];
+      for (const c of children) {
+        if (!toDelete.has(c.id)) {
+          toDelete.add(c.id);
+          next.push(c.id);
+        }
+      }
+      frontier = next;
+    }
+
+    const ids = Array.from(toDelete);
+    const childIds = ids.filter((sid) => sid !== id);
+
+    // 2) Сносим привязанные записи
+    await tx.appointment.deleteMany({
+      where: { serviceId: { in: ids } },
+    });
+
+    // 3) Сначала дети, потом корень
+    if (childIds.length > 0) {
+      await tx.service.deleteMany({ where: { id: { in: childIds } } });
+    }
+    await tx.service.delete({ where: { id } });
+  });
+
+  revalidatePath('/admin/services');
 }

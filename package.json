@@ -6,7 +6,9 @@
     "postinstall": "prisma generate",
     "studio": "prisma studio",
     "migrate:dev": "prisma migrate dev",
-    "db:seed": "prisma db seed"
+    "db:seed": "prisma db seed",
+    "normalize:services": "tsx scripts/normalize-service-categories.ts",
+    "seed:hierarchy": "tsx scripts/seed-hierarchy.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

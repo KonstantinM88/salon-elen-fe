@@ -1,4 +1,3 @@
-// src/components/public-booking-form.tsx
 "use client";
 
 import React, {
@@ -13,9 +12,20 @@ import { useRouter } from "next/navigation";
 import { book, type BookState } from "@/app/booking/book";
 import { BookingSchema } from "@/lib/validation/booking";
 
-/* ---------- типы пропсов ---------- */
-type Service = { slug: string; name: string; durationMin: number };
-type Props = { services: Service[] };
+/* ---------- типы пропсов с иерархией ---------- */
+type SubService = {
+  slug: string;
+  name: string;
+  durationMin: number;
+  description?: string | null;
+  priceCents?: number | null;
+};
+type Category = {
+  id: string;
+  name: string;
+  children: SubService[];
+};
+type Props = { categories: Category[] };
 type Slot = { start: number; end: number };
 
 /* ---------- утилиты ---------- */
@@ -30,6 +40,12 @@ function todayISO(): string {
     d.getDate()
   ).padStart(2, "0")}`;
 }
+function euro(cents: number | null | undefined): string {
+  if (cents == null) return "—";
+  return new Intl.NumberFormat("de-DE", { style: "currency", currency: "EUR" }).format(
+    cents / 100
+  );
+}
 
 /* ---------- localStorage ---------- */
 const LS_NAME = "booking:name";
@@ -37,16 +53,20 @@ const LS_PHONE = "booking:phone";
 const LS_EMAIL = "booking:email";
 
 /* =============================================================== */
-export default function PublicBookingForm({ services }: Props) {
+export default function PublicBookingForm({ categories }: Props) {
   const router = useRouter();
 
-  // выбор услуги/даты
-  const [serviceSlug, setServiceSlug] = useState<string>("");
+  // выбор категории/подуслуги и даты
+  const [categoryId, setCategoryId] = useState<string>(categories[0]?.id ?? "");
+  const firstSlug = categories[0]?.children?.[0]?.slug ?? "";
+  const [serviceSlug, setServiceSlug] = useState<string>(firstSlug);
   const [dateISO, setDateISO] = useState<string>(todayISO());
 
-  // дропдаун
-  const [ddOpen, setDdOpen] = useState(false);
-  const ddRef = useRef<HTMLDivElement | null>(null);
+  // дропдауны
+  const [ddCatOpen, setDdCatOpen] = useState(false);
+  const [ddSrvOpen, setDdSrvOpen] = useState(false);
+  const ddCatRef = useRef<HTMLDivElement | null>(null);
+  const ddSrvRef = useRef<HTMLDivElement | null>(null);
 
   // слоты
   const [slots, setSlots] = useState<Slot[]>([]);
@@ -95,15 +115,25 @@ export default function PublicBookingForm({ services }: Props) {
     } catch {}
   }, [email]);
 
-  // закрытие дропдауна
+  // закрытие дропдаунов
   useEffect(() => {
     function onDoc(e: MouseEvent) {
-      if (!ddRef.current) return;
-      if (!ddRef.current.contains(e.target as Node)) setDdOpen(false);
+      if (ddCatRef.current && !ddCatRef.current.contains(e.target as Node)) {
+        setDdCatOpen(false);
+      }
+      if (ddSrvRef.current && !ddSrvRef.current.contains(e.target as Node)) {
+        setDdSrvOpen(false);
+      }
     }
-    if (ddOpen) document.addEventListener("mousedown", onDoc);
+    if (ddCatOpen || ddSrvOpen) document.addEventListener("mousedown", onDoc);
     return () => document.removeEventListener("mousedown", onDoc);
-  }, [ddOpen]);
+  }, [ddCatOpen, ddSrvOpen]);
+
+  // вспомогательные вычисления
+  const currentChildren = useMemo<SubService[]>(() => {
+    return categories.find((c) => c.id === categoryId)?.children ?? [];
+  }, [categories, categoryId]);
+  const hasChildren = currentChildren.length > 0;
 
   // выбранный слот
   const slotMap = useMemo(() => {
@@ -116,6 +146,10 @@ export default function PublicBookingForm({ services }: Props) {
   }, [slots]);
   const selectedSlot = selectedKey ? slotMap.get(selectedKey) : undefined;
 
+  // отображаемая подуслуга
+  const selectedService =
+    currentChildren.find((s) => s.slug === serviceSlug) ?? null;
+
   // ответ сервера
   useEffect(() => {
     setFormError(serverState.formError ?? "");
@@ -125,6 +159,14 @@ export default function PublicBookingForm({ services }: Props) {
       setSuccessOpen(true);
     }
   }, [serverState]);
+
+  // смена категории — сбрасываем подуслугу/слоты
+  useEffect(() => {
+    const first = currentChildren[0]?.slug ?? "";
+    setServiceSlug(first);
+    setSlots([]);
+    setSelectedKey("");
+  }, [categoryId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // загрузка слотов
   const loadSlots = React.useCallback(async () => {
@@ -210,98 +252,189 @@ export default function PublicBookingForm({ services }: Props) {
     return { ...clientErrors, ...server };
   }, [clientErrors, serverState.fieldErrors]);
 
-  const selectedService = services.find((s) => s.slug === serviceSlug) ?? null;
-
   return (
     <div className="space-y-6">
-      {/* услуга/дата */}
+      {/* выбор категории/услуги + дата */}
       <div className="grid sm:grid-cols-2 gap-3">
-        {/* дропдаун услуг */}
-        <div ref={ddRef} className="relative">
-          <label className="block text-sm mb-1">Услуга</label>
-          <button
-            type="button"
-            aria-haspopup="listbox"
-            aria-expanded={ddOpen ? "true" : "false"}
-            onClick={() => setDdOpen((v) => !v)}
-            className={[
-              "w-full rounded-lg border px-3 py-2 flex items-center justify-between",
-              "bg-transparent border-gray-300 dark:border-gray-700",
-              "hover:bg-white/5 dark:hover:bg-white/5",
-            ].join(" ")}
-          >
-            <span className={!serviceSlug ? "opacity-60" : ""}>
-              {selectedService
-                ? `${selectedService.name} (${selectedService.durationMin} мин)`
-                : "Выберите услугу…"}
-            </span>
-            <svg
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              className="opacity-70"
-              aria-hidden
-            >
-              <path
-                d="M7 10l5 5 5-5"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-          </button>
-
-          {ddOpen && (
-            <ul
-              role="listbox"
-              tabIndex={-1}
+        {/* левая колонка: два дропдауна один под другим */}
+        <div className="space-y-3">
+          {/* Категория */}
+          <div ref={ddCatRef} className="relative">
+            <label className="block text-sm mb-1">Категория</label>
+            <button
+              type="button"
+              aria-haspopup="listbox"
+              aria-expanded={ddCatOpen ? "true" : "false"}
+              onClick={() => setDdCatOpen((v) => !v)}
               className={[
-                "absolute z-20 mt-2 w-full max-h-72 overflow-auto rounded-lg border shadow-lg",
-                "bg-white text-gray-900 border-gray-200",
-                // тёмно-синий фон для тёмной темы
-                "dark:bg-[#0B1220] dark:text-gray-100 dark:border-gray-700",
+                "w-full rounded-lg border px-3 py-2 flex items-center justify-between",
+                "bg-transparent border-gray-300 dark:border-gray-700",
+                "hover:bg-white/5 dark:hover:bg-white/5",
               ].join(" ")}
             >
-              <li className="px-3 py-2 text-sm opacity-60 select-none">
-                Выберите услугу…
-              </li>
-              {services.map((s) => {
-                const active = s.slug === serviceSlug;
-                return (
-                  <li key={s.slug}>
-                    <button
-                      type="button"
-                      role="option"
-                      aria-selected={active ? "true" : "false"}
-                      onClick={() => {
-                        setServiceSlug(s.slug);
-                        setDdOpen(false);
-                        setSlots([]);
-                        setSelectedKey("");
-                      }}
-                      className={[
-                        "w-full text-left px-3 py-2 transition",
-                        active
-                          ? "bg-primary/10 dark:bg-white/10"
-                          : "hover:bg-gray-100 dark:hover:bg-white/5",
-                      ].join(" ")}
-                    >
-                      {s.name} ({s.durationMin} мин)
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
-          )}
-          {errors["serviceSlug"] && (
-            <p className="mt-1 text-xs text-rose-400">
-              {errors["serviceSlug"]}
-            </p>
-          )}
+              <span className={!categoryId ? "opacity-60" : ""}>
+                {categories.find((c) => c.id === categoryId)?.name ||
+                  "Выберите категорию…"}
+              </span>
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                className="opacity-70"
+                aria-hidden
+              >
+                <path
+                  d="M7 10l5 5 5-5"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </button>
+
+            {ddCatOpen && (
+              <ul
+                role="listbox"
+                tabIndex={-1}
+                className={[
+                  "absolute z-20 mt-2 w-full max-h-72 overflow-auto rounded-lg border shadow-lg",
+                  "bg-white text-gray-900 border-gray-200",
+                  "dark:bg-[#0B1220] dark:text-gray-100 dark:border-gray-700",
+                ].join(" ")}
+              >
+                <li className="px-3 py-2 text-sm opacity-60 select-none">
+                  Выберите категорию…
+                </li>
+                {categories.map((c) => {
+                  const active = c.id === categoryId;
+                  return (
+                    <li key={c.id}>
+                      <button
+                        type="button"
+                        role="option"
+                        aria-selected={active ? "true" : "false"}
+                        onClick={() => {
+                          setCategoryId(c.id);
+                          setDdCatOpen(false);
+                        }}
+                        className={[
+                          "w-full text-left px-3 py-2 transition",
+                          active
+                            ? "bg-primary/10 dark:bg-white/10"
+                            : "hover:bg-gray-100 dark:hover:bg-white/5",
+                        ].join(" ")}
+                      >
+                        {c.name}
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </div>
+
+          {/* Подуслуга (с минутами + ценой) */}
+          <div ref={ddSrvRef} className="relative">
+            <label className="block text-sm mb-1">Подуслуга</label>
+            <button
+              type="button"
+              aria-haspopup="listbox"
+              aria-expanded={ddSrvOpen ? "true" : "false"}
+              onClick={() => hasChildren && setDdSrvOpen((v) => !v)}
+              disabled={!hasChildren}
+              className={[
+                "w-full rounded-lg border px-3 py-2 flex items-center justify-between",
+                "bg-transparent border-gray-300 dark:border-gray-700",
+                "hover:bg-white/5 dark:hover:bg-white/5",
+                !hasChildren ? "opacity-50 cursor-not-allowed" : "",
+              ].join(" ")}
+            >
+              <span className={!serviceSlug ? "opacity-60" : ""}>
+                {selectedService
+                  ? `${selectedService.name} (${selectedService.durationMin} мин · ${euro(
+                      selectedService.priceCents
+                    )})`
+                  : hasChildren
+                  ? "Выберите подуслугу…"
+                  : "Нет подуслуг"}
+              </span>
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                className="opacity-70"
+                aria-hidden
+              >
+                <path
+                  d="M7 10l5 5 5-5"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </button>
+
+            {ddSrvOpen && hasChildren && (
+              <ul
+                role="listbox"
+                tabIndex={-1}
+                className={[
+                  "absolute z-20 mt-2 w-full max-h-72 overflow-auto rounded-lg border shadow-lg",
+                  "bg-white text-gray-900 border-gray-200",
+                  "dark:bg-[#0B1220] dark:text-gray-100 dark:border-gray-700",
+                ].join(" ")}
+              >
+                <li className="px-3 py-2 text-sm opacity-60 select-none">
+                  Выберите подуслугу…
+                </li>
+                {currentChildren.map((s) => {
+                  const active = s.slug === serviceSlug;
+                  return (
+                    <li key={s.slug}>
+                      <button
+                        type="button"
+                        role="option"
+                        aria-selected={active ? "true" : "false"}
+                        onClick={() => {
+                          setServiceSlug(s.slug);
+                          setDdSrvOpen(false);
+                          setSlots([]);
+                          setSelectedKey("");
+                        }}
+                        className={[
+                          "w-full text-left px-3 py-2 transition",
+                          active
+                            ? "bg-primary/10 dark:bg-white/10"
+                            : "hover:bg-gray-100 dark:hover:bg-white/5",
+                        ].join(" ")}
+                      >
+                        {s.name} ({s.durationMin} мин · {euro(s.priceCents)})
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+
+            {!hasChildren && (
+              <p className="mt-1 text-xs text-amber-500">
+                В этой категории пока нет подуслуг. Пожалуйста, выберите другую
+                категорию.
+              </p>
+            )}
+            {errors["serviceSlug"] && (
+              <p className="mt-1 text-xs text-rose-400">
+                {errors["serviceSlug"]}
+              </p>
+            )}
+          </div>
         </div>
 
+        {/* правая колонка: дата */}
         <div>
           <label className="block text-sm mb-1">Дата</label>
           <input
@@ -496,6 +629,7 @@ export default function PublicBookingForm({ services }: Props) {
           <pre className="mt-2 text-xs opacity-70">
             {JSON.stringify(
               {
+                categoryId,
                 serviceSlug,
                 dateISO,
                 selectedKey,
@@ -557,13 +691,11 @@ export default function PublicBookingForm({ services }: Props) {
       <style jsx global>{`
         :root { --site-dark: #0B1220; }
 
-        /* Цвет фона вариантов select в тёмной теме (Chrome/Edge/Firefox/Safari) */
         .dark select option,
         .dark select optgroup {
           background-color: var(--site-dark) !important;
-          color: #e5e7eb !important; /* text-gray-200 */
+          color: #e5e7eb !important;
         }
-        /* Подсветка hover/selected в тёмной теме — чуть светлее */
         .dark select option:checked,
         .dark select option:hover {
           background-color: #0f1a2b !important;

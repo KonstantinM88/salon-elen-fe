@@ -1,31 +1,29 @@
-// src/app/booking/page.tsx
-import PublicBookingForm from "@/components/public-booking-form";
-import { prisma } from "@/lib/db";
+import { prisma } from '@/lib/db';
+import PublicBookingForm from '@/components/public-booking-form';
 
-export const metadata = {
-  title: "Онлайн-запись",
-};
-
-// чтобы страница всегда брала свежие услуги
-export const dynamic = "force-dynamic";
+export const metadata = { title: 'Онлайн-запись' };
+export const dynamic = 'force-dynamic';
 
 export default async function BookingPage() {
-  // Берём активные услуги. В Prisma поле называется `name`
-  // (в БД оно мапится на колонку `title`).
-  const services = await prisma.service.findMany({
-    where: { isActive: true },
-    orderBy: { slug: "asc" }, // стабильный порядок
-    select: { slug: true, name: true, durationMin: true },
+  const categories = await prisma.service.findMany({
+    where: { parentId: null, isActive: true },
+    orderBy: { name: 'asc' },
+    select: {
+      id: true,
+      name: true,
+      children: {
+        where: { isActive: true },
+        orderBy: { name: 'asc' },
+        select: { slug: true, name: true, description: true, durationMin: true, priceCents: true },
+      },
+    },
   });
 
   return (
-    <main className="px-4 py-8">
-      <h1 className="text-3xl font-semibold mb-6">Онлайн-запись</h1>
-
-      <div className="max-w-xl">
-        <PublicBookingForm services={services} />
-      </div>
-    </main>
+    <section className="container py-10">
+      <h1 className="text-3xl font-bold mb-6">Запись онлайн</h1>
+      <PublicBookingForm categories={categories} />
+    </section>
   );
 }
 
