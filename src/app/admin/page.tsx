@@ -84,6 +84,40 @@ export default async function AdminDashboard() {
         </div>
       </section>
 
+      {/* Блок быстрых ссылок */}
+      <section>
+        <h2 className="text-lg font-semibold mb-3">Быстрые ссылки</h2>
+        <div className="grid gap-4 sm:grid-cols-3">
+          <div className="card p-4">
+            <div className="card-title mb-1">Сотрудники</div>
+            <p className="text-sm opacity-70 mb-3">
+              Управление мастерами, их услугами и расписанием.
+            </p>
+            <Link href="/admin/masters" className="btn">
+              Открыть
+            </Link>
+          </div>
+          <div className="card p-4">
+            <div className="card-title mb-1">Календарь</div>
+            <p className="text-sm opacity-70 mb-3">
+              Глобальные рабочие часы салона и исключения по датам.
+            </p>
+            <Link href="/admin/calendar" className="btn">
+              Открыть
+            </Link>
+          </div>
+          <div className="card p-4">
+            <div className="card-title mb-1">Статистика</div>
+            <p className="text-sm opacity-70 mb-3">
+              Заявки и касса по периодам, мастерам и услугам.
+            </p>
+            <Link href="/admin/stats" className="btn">
+              Смотреть
+            </Link>
+          </div>
+        </div>
+      </section>
+
       <section className="grid lg:grid-cols-2 gap-6">
         <div>
           <div className="flex items-center justify-between mb-3">
