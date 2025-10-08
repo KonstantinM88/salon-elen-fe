@@ -1,15 +1,16 @@
-// src/app/admin/clients/[id]/page.tsx
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { AppointmentStatus, $Enums } from "@prisma/client";
 import DeleteClientForm from "./DeleteClientForm";
+import { updateClient as _updateClient } from "./actions";
 
 export const dynamic = "force-dynamic";
 
-// ВАЖНО: в Next 15 searchParams/params — асинхронные
+// Next 15: params/searchParams — async
 type PageProps = {
   params: Promise<{ id: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
 
 function fmtDate(d: Date): string {
@@ -30,8 +31,33 @@ function fmtDateTime(d: Date): string {
   }).format(d);
 }
 
+function toInputDate(d: Date | null | undefined): string {
+  if (!d) return "";
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${dd}`;
+}
+
+/** Обёртка для server action: после успешного обновления уходим в список */
+async function submitUpdate(formData: FormData) {
+  "use server";
+  const id = String(formData.get("id") ?? "");
+  const res = await _updateClient(undefined, formData);
+  if (res?.ok) {
+    redirect("/admin/clients");
+  } else {
+    // остаться в режиме редактирования
+    redirect(`/admin/clients/${id}?edit=1&err=1`);
+  }
+}
+
 export default async function AdminClientPage(props: PageProps) {
   const { id } = await props.params;
+  const sp = await props.searchParams;
+  const editMode =
+    sp?.edit === "1" || sp?.edit === "true" || (Array.isArray(sp?.edit) && sp?.edit[0] === "1");
+  const hasError = sp?.err === "1" || (Array.isArray(sp?.err) && sp?.err[0] === "1");
 
   const client = await prisma.client.findUnique({
     where: { id },
@@ -70,19 +96,26 @@ export default async function AdminClientPage(props: PageProps) {
   const lastVisit = visits[0]?.startAt ?? null;
 
   return (
-    <main className="p-6 space-y-6">
+    <main className="p-6 space-y-6" id="top">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold">Клиент: {client.name}</h1>
         <div className="flex gap-2">
           <Link href="/admin/clients" className="btn">
             ← К списку
           </Link>
-          {/* Кнопка / форма удаления */}
+
+          {/* Включаем режим редактирования только по запросу */}
+          {!editMode && (
+            <Link href={`/admin/clients/${client.id}?edit=1#edit`} className="btn">
+              Редактировать
+            </Link>
+          )}
+
           <DeleteClientForm clientId={client.id} clientName={client.name} />
         </div>
       </div>
 
-      {/* Профиль */}
+      {/* Профиль (read-only) */}
       <section className="rounded-2xl border p-4">
         <h2 className="text-lg font-medium mb-3">Профиль</h2>
         <div className="grid sm:grid-cols-2 gap-3">
@@ -197,10 +230,10 @@ export default async function AdminClientPage(props: PageProps) {
                       {a.status === AppointmentStatus.CONFIRMED
                         ? "Подтверждён"
                         : a.status === AppointmentStatus.DONE
-                          ? "Завершён"
-                          : a.status === AppointmentStatus.CANCELED
-                            ? "Отменён"
-                            : "Ожидает"}
+                        ? "Завершён"
+                        : a.status === AppointmentStatus.CANCELED
+                        ? "Отменён"
+                        : "Ожидает"}
                     </td>
                   </tr>
                 ))}
@@ -209,6 +242,97 @@ export default async function AdminClientPage(props: PageProps) {
           </div>
         )}
       </section>
+
+      {/* ===== Редактирование профиля (только когда edit=1) ===== */}
+      {editMode && (
+        <section id="edit" className="rounded-2xl border p-4">
+          <h2 className="text-lg font-medium mb-3">Редактировать профиль</h2>
+
+          {hasError && (
+            <div className="mb-3 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-amber-200 text-sm">
+              Не удалось сохранить изменения. Проверьте поля и попробуйте снова.
+            </div>
+          )}
+
+          <form action={submitUpdate} className="grid sm:grid-cols-2 gap-3">
+            <input type="hidden" name="id" value={client.id} />
+
+            <div>
+              <label className="block text-sm mb-1">Имя</label>
+              <input
+                name="name"
+                defaultValue={client.name ?? ""}
+                className="w-full rounded-lg border bg-transparent px-3 py-2"
+                autoComplete="name"
+                required
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm mb-1">Телефон</label>
+              <input
+                name="phone"
+                defaultValue={client.phone ?? ""}
+                className="w-full rounded-lg border bg-transparent px-3 py-2"
+                autoComplete="tel"
+                inputMode="tel"
+                placeholder="+49 ..."
+                required
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm mb-1">E-mail</label>
+              <input
+                type="email"
+                name="email"
+                defaultValue={client.email ?? ""}
+                className="w-full rounded-lg border bg-transparent px-3 py-2"
+                autoComplete="email"
+                placeholder="you@example.com"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm mb-1">Дата рождения</label>
+              <input
+                type="date"
+                name="birthDate"
+                defaultValue={toInputDate(client.birthDate)}
+                className="w-full rounded-lg border bg-transparent px-3 py-2"
+                required
+              />
+            </div>
+
+            <div className="sm:col-span-2">
+              <label className="block text-sm mb-1">Как узнали о нас</label>
+              <input
+                name="referral"
+                defaultValue={client.referral ?? ""}
+                className="w-full rounded-lg border bg-transparent px-3 py-2"
+                placeholder="Google / Instagram / Рекомендации …"
+              />
+            </div>
+
+            <div className="sm:col-span-2">
+              <label className="block text-sm mb-1">Заметки</label>
+              <textarea
+                name="notes"
+                defaultValue={client.notes ?? ""}
+                rows={4}
+                className="w-full rounded-lg border bg-transparent px-3 py-2"
+              />
+            </div>
+
+            <div className="sm:col-span-2 flex flex-wrap gap-2">
+              <button className="btn">Сохранить</button>
+              <Link href={`/admin/clients/${client.id}`} className="btn">
+                Отмена
+              </Link>
+            </div>
+          </form>
+        </section>
+      )}
     </main>
   );
 }

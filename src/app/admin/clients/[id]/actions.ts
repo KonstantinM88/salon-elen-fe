@@ -18,11 +18,15 @@ const UpdateClientSchema = z.object({
     .transform((s) => s.replace(/\s+/g, "")),
   email: z
     .union([z.string().trim().email("Неверный e-mail"), z.literal("")])
+    // Пустая строка = не трогаем email (оставляем как есть)
     .transform((v) => (v === "" ? undefined : v)),
+  // ОБЯЗАТЕЛЬНОЕ поле даты рождения
   birthDate: z
     .string()
+    .min(1, "Укажите дату рождения")
     .regex(/^\d{4}-\d{2}-\d{2}$/, "Формат YYYY-MM-DD")
     .transform((s) => new Date(`${s}T00:00:00.000Z`)),
+  // «Как узнали»; принимаем и referral, и source (см. ниже при разборе formData)
   referral: z
     .string()
     .trim()
@@ -42,7 +46,9 @@ const UpdateClientSchema = z.object({
 export type UpdateClientState = {
   ok: boolean;
   formError?: string;
-  fieldErrors?: Partial<Record<keyof z.infer<typeof UpdateClientSchema>, string>>;
+  fieldErrors?: Partial<
+    Record<keyof z.infer<typeof UpdateClientSchema>, string>
+  >;
 };
 
 const initialState: UpdateClientState = { ok: false };
@@ -53,13 +59,19 @@ export async function updateClient(
   _prev: UpdateClientState = initialState,
   formData: FormData
 ): Promise<UpdateClientState> {
+  // Принимаем "Как узнали" из любого имени поля
+  const referralRaw =
+    (formData.get("referral") as string | null) ??
+    (formData.get("source") as string | null) ??
+    "";
+
   const raw = {
     id: String(formData.get("id") ?? ""),
     name: String(formData.get("name") ?? ""),
     phone: String(formData.get("phone") ?? ""),
     email: (formData.get("email") ?? "") as string,
     birthDate: String(formData.get("birthDate") ?? ""),
-    referral: (formData.get("referral") ?? "") as string,
+    referral: referralRaw,
     notes: (formData.get("notes") ?? "") as string,
   };
 
@@ -79,10 +91,12 @@ export async function updateClient(
     const updateData: Prisma.ClientUpdateInput = {
       name: data.name,
       phone: data.phone,
-      birthDate: data.birthDate,
+      birthDate: data.birthDate, // теперь всегда Date (обязательно)
       referral: data.referral,
       notes: data.notes,
     };
+
+    // email: undefined — не трогаем поле; строка — записываем
     if (data.email !== undefined) {
       updateData.email = data.email;
     }
@@ -97,11 +111,18 @@ export async function updateClient(
 
     return { ok: true };
   } catch (e) {
-    if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002") {
-      const target = Array.isArray(e.meta?.target) ? (e.meta.target as string[]) : [];
+    if (
+      e instanceof Prisma.PrismaClientKnownRequestError &&
+      e.code === "P2002"
+    ) {
+      const target = Array.isArray(e.meta?.target)
+        ? (e.meta.target as string[])
+        : [];
       const fieldErrors: UpdateClientState["fieldErrors"] = {};
-      if (target.includes("phone")) fieldErrors.phone = "Такой телефон уже используется";
-      if (target.includes("email")) fieldErrors.email = "Такой e-mail уже используется";
+      if (target.includes("phone"))
+        fieldErrors.phone = "Такой телефон уже используется";
+      if (target.includes("email"))
+        fieldErrors.email = "Такой e-mail уже используется";
       return { ok: false, fieldErrors };
     }
     return { ok: false, formError: "Не удалось сохранить изменения" };
@@ -131,7 +152,9 @@ export async function deleteClient(
   if (!parsed.success) {
     return {
       ok: false,
-      fieldErrors: { id: parsed.error.issues[0]?.message ?? "Неверные данные" },
+      fieldErrors: {
+        id: parsed.error.issues[0]?.message ?? "Неверные данные",
+      },
     };
   }
 
@@ -139,6 +162,7 @@ export async function deleteClient(
 
   try {
     await prisma.$transaction(async (tx) => {
+      // Сохраняем историю — только отвязываем записи от клиента
       await tx.appointment.updateMany({
         where: { clientId },
         data: { clientId: null },
@@ -149,11 +173,11 @@ export async function deleteClient(
     return { ok: false, formError: "Не удалось удалить клиента" };
   }
 
-  // ВАЖНО: redirect должен быть ВНЕ try/catch
+  // Редирект после транзакции и вне try/catch
   revalidatePath("/admin/clients");
   revalidatePath("/admin");
   redirect("/admin/clients");
 
-  // недостижимо, оставлено для типизации
+  // Недостижимо, для типизации
   // return { ok: true };
 }
