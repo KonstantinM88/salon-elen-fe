@@ -1,10 +1,11 @@
-'use server';
+"use server";
 
-import { prisma } from '@/lib/db';
-import { redirect } from 'next/navigation';
-import { revalidatePath } from 'next/cache';
-import path from 'node:path';
-import { unlink, mkdir, writeFile } from 'node:fs/promises';
+import { prisma } from "@/lib/db";
+import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
+import path from "node:path";
+import { unlink, mkdir, writeFile } from "node:fs/promises";
+import { Prisma } from "@prisma/client";
 
 /* ───────── helpers ───────── */
 
@@ -32,46 +33,53 @@ function parseDateUTC(s: string | null | undefined): Date | null {
   return new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3])));
 }
 
-function backToProfile(id: string, tab: 'profile' | 'services' | 'schedule', intent?: string | null): never {
+function backToProfile(
+  id: string,
+  tab: "profile" | "services" | "schedule",
+  intent?: string | null
+): never {
   revalidatePath(`/admin/masters/${id}`);
-  if (intent === 'save_close') redirect('/admin/masters');
+  if (intent === "save_close") redirect("/admin/masters");
   redirect(`/admin/masters/${id}?tab=${tab}&saved=1`);
 }
 
 /* ───────── profile ───────── */
 
 export async function updateMaster(formData: FormData): Promise<void> {
-  const id = String(formData.get('id') ?? '');
-  const intent = String(formData.get('intent') ?? 'save_stay');
+  const id = String(formData.get("id") ?? "");
+  const intent = String(formData.get("intent") ?? "save_stay");
+
+  const birthStr = String(formData.get("birthDate") ?? "");
+  const birthDate = birthStr ? new Date(birthStr) : null;
 
   await prisma.master.update({
     where: { id },
     data: {
-      name: String(formData.get('name') ?? ''),
-      email: String(formData.get('email') ?? ''),
-      phone: String(formData.get('phone') ?? ''),
-      birthDate: new Date(String(formData.get('birthDate') ?? '')),
-      bio: (String(formData.get('bio') ?? '') || null),
+      name: String(formData.get("name") ?? ""),
+      email: String(formData.get("email") ?? ""),
+      phone: String(formData.get("phone") ?? ""),
+      birthDate: birthDate ?? undefined,
+      bio: String(formData.get("bio") ?? "") || null,
     },
   });
 
-  backToProfile(id, 'profile', intent);
+  backToProfile(id, "profile", intent);
 }
 
 /* ───────── services ───────── */
 
 export async function setMasterServices(formData: FormData): Promise<void> {
-  const id = String(formData.get('id') ?? '');
-  const intent = String(formData.get('intent') ?? 'save_stay');
+  const id = String(formData.get("id") ?? "");
+  const intent = String(formData.get("intent") ?? "save_stay");
 
   const current = await prisma.master.findUnique({
     where: { id },
     select: { services: { select: { id: true } } },
   });
-  const existing = new Set((current?.services ?? []).map(s => s.id));
+  const existing = new Set((current?.services ?? []).map((s) => s.id));
 
   const chosen = new Set<string>();
-  for (const v of formData.getAll('serviceId')) chosen.add(String(v));
+  for (const v of formData.getAll("serviceId")) chosen.add(String(v));
 
   const toAdd: string[] = [];
   const toRemove: string[] = [];
@@ -81,61 +89,78 @@ export async function setMasterServices(formData: FormData): Promise<void> {
   await prisma.$transaction([
     prisma.master.update({
       where: { id },
-      data: { services: { connect: toAdd.map(x => ({ id: x })) } },
+      data: { services: { connect: toAdd.map((x) => ({ id: x })) } },
     }),
     prisma.master.update({
       where: { id },
-      data: { services: { disconnect: toRemove.map(x => ({ id: x })) } },
+      data: { services: { disconnect: toRemove.map((x) => ({ id: x })) } },
     }),
   ]);
 
-  backToProfile(id, 'services', intent);
+  backToProfile(id, "services", intent);
 }
 
 /* ───────── working hours ───────── */
 
 export async function setMasterWorkingHours(formData: FormData): Promise<void> {
-  const id = String(formData.get('id') ?? '');
-  const intent = String(formData.get('intent') ?? 'save_stay');
+  const id = String(formData.get("id") ?? "");
+  const intent = String(formData.get("intent") ?? "save_stay");
 
-  const jobs = [];
+  const jobs: Prisma.PrismaPromise<unknown>[] = [];
   for (let weekday = 0; weekday <= 6; weekday++) {
-    const isClosed = formData.get(`wh-${weekday}-isClosed`) === 'on';
+    const isClosed = formData.get(`wh-${weekday}-isClosed`) === "on";
     let start = minutes(String(formData.get(`wh-${weekday}-start`)));
     let end = minutes(String(formData.get(`wh-${weekday}-end`)));
-    if (isClosed) { start = 0; end = 0; }
+    if (isClosed) {
+      start = 0;
+      end = 0;
+    }
 
     jobs.push(
       prisma.masterWorkingHours.upsert({
         where: { masterId_weekday: { masterId: id, weekday } },
         update: { isClosed, startMinutes: start, endMinutes: end },
-        create: { masterId: id, weekday, isClosed, startMinutes: start, endMinutes: end },
+        create: {
+          masterId: id,
+          weekday,
+          isClosed,
+          startMinutes: start,
+          endMinutes: end,
+        },
       })
     );
   }
-  await Promise.all(jobs);
+  await prisma.$transaction(jobs);
 
-  backToProfile(id, 'schedule', intent);
+  backToProfile(id, "schedule", intent);
 }
 
-/* ───────── time off (NOW WITH RANGE) ───────── */
+/* ───────── time off (range-friendly) ───────── */
 
 export async function addTimeOff(formData: FormData): Promise<void> {
-  const id = String(formData.get('id') ?? '');
+  const id = String(formData.get("id") ?? "");
 
-  // поддержка диапазона: to-date-start / to-date-end
-  const startDateStr = String(formData.get('to-date-start') ?? formData.get('to-date') ?? '');
-  const endDateStr   = String(formData.get('to-date-end') ?? '');
-  const isClosed = formData.get('to-closed') === 'on';
-  const reason = (String(formData.get('to-reason') ?? '') || null);
+  // поддержка диапазона дат
+  const startDateStr = String(
+    formData.get("to-date-start") ?? formData.get("to-date") ?? ""
+  );
+  const endDateStr = String(formData.get("to-date-end") ?? "");
+  const isClosed = formData.get("to-closed") === "on";
+  const reason = String(formData.get("to-reason") ?? "") || null;
 
-  let startMinutes = 0, endMinutes = 1440;
+  let startMinutes = 0,
+    endMinutes = 1440;
   if (!isClosed) {
-    // принимаем HH:MM; если пришли числа — тоже обработаем
-    const startRaw = formData.get('to-start');
-    const endRaw   = formData.get('to-end');
-    startMinutes = typeof startRaw === 'string' && startRaw.includes(':') ? timeToMinutes(startRaw) : minutes(String(startRaw));
-    endMinutes   = typeof endRaw === 'string' && endRaw.includes(':')     ? timeToMinutes(endRaw)   : minutes(String(endRaw));
+    const startRaw = formData.get("to-start");
+    const endRaw = formData.get("to-end");
+    startMinutes =
+      typeof startRaw === "string" && startRaw.includes(":")
+        ? timeToMinutes(startRaw)
+        : minutes(String(startRaw));
+    endMinutes =
+      typeof endRaw === "string" && endRaw.includes(":")
+        ? timeToMinutes(endRaw)
+        : minutes(String(endRaw));
   }
 
   const startDay = parseDateUTC(startDateStr);
@@ -146,18 +171,22 @@ export async function addTimeOff(formData: FormData): Promise<void> {
   if (!endDay || endDay.getTime() < startDay.getTime()) endDay = startDay;
 
   const dayMs = 24 * 60 * 60 * 1000;
-  const tx = [];
+  const tx: Prisma.PrismaPromise<unknown>[] = [];
+
   for (let t = startDay!.getTime(); t <= endDay!.getTime(); t += dayMs) {
-    tx.push(prisma.masterTimeOff.create({
-      data: {
-        masterId: id,
-        date: new Date(t),
-        startMinutes,
-        endMinutes,
-        reason,
-      },
-    }));
+    tx.push(
+      prisma.masterTimeOff.create({
+        data: {
+          masterId: id,
+          date: new Date(t),
+          startMinutes,
+          endMinutes,
+          reason,
+        },
+      })
+    );
   }
+
   await prisma.$transaction(tx);
 
   revalidatePath(`/admin/masters/${id}`);
@@ -165,8 +194,8 @@ export async function addTimeOff(formData: FormData): Promise<void> {
 }
 
 export async function removeTimeOff(formData: FormData): Promise<void> {
-  const id = String(formData.get('id') ?? '');
-  const timeOffId = String(formData.get('timeOffId') ?? '');
+  const id = String(formData.get("id") ?? "");
+  const timeOffId = String(formData.get("timeOffId") ?? "");
 
   if (timeOffId) {
     await prisma.masterTimeOff.delete({ where: { id: timeOffId } });
@@ -178,11 +207,11 @@ export async function removeTimeOff(formData: FormData): Promise<void> {
 /* ───────── avatar upload / delete ───────── */
 
 export async function uploadAvatar(formData: FormData): Promise<void> {
-  const id = String(formData.get('id') ?? '');
-  const file = formData.get('avatar') as File | null;
+  const id = String(formData.get("id") ?? "");
+  const file = formData.get("avatar") as File | null;
   if (!file) redirect(`/admin/masters/${id}?tab=profile&error=upload`);
 
-  const type = file.type || '';
+  const type = file.type || "";
   if (!/(^image\/)(jpeg|jpg|png|webp)$/i.test(type)) {
     redirect(`/admin/masters/${id}?tab=profile&error=type`);
   }
@@ -198,14 +227,16 @@ export async function uploadAvatar(formData: FormData): Promise<void> {
   // удаляем старый файл (если был)
   if (prev?.avatarUrl) {
     try {
-      const rel = prev.avatarUrl.replace(/^\/+/, '');
-      const oldPath = path.join(process.cwd(), 'public', rel);
+      const rel = prev.avatarUrl.replace(/^\/+/, "");
+      const oldPath = path.join(process.cwd(), "public", rel);
       await unlink(oldPath);
-    } catch {/* ignore */}
+    } catch {
+      /* ignore */
+    }
   }
 
-  const ext = type.split('/')[1] || 'jpg';
-  const dir = path.join(process.cwd(), 'public', 'uploads', 'masters', id);
+  const ext = type.split("/")[1] || "jpg";
+  const dir = path.join(process.cwd(), "public", "uploads", "masters", id);
   await mkdir(dir, { recursive: true });
 
   const filename = `${Date.now()}.${ext}`;
@@ -220,7 +251,7 @@ export async function uploadAvatar(formData: FormData): Promise<void> {
 }
 
 export async function removeAvatar(formData: FormData): Promise<void> {
-  const id = String(formData.get('id') ?? '');
+  const id = String(formData.get("id") ?? "");
 
   const prev = await prisma.master.findUnique({
     where: { id },
@@ -229,10 +260,12 @@ export async function removeAvatar(formData: FormData): Promise<void> {
 
   if (prev?.avatarUrl) {
     try {
-      const rel = prev.avatarUrl.replace(/^\/+/, '');
-      const oldPath = path.join(process.cwd(), 'public', rel);
+      const rel = prev.avatarUrl.replace(/^\/+/, "");
+      const oldPath = path.join(process.cwd(), "public", rel);
       await unlink(oldPath);
-    } catch {/* ignore */}
+    } catch {
+      /* ignore */
+    }
   }
 
   await prisma.master.update({ where: { id }, data: { avatarUrl: null } });

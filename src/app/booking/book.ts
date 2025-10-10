@@ -1,139 +1,141 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
+import { revalidatePath } from "next/cache";
+import { z } from "zod";
 import { BookingSchema } from "@/lib/validation/booking";
-import { addMinutes, parseISO } from "date-fns";
-import { AppointmentStatus } from "@prisma/client";
 
 export type BookState = {
   ok: boolean;
   formError?: string;
-  fieldErrors?: Partial<Record<keyof typeof formKeys, string>>;
+  fieldErrors?: Partial<Record<keyof z.infer<typeof BookingSchema>, string>>;
 };
 
-const formKeys = {
-  serviceSlug: true,
-  dateISO: true,
-  startMin: true,
-  endMin: true,
-  name: true,
-  phone: true,
-  email: true,
-  birthDate: true,
-  source: true,
-  notes: true,
-} as const;
+const initial: BookState = { ok: false };
 
-export async function book(_: BookState, formData: FormData): Promise<BookState> {
-  try {
-    const payload = {
-      serviceSlug: String(formData.get("serviceSlug") ?? ""),
-      dateISO: String(formData.get("dateISO") ?? ""),
-      startMin: Number(formData.get("startMin") ?? NaN),
-      endMin: Number(formData.get("endMin") ?? NaN),
-      name: String(formData.get("name") ?? ""),
-      phone: String(formData.get("phone") ?? ""),
-      email: String(formData.get("email") ?? ""),
-      birthDate: String(formData.get("birthDate") ?? ""),
-      source: (formData.get("source") ? String(formData.get("source")) : undefined),
-      notes: (formData.get("notes") ? String(formData.get("notes")) : undefined),
-    };
+function minsToDate(dateISO: string, minutes: number): Date {
+  const d = new Date(`${dateISO}T00:00:00.000Z`);
+  d.setUTCMinutes(d.getUTCMinutes() + minutes);
+  return d;
+}
 
-    const parsed = BookingSchema.safeParse(payload);
-    if (!parsed.success) {
-      const fe: Record<string, string> = {};
-      for (const issue of parsed.error.issues) {
-        const k = String(issue.path?.[0] ?? "");
-        if (k) fe[k] = issue.message;
-      }
-      return { ok: false, fieldErrors: fe };
+export async function book(
+  _prev: BookState = initial,
+  formData: FormData
+): Promise<BookState> {
+  const raw = {
+    serviceSlug: String(formData.get("serviceSlug") ?? ""),
+    dateISO: String(formData.get("dateISO") ?? ""),
+    startMin: Number(formData.get("startMin") ?? NaN),
+    endMin: Number(formData.get("endMin") ?? NaN),
+
+    name: String(formData.get("name") ?? ""),
+    phone: String(formData.get("phone") ?? ""),
+    email: String(formData.get("email") ?? ""),
+    birthDate: String(formData.get("birthDate") ?? ""),
+    source: (formData.get("source") ?? "") as string,
+    notes: (formData.get("notes") ?? "") as string,
+
+    // выбратый мастер в форме
+    masterId: String(formData.get("masterId") ?? ""),
+  };
+
+  const parsed = BookingSchema.safeParse(raw);
+  if (!parsed.success) {
+    const fieldErrors: BookState["fieldErrors"] = {};
+    for (const issue of parsed.error.issues) {
+      const key = issue.path[0] as keyof z.infer<typeof BookingSchema>;
+      if (!fieldErrors[key]) fieldErrors[key] = issue.message;
     }
-    const data = parsed.data;
+    return { ok: false, fieldErrors };
+  }
+  const data = parsed.data;
 
-    // 1) сервис
-    const service = await prisma.service.findUnique({
+  // Находим услугу и мастера
+  const [service, master] = await Promise.all([
+    prisma.service.findUnique({
       where: { slug: data.serviceSlug },
-      select: { id: true, durationMin: true, isActive: true },
-    });
-    if (!service || !service.isActive) {
-      return { ok: false, fieldErrors: { serviceSlug: "Сервис недоступен" } };
-    }
+      select: { id: true, isActive: true, durationMin: true, priceCents: true },
+    }),
+    prisma.master.findUnique({
+      where: { id: data.masterId },
+      select: { id: true, services: { select: { slug: true } } },
+    }),
+  ]);
 
-    // 2) расчёт времени
-    const day = parseISO(data.dateISO);
-    const startAt = addMinutes(day, data.startMin);
-    const endAt = addMinutes(day, data.endMin);
+  if (!service || !service.isActive) {
+    return { ok: false, formError: "Услуга недоступна" };
+  }
+  if (!master) {
+    return { ok: false, formError: "Мастер не найден" };
+  }
+  if (!master.services.some((s) => s.slug === data.serviceSlug)) {
+    return { ok: false, formError: "Мастер не выполняет выбранную подуслугу" };
+  }
 
-    // 3) транзакция: клиент + проверка пересечения + запись
-    await prisma.$transaction(async (tx) => {
-      // клиент по email/телефону
-      const client =
-        (await tx.client.findFirst({
-          where: {
-            OR: [
-              { email: data.email.toLowerCase() },
-              { phone: data.phone },
-            ],
-          },
-          select: { id: true },
-        })) ??
-        (await tx.client.create({
-          data: {
-            name: data.name.trim(),
-            phone: data.phone.trim(),
-            email: data.email.trim().toLowerCase(),
-            birthDate: parseISO(data.birthDate),
-            referral: data.source ?? null,
-            notes: data.notes ?? null,
-          },
-          select: { id: true },
-        }));
+  const startAt = minsToDate(data.dateISO, data.startMin);
+  const endAt = minsToDate(data.dateISO, data.endMin);
 
-      // пересечения: (startAt < checkEnd) AND (endAt > checkStart)
-      const checkStart = startAt;
-      const checkEnd = endAt;
+  // Проверка пересечений для выбранного мастера
+  const overlap = await prisma.appointment.findFirst({
+    where: {
+      masterId: master.id,
+      startAt: { lt: endAt },
+      endAt: { gt: startAt },
+      status: { in: ["CONFIRMED", "PENDING"] },
+    },
+    select: { id: true },
+  });
+  if (overlap) {
+    return {
+      ok: false,
+      formError:
+        "Выбранное время занято. Обновите слоты и повторите выбор.",
+    };
+  }
 
-      const overlap = await tx.appointment.findFirst({
-        where: {
-          status: { in: [AppointmentStatus.PENDING, AppointmentStatus.CONFIRMED] },
-          startAt: { lt: checkEnd },     // было синтаксически неверно
-          endAt:   { gt: checkStart },   // было синтаксически неверно
+  // Клиент: ищем по телефону или e-mail, иначе создаём
+  const clientFound = await prisma.client.findFirst({
+    where: {
+      OR: [{ phone: data.phone }, { email: data.email }],
+    },
+    select: { id: true },
+  });
+
+  const clientId =
+    clientFound?.id ??
+    (
+      await prisma.client.create({
+        data: {
+          name: data.name,
+          phone: data.phone,
+          email: data.email,
+          birthDate: new Date(`${data.birthDate}T00:00:00.000Z`),
+          referral: data.source || null,
+          notes: data.notes || null,
         },
         select: { id: true },
-      });
+      })
+    ).id;
 
-      if (overlap) {
-        throw new Error("В это время уже есть запись");
-      }
+  // Создание записи (БЕЗ priceCents — такого поля нет в модели Appointment)
+  await prisma.appointment.create({
+    data: {
+      clientId,
+      masterId: master.id,      // связь с мастером
+      serviceId: service.id,    // связь с услугой
+      startAt,
+      endAt,
+      status: "PENDING",
 
-      // создание визита
-      await tx.appointment.create({
-        data: {
-          serviceId: service.id,
-          clientId: client.id,
-          startAt,
-          endAt,
-          customerName: data.name.trim(), // сохраняем снимок имени
-          phone: data.phone.trim(),
-          email: data.email.trim().toLowerCase(),
-          notes: data.notes ?? null,
-          status: AppointmentStatus.PENDING,
-        },
-      });
-    });
+      // сохраняем ввод клиента
+      customerName: data.name,
+      phone: data.phone,
+      email: data.email,
+      notes: data.notes || null,
+    },
+  });
 
-    // Обновим админ-страницы
-    revalidatePath("/admin");
-    revalidatePath("/admin/bookings");
-    revalidatePath("/admin/clients");
-
-    return { ok: true };
-  } catch (e) {
-    const msg =
-      process.env.NODE_ENV === "development"
-        ? String(e)
-        : "Сервер недоступен";
-    return { ok: false, formError: msg };
-  }
+  revalidatePath("/admin");
+  return { ok: true };
 }

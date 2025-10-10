@@ -12,7 +12,7 @@ import { useRouter } from "next/navigation";
 import { book, type BookState } from "@/app/booking/book";
 import { BookingSchema } from "@/lib/validation/booking";
 
-/* ---------- типы пропсов с иерархией ---------- */
+/* ---------- типы ---------- */
 type SubService = {
   slug: string;
   name: string;
@@ -20,15 +20,13 @@ type SubService = {
   description?: string | null;
   priceCents?: number | null;
 };
-type Category = {
-  id: string;
-  name: string;
-  children: SubService[];
-};
+type Category = { id: string; name: string; children: SubService[] };
 type Props = { categories: Category[] };
-type Slot = { start: number; end: number };
 
-/* ---------- утилиты ---------- */
+type Slot = { start: number; end: number };
+type Master = { id: string; name: string };
+
+/* ---------- утилы ---------- */
 function m2hhmm(min: number): string {
   const h = Math.floor(min / 60);
   const m = min % 60;
@@ -42,31 +40,39 @@ function todayISO(): string {
 }
 function euro(cents: number | null | undefined): string {
   if (cents == null) return "—";
-  return new Intl.NumberFormat("de-DE", { style: "currency", currency: "EUR" }).format(
-    cents / 100
-  );
+  return new Intl.NumberFormat("de-DE", {
+    style: "currency",
+    currency: "EUR",
+  }).format(cents / 100);
 }
 
-/* ---------- localStorage ---------- */
+/* ---------- LS ---------- */
 const LS_NAME = "booking:name";
 const LS_PHONE = "booking:phone";
 const LS_EMAIL = "booking:email";
 
-/* =============================================================== */
+/* ========================================================= */
 export default function PublicBookingForm({ categories }: Props) {
   const router = useRouter();
 
-  // выбор категории/подуслуги и даты
+  // выбор категории/подуслуги/мастера и даты
   const [categoryId, setCategoryId] = useState<string>(categories[0]?.id ?? "");
-  const firstSlug = categories[0]?.children?.[0]?.slug ?? "";
-  const [serviceSlug, setServiceSlug] = useState<string>(firstSlug);
+  const [serviceSlug, setServiceSlug] = useState<string>(
+    categories[0]?.children?.[0]?.slug ?? ""
+  );
+
+  const [masters, setMasters] = useState<Master[]>([]); // NEW
+  const [masterId, setMasterId] = useState<string>(""); // CHANGED: masterId
+
   const [dateISO, setDateISO] = useState<string>(todayISO());
 
   // дропдауны
   const [ddCatOpen, setDdCatOpen] = useState(false);
   const [ddSrvOpen, setDdSrvOpen] = useState(false);
+  const [ddMstOpen, setDdMstOpen] = useState(false); // NEW
   const ddCatRef = useRef<HTMLDivElement | null>(null);
   const ddSrvRef = useRef<HTMLDivElement | null>(null);
+  const ddMstRef = useRef<HTMLDivElement | null>(null); // NEW
 
   // слоты
   const [slots, setSlots] = useState<Slot[]>([]);
@@ -89,7 +95,7 @@ export default function PublicBookingForm({ categories }: Props) {
   const initial: BookState = { ok: false };
   const [serverState, formAction, isPending] = useActionState(book, initial);
 
-  // автозаполнение LS
+  /* ---------- автоизвлечение из LS ---------- */
   useEffect(() => {
     try {
       const n = localStorage.getItem(LS_NAME);
@@ -116,24 +122,26 @@ export default function PublicBookingForm({ categories }: Props) {
     } catch {}
   }, [email]);
 
-  // закрытие дропдаунов
+  // закрытия дропдаунов
   useEffect(() => {
     function onDoc(e: MouseEvent) {
-      if (ddCatRef.current && !ddCatRef.current.contains(e.target as Node)) {
+      if (ddCatRef.current && !ddCatRef.current.contains(e.target as Node))
         setDdCatOpen(false);
-      }
-      if (ddSrvRef.current && !ddSrvRef.current.contains(e.target as Node)) {
+      if (ddSrvRef.current && !ddSrvRef.current.contains(e.target as Node))
         setDdSrvOpen(false);
-      }
+      if (ddMstRef.current && !ddMstRef.current.contains(e.target as Node))
+        setDdMstOpen(false);
     }
-    if (ddCatOpen || ddSrvOpen) document.addEventListener("mousedown", onDoc);
+    if (ddCatOpen || ddSrvOpen || ddMstOpen)
+      document.addEventListener("mousedown", onDoc);
     return () => document.removeEventListener("mousedown", onDoc);
-  }, [ddCatOpen, ddSrvOpen]);
+  }, [ddCatOpen, ddSrvOpen, ddMstOpen]);
 
-  // вспомогательные вычисления
-  const currentChildren = useMemo<SubService[]>(() => {
-    return categories.find((c) => c.id === categoryId)?.children ?? [];
-  }, [categories, categoryId]);
+  /* ---------- вычисления ---------- */
+  const currentChildren = useMemo<SubService[]>(
+    () => categories.find((c) => c.id === categoryId)?.children ?? [],
+    [categories, categoryId]
+  );
   const hasChildren = currentChildren.length > 0;
   const selectedService =
     currentChildren.find((s) => s.slug === serviceSlug) ?? null;
@@ -159,44 +167,70 @@ export default function PublicBookingForm({ categories }: Props) {
     }
   }, [serverState]);
 
-  // смена категории — сбрасываем подуслугу/слоты
+  // смена категории — сброс подуслуги/мастера
   useEffect(() => {
     const first = currentChildren[0]?.slug ?? "";
     setServiceSlug(first);
+    setMasters([]);     // NEW
+    setMasterId("");    // NEW
     setSlots([]);
     setSelectedKey("");
     setSlotsOpen(false);
   }, [categoryId]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // если получили список слотов — разворачиваем блок
+  // загрузка мастеров при смене подуслуги
+  useEffect(() => {
+    async function run() {
+      setMasters([]);
+      setMasterId("");
+      setSlots([]);
+      setSelectedKey("");
+      setSlotsOpen(false);
+      if (!serviceSlug) return;
+      try {
+        const res = await fetch(
+          `/api/masters?serviceSlug=${encodeURIComponent(serviceSlug)}`,
+          { cache: "no-store" }
+        );
+        if (!res.ok) throw new Error("Не удалось получить мастеров");
+        const data: Master[] = await res.json();
+        setMasters(data);
+      } catch (e) {
+        setFormError(
+          process.env.NODE_ENV === "development"
+            ? `Ошибка загрузки мастеров: ${String(e)}`
+            : "Ошибка загрузки мастеров"
+        );
+      }
+    }
+    run();
+  }, [serviceSlug]);
+
+  // при наличии слотов — показываем блок
   useEffect(() => {
     if (slots.length > 0) setSlotsOpen(true);
   }, [slots.length]);
 
-  // ===== Автоподстановка даты рождения из профиля =====
+  // автоподстановка ДР по имени/телефону (как договаривались)
   useEffect(() => {
-    // если имя и телефон заполнены, а дата рождения ещё пустая — пробуем подтянуть
     const n = name.trim();
     const p = phone.trim();
     if (!n || !p || birthDate) return;
-
     const ctrl = new AbortController();
     const t = setTimeout(async () => {
       try {
-        const url = `/api/clients/lookup?name=${encodeURIComponent(n)}&phone=${encodeURIComponent(
-          p
-        )}`;
+        const url = `/api/clients/lookup?name=${encodeURIComponent(
+          n
+        )}&phone=${encodeURIComponent(p)}`;
         const res = await fetch(url, { signal: ctrl.signal, cache: "no-store" });
         if (!res.ok) return;
-        const data: { ok: boolean; birthDateISO: string | null } = await res.json();
+        const data: { ok: boolean; birthDateISO: string | null } =
+          await res.json();
         if (data.ok && data.birthDateISO && !birthDate) {
           setBirthDate(data.birthDateISO);
         }
-      } catch {
-        /* ignore */
-      }
-    }, 400); // лёгкий дебаунс
-
+      } catch {}
+    }, 400);
     return () => {
       clearTimeout(t);
       ctrl.abort();
@@ -218,6 +252,10 @@ export default function PublicBookingForm({ categories }: Props) {
         setFormError("Сначала выберите подуслугу.");
         return;
       }
+      if (!masterId) { // NEW
+        setFormError("Выберите мастера.");
+        return;
+      }
       if (!dateISO) {
         setFormError("Сначала выберите дату.");
         return;
@@ -225,7 +263,10 @@ export default function PublicBookingForm({ categories }: Props) {
 
       const url = `/api/availability?serviceSlug=${encodeURIComponent(
         serviceSlug
-      )}&dateISO=${encodeURIComponent(dateISO)}`;
+      )}&dateISO=${encodeURIComponent(dateISO)}&masterId=${encodeURIComponent(
+        masterId
+      )}`; // CHANGED: masterId
+
       const res = await fetch(url, { cache: "no-store" });
       if (!res.ok) throw new Error("Не удалось получить свободные слоты");
       const data: unknown = await res.json();
@@ -249,7 +290,9 @@ export default function PublicBookingForm({ categories }: Props) {
         : [];
       setSlots(clean);
       if (clean.length === 0) {
-        setFormError("На выбранную дату нет свободных окон. Попробуйте другую дату.");
+        setFormError(
+          "На выбранную дату и мастера нет свободных окон. Попробуйте другую дату."
+        );
       }
     } catch (e) {
       setFormError(
@@ -260,7 +303,7 @@ export default function PublicBookingForm({ categories }: Props) {
     } finally {
       setLoading(false);
     }
-  }, [serviceSlug, dateISO]);
+  }, [serviceSlug, dateISO, masterId]);
 
   // клиентская валидация
   const { clientOk, clientErrors } = useMemo(() => {
@@ -275,6 +318,7 @@ export default function PublicBookingForm({ categories }: Props) {
       birthDate,
       source: source || undefined,
       notes: notes || undefined,
+      masterId, // CHANGED
     };
     const r = BookingSchema.safeParse(payload);
     if (r.success)
@@ -283,12 +327,10 @@ export default function PublicBookingForm({ categories }: Props) {
     for (const issue of r.error.issues) {
       const key = String(issue.path?.[0] ?? "");
       if (key && !errs[key]) {
-        // дружелюбное сообщение вместо "expected number, received NaN"
-        if (key === "startMin") {
-          errs[key] = "Не выбрано время. Нажмите на свободный слот.";
-        } else {
-          errs[key] = issue.message;
-        }
+        errs[key] =
+          key === "startMin"
+            ? "Не выбрано время. Нажмите на свободный слот."
+            : issue.message;
       }
     }
     return { clientOk: false, clientErrors: errs };
@@ -302,6 +344,7 @@ export default function PublicBookingForm({ categories }: Props) {
     birthDate,
     source,
     notes,
+    masterId,
   ]);
 
   const errors = useMemo(() => {
@@ -309,189 +352,91 @@ export default function PublicBookingForm({ categories }: Props) {
     return { ...clientErrors, ...server };
   }, [clientErrors, serverState.fieldErrors]);
 
+  /* ------------------ UI ------------------ */
   return (
     <div className="space-y-6">
-      {/* выбор категории/услуги + дата */}
+      {/* выбор: категория/подуслуга/мастер и дата */}
       <div className="grid sm:grid-cols-2 gap-3">
-        {/* левая колонка: два дропдауна один под другим */}
         <div className="space-y-3">
           {/* Категория */}
-          <div ref={ddCatRef} className="relative">
-            <label className="block text-sm mb-1">Категория</label>
-            <button
-              type="button"
-              aria-haspopup="listbox"
-              aria-expanded={ddCatOpen ? "true" : "false"}
-              onClick={() => setDdCatOpen((v) => !v)}
-              className={[
-                "w-full rounded-lg border px-3 py-2 flex items-center justify-between",
-                "bg-transparent border-gray-300 dark:border-gray-700",
-                "hover:bg-white/5 dark:hover:bg-white/5",
-              ].join(" ")}
-            >
-              <span className={!categoryId ? "opacity-60" : ""}>
-                {categories.find((c) => c.id === categoryId)?.name ||
-                  "Выберите категорию…"}
-              </span>
-              <svg
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                className="opacity-70"
-                aria-hidden
-              >
-                <path
-                  d="M7 10l5 5 5-5"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-            </button>
+          <Dropdown
+            label="Категория"
+            open={ddCatOpen}
+            setOpen={setDdCatOpen}
+            refEl={ddCatRef}
+            buttonText={
+              categories.find((c) => c.id === categoryId)?.name ||
+              "Выберите категорию…"
+            }
+            items={categories.map((c) => ({
+              key: c.id,
+              text: c.name,
+              active: c.id === categoryId,
+              onClick: () => {
+                setCategoryId(c.id);
+              },
+            }))}
+          />
 
-            {ddCatOpen && (
-              <ul
-                role="listbox"
-                tabIndex={-1}
-                className={[
-                  "absolute z-20 mt-2 w-full max-h-72 overflow-auto rounded-lg border shadow-lg",
-                  "bg-white text-gray-900 border-gray-200",
-                  "dark:bg-[#0B1220] dark:text-gray-100 dark:border-gray-700",
-                ].join(" ")}
-              >
-                <li className="px-3 py-2 text-sm opacity-60 select-none">
-                  Выберите категорию…
-                </li>
-                {categories.map((c) => {
-                  const active = c.id === categoryId;
-                  return (
-                    <li key={c.id}>
-                      <button
-                        type="button"
-                        role="option"
-                        aria-selected={active ? "true" : "false"}
-                        onClick={() => {
-                          setCategoryId(c.id);
-                          setDdCatOpen(false);
-                        }}
-                        className={[
-                          "w-full text-left px-3 py-2 transition",
-                          active
-                            ? "bg-primary/10 dark:bg-white/10"
-                            : "hover:bg-gray-100 dark:hover:bg-white/5",
-                        ].join(" ")}
-                      >
-                        {c.name}
-                      </button>
-                    </li>
-                  );
-                })}
-              </ul>
-            )}
-          </div>
+          {/* Подуслуга */}
+          <Dropdown
+            label="Подуслуга"
+            open={ddSrvOpen}
+            setOpen={setDdSrvOpen}
+            refEl={ddSrvRef}
+            disabled={!hasChildren}
+            buttonText={
+              selectedService
+                ? `${selectedService.name} (${selectedService.durationMin} мин · ${euro(
+                    selectedService.priceCents
+                  )})`
+                : hasChildren
+                ? "Выберите подуслугу…"
+                : "Нет подуслуг"
+            }
+            items={currentChildren.map((s) => ({
+              key: s.slug,
+              text: `${s.name} (${s.durationMin} мин · ${euro(s.priceCents)})`,
+              active: s.slug === serviceSlug,
+              onClick: () => {
+                setServiceSlug(s.slug);
+              },
+            }))}
+            helpText={
+              !hasChildren
+                ? "В этой категории пока нет подуслуг. Пожалуйста, выберите другую категорию."
+                : undefined
+            }
+            error={errors["serviceSlug"]}
+          />
 
-          {/* Подуслуга (с минутами + ценой) */}
-          <div ref={ddSrvRef} className="relative">
-            <label className="block text-sm mb-1">Подуслуга</label>
-            <button
-              type="button"
-              aria-haspopup="listbox"
-              aria-expanded={ddSrvOpen ? "true" : "false"}
-              onClick={() => hasChildren && setDdSrvOpen((v) => !v)}
-              disabled={!hasChildren}
-              className={[
-                "w-full rounded-lg border px-3 py-2 flex items-center justify-between",
-                "bg-transparent border-gray-300 dark:border-gray-700",
-                "hover:bg-white/5 dark:hover:bg-white/5",
-                !hasChildren ? "opacity-50 cursor-not-allowed" : "",
-              ].join(" ")}
-            >
-              <span className={!serviceSlug ? "opacity-60" : ""}>
-                {selectedService
-                  ? `${selectedService.name} (${selectedService.durationMin} мин · ${euro(
-                      selectedService.priceCents
-                    )})`
-                  : hasChildren
-                  ? "Выберите подуслугу…"
-                  : "Нет подуслуг"}
-              </span>
-              <svg
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                className="opacity-70"
-                aria-hidden
-              >
-                <path
-                  d="M7 10l5 5 5-5"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-            </button>
-
-            {ddSrvOpen && hasChildren && (
-              <ul
-                role="listbox"
-                tabIndex={-1}
-                className={[
-                  "absolute z-20 mt-2 w-full max-h-72 overflow-auto rounded-lg border shadow-lg",
-                  "bg-white text-gray-900 border-gray-200",
-                  "dark:bg-[#0B1220] dark:text-gray-100 dark:border-gray-700",
-                ].join(" ")}
-              >
-                <li className="px-3 py-2 text-sm opacity-60 select-none">
-                  Выберите подуслугу…
-                </li>
-                {currentChildren.map((s) => {
-                  const active = s.slug === serviceSlug;
-                  return (
-                    <li key={s.slug}>
-                      <button
-                        type="button"
-                        role="option"
-                        aria-selected={active ? "true" : "false"}
-                        onClick={() => {
-                          setServiceSlug(s.slug);
-                          setDdSrvOpen(false);
-                          setSlots([]);
-                          setSelectedKey("");
-                        }}
-                        className={[
-                          "w-full text-left px-3 py-2 transition",
-                          active
-                            ? "bg-primary/10 dark:bg-white/10"
-                            : "hover:bg-gray-100 dark:hover:bg-white/5",
-                        ].join(" ")}
-                      >
-                        {s.name} ({s.durationMin} мин · {euro(s.priceCents)})
-                      </button>
-                    </li>
-                  );
-                })}
-              </ul>
-            )}
-
-            {!hasChildren && (
-              <p className="mt-1 text-xs text-amber-500">
-                В этой категории пока нет подуслуг. Пожалуйста, выберите другую
-                категорию.
-              </p>
-            )}
-            {errors["serviceSlug"] && (
-              <p className="mt-1 text-xs text-rose-400">
-                {errors["serviceSlug"]}
-              </p>
-            )}
-          </div>
+          {/* Мастер (NEW) */}
+          <Dropdown
+            label="Мастер"
+            open={ddMstOpen}
+            setOpen={setDdMstOpen}
+            refEl={ddMstRef}
+            disabled={!serviceSlug}
+            buttonText={
+              masterId
+                ? masters.find((m) => m.id === masterId)?.name ?? "Выберите мастера…"
+                : masters.length
+                ? "Выберите мастера…"
+                : "Нет доступных мастеров"
+            }
+            items={masters.map((m) => ({
+              key: m.id,
+              text: m.name,
+              active: m.id === masterId,
+              onClick: () => {
+                setMasterId(m.id);
+              },
+            }))}
+            error={errors["masterId"]}
+          />
         </div>
 
-        {/* правая колонка: дата */}
+        {/* Дата */}
         <div>
           <label className="block text-sm mb-1">Дата</label>
           <input
@@ -510,7 +455,7 @@ export default function PublicBookingForm({ categories }: Props) {
             type="button"
             onClick={loadSlots}
             className="rounded-full border px-4 py-2 hover:bg-white/10 transition border-gray-300 dark:border-gray-700"
-            disabled={loading || !serviceSlug || !dateISO}
+            disabled={loading || !serviceSlug || !masterId || !dateISO}
           >
             {loading ? "Загрузка…" : "Показать свободные слоты"}
           </button>
@@ -548,7 +493,7 @@ export default function PublicBookingForm({ categories }: Props) {
                   onClick={() => {
                     const next = selectedKey === key ? "" : key;
                     setSelectedKey(next);
-                    if (next) setSlotsOpen(false); // автосворачивание после выбора
+                    if (next) setSlotsOpen(false);
                   }}
                   className={[
                     "rounded-full px-3 py-1.5 border transition",
@@ -569,83 +514,48 @@ export default function PublicBookingForm({ categories }: Props) {
         )}
       </div>
 
-      {/* форма */}
+      {/* форма отправки */}
       <form action={formAction} className="grid sm:grid-cols-2 gap-3">
         <input type="hidden" name="serviceSlug" value={serviceSlug} />
         <input type="hidden" name="dateISO" value={dateISO} />
-        <input
-          type="hidden"
-          name="startMin"
-          value={selectedSlot?.start ?? ""}
-        />
+        <input type="hidden" name="startMin" value={selectedSlot?.start ?? ""} />
         <input type="hidden" name="endMin" value={selectedSlot?.end ?? ""} />
+        <input type="hidden" name="masterId" value={masterId} /> {/* CHANGED */}
 
-        <div>
-          <label className="block text-sm mb-1">Имя</label>
-          <input
-            className={[
-              "w-full rounded-lg border bg-transparent px-3 py-2 border-gray-300 dark:border-gray-700",
-              name.trim() ? "goldy-text" : "",
-            ].join(" ")}
-            name="name"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            autoComplete="name"
-            required
-          />
-          {errors["name"] && (
-            <p className="mt-1 text-xs text-rose-400">{errors["name"]}</p>
-          )}
-        </div>
-
-        <div>
-          <label className="block text-sm mb-1">Телефон</label>
-          <input
-            className="w-full rounded-lg border bg-transparent px-3 py-2 border-gray-300 dark:border-gray-700"
-            name="phone"
-            value={phone}
-            onChange={(e) => setPhone(e.target.value)}
-            autoComplete="tel"
-            inputMode="tel"
-            placeholder="+49 ..."
-            required
-          />
-          {errors["phone"] && (
-            <p className="mt-1 text-xs text-rose-400">{errors["phone"]}</p>
-          )}
-        </div>
-
-        <div>
-          <label className="block text-sm mb-1">E-mail</label>
-          <input
-            className="w-full rounded-lg border bg-transparent px-3 py-2 border-gray-300 dark:border-gray-700"
-            name="email"
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            autoComplete="email"
-            placeholder="you@example.com"
-            required
-          />
-          {errors["email"] && (
-            <p className="mt-1 text-xs text-rose-400">{errors["email"]}</p>
-          )}
-        </div>
-
-        <div>
-          <label className="block text-sm mb-1">Дата рождения</label>
-          <input
-            className="w-full rounded-lg border bg-transparent px-3 py-2 border-gray-300 dark:border-gray-700"
-            name="birthDate"
-            type="date"
-            value={birthDate}
-            onChange={(e) => setBirthDate(e.target.value)}
-            required
-          />
-          {errors["birthDate"] && (
-            <p className="mt-1 text-xs text-rose-400">{errors["birthDate"]}</p>
-          )}
-        </div>
+        <FieldText
+          label="Имя"
+          name="name"
+          value={name}
+          onChange={setName}
+          error={errors["name"]}
+          gold
+        />
+        <FieldText
+          label="Телефон"
+          name="phone"
+          value={phone}
+          onChange={setPhone}
+          error={errors["phone"]}
+          inputMode="tel"
+          placeholder="+49 ..."
+        />
+        <FieldText
+          label="E-mail"
+          name="email"
+          value={email}
+          onChange={setEmail}
+          error={errors["email"]}
+          type="email"
+          placeholder="you@example.com"
+        />
+        <FieldText
+          label="Дата рождения"
+          name="birthDate"
+          value={birthDate}
+          onChange={setBirthDate}
+          error={errors["birthDate"]}
+          type="date"
+        />
 
         <div className="sm:col-span-2">
           <label className="block text-sm mb-1">Как вы узнали о нас</label>
@@ -686,7 +596,12 @@ export default function PublicBookingForm({ categories }: Props) {
             type="submit"
             className="rounded-full border px-5 py-2 hover:bg-white/10 transition border-gray-300 dark:border-gray-700"
             disabled={
-              isPending || loading || !serviceSlug || !selectedSlot || !clientOk
+              isPending ||
+              loading ||
+              !serviceSlug ||
+              !masterId ||     // CHANGED
+              !selectedSlot ||
+              !clientOk
             }
           >
             {isPending ? "Отправляем…" : "Записаться"}
@@ -694,73 +609,13 @@ export default function PublicBookingForm({ categories }: Props) {
         </div>
       </form>
 
-      {process.env.NODE_ENV === "development" && (
-        <details className="rounded-lg border border-white/10 p-3">
-          <summary className="cursor-pointer opacity-70">dev debug</summary>
-          <pre className="mt-2 text-xs opacity-70">
-            {JSON.stringify(
-              {
-                categoryId,
-                serviceSlug,
-                dateISO,
-                selectedKey,
-                selectedSlot,
-                name,
-                phone,
-                email,
-                birthDate,
-                source,
-                notes,
-                clientOk,
-                clientErrors,
-                serverState,
-              },
-              null,
-              2
-            )}
-          </pre>
-        </details>
-      )}
+      {successOpen && <SuccessModal onClose={() => router.push("/")} />}
 
-      {successOpen && (
-        <div
-          role="dialog"
-          aria-modal="true"
-          className="fixed inset-0 z-40 flex items-center justify-center"
-        >
-          <div
-            className="absolute inset-0 bg-black/60"
-            onClick={() => setSuccessOpen(false)}
-          />
-          <div className="relative z-10 w-[min(92vw,520px)] rounded-2xl border border-gray-300 dark:border-gray-700 bg-white text-gray-900 dark:bg-gray-900 dark:text-gray-100 p-5 shadow-2xl">
-            <h3 className="text-lg font-semibold mb-2">Заявка принята</h3>
-            <p className="opacity-80 mb-4">
-              Спасибо! Мы получили вашу заявку и свяжемся с вами в ближайшее
-              время.
-            </p>
-            <div className="flex gap-2 justify-end">
-              <button
-                type="button"
-                className="rounded-full border px-4 py-2 hover:bg-white/10 transition border-gray-300 dark:border-gray-700"
-                onClick={() => router.push("/")}
-              >
-                Ок
-              </button>
-              <button
-                type="button"
-                className="rounded-full border px-4 py-2 hover:bg-white/10 transition border-gray-300 dark:border-gray-700"
-                onClick={() => router.push("/")}
-              >
-                На главную
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Глобально — цвет опций <select> в тёмной теме */}
+      {/* глобальный select в dark */}
       <style jsx global>{`
-        :root { --site-dark: #0B1220; }
+        :root {
+          --site-dark: #0b1220;
+        }
         .dark select option,
         .dark select optgroup {
           background-color: var(--site-dark) !important;
@@ -771,60 +626,185 @@ export default function PublicBookingForm({ categories }: Props) {
           background-color: #0f1a2b !important;
         }
       `}</style>
-
-      {/* Локально — “золотой” перелив текста имени */}
+      {/* «золотое» имя, без деградации на мобилках */}
       <style jsx>{`
-  /* Базовый вид: читаемое "золото" везде */
-  .goldy-text {
-    font-weight: 600; /* полужирный */
-    color: #f5d76e; /* читаемый цвет */
-    text-shadow: 0 0 8px rgba(245, 215, 110, 0.45); /* лёгкое свечение */
-    caret-color: #ffe08a;
-    transition: text-shadow 200ms ease; /* плавное появление свечения при вводе */
-  }
-  /* .goldy-text:focus {
-    text-shadow: 0 0 12px rgba(245, 215, 110, 0.65); /* усиливаем свечение при фокусе */
-  } */
+        .goldy-text {
+          font-weight: 600;
+          color: #f5d76e;
+          text-shadow: 0 0 8px rgba(245, 215, 110, 0.45);
+          caret-color: #ffe08a;
+          transition: text-shadow 200ms ease;
+        }
+        @supports (-webkit-background-clip: text) {
+          .goldy-text:not(input):not(textarea) {
+            background-image: linear-gradient(
+              110deg,
+              #b3903b 0%,
+              #f5d76e 25%,
+              #fff3c4 50%,
+              #f5d76e 75%,
+              #b3903b 100%
+            );
+            background-size: 200% auto;
+            background-position: 0% center;
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            color: transparent;
+            animation: goldShimmer 4s linear infinite;
+          }
+        }
+        @keyframes goldShimmer {
+          to {
+            background-position: -200% center;
+          }
+        }
+        input.goldy-text,
+        textarea.goldy-text {
+          background-image: none !important;
+          -webkit-background-clip: border-box !important;
+          background-clip: border-box !important;
+          -webkit-text-fill-color: initial !important;
+          animation: none !important;
+        }
+      `}</style>
+    </div>
+  );
+}
 
-  /* Перелив включаем ТОЛЬКО для не-формовых элементов */
-  @supports (-webkit-background-clip: text) {
-    .goldy-text:not(input):not(textarea) {
-      background-image: linear-gradient(
-        110deg,
-        #b3903b 0%,
-        #f5d76e 25%,
-        #fff3c4 50%,
-        #f5d76e 75%,
-        #b3903b 100%
-      );
-      background-size: 200% auto;
-      background-position: 0% center;
-      -webkit-background-clip: text;
-      background-clip: text;
-      -webkit-text-fill-color: transparent;
-      color: transparent;
-      animation: goldShimmer 4s linear infinite;
-    }
-  }
+/* ---------- маленькие подкомпоненты ---------- */
 
-  @keyframes goldShimmer {
-    to { background-position: -200% center; }
-  }
+function SuccessModal({ onClose }: { onClose: () => void }) {
+  return (
+    <div role="dialog" aria-modal="true" className="fixed inset-0 z-40 flex items-center justify-center">
+      <div className="absolute inset-0 bg-black/60" onClick={onClose} />
+      <div className="relative z-10 w-[min(92vw,520px)] rounded-2xl border border-gray-300 dark:border-gray-700 bg-white text-gray-900 dark:bg-gray-900 dark:text-gray-100 p-5 shadow-2xl">
+        <h3 className="text-lg font-semibold mb-2">Заявка принята</h3>
+        <p className="opacity-80 mb-4">Спасибо! Мы получили вашу заявку и свяжемся с вами в ближайшее время.</p>
+        <div className="flex gap-2 justify-end">
+          <button type="button" className="rounded-full border px-4 py-2 hover:bg-white/10 transition border-gray-300 dark:border-gray-700" onClick={onClose}>
+            Ок
+          </button>
+          <button type="button" className="rounded-full border px-4 py-2 hover:bg-white/10 transition border-gray-300 dark:border-gray-700" onClick={onClose}>
+            На главную
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
-  /* Явно отключаем градиент у input/textarea на мобильных браузерах */
-  input.goldy-text, textarea.goldy-text {
-    background-image: none !important;
-    -webkit-background-clip: border-box !important;
-    background-clip: border-box !important;
-    -webkit-text-fill-color: initial !important;
-    animation: none !important;
-  }
+function Dropdown(props: {
+  label: string;
+  buttonText: string;
+  items: { key: string; text: string; active: boolean; onClick: () => void }[];
+  open: boolean;
+  setOpen: (v: boolean) => void;
+  refEl: React.RefObject<HTMLDivElement | null>;
+  disabled?: boolean;
+  helpText?: string;
+  error?: string;
+}) {
+  const { label, buttonText, items, open, setOpen, refEl, disabled, helpText, error } = props;
+  return (
+    <div ref={refEl} className="relative">
+      <label className="block text-sm mb-1">{label}</label>
+      <button
+        type="button"
+        aria-haspopup="listbox"
+        aria-expanded={open ? "true" : "false"}
+        onClick={() => !disabled && setOpen(!open)}
+        disabled={disabled}
+        className={[
+          "w-full rounded-lg border px-3 py-2 flex items-center justify-between",
+          "bg-transparent border-gray-300 dark:border-gray-700",
+          "hover:bg-white/5 dark:hover:bg-white/5",
+          disabled ? "opacity-50 cursor-not-allowed" : "",
+        ].join(" ")}
+      >
+        <span className={!buttonText ? "opacity-60" : ""}>{buttonText}</span>
+        <svg width="16" height="16" viewBox="0 0 24 24" className="opacity-70" aria-hidden>
+          <path d="M7 10l5 5 5-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </button>
 
-  @media (prefers-reduced-motion: reduce) {
-    .goldy-text:not(input):not(textarea) { animation: none; }
-  }
-`}</style>
+      {open && !disabled && (
+        <ul
+          role="listbox"
+          tabIndex={-1}
+          className={[
+            "absolute z-20 mt-2 w-full max-h-72 overflow-auto rounded-lg border shadow-lg",
+            "bg-white text-gray-900 border-gray-200",
+            "dark:bg-[#0B1220] dark:text-gray-100 dark:border-gray-700",
+          ].join(" ")}
+        >
+          <li className="px-3 py-2 text-sm opacity-60 select-none">Выберите…</li>
+          {items.map((it) => (
+            <li key={it.key}>
+              <button
+                type="button"
+                role="option"
+                aria-selected={it.active ? "true" : "false"}
+                onClick={() => {
+                  it.onClick();
+                  setOpen(false);
+                }}
+                className={[
+                  "w-full text-left px-3 py-2 transition",
+                  it.active ? "bg-primary/10 dark:bg-white/10" : "hover:bg-gray-100 dark:hover:bg-white/5",
+                ].join(" ")}
+              >
+                {it.text}
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
 
+      {helpText && <p className="mt-1 text-xs text-amber-500">{helpText}</p>}
+      {error && <p className="mt-1 text-xs text-rose-400">{error}</p>}
+    </div>
+  );
+}
+
+function FieldText({
+  label,
+  name,
+  value,
+  onChange,
+  error,
+  type = "text",
+  inputMode,
+  placeholder,
+  gold,
+}: {
+  label: string;
+  name: string;
+  value: string;
+  onChange: (v: string) => void;
+  error?: string;
+  type?: "text" | "email" | "date";
+  inputMode?: React.HTMLAttributes<HTMLInputElement>["inputMode"];
+  placeholder?: string;
+  gold?: boolean;
+}) {
+  return (
+    <div>
+      <label className="block text-sm mb-1">{label}</label>
+      <input
+        className={[
+          "w-full rounded-lg border bg-transparent px-3 py-2 border-gray-300 dark:border-gray-700",
+          gold && value.trim() ? "goldy-text" : "",
+        ].join(" ")}
+        name={name}
+        type={type}
+        inputMode={inputMode}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        required
+      />
+      {error && <p className="mt-1 text-xs text-rose-400">{error}</p>}
     </div>
   );
 }

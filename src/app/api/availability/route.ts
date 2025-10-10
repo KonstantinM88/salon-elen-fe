@@ -86,12 +86,16 @@ export async function GET(req: Request): Promise<Response> {
     const url = new URL(req.url);
     const serviceSlug = url.searchParams.get("serviceSlug") ?? "";
     const dateISO = url.searchParams.get("dateISO") ?? "";
+    const masterId =
+      (url.searchParams.get("masterId") ?? // NEW основной параметр
+        url.searchParams.get("staffId") ?? // NEW обратная совместимость со старым именем
+        "").trim();
 
     if (!serviceSlug || !dateISO || !isValidISODate(dateISO)) {
       return NextResponse.json({ error: "Invalid parameters" }, { status: 400 });
     }
 
-    // Нужна длительность и активность услуги
+    // Длительность и активность услуги
     const service = await prisma.service.findUnique({
       where: { slug: serviceSlug },
       select: { durationMin: true, isActive: true },
@@ -100,55 +104,121 @@ export async function GET(req: Request): Promise<Response> {
       return NextResponse.json({ error: "Service not found" }, { status: 404 });
     }
 
-    // Рабочее окно по дню недели (локально)
+    // День недели (локально)
     const dayStartLocal = new Date(`${dateISO}T00:00:00`);
-    const weekday = dayStartLocal.getDay(); // 0..6 (вс..сб)
+    const weekday = dayStartLocal.getDay(); // 0..6
 
-    const wh = await prisma.workingHours.findUnique({
+    // Глобальные часы салона
+    const whSalon = await prisma.workingHours.findUnique({
       where: { weekday },
       select: { isClosed: true, startMinutes: true, endMinutes: true },
     });
-    if (!wh || wh.isClosed) return NextResponse.json<Slot[]>([], { status: 200 });
 
-    const workStart = floorToStep(
-      Math.max(0, Math.min(24 * 60, wh.startMinutes)),
+    // Часы мастера (если выбран)
+    const whMaster = masterId
+      ? await prisma.masterWorkingHours.findUnique({
+          where: { masterId_weekday: { masterId, weekday } },
+          select: { isClosed: true, startMinutes: true, endMinutes: true },
+        })
+      : null;
+
+    // Если салон закрыт — слоты пустые
+    if (!whSalon || whSalon.isClosed) {
+      return NextResponse.json<Slot[]>([], { status: 200 });
+    }
+    // Если у мастера задано "закрыто" — пусто
+    if (masterId && whMaster && whMaster.isClosed) {
+      return NextResponse.json<Slot[]>([], { status: 200 });
+    }
+
+    // Базовое окно — салон
+    let workStart = floorToStep(
+      Math.max(0, Math.min(24 * 60, whSalon.startMinutes)),
       STEP_MIN
     );
-    const workEnd = ceilToStep(
-      Math.max(workStart, wh.endMinutes),
-      STEP_MIN
-    );
+    let workEnd = ceilToStep(Math.max(workStart, whSalon.endMinutes), STEP_MIN);
+
+    // Пересечение с окном мастера (если есть)
+    if (masterId && whMaster) {
+      const mStart = floorToStep(
+        Math.max(0, Math.min(24 * 60, whMaster.startMinutes)),
+        STEP_MIN
+      );
+      const mEnd = ceilToStep(Math.max(mStart, whMaster.endMinutes), STEP_MIN);
+      workStart = Math.max(workStart, mStart);
+      workEnd = Math.min(workEnd, mEnd);
+    }
 
     if (workEnd - workStart < service.durationMin) {
       return NextResponse.json<Slot[]>([], { status: 200 });
     }
     const workWindow: Slot = { start: workStart, end: workEnd };
 
-    // Берём все записи (PENDING/CONFIRMED) за сутки: блокируем время глобально
+    // Сутки для выборок
     const { start: dayStart, end: dayEnd } = localDayRange(dateISO);
-    const busyRaw = await prisma.appointment.findMany({
+
+    // Занятость по записям (мастер — если выбран)
+    const busyFromAppointments = await prisma.appointment.findMany({
       where: {
         status: { in: ["PENDING", "CONFIRMED"] },
         startAt: { lt: dayEnd },
         endAt: { gt: dayStart },
+        ...(masterId ? { masterId } : {}),
       },
       select: { startAt: true, endAt: true },
       orderBy: { startAt: "asc" },
     });
 
-    // В минуты от начала дня (+10 мин «хвост» паузы), затем обрезаем рабочим окном
-    const busy: Slot[] = busyRaw
-      .map(({ startAt, endAt }) => {
-        const startMin = Math.floor((startAt.getTime() - dayStart.getTime()) / 60000);
-        const endMin = Math.ceil((endAt.getTime() - dayStart.getTime()) / 60000) + BREAK_AFTER_MIN;
-        return { start: startMin, end: endMin };
-      })
-      .filter(b => Number.isFinite(b.start) && Number.isFinite(b.end) && b.end > b.start)
-      .map(b => ({
+    // Исключения салона за этот день
+    const salonTimeOff = await prisma.timeOff.findMany({
+      where: { date: dayStart },
+      select: { startMinutes: true, endMinutes: true },
+    });
+
+    // Исключения мастера (если выбран)
+    const masterTimeOff = masterId
+      ? await prisma.masterTimeOff.findMany({
+          where: { masterId, date: dayStart },
+          select: { startMinutes: true, endMinutes: true },
+        })
+      : [];
+
+    // Собираем busy-интервалы
+    const busy: Slot[] = [
+      // из записей (с паузой после)
+      ...busyFromAppointments
+        .map(({ startAt, endAt }) => {
+          const startMin = Math.floor(
+            (startAt.getTime() - dayStart.getTime()) / 60000
+          );
+          const endMin =
+            Math.ceil((endAt.getTime() - dayStart.getTime()) / 60000) +
+            BREAK_AFTER_MIN;
+          return { start: startMin, end: endMin };
+        })
+        .filter(
+          (b) =>
+            Number.isFinite(b.start) &&
+            Number.isFinite(b.end) &&
+            b.end > b.start
+        ),
+      // из исключений салона
+      ...salonTimeOff.map((t) => ({
+        start: t.startMinutes,
+        end: t.endMinutes,
+      })),
+      // из исключений мастера
+      ...masterTimeOff.map((t) => ({
+        start: t.startMinutes,
+        end: t.endMinutes,
+      })),
+    ]
+      // обрезаем рабочим окном
+      .map((b) => ({
         start: Math.max(b.start, workWindow.start),
         end: Math.min(b.end, workWindow.end),
       }))
-      .filter(b => b.end > b.start);
+      .filter((b) => b.end > b.start);
 
     const free = subtractBusy(workWindow, busy);
     const slots = generateSlots(free, service.durationMin, STEP_MIN);

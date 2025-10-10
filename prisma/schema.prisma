@@ -66,7 +66,7 @@ model Service {
 
   appointments Appointment[]
 
-  // Новая связь m:n с мастерами
+  /// m:n с мастерами (implicit join table)
   masters Master[] @relation("MasterServices")
 
   createdAt DateTime @default(now())
@@ -82,11 +82,11 @@ enum AppointmentStatus {
   PENDING
   CONFIRMED
   CANCELED
-  DONE // ← добавили для метрик визитов
+  DONE
 }
 
 /**
- * ───────── Новый клиент ─────────
+ * ───────── Клиент ─────────
  */
 model Client {
   id        String   @id @default(cuid())
@@ -116,12 +116,11 @@ model Master {
   phone     String   @unique
   birthDate DateTime
   bio       String?
-  avatarUrl String? // URL файла аватара (в /public/uploads/masters/{id}/...)
+  avatarUrl String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  // связи
   appointments Appointment[]
   services     Service[]            @relation("MasterServices")
   workingHours MasterWorkingHours[]
@@ -133,10 +132,7 @@ model MasterWorkingHours {
   masterId String
   master   Master @relation(fields: [masterId], references: [id], onDelete: Cascade)
 
-  /**
-   * 0 = Sunday, 1 = Monday, ... 6 = Saturday
-   * Если в UI понедельник считается первым днём, конвертируй при отображении.
-   */
+  /// 0 = Sunday ... 6 = Saturday
   weekday      Int
   startMinutes Int
   endMinutes   Int
@@ -152,9 +148,7 @@ model MasterTimeOff {
   masterId String
   master   Master @relation(fields: [masterId], references: [id], onDelete: Cascade)
 
-  /**
-   * DateTime хранит дату (обычно полночь локальной TZ) + интервал в минутах.
-   */
+  /// Дата (обычно полночь локальной TZ) + интервал
   date         DateTime
   startMinutes Int
   endMinutes   Int
@@ -174,14 +168,14 @@ model Appointment {
   clientId String?
   client   Client? @relation(fields: [clientId], references: [id])
 
-  // Новая связь с мастером (опционально для обратной совместимости)
+  /// Связь с мастером (оставляем optional для обратной совместимости)
   masterId String?
   master   Master? @relation(fields: [masterId], references: [id])
 
   startAt DateTime
   endAt   DateTime
 
-  customerName String // сохраняем «как представился»
+  customerName String
   phone        String
   email        String?
   notes        String?
@@ -190,12 +184,16 @@ model Appointment {
 
   createdAt DateTime @default(now())
 
-  @@unique([serviceId, startAt]) // оставляем текущее правило уникальности
-  @@index([clientId])
-  @@index([startAt, endAt])
+  // ⬇ ВАЖНО: убрали уникальность по (serviceId, startAt), чтобы разные мастера
+  // могли выполнять одинаковые подуслуги в одно время.
+  // Вместо этого — индексы для быстрых проверок пересечений:
+  @@index([masterId])
   @@index([serviceId])
   @@index([status])
-  @@index([masterId])
+  @@index([clientId])
+  @@index([startAt, endAt])
+  @@index([masterId, startAt]) // частый фильтр при проверке свободности мастера
+
   @@map("Appointment")
 }
 

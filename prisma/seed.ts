@@ -1,21 +1,22 @@
 // prisma/seed.ts
-import { PrismaClient, ArticleType, AppointmentStatus } from '@prisma/client';
-import { ensureServices as ensureServiceHierarchy } from './seed-services';
+import { PrismaClient, ArticleType, AppointmentStatus } from "@prisma/client";
+import { ensureServices as ensureServiceHierarchy } from "./seed-services";
 
 const prisma = new PrismaClient();
 
 /** ───── Хелперы дат/времени ───── */
 function atUTC(date: Date, hour: number, minute: number): Date {
-  const d = new Date(Date.UTC(
-    date.getUTCFullYear(),
-    date.getUTCMonth(),
-    date.getUTCDate(),
-    hour,
-    minute,
-    0,
-    0
-  ));
-  return d;
+  return new Date(
+    Date.UTC(
+      date.getUTCFullYear(),
+      date.getUTCMonth(),
+      date.getUTCDate(),
+      hour,
+      minute,
+      0,
+      0
+    )
+  );
 }
 
 function addDays(base: Date, days: number): Date {
@@ -24,40 +25,40 @@ function addDays(base: Date, days: number): Date {
   return d;
 }
 
-/** next weekday: 0=Sun..6=Sat */
+/** next weekday: 0=Sun..6=Sat — строго следующий (не сегодня) */
 function nextWeekday(from: Date, weekday: number): Date {
   const result = new Date(from);
   const current = result.getUTCDay();
   let diff = (weekday + 7 - current) % 7;
-  if (diff === 0) diff = 7; // strictly next (не сегодня)
+  if (diff === 0) diff = 7;
   return addDays(result, diff);
 }
 
-/** previous weekday: 0=Sun..6=Sat */
+/** previous weekday: 0=Sun..6=Sat — строго предыдущий (не сегодня) */
 function prevWeekday(from: Date, weekday: number): Date {
   const result = new Date(from);
   const current = result.getUTCDay();
   let diff = (current + 7 - weekday) % 7;
-  if (diff === 0) diff = 7; // strictly previous (не сегодня)
+  if (diff === 0) diff = 7;
   return addDays(result, -diff);
 }
 
 /** ───── Глобальные рабочие часы салона (0=Вс … 6=Сб) ───── */
 async function ensureWorkingHours(): Promise<void> {
-  console.log('→ [WorkingHours] upsert...');
+  console.log("→ [WorkingHours] upsert...");
   const plan: ReadonlyArray<{
     weekday: number;
     isClosed: boolean;
     startMinutes: number;
     endMinutes: number;
   }> = [
-    { weekday: 0, isClosed: true,  startMinutes: 0,   endMinutes: 0   }, // Вс — выходной
+    { weekday: 0, isClosed: true, startMinutes: 0, endMinutes: 0 }, // Вс — выходной
     { weekday: 1, isClosed: false, startMinutes: 600, endMinutes: 1140 }, // Пн 10:00–19:00
     { weekday: 2, isClosed: false, startMinutes: 600, endMinutes: 1140 },
     { weekday: 3, isClosed: false, startMinutes: 600, endMinutes: 1140 },
     { weekday: 4, isClosed: false, startMinutes: 600, endMinutes: 1140 },
     { weekday: 5, isClosed: false, startMinutes: 600, endMinutes: 1140 },
-    { weekday: 6, isClosed: true,  startMinutes: 0,   endMinutes: 0   }, // Сб — выходной (пример)
+    { weekday: 6, isClosed: true, startMinutes: 0, endMinutes: 0 }, // Сб — выходной (пример)
   ];
 
   for (const p of plan) {
@@ -80,7 +81,7 @@ async function ensureWorkingHours(): Promise<void> {
 
 /** ───── Новости/контент (минимум) ───── */
 async function demoArticles(): Promise<void> {
-  console.log('→ [Articles] upsert demo...');
+  console.log("→ [Articles] upsert demo...");
   const items: ReadonlyArray<{
     slug: string;
     title: string;
@@ -91,12 +92,12 @@ async function demoArticles(): Promise<void> {
     publishedAt: Date;
   }> = [
     {
-      slug: 'welcome-to-salon-elen',
-      title: 'Добро пожаловать в Salon Elen',
-      excerpt: 'Мы открылись! Красота и уход в самом центре Halle.',
-      cover: '/images/hero.webp',
+      slug: "welcome-to-salon-elen",
+      title: "Добро пожаловать в Salon Elen",
+      excerpt: "Мы открылись! Красота и уход в самом центре Halle.",
+      cover: "/images/hero.webp",
       type: ArticleType.NEWS,
-      content: 'Первый пост о салоне.',
+      content: "Первый пост о салоне.",
       publishedAt: new Date(),
     },
   ];
@@ -127,22 +128,22 @@ async function demoArticles(): Promise<void> {
 
 /** ───── Клиенты ───── */
 async function ensureClients() {
-  console.log('→ [Clients] upsert...');
+  console.log("→ [Clients] upsert...");
   const clients = [
     {
-      name: 'Мария Смирнова',
-      phone: '+49 160 0000001',
-      email: 'maria@example.com',
+      name: "Мария Смирнова",
+      phone: "+49 160 0000001",
+      email: "maria@example.com",
       birthDate: new Date(Date.UTC(1992, 4, 12)), // 12.05.1992
-      referral: 'Instagram',
-      notes: 'Предпочитает безнал.',
+      referral: "Instagram",
+      notes: "Предпочитает безнал.",
     },
     {
-      name: 'Ольга Иванова',
-      phone: '+49 160 0000002',
-      email: 'olga@example.com',
+      name: "Ольга Иванова",
+      phone: "+49 160 0000002",
+      email: "olga@example.com",
       birthDate: new Date(Date.UTC(1988, 10, 3)), // 03.11.1988
-      referral: 'Сарафан',
+      referral: "Сарафан",
       notes: null as string | null,
     },
   ] as const;
@@ -168,7 +169,7 @@ async function ensureClients() {
     });
   }
 
-  const all = await prisma.client.findMany({ orderBy: { createdAt: 'asc' } });
+  const all = await prisma.client.findMany({ orderBy: { createdAt: "asc" } });
   return all;
 }
 
@@ -180,29 +181,29 @@ type SeededMaster = {
 };
 
 async function ensureMasters(): Promise<SeededMaster[]> {
-  console.log('→ [Masters] upsert...');
+  console.log("→ [Masters] upsert...");
   const masters = [
     {
-      name: 'Елена Петрова',
-      email: 'master.elena@example.com',
-      phone: '+49 160 1000001',
+      name: "Елена Петрова",
+      email: "master.elena@example.com",
+      phone: "+49 160 1000001",
       birthDate: new Date(Date.UTC(1990, 1, 15)), // 15.02.1990
-      bio: 'Парикмахер-стилист. Женские стрижки и укладки.',
+      bio: "Парикмахер-стилист. Женские стрижки и укладки.",
     },
     {
-      name: 'Анна Кузнецова',
-      email: 'master.anna@example.com',
-      phone: '+49 160 1000002',
+      name: "Анна Кузнецова",
+      email: "master.anna@example.com",
+      phone: "+49 160 1000002",
       birthDate: new Date(Date.UTC(1994, 7, 22)), // 22.08.1994
-      bio: 'Мастер маникюра/педикюра. Аппаратный маникюр, покрытие гель-лак.',
+      bio: "Мастер маникюра/педикюра. Аппаратный маникюр, покрытие гель-лак.",
     },
   ] as const;
 
-  // Подтянем несколько активных услуг (листья/или любые активные)
+  // Берём несколько активных услуг (для связи с мастерами)
   const services = await prisma.service.findMany({
     where: { isActive: true },
     select: { id: true, slug: true },
-    orderBy: { createdAt: 'asc' },
+    orderBy: { createdAt: "asc" },
     take: 6,
   });
 
@@ -230,14 +231,13 @@ async function ensureMasters(): Promise<SeededMaster[]> {
       },
     });
 
-    // Привяжем 2–3 услуги каждому мастеру (idempotent: set = выбранные)
-    const connectServices = pick(i * 2, 2).length > 0 ? pick(i * 2, 2) : services.slice(0, 2).map(s => ({ id: s.id }));
+    // Привяжем 2 услуги каждому мастеру (idempotent: set = выбранные)
+    const picked =
+      pick(i * 2, 2).length > 0 ? pick(i * 2, 2) : services.slice(0, 2).map((s) => ({ id: s.id }));
     await prisma.master.update({
       where: { id: created.id },
       data: {
-        services: {
-          set: connectServices,
-        },
+        services: { set: picked },
       },
     });
 
@@ -255,13 +255,13 @@ async function ensureMasterWorkingHours(masterId: string): Promise<void> {
     startMinutes: number;
     endMinutes: number;
   }> = [
-    { weekday: 0, isClosed: true,  startMinutes: 0,   endMinutes: 0   }, // Вс — выходной
-    { weekday: 1, isClosed: false, startMinutes: 600, endMinutes: 1140 }, // Пн 10:00–19:00
+    { weekday: 0, isClosed: true, startMinutes: 0, endMinutes: 0 }, // Вс
+    { weekday: 1, isClosed: false, startMinutes: 600, endMinutes: 1140 }, // Пн 10–19
     { weekday: 2, isClosed: false, startMinutes: 600, endMinutes: 1140 },
     { weekday: 3, isClosed: false, startMinutes: 600, endMinutes: 1140 },
     { weekday: 4, isClosed: false, startMinutes: 600, endMinutes: 1140 },
     { weekday: 5, isClosed: false, startMinutes: 600, endMinutes: 1140 },
-    { weekday: 6, isClosed: true,  startMinutes: 0,   endMinutes: 0   }, // Сб — выходной
+    { weekday: 6, isClosed: true, startMinutes: 0, endMinutes: 0 }, // Сб
   ];
 
   for (const p of plan) {
@@ -285,22 +285,15 @@ async function ensureMasterWorkingHours(masterId: string): Promise<void> {
 
 /** ───── Исключения/выходные мастера ───── */
 async function ensureMasterTimeOff(masterId: string): Promise<void> {
-  // Пример: ближайшее воскресенье — выходной 00:00–24:00 (минуты 0–1440)
+  // Пример: ближайшее воскресенье — выходной 00:00–24:00
   const now = new Date();
   const nextSunday = nextWeekday(now, 0);
-  const dateOnly = new Date(Date.UTC(
-    nextSunday.getUTCFullYear(),
-    nextSunday.getUTCMonth(),
-    nextSunday.getUTCDate(), 0, 0, 0, 0
-  ));
+  const dateOnly = new Date(
+    Date.UTC(nextSunday.getUTCFullYear(), nextSunday.getUTCMonth(), nextSunday.getUTCDate(), 0, 0, 0, 0)
+  );
 
   const existed = await prisma.masterTimeOff.findFirst({
-    where: {
-      masterId,
-      date: dateOnly,
-      startMinutes: 0,
-      endMinutes: 1440,
-    },
+    where: { masterId, date: dateOnly, startMinutes: 0, endMinutes: 1440 },
   });
 
   if (!existed) {
@@ -310,165 +303,179 @@ async function ensureMasterTimeOff(masterId: string): Promise<void> {
         date: dateOnly,
         startMinutes: 0,
         endMinutes: 1440,
-        reason: 'Выходной (seed)',
+        reason: "Выходной (seed)",
       },
     });
   }
 }
 
-/** ───── Заявки (привязка к мастерам/клиентам/услугам) ───── */
+/** ───── Заявки (без композитного upsert) ───── */
+
+async function upsertAppointmentByNaturalKey(params: {
+  masterId: string;
+  serviceId: string;
+  startAt: Date;
+  endAt: Date;
+  clientId: string | null;
+  customerName: string;
+  phone: string;
+  email: string | null;
+  notes: string | null;
+  status: AppointmentStatus;
+}) {
+  const {
+    masterId,
+    serviceId,
+    startAt,
+    endAt,
+    clientId,
+    customerName,
+    phone,
+    email,
+    notes,
+    status,
+  } = params;
+
+  await prisma.$transaction(async (tx) => {
+    const existing = await tx.appointment.findFirst({
+      where: { masterId, serviceId, startAt },
+      select: { id: true },
+    });
+
+    if (existing) {
+      await tx.appointment.update({
+        where: { id: existing.id },
+        data: {
+          endAt,
+          clientId,
+          customerName,
+          phone,
+          email,
+          notes,
+          status,
+        },
+      });
+    } else {
+      await tx.appointment.create({
+        data: {
+          masterId,
+          serviceId,
+          startAt,
+          endAt,
+          clientId,
+          customerName,
+          phone,
+          email,
+          notes,
+          status,
+        },
+      });
+    }
+  });
+}
+
 async function ensureAppointments(seededMasters: SeededMaster[], clientsEmails: string[]) {
-  console.log('→ [Appointments] upsert...');
+  console.log("→ [Appointments] seed...");
   const clients = await prisma.client.findMany({
     where: { email: { in: clientsEmails } },
     select: { id: true, email: true, name: true, phone: true },
   });
 
   for (const m of seededMasters) {
-    // Возьмём любую услугу, привязанную мастеру
+    // Берём первую услугу, привязанную к мастеру
     const masterWithServices = await prisma.master.findUnique({
       where: { id: m.id },
       include: { services: { take: 1 } },
     });
     if (!masterWithServices || masterWithServices.services.length === 0) continue;
 
+    const serviceId = masterWithServices.services[0].id;
     const service = await prisma.service.findUnique({
-      where: { id: masterWithServices.services[0].id },
-      select: { id: true, durationMin: true },
+      where: { id: serviceId },
+      select: { durationMin: true },
     });
     if (!service) continue;
 
     const duration = service.durationMin;
-
-    // Клиенты для распределения
+    const now = new Date();
     const c1 = clients[0];
     const c2 = clients[1] ?? clients[0];
 
-    const now = new Date();
-
     // Будущая CONFIRMED: следующий понедельник 10:00
-    const nextMon = nextWeekday(now, 1);
-    const startFuture = atUTC(nextMon, 10, 0);
-    const endFuture = addDays(startFuture, 0);
-    endFuture.setUTCMinutes(endFuture.getUTCMinutes() + duration);
+    {
+      const nextMon = nextWeekday(now, 1);
+      const startFuture = atUTC(nextMon, 10, 0);
+      const endFuture = new Date(startFuture);
+      endFuture.setUTCMinutes(endFuture.getUTCMinutes() + duration);
 
-    await prisma.appointment.upsert({
-      where: {
-        serviceId_startAt: {
-          serviceId: service.id,
-          startAt: startFuture,
-        },
-      },
-      update: {
+      await upsertAppointmentByNaturalKey({
         masterId: m.id,
-        clientId: c1?.id,
-        endAt: endFuture,
-        customerName: c1?.name ?? 'Гость',
-        phone: c1?.phone ?? '+49 160 999999',
-        email: c1?.email ?? null,
-        notes: 'Будущая запись (seed)',
-        status: AppointmentStatus.CONFIRMED,
-      },
-      create: {
-        serviceId: service.id,
-        masterId: m.id,
-        clientId: c1?.id ?? null,
+        serviceId,
         startAt: startFuture,
         endAt: endFuture,
-        customerName: c1?.name ?? 'Гость',
-        phone: c1?.phone ?? '+49 160 999999',
+        clientId: c1?.id ?? null,
+        customerName: c1?.name ?? "Гость",
+        phone: c1?.phone ?? "+49 160 999999",
         email: c1?.email ?? null,
-        notes: 'Будущая запись (seed)',
+        notes: "Будущая запись (seed)",
         status: AppointmentStatus.CONFIRMED,
-      },
-    });
+      });
+    }
 
     // Прошлая DONE: прошлый понедельник 11:30
-    const prevMon = prevWeekday(now, 1);
-    const startPast = atUTC(prevMon, 11, 30);
-    const endPast = addDays(startPast, 0);
-    endPast.setUTCMinutes(endPast.getUTCMinutes() + duration);
+    {
+      const prevMon = prevWeekday(now, 1);
+      const startPast = atUTC(prevMon, 11, 30);
+      const endPast = new Date(startPast);
+      endPast.setUTCMinutes(endPast.getUTCMinutes() + duration);
 
-    await prisma.appointment.upsert({
-      where: {
-        serviceId_startAt: {
-          serviceId: service.id,
-          startAt: startPast,
-        },
-      },
-      update: {
+      await upsertAppointmentByNaturalKey({
         masterId: m.id,
-        clientId: c2?.id,
-        endAt: endPast,
-        customerName: c2?.name ?? 'Гость',
-        phone: c2?.phone ?? '+49 160 999998',
-        email: c2?.email ?? null,
-        notes: 'Прошлая запись (seed)',
-        status: AppointmentStatus.DONE,
-      },
-      create: {
-        serviceId: service.id,
-        masterId: m.id,
-        clientId: c2?.id ?? null,
+        serviceId,
         startAt: startPast,
         endAt: endPast,
-        customerName: c2?.name ?? 'Гость',
-        phone: c2?.phone ?? '+49 160 999998',
+        clientId: c2?.id ?? null,
+        customerName: c2?.name ?? "Гость",
+        phone: c2?.phone ?? "+49 160 999998",
         email: c2?.email ?? null,
-        notes: 'Прошлая запись (seed)',
+        notes: "Прошлая запись (seed)",
         status: AppointmentStatus.DONE,
-      },
-    });
+      });
+    }
 
-    // Пример отменённой: следующий вторник 12:00 (для разнообразия)
-    const nextTue = nextWeekday(now, 2);
-    const startCanceled = atUTC(nextTue, 12, 0);
-    const endCanceled = addDays(startCanceled, 0);
-    endCanceled.setUTCMinutes(endCanceled.getUTCMinutes() + duration);
+    // Пример CANCELLED: следующий вторник 12:00
+    {
+      const nextTue = nextWeekday(now, 2);
+      const startCanceled = atUTC(nextTue, 12, 0);
+      const endCanceled = new Date(startCanceled);
+      endCanceled.setUTCMinutes(endCanceled.getUTCMinutes() + duration);
 
-    await prisma.appointment.upsert({
-      where: {
-        serviceId_startAt: {
-          serviceId: service.id,
-          startAt: startCanceled,
-        },
-      },
-      update: {
+      await upsertAppointmentByNaturalKey({
         masterId: m.id,
-        clientId: c1?.id,
-        endAt: endCanceled,
-        customerName: c1?.name ?? 'Гость',
-        phone: c1?.phone ?? '+49 160 999997',
-        email: c1?.email ?? null,
-        notes: 'Отменено (seed)',
-        status: AppointmentStatus.CANCELED,
-      },
-      create: {
-        serviceId: service.id,
-        masterId: m.id,
-        clientId: c1?.id ?? null,
+        serviceId,
         startAt: startCanceled,
         endAt: endCanceled,
-        customerName: c1?.name ?? 'Гость',
-        phone: c1?.phone ?? '+49 160 999997',
+        clientId: c1?.id ?? null,
+        customerName: c1?.name ?? "Гость",
+        phone: c1?.phone ?? "+49 160 999997",
         email: c1?.email ?? null,
-        notes: 'Отменено (seed)',
+        notes: "Отменено (seed)",
         status: AppointmentStatus.CANCELED,
-      },
-    });
+      });
+    }
   }
 }
 
 /** ───── Точка входа ───── */
 export default async function seed(): Promise<void> {
   try {
-    console.log('⏳ Seeding start');
+    console.log("⏳ Seeding start");
 
     // 1) Глобальный календарь салона
     await ensureWorkingHours();
 
     // 2) Иерархия услуг (категории/подуслуги)
-    console.log('→ [Services] ensure hierarchy...');
+    console.log("→ [Services] ensure hierarchy...");
     await ensureServiceHierarchy();
 
     // 3) Новости/контент (пример)
@@ -481,23 +488,23 @@ export default async function seed(): Promise<void> {
     const seededMasters = await ensureMasters();
 
     // 6) Персональные графики мастеров
-    console.log('→ [MasterWorkingHours] upsert...');
+    console.log("→ [MasterWorkingHours] upsert...");
     for (const m of seededMasters) {
       await ensureMasterWorkingHours(m.id);
     }
 
     // 7) Пример выходного у одного мастера
-    console.log('→ [MasterTimeOff] ensure example day off for first master...');
+    console.log("→ [MasterTimeOff] ensure example day off for first master...");
     if (seededMasters[0]) {
       await ensureMasterTimeOff(seededMasters[0].id);
     }
 
-    // 8) Заявки
+    // 8) Заявки (без композитного upsert)
     await ensureAppointments(seededMasters, clients.map((c) => c.email));
 
-    console.log('✅ Seeding done');
+    console.log("✅ Seeding done");
   } catch (e) {
-    console.error('❌ Seeding error:', e);
+    console.error("❌ Seeding error:", e);
     throw e;
   } finally {
     await prisma.$disconnect();
