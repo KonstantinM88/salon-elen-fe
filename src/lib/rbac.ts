@@ -1,22 +1,27 @@
 // src/lib/rbac.ts
-import { redirect } from "next/navigation";
 import { getServerSession } from "next-auth";
 import { authOptions } from "./auth";
-import type { AppRole } from "@/types/next-auth";
+import type { Role } from "@prisma/client";
 
-export function hasRole(userRole: AppRole, allowed: readonly AppRole[]): boolean {
+/** Проверка роли */
+export function hasRole(userRole: Role, allowed: readonly Role[]): boolean {
   return allowed.includes(userRole);
 }
 
-/**
- * Server-only guard — вызывает redirect('/login') если роли недостаточно.
- * Используй в layout'ах разделов /admin и /master.
- */
-export async function requireRole(allowed: readonly AppRole[]) {
+/** Бросает ошибку, если у пользователя нет нужной роли. Возвращает сессию при успехе. */
+export async function requireRole(allowed: readonly Role[]) {
   const session = await getServerSession(authOptions);
-  const role = session?.user?.role;
-  if (!role || !allowed.includes(role)) {
-    redirect("/login");
+  const role = session?.user?.role as Role | undefined;
+
+  if (!role || !hasRole(role, allowed)) {
+    throw new Error("Forbidden");
   }
   return session;
 }
+
+/** Удобные пресеты */
+export const ROLES = {
+  ADMIN_ONLY: ["ADMIN"] as const,
+  MASTER_OR_ADMIN: ["MASTER", "ADMIN"] as const,
+  ANY_AUTHENTICATED: ["USER", "MASTER", "ADMIN"] as const,
+};

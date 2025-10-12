@@ -3,10 +3,10 @@ generator client {
 }
 
 datasource db {
-  provider          = "postgresql"
-  url               = env("DATABASE_URL")
-  directUrl         = env("DIRECT_URL")
-  shadowDatabaseUrl = env("SHADOW_DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+  
 }
 
 /**
@@ -38,7 +38,7 @@ model Article {
 }
 
 /**
- * ───────── Старая форма обратной связи (оставляем как есть) ─────────
+ * ───────── Старая форма обратной связи ─────────
  */
 model Booking {
   id        String   @id @default(cuid())
@@ -178,7 +178,7 @@ model Appointment {
   clientId String?
   client   Client? @relation(fields: [clientId], references: [id])
 
-  /// Связь с мастером (оставляем optional для обратной совместимости)
+  /// Связь с мастером (optional — для обратной совместимости)
   masterId String?
   master   Master? @relation(fields: [masterId], references: [id])
 
@@ -194,16 +194,13 @@ model Appointment {
 
   createdAt DateTime @default(now())
 
-  // ⬇ ВАЖНО: убрали уникальность по (serviceId, startAt), чтобы разные мастера
-  // могли выполнять одинаковые подуслуги в одно время.
-  // Вместо этого — индексы для быстрых проверок пересечений:
+  // Индексы для быстрого поиска и проверок пересечений:
   @@index([masterId])
   @@index([serviceId])
   @@index([status])
   @@index([clientId])
   @@index([startAt, endAt])
-  @@index([masterId, startAt]) // частый фильтр при проверке свободности мастера
-
+  @@index([masterId, startAt])
   @@map("Appointment")
 }
 
@@ -244,24 +241,24 @@ enum Role {
 }
 
 model User {
-  id           String   @id @default(cuid())
+  id           String  @id @default(cuid())
   name         String?
-  email        String   @unique
+  email        String  @unique
   phone        String?
   image        String?
-  role         Role     @default(USER)
+  role         Role    @default(USER)
   passwordHash String?
 
   // связи 1:1 обратно из Master/Client
-  master       Master?
-  client       Client?
+  master Master?
+  client Client?
 
   // next-auth
-  accounts     Account[]
-  sessions     Session[]
+  accounts Account[]
+  sessions Session[]
 
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model Account {
@@ -298,4 +295,20 @@ model VerificationToken {
   expires    DateTime
 
   @@unique([identifier, token])
+}
+
+/**
+ * ───────── Архив удалённых логинов ─────────
+ * Позволяет «удалять» пользователя, сохраняя его email/роль
+ * для истории и предотвращения повторного конфликта уникальности.
+ */
+model OrphanedUser {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  role         Role
+  name         String?
+  sourceUserId String?
+  archivedAt   DateTime @default(now())
+
+  @@index([archivedAt])
 }

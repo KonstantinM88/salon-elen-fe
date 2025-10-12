@@ -1,64 +1,90 @@
-'use client';
+// src/app/(auth)/login/page.tsx
+import { Suspense } from 'react';
+import { Metadata } from 'next';
+import LoginClient from './LoginClient';
 
-import { useState } from 'react';
-import { signIn } from 'next-auth/react';
-import { useSearchParams } from 'next/navigation';
+export const metadata: Metadata = {
+  title: 'Вход — Salon Elen',
+};
 
 export default function LoginPage() {
-  const params = useSearchParams();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const error = params.get('error'); // покажем ошибку, если вернёт next-auth
-
-  async function onSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    await signIn('credentials', {
-      email,
-      password,
-      callbackUrl: '/', // после логина на главную (можно сменить)
-    });
-  }
-
   return (
-    <main className="min-h-[60vh] grid place-items-center p-4">
-      <form onSubmit={onSubmit} className="w-full max-w-sm space-y-3 rounded-2xl border p-4">
-        <h1 className="text-xl font-semibold">Вход</h1>
+    <div className="container mx-auto max-w-md px-4 py-10">
+      <h1 className="mb-6 text-2xl font-semibold">Вход</h1>
 
-        {error && (
-          <div className="rounded-md border border-rose-500/30 bg-rose-500/10 p-2 text-rose-300 text-sm">
-            Ошибка авторизации
-          </div>
-        )}
-
-        <div className="space-y-1">
-          <label className="text-sm opacity-70">E-mail</label>
-          <input
-            type="email"
-            required
-            value={email}
-            onChange={e => setEmail(e.target.value)}
-            className="w-full rounded-lg border bg-transparent px-3 py-2"
-          />
-        </div>
-
-        <div className="space-y-1">
-          <label className="text-sm opacity-70">Пароль</label>
-          <input
-            type="password"
-            required
-            value={password}
-            onChange={e => setPassword(e.target.value)}
-            className="w-full rounded-lg border bg-transparent px-3 py-2"
-          />
-        </div>
-
-        <button type="submit" className="w-full rounded-xl px-3 py-2 border hover:bg-white/5 transition">
-          Войти
-        </button>
-      </form>
-    </main>
+      {/* useSearchParams() живёт внутри Client-компонента, поэтому оборачиваем в Suspense */}
+      <Suspense fallback={<div className="h-10 w-full animate-pulse rounded bg-white/10" />}>
+        <LoginClient />
+      </Suspense>
+    </div>
   );
 }
+
+
+
+
+
+// 'use client';
+
+// import { useState } from 'react';
+// import { signIn } from 'next-auth/react';
+// import { useSearchParams } from 'next/navigation';
+
+// export default function LoginPage() {
+//   const params = useSearchParams();
+//   const [email, setEmail] = useState('');
+//   const [password, setPassword] = useState('');
+//   const error = params.get('error'); // покажем ошибку, если вернёт next-auth
+
+//   async function onSubmit(e: React.FormEvent) {
+//     e.preventDefault();
+//     await signIn('credentials', {
+//       email,
+//       password,
+//       callbackUrl: '/', // после логина на главную (можно сменить)
+//     });
+//   }
+
+//   return (
+//     <main className="min-h-[60vh] grid place-items-center p-4">
+//       <form onSubmit={onSubmit} className="w-full max-w-sm space-y-3 rounded-2xl border p-4">
+//         <h1 className="text-xl font-semibold">Вход</h1>
+
+//         {error && (
+//           <div className="rounded-md border border-rose-500/30 bg-rose-500/10 p-2 text-rose-300 text-sm">
+//             Ошибка авторизации
+//           </div>
+//         )}
+
+//         <div className="space-y-1">
+//           <label className="text-sm opacity-70">E-mail</label>
+//           <input
+//             type="email"
+//             required
+//             value={email}
+//             onChange={e => setEmail(e.target.value)}
+//             className="w-full rounded-lg border bg-transparent px-3 py-2"
+//           />
+//         </div>
+
+//         <div className="space-y-1">
+//           <label className="text-sm opacity-70">Пароль</label>
+//           <input
+//             type="password"
+//             required
+//             value={password}
+//             onChange={e => setPassword(e.target.value)}
+//             className="w-full rounded-lg border bg-transparent px-3 py-2"
+//           />
+//         </div>
+
+//         <button type="submit" className="w-full rounded-xl px-3 py-2 border hover:bg-white/5 transition">
+//           Войти
+//         </button>
+//       </form>
+//     </main>
+//   );
+// }
 
 
 

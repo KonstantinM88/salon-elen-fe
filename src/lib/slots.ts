@@ -1,5 +1,5 @@
 // src/lib/slots.ts
-import { addMinutes, areIntervalsOverlapping, differenceInMinutes, set } from "date-fns";
+import { addMinutes, areIntervalsOverlapping, set } from "date-fns";
 
 export type DayWindow = {
   start: Date; // локальное время начала рабочего окна дня

@@ -11,9 +11,11 @@ import type { Role } from "@prisma/client";
 /* ───────── helpers ───────── */
 
 const credentialsSchema = z.object({
-  email: z.string().email(),
+  // сначала trim + email, потом приводим к нижнему регистру
+  email: z.string().trim().email().transform((s) => s.toLowerCase()),
   password: z.string().min(8),
 });
+
 
 type MaybeUser = AdapterUser | NextAuthUser;
 
