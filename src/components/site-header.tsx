@@ -5,54 +5,30 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { useTheme } from 'next-themes';
+import { useSession, signIn, signOut } from 'next-auth/react';
 import {
-  CalendarCheck,
-  Scissors,
-  BadgeDollarSign,
-  Phone,
-  Newspaper,
-  Info,
-  LayoutDashboard,
-  Sparkles,
-  Menu,
-  X,
-  Sun,
-  Moon,
+  CalendarCheck, Scissors, BadgeDollarSign, Phone, Newspaper, Info,
+  LayoutDashboard, Sparkles, Menu, X, Sun, Moon,
 } from 'lucide-react';
-
-/* ───────── helpers ───────── */
 
 function cx(...xs: Array<string | false | null | undefined>) {
   return xs.filter(Boolean).join(' ');
 }
 
-type NavItem = {
-  href: string;
-  label: string;
-  icon: React.ElementType;
-  tone?: string; // кастомный цвет иконки
-};
+type NavItem = { href: string; label: string; icon: React.ElementType; tone?: string };
 
 const NAV: NavItem[] = [
-  { href: '/', label: 'Главная', icon: Sparkles, tone: 'text-fuchsia-400' },
-  { href: '/services', label: 'Услуги', icon: Scissors, tone: 'text-emerald-400' },
-  { href: '/prices', label: 'Цены', icon: BadgeDollarSign, tone: 'text-amber-400' },
-  { href: '/contacts', label: 'Контакты', icon: Phone, tone: 'text-sky-400' },
-  { href: '/news', label: 'Новости', icon: Newspaper, tone: 'text-violet-400' },
-  { href: '/about', label: 'О нас', icon: Info, tone: 'text-rose-400' },
-  { href: '/admin', label: 'Админ', icon: LayoutDashboard, tone: 'text-teal-300' },
+  { href: '/',         label: 'Главная',  icon: Sparkles,        tone: 'text-fuchsia-400' },
+  { href: '/services', label: 'Услуги',   icon: Scissors,        tone: 'text-emerald-400' },
+  { href: '/prices',   label: 'Цены',     icon: BadgeDollarSign, tone: 'text-amber-400' },
+  { href: '/contacts', label: 'Контакты', icon: Phone,           tone: 'text-sky-400' },
+  { href: '/news',     label: 'Новости',  icon: Newspaper,       tone: 'text-violet-400' },
+  { href: '/about',    label: 'О нас',    icon: Info,            tone: 'text-rose-400' },
+  { href: '/admin',    label: 'Админ',    icon: LayoutDashboard, tone: 'text-teal-300' },
 ];
 
-/** Красивая «живущая» градиентная кнопка бренда */
-function BrandCTA({
-  href,
-  children,
-  className,
-}: {
-  href: string;
-  children: React.ReactNode;
-  className?: string;
-}) {
+function BrandCTA(props: { href: string; children: React.ReactNode; className?: string }) {
+  const { href, children, className } = props;
   return (
     <Link
       href={href}
@@ -64,7 +40,6 @@ function BrandCTA({
         'transition-[filter,transform] hover:brightness-110 active:scale-[0.98]',
         'ring-1 ring-white/10',
         'before:absolute before:inset-[-1px] before:rounded-full before:bg-gradient-to-r before:from-fuchsia-400/60 before:via-cyan-400/60 before:to-transparent before:opacity-0 hover:before:opacity-40 before:transition-opacity',
-        // лёгкая «жизнь»
         'animate-[pulse_7s_ease-in-out_infinite]',
         className
       )}
@@ -75,13 +50,11 @@ function BrandCTA({
   );
 }
 
-/** Переключатель темы */
 function ThemeToggle() {
   const { theme, setTheme, resolvedTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
   const isDark = (resolvedTheme ?? theme) === 'dark';
-
   return (
     <button
       type="button"
@@ -95,22 +68,23 @@ function ThemeToggle() {
       )}
       title="Сменить тему"
     >
-      {!mounted ? (
-        <div className="h-5 w-5" />
-      ) : isDark ? (
-        <Sun className="h-5 w-5 text-amber-300 drop-shadow-[0_0_10px_rgba(251,191,36,0.25)]" />
-      ) : (
-        <Moon className="h-5 w-5 text-sky-500 drop-shadow-[0_0_10px_rgba(56,189,248,0.25)]" />
-      )}
+      {!mounted ? <div className="h-5 w-5" /> :
+        (isDark
+          ? <Sun className="h-5 w-5 text-amber-300 drop-shadow-[0_0_10px_rgba(251,191,36,0.25)]" />
+          : <Moon className="h-5 w-5 text-sky-500 drop-shadow-[0_0_10px_rgba(56,189,248,0.25)]" />)}
     </button>
   );
 }
 
-/* ───────── Header ───────── */
-
 export default function SiteHeader() {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
+  const { data: session, status } = useSession();
+
+  const role = session?.user?.role; // 'ADMIN' | 'MASTER' | 'USER' | undefined
+  const email = session?.user?.email ?? '';
+  const isAuthed = status === 'authenticated' && !!session?.user;
+  const canSeeAdmin = role === 'ADMIN' || role === 'MASTER';
 
   useEffect(() => setOpen(false), [pathname]);
 
@@ -143,19 +117,16 @@ export default function SiteHeader() {
 
         {/* Десктоп-меню */}
         <nav className="hidden md:flex items-center gap-1">
-          {NAV.map((item) => {
-            const active =
-              item.href === '/'
-                ? pathname === '/'
-                : pathname.startsWith(item.href);
+          {NAV.filter(i => !(i.href === '/admin' && !canSeeAdmin)).map((item) => {
+            const active = item.href === '/' ? pathname === '/' : pathname.startsWith(item.href);
             return (
               <Link
                 key={item.href}
                 href={item.href}
+                aria-current={active ? 'page' : undefined}
                 className={cx(
                   'group inline-flex items-center gap-2 rounded-full px-3 h-10',
                   'text-sm font-medium',
-                  'transition-colors',
                   active
                     ? 'text-white bg-gradient-to-r from-fuchsia-600/25 via-violet-600/20 to-sky-600/20 ring-1 ring-fuchsia-400/30'
                     : 'text-slate-300 hover:text-white hover:bg-white/5 ring-1 ring-white/10',
@@ -169,22 +140,67 @@ export default function SiteHeader() {
           })}
         </nav>
 
-        {/* Кнопки справа */}
-        <div className="flex items-center gap-2">
+        {/* Кнопки справа (desktop) */}
+        <div className="hidden md:flex items-center gap-2">
           <ThemeToggle />
-          <div className="hidden md:block">
-            <BrandCTA href="/booking">Записаться</BrandCTA>
-          </div>
+          <BrandCTA href="/booking">Записаться</BrandCTA>
 
-          {/* Бургер для мобилы */}
+          {status === 'loading' ? (
+            <div className="h-10 w-24 rounded-full bg-white/10 animate-pulse" />
+          ) : isAuthed ? (
+            <>
+              <span className="mx-1 hidden lg:block text-xs text-slate-300">{email}</span>
+              <button
+                onClick={() => signOut({ callbackUrl: '/' })}
+                className={cx(
+                  'inline-flex items-center justify-center rounded-full px-3 h-10',
+                  'text-sm font-medium text-slate-100',
+                  'border border-white/10 bg-slate-900/60 hover:bg-slate-800/70',
+                  'transition-colors'
+                )}
+              >
+                Выйти
+              </button>
+            </>
+          ) : (
+            <>
+              <button
+                onClick={() => signIn()}
+                className={cx(
+                  'inline-flex items-center justify-center rounded-full px-3 h-10',
+                  'text-sm font-medium text-slate-100',
+                  'border border-white/10 bg-slate-900/60 hover:bg-slate-800/70',
+                  'transition-colors'
+                )}
+              >
+                Войти
+              </button>
+              <Link
+                href="/auth/signup"
+                className={cx(
+                  'inline-flex items-center justify-center rounded-full px-3 h-10',
+                  'text-sm font-medium text-white',
+                  'bg-gradient-to-r from-fuchsia-500 via-violet-500 to-sky-500',
+                  'ring-1 ring-white/10 hover:brightness-110 transition'
+                )}
+              >
+                Регистрация
+              </Link>
+            </>
+          )}
+        </div>
+
+        {/* Бургер (mobile) */}
+        <div className="md:hidden flex items-center gap-2">
+          <ThemeToggle />
           <button
             type="button"
             className={cx(
-              'md:hidden inline-flex h-10 w-10 items-center justify-center rounded-full',
+              'inline-flex h-10 w-10 items-center justify-center rounded-full',
               'border border-white/10 bg-slate-900/60 text-slate-200 hover:bg-slate-800/70 transition'
             )}
             aria-label={open ? 'Закрыть меню' : 'Открыть меню'}
-            onClick={() => setOpen((v) => !v)}
+            onClick={() => setOpen(v => !v)}
           >
             {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </button>
@@ -200,15 +216,13 @@ export default function SiteHeader() {
         )}
       >
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-3 space-y-2">
-          {NAV.map((item) => {
-            const active =
-              item.href === '/'
-                ? pathname === '/'
-                : pathname.startsWith(item.href);
+          {NAV.filter(i => !(i.href === '/admin' && !canSeeAdmin)).map((item) => {
+            const active = item.href === '/' ? pathname === '/' : pathname.startsWith(item.href);
             return (
               <Link
                 key={item.href}
                 href={item.href}
+                aria-current={active ? 'page' : undefined}
                 className={cx(
                   'flex items-center justify-between rounded-xl px-3 py-3',
                   'ring-1 ring-white/10 bg-slate-900/60',
@@ -217,39 +231,326 @@ export default function SiteHeader() {
                 )}
               >
                 <div className="flex items-center gap-3">
-                  <span
-                    className={cx(
-                      'inline-flex h-9 w-9 items-center justify-center rounded-lg bg-slate-800/60',
-                      'ring-1 ring-white/10'
-                    )}
-                  >
+                  <span className={cx('inline-flex h-9 w-9 items-center justify-center rounded-lg bg-slate-800/60','ring-1 ring-white/10')}>
                     <item.icon className={cx('h-5 w-5', item.tone)} />
                   </span>
-                  <span className="text-sm font-medium text-slate-100">
-                    {item.label}
-                  </span>
+                  <span className="text-sm font-medium text-slate-100">{item.label}</span>
                 </div>
-                <span
-                  className={cx(
-                    'h-2 w-2 rounded-full',
-                    active ? 'bg-fuchsia-400' : 'bg-white/15'
-                  )}
-                />
+                <span className={cx('h-2 w-2 rounded-full', active ? 'bg-fuchsia-400' : 'bg-white/15')} />
               </Link>
             );
           })}
 
-          {/* CTA в мобильном меню */}
           <div className="pt-1">
-            <BrandCTA href="/booking" className="w-full justify-center">
-              Записаться
-            </BrandCTA>
+            <BrandCTA href="/booking" className="w-full justify-center">Записаться</BrandCTA>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2 pt-2">
+            {status === 'loading' ? (
+              <div className="col-span-2 h-10 rounded-xl bg-white/10 animate-pulse" />
+            ) : isAuthed ? (
+              <>
+                <div className="col-span-2 text-xs text-slate-300 px-1">Вошли как {email}</div>
+                <button
+                  onClick={() => signOut({ callbackUrl: '/' })}
+                  className={cx(
+                    'col-span-2 inline-flex items-center justify-center rounded-xl px-3 h-10',
+                    'text-sm font-medium text-slate-100',
+                    'border border-white/10 bg-slate-900/60 hover:bg-slate-800/70 transition'
+                  )}
+                >
+                  Выйти
+                </button>
+              </>
+            ) : (
+              <>
+                <button
+                  onClick={() => signIn()}
+                  className={cx(
+                    'inline-flex items-center justify-center rounded-xl px-3 h-10',
+                    'text-sm font-medium text-slate-100',
+                    'border border-white/10 bg-slate-900/60 hover:bg-slate-800/70 transition'
+                  )}
+                >
+                  Войти
+                </button>
+                <Link
+                  href="/auth/signup"
+                  className={cx(
+                    'inline-flex items-center justify-center rounded-xl px-3 h-10',
+                    'text-sm font-medium text-white',
+                    'bg-gradient-to-r from-fuchsia-500 via-violet-500 to-sky-500',
+                    'ring-1 ring-white/10 hover:brightness-110 transition'
+                  )}
+                >
+                  Регистрация
+                </Link>
+              </>
+            )}
           </div>
         </div>
       </div>
     </header>
   );
 }
+
+
+
+
+
+
+// // src/components/site-header.tsx
+// 'use client';
+
+// import Link from 'next/link';
+// import { usePathname } from 'next/navigation';
+// import { useEffect, useState } from 'react';
+// import { useTheme } from 'next-themes';
+// import {
+//   CalendarCheck,
+//   Scissors,
+//   BadgeDollarSign,
+//   Phone,
+//   Newspaper,
+//   Info,
+//   LayoutDashboard,
+//   Sparkles,
+//   Menu,
+//   X,
+//   Sun,
+//   Moon,
+// } from 'lucide-react';
+
+// /* ───────── helpers ───────── */
+
+// function cx(...xs: Array<string | false | null | undefined>) {
+//   return xs.filter(Boolean).join(' ');
+// }
+
+// type NavItem = {
+//   href: string;
+//   label: string;
+//   icon: React.ElementType;
+//   tone?: string; // кастомный цвет иконки
+// };
+
+// const NAV: NavItem[] = [
+//   { href: '/', label: 'Главная', icon: Sparkles, tone: 'text-fuchsia-400' },
+//   { href: '/services', label: 'Услуги', icon: Scissors, tone: 'text-emerald-400' },
+//   { href: '/prices', label: 'Цены', icon: BadgeDollarSign, tone: 'text-amber-400' },
+//   { href: '/contacts', label: 'Контакты', icon: Phone, tone: 'text-sky-400' },
+//   { href: '/news', label: 'Новости', icon: Newspaper, tone: 'text-violet-400' },
+//   { href: '/about', label: 'О нас', icon: Info, tone: 'text-rose-400' },
+//   { href: '/admin', label: 'Админ', icon: LayoutDashboard, tone: 'text-teal-300' },
+// ];
+
+// /** Красивая «живущая» градиентная кнопка бренда */
+// function BrandCTA({
+//   href,
+//   children,
+//   className,
+// }: {
+//   href: string;
+//   children: React.ReactNode;
+//   className?: string;
+// }) {
+//   return (
+//     <Link
+//       href={href}
+//       className={cx(
+//         'relative inline-flex items-center justify-center rounded-full px-5 h-10',
+//         'text-white text-sm font-medium',
+//         'bg-gradient-to-r from-fuchsia-500 via-violet-500 to-sky-500',
+//         'shadow-[0_0_20px_rgba(99,102,241,0.35)]',
+//         'transition-[filter,transform] hover:brightness-110 active:scale-[0.98]',
+//         'ring-1 ring-white/10',
+//         'before:absolute before:inset-[-1px] before:rounded-full before:bg-gradient-to-r before:from-fuchsia-400/60 before:via-cyan-400/60 before:to-transparent before:opacity-0 hover:before:opacity-40 before:transition-opacity',
+//         // лёгкая «жизнь»
+//         'animate-[pulse_7s_ease-in-out_infinite]',
+//         className
+//       )}
+//     >
+//       <CalendarCheck className="mr-2 h-4 w-4" />
+//       {children}
+//     </Link>
+//   );
+// }
+
+// /** Переключатель темы */
+// function ThemeToggle() {
+//   const { theme, setTheme, resolvedTheme } = useTheme();
+//   const [mounted, setMounted] = useState(false);
+//   useEffect(() => setMounted(true), []);
+//   const isDark = (resolvedTheme ?? theme) === 'dark';
+
+//   return (
+//     <button
+//       type="button"
+//       aria-label="Сменить тему"
+//       onClick={() => setTheme(isDark ? 'light' : 'dark')}
+//       className={cx(
+//         'inline-flex h-10 w-10 items-center justify-center rounded-full',
+//         'border border-white/10 bg-slate-900/60 text-slate-200',
+//         'hover:bg-slate-800/70 transition-colors',
+//         'shadow-[inset_0_0_0_1px_rgba(255,255,255,0.04)]'
+//       )}
+//       title="Сменить тему"
+//     >
+//       {!mounted ? (
+//         <div className="h-5 w-5" />
+//       ) : isDark ? (
+//         <Sun className="h-5 w-5 text-amber-300 drop-shadow-[0_0_10px_rgba(251,191,36,0.25)]" />
+//       ) : (
+//         <Moon className="h-5 w-5 text-sky-500 drop-shadow-[0_0_10px_rgba(56,189,248,0.25)]" />
+//       )}
+//     </button>
+//   );
+// }
+
+// /* ───────── Header ───────── */
+
+// export default function SiteHeader() {
+//   const pathname = usePathname();
+//   const [open, setOpen] = useState(false);
+
+//   useEffect(() => setOpen(false), [pathname]);
+
+//   return (
+//     <header
+//       className={cx(
+//         'sticky top-0 z-50',
+//         'backdrop-blur supports-[backdrop-filter]:bg-slate-950/60 bg-slate-950/80',
+//         'border-b border-slate-800'
+//       )}
+//     >
+//       <div className="container mx-auto flex h-16 items-center justify-between px-4 sm:px-6 lg:px-8">
+//         {/* Лого */}
+//         <Link
+//           href="/"
+//           className={cx(
+//             'group inline-flex items-center gap-2 rounded-full px-3 py-1',
+//             'ring-1 ring-white/10 bg-slate-900/60',
+//             'hover:bg-slate-800/70 transition'
+//           )}
+//           aria-label="На главную"
+//         >
+//           <span className="relative inline-flex h-5 w-5 items-center justify-center rounded-md bg-gradient-to-br from-fuchsia-500 to-sky-500 shadow-[0_0_12px_rgba(99,102,241,0.45)]">
+//             <Sparkles className="h-3.5 w-3.5 text-white" />
+//           </span>
+//           <span className="text-sm font-semibold tracking-wide text-slate-100">
+//             Salon&nbsp;Elen
+//           </span>
+//         </Link>
+
+//         {/* Десктоп-меню */}
+//         <nav className="hidden md:flex items-center gap-1">
+//           {NAV.map((item) => {
+//             const active =
+//               item.href === '/'
+//                 ? pathname === '/'
+//                 : pathname.startsWith(item.href);
+//             return (
+//               <Link
+//                 key={item.href}
+//                 href={item.href}
+//                 className={cx(
+//                   'group inline-flex items-center gap-2 rounded-full px-3 h-10',
+//                   'text-sm font-medium',
+//                   'transition-colors',
+//                   active
+//                     ? 'text-white bg-gradient-to-r from-fuchsia-600/25 via-violet-600/20 to-sky-600/20 ring-1 ring-fuchsia-400/30'
+//                     : 'text-slate-300 hover:text-white hover:bg-white/5 ring-1 ring-white/10',
+//                   'shadow-[inset_0_0_0_1px_rgba(255,255,255,0.04)]'
+//                 )}
+//               >
+//                 <item.icon className={cx('h-4 w-4', item.tone)} />
+//                 {item.label}
+//               </Link>
+//             );
+//           })}
+//         </nav>
+
+//         {/* Кнопки справа */}
+//         <div className="flex items-center gap-2">
+//           <ThemeToggle />
+//           <div className="hidden md:block">
+//             <BrandCTA href="/booking">Записаться</BrandCTA>
+//           </div>
+
+//           {/* Бургер для мобилы */}
+//           <button
+//             type="button"
+//             className={cx(
+//               'md:hidden inline-flex h-10 w-10 items-center justify-center rounded-full',
+//               'border border-white/10 bg-slate-900/60 text-slate-200 hover:bg-slate-800/70 transition'
+//             )}
+//             aria-label={open ? 'Закрыть меню' : 'Открыть меню'}
+//             onClick={() => setOpen((v) => !v)}
+//           >
+//             {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+//           </button>
+//         </div>
+//       </div>
+
+//       {/* Мобильное меню */}
+//       <div
+//         className={cx(
+//           'md:hidden overflow-hidden border-t border-slate-800',
+//           open ? 'max-h-[80vh]' : 'max-h-0',
+//           'transition-[max-height] duration-300 ease-out'
+//         )}
+//       >
+//         <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-3 space-y-2">
+//           {NAV.map((item) => {
+//             const active =
+//               item.href === '/'
+//                 ? pathname === '/'
+//                 : pathname.startsWith(item.href);
+//             return (
+//               <Link
+//                 key={item.href}
+//                 href={item.href}
+//                 className={cx(
+//                   'flex items-center justify-between rounded-xl px-3 py-3',
+//                   'ring-1 ring-white/10 bg-slate-900/60',
+//                   'hover:bg-slate-800/70 transition-colors',
+//                   active && 'bg-gradient-to-r from-fuchsia-600/20 via-violet-600/15 to-sky-600/15'
+//                 )}
+//               >
+//                 <div className="flex items-center gap-3">
+//                   <span
+//                     className={cx(
+//                       'inline-flex h-9 w-9 items-center justify-center rounded-lg bg-slate-800/60',
+//                       'ring-1 ring-white/10'
+//                     )}
+//                   >
+//                     <item.icon className={cx('h-5 w-5', item.tone)} />
+//                   </span>
+//                   <span className="text-sm font-medium text-slate-100">
+//                     {item.label}
+//                   </span>
+//                 </div>
+//                 <span
+//                   className={cx(
+//                     'h-2 w-2 rounded-full',
+//                     active ? 'bg-fuchsia-400' : 'bg-white/15'
+//                   )}
+//                 />
+//               </Link>
+//             );
+//           })}
+
+//           {/* CTA в мобильном меню */}
+//           <div className="pt-1">
+//             <BrandCTA href="/booking" className="w-full justify-center">
+//               Записаться
+//             </BrandCTA>
+//           </div>
+//         </div>
+//       </div>
+//     </header>
+//   );
+// }
 
 
 

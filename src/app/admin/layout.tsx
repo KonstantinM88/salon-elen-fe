@@ -1,29 +1,71 @@
-// src/app/admin/layout.tsx
-import type { ReactNode } from 'react';
-import { prisma } from '@/lib/db';
-import { AppointmentStatus } from '@prisma/client';
-import AdminShellClient from './_components/AdminShellClient';
+import type { ReactNode } from "react";
+import { prisma } from "@/lib/db";
+import { AppointmentStatus, Role } from "@prisma/client";
+import { getServerSession } from "next-auth";
+// import { authOptions } from "@/app/api/auth/[...nextauth]/auth";
+import AdminShellClient from "./_components/AdminShellClient";
+import { authOptions } from "@/lib/auth";
 
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
 export default async function AdminLayout({
   children,
 }: {
   children: ReactNode;
 }) {
-  // Бейдж для "Заявки" — количество PENDING
+  // Бейдж «Заявки»
   const pendingBookings = await prisma.appointment.count({
     where: { status: AppointmentStatus.PENDING },
   });
 
-  // Весь интерактив и адаптив — в клиентском шелле.
-  // Передаём только сериализуемые пропсы (числа/строки/булевы).
+  // Текущая роль пользователя из сессии
+  const session = await getServerSession(authOptions);
+  const role: Role = (session?.user?.role as Role | undefined) ?? Role.USER;
+
   return (
-    <AdminShellClient bookingsBadge={pendingBookings}>
+    <AdminShellClient role={role} bookingsBadge={pendingBookings}>
       {children}
     </AdminShellClient>
   );
 }
+
+
+
+
+
+
+
+
+
+// // src/app/admin/layout.tsx
+// import type { ReactNode } from "react";
+// import { prisma } from "@/lib/db";
+// import { AppointmentStatus } from "@prisma/client";
+// import { requireRole } from "@/lib/rbac";
+// import AdminShellClient from "./_components/AdminShellClient";
+
+// export const dynamic = "force-dynamic";
+
+// export default async function AdminLayout({
+//   children,
+// }: {
+//   children: ReactNode;
+// }) {
+//   // Доступ только для ADMIN
+//   await requireRole(["ADMIN"] as const);
+
+//   // Бейдж для "Заявки" — количество PENDING
+//   const pendingBookings = await prisma.appointment.count({
+//     where: { status: AppointmentStatus.PENDING },
+//   });
+
+//   return (
+//     <AdminShellClient bookingsBadge={pendingBookings}>
+//       {children}
+//     </AdminShellClient>
+//   );
+// }
+
 
 
 

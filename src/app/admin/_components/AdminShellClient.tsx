@@ -1,20 +1,23 @@
-'use client';
+"use client";
 
-import { useState, type ReactNode } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Menu, ChevronLeft } from 'lucide-react';
+import { useState, type ReactNode } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Menu, ChevronLeft } from "lucide-react";
+import type { Role } from "@prisma/client";
 
-import AdminNav from '@/components/admin/AdminNav';
-import AdminFooter from '../_components/AdminFooter';
+import AdminNav from "@/components/admin/AdminNav";
+import AdminFooter from "../_components/AdminFooter";
 
 type AdminShellClientProps = {
   children: ReactNode;
   bookingsBadge: number;
+  role: Role; // ← добавили
 };
 
 export default function AdminShellClient({
   children,
   bookingsBadge,
+  role,
 }: AdminShellClientProps) {
   const [open, setOpen] = useState<boolean>(false);
 
@@ -22,13 +25,13 @@ export default function AdminShellClient({
     <div className="grid gap-6 lg:grid-cols-[260px_1fr]">
       {/* Сайдбар */}
       <aside className="rounded-2xl border border-slate-800 bg-slate-950/60 p-4">
-        {/* Хедер сайдбара: заголовок + кнопки управления (моб. и десктоп) */}
+        {/* Хедер сайдбара */}
         <div className="mb-3 flex items-center justify-between">
           <div className="text-xs uppercase tracking-wider text-slate-400">
             Admin
           </div>
 
-          {/* Тогглер только для мобильной версии */}
+          {/* Тогглер (мобилка) */}
           <div className="flex items-center gap-2 lg:hidden">
             {!open ? (
               <button
@@ -56,26 +59,25 @@ export default function AdminShellClient({
           </div>
         </div>
 
-        {/* Навигация: всегда видна на десктопе; на мобилке — по клику */}
+        {/* Навигация */}
         <div className="lg:block">
-          {/* Mobile animated panel */}
           <AnimatePresence>
             {open && (
               <motion.div
                 initial={{ height: 0, opacity: 0 }}
-                animate={{ height: 'auto', opacity: 1 }}
+                animate={{ height: "auto", opacity: 1 }}
                 exit={{ height: 0, opacity: 0 }}
-                transition={{ type: 'spring', stiffness: 260, damping: 28 }}
+                transition={{ type: "spring", stiffness: 260, damping: 28 }}
                 className="overflow-hidden lg:hidden"
               >
-                <AdminNav bookingsBadge={bookingsBadge} />
+                <AdminNav role={role} bookingsBadge={bookingsBadge} />
               </motion.div>
             )}
           </AnimatePresence>
 
-          {/* Desktop panel */}
+          {/* Десктоп */}
           <div className="hidden lg:block">
-            <AdminNav bookingsBadge={bookingsBadge} />
+            <AdminNav role={role} bookingsBadge={bookingsBadge} />
           </div>
         </div>
       </aside>
@@ -88,3 +90,4 @@ export default function AdminShellClient({
     </div>
   );
 }
+

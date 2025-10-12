@@ -3,8 +3,10 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider          = "postgresql"
+  url               = env("DATABASE_URL")
+  directUrl         = env("DIRECT_URL")
+  shadowDatabaseUrl = env("SHADOW_DATABASE_URL")
 }
 
 /**
@@ -97,6 +99,10 @@ model Client {
   referral  String?
   notes     String?
 
+  // связь с User (опционально, для личного кабинета)
+  userId String? @unique
+  user   User?   @relation(fields: [userId], references: [id])
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -117,6 +123,10 @@ model Master {
   birthDate DateTime
   bio       String?
   avatarUrl String?
+
+  // связь 1:1 с User (мастер может логиниться)
+  userId String? @unique
+  user   User?   @relation(fields: [userId], references: [id])
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -221,4 +231,71 @@ model TimeOff {
   createdAt    DateTime @default(now())
 
   @@index([date])
+}
+
+/**
+ * ───────── RBAC + NextAuth ─────────
+ */
+
+enum Role {
+  USER
+  MASTER
+  ADMIN
+}
+
+model User {
+  id           String   @id @default(cuid())
+  name         String?
+  email        String   @unique
+  phone        String?
+  image        String?
+  role         Role     @default(USER)
+  passwordHash String?
+
+  // связи 1:1 обратно из Master/Client
+  master       Master?
+  client       Client?
+
+  // next-auth
+  accounts     Account[]
+  sessions     Session[]
+
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
 }
