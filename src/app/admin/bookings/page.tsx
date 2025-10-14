@@ -8,7 +8,7 @@ import {
   Calendar, Clock, Mail, Phone, Scissors, User2,
   Check, X, Trash2, Filter, MessageSquareText,
 } from 'lucide-react';
-import { fmtDT, fmtDate, fmtTime, fmtVisitDate, fmtVisitTime } from '@/lib/time';
+import { fmtDT, fmtVisitDate, fmtVisitTime } from '@/lib/time';
 
 export const dynamic = 'force-dynamic';
 
@@ -120,11 +120,11 @@ export default async function AdminBookingsPage({ searchParams }: { searchParams
       startAt: true,
       endAt: true,
       status: true,
-      master: { select: { id: true, name: true } },
+      master: { select: { id: true, name: true} },
       service: {
         select: {
           name: true,
-          priceCents: true, // <— стоимость
+          priceCents: true,
           parent: { select: { name: true, parent: { select: { name: true } } } },
         },
       },
@@ -218,7 +218,7 @@ export default async function AdminBookingsPage({ searchParams }: { searchParams
               {r.email && <Line icon={<Mail className="h-4 w-4" />} text={r.email} />}
               <Line icon={<Scissors className="h-4 w-4" />} text={servicePath(r.service)} />
               <Line icon={<User2 className="h-4 w-4" />} text={r.master?.name ?? '—'} />
-              {/* время визита в Europe/Berlin */}
+              {/* время визита в таймзоне салона */}
               <Line icon={<Clock className="h-4 w-4" />} text={`${fmtVisitDate(r.startAt)} • ${fmtVisitTime(r.startAt)} — ${fmtVisitTime(r.endAt)}`} />
               {/* комментарий, если есть */}
               {r.notes && <Line icon={<MessageSquareText className="h-4 w-4" />} text={r.notes} />}
@@ -268,7 +268,7 @@ export default async function AdminBookingsPage({ searchParams }: { searchParams
                 <td className="p-3">{servicePath(r.service)}</td>
                 <td className="p-3 whitespace-nowrap">{moneyFromCents(r.service?.priceCents)}</td>
                 <td className="p-3">{r.master?.name ?? '—'}</td>
-                {/* время визита в Europe/Berlin */}
+                {/* время визита в таймзоне салона */}
                 <td className="p-3 whitespace-nowrap">
                   {fmtVisitDate(r.startAt)} {fmtVisitTime(r.startAt)} — {fmtVisitTime(r.endAt)}
                 </td>

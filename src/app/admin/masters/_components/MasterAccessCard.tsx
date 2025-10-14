@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { prisma } from "@/lib/db";
-import { requireRole } from "@/lib/rbac";
+// import { requireRole } from "@/lib/rbac";
 import { changeMasterPassword } from "../[id]/actions";
 import { ShieldCheck, Mail, User2, KeyRound, Link2 } from "lucide-react";
+import { requireRole } from "@/lib/rbac-guards";
 
 export default async function MasterAccessCard({
   masterId,
