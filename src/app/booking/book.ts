@@ -1,11 +1,19 @@
+// src/app/booking/book.ts
 "use server";
 
 import { randomUUID } from "crypto";
+import { addMinutes } from "date-fns";
 import { prisma } from "@/lib/prisma";
 import { BookingSchema } from "@/lib/validation/booking";
 import { wallMinutesToUtc } from "@/lib/orgTime";
 
-// ----- возвращаемое состояние для useActionState
+// За сколько минут до начала ещё разрешаем запись.
+const MIN_LEAD_MIN = 30;
+
+// Тот же буфер, что и в /api/availability
+const BASE_BREAK_BEFORE_MIN = 10; // минимум "до"
+const BREAK_AFTER_MIN = 10;       // "после"
+
 export type BookState = {
   ok: boolean;
   formError?: string;
@@ -61,29 +69,52 @@ export async function book(
       return { ok: false, formError: "Мастер не найден." };
     }
 
-    // ----- расчёт времени (строго по TZ салона → в UTC для БД)
+    // ----- расчёт времени (стеночные минуты -> UTC)
     const startAt = wallMinutesToUtc(data.dateISO, data.startMin);
     const endAt = wallMinutesToUtc(data.dateISO, data.endMin);
 
-    // ----- проверка пересечений для мастера (PENDING/CONFIRMED)
+    // ----- защита: нельзя бронировать на прошедшее время (и ближе чем MIN_LEAD_MIN минут)
+    const threshold = new Date(Date.now() + MIN_LEAD_MIN * 60_000);
+    if (startAt < threshold) {
+      return {
+        ok: false,
+        formError:
+          MIN_LEAD_MIN > 0
+            ? `Нельзя записаться на время раньше чем за ${MIN_LEAD_MIN} мин от текущего. Обновите слоты и выберите доступное время.`
+            : "Нельзя записаться на прошедшее время. Обновите слоты и выберите доступное время.",
+      };
+    }
+
+    // ----- буферы (должны совпадать с /api/availability)
+    const duration = service.durationMin ?? 0;
+    const bufferBefore = Math.max(BASE_BREAK_BEFORE_MIN, duration);
+    const bufferAfter = BREAK_AFTER_MIN;
+
+    const guardStart = addMinutes(startAt, -bufferBefore);
+    const guardEnd = addMinutes(endAt, bufferAfter);
+
+    // ----- проверка пересечений для мастера (PENDING/CONFIRMED) с учётом буферов
     const overlap = await prisma.appointment.findFirst({
       where: {
         masterId: master.id,
         status: { in: ["PENDING", "CONFIRMED"] },
-        startAt: { lt: endAt },
-        endAt: { gt: startAt },
+        // касание считаем конфликтом, так что используем <= / >= в смысле интервалов:
+        // существующая.start < новый_с_буфером.end  И  существующая.end > новый_с_буфером.start
+        startAt: { lt: guardEnd },
+        endAt: { gt: guardStart },
       },
       select: { id: true },
     });
     if (overlap) {
       return {
         ok: false,
-        formError: "Выбранное время уже занято. Обновите слоты и попробуйте снова.",
+        formError:
+          "Выбранное время уже занято. Обновите слоты и попробуйте снова.",
       };
     }
 
     // ===== клиент (создаём при достаточных данных)
-    const emailStr = data.email.trim() || undefined; // undefined, не null
+    const emailStr = data.email.trim() || undefined;
     const phoneStr = data.phone.trim();
     const nameStr = data.name.trim();
     const notesStr = (data.notes || "").trim() || null;
@@ -141,6 +172,516 @@ export async function book(
     return { ok: false, formError: msg };
   }
 }
+
+
+
+
+
+//--------работает хорошо
+// "use server";
+
+// import { randomUUID } from "crypto";
+// import { prisma } from "@/lib/prisma";
+// import { BookingSchema } from "@/lib/validation/booking";
+// import { wallMinutesToUtc } from "@/lib/orgTime";
+
+// // За сколько минут до начала ещё разрешаем запись
+// const MIN_LEAD_MIN = 30;
+
+// export type BookState = {
+//   ok: boolean;
+//   formError?: string;
+//   fieldErrors?: Record<string, string>;
+// };
+
+// export async function book(
+//   _prev: BookState,
+//   formData: FormData
+// ): Promise<BookState> {
+//   try {
+//     // 1) собрать данные
+//     const payload = {
+//       serviceSlug: String(formData.get("serviceSlug") || ""),
+//       dateISO: String(formData.get("dateISO") || ""),
+//       startMin: Number(formData.get("startMin")),
+//       endMin: Number(formData.get("endMin")),
+//       masterId: String(formData.get("masterId") || ""),
+//       name: String(formData.get("name") || ""),
+//       phone: String(formData.get("phone") || ""),
+//       email: (formData.get("email") as string | null) || "",
+//       birthDate: (formData.get("birthDate") as string | null) || "",
+//       source: (formData.get("source") as string | null) || undefined,
+//       notes: (formData.get("notes") as string | null) || undefined,
+//     };
+
+//     // 2) валидация
+//     const parsed = BookingSchema.safeParse(payload);
+//     if (!parsed.success) {
+//       const fieldErrors: Record<string, string> = {};
+//       for (const issue of parsed.error.issues) {
+//         const key = String(issue.path?.[0] ?? "");
+//         if (!fieldErrors[key]) fieldErrors[key] = issue.message;
+//       }
+//       return { ok: false, fieldErrors };
+//     }
+//     const data = parsed.data;
+
+//     // 3) справочники
+//     const service = await prisma.service.findFirst({
+//       where: { slug: data.serviceSlug, isActive: true },
+//       select: { id: true, durationMin: true },
+//     });
+//     if (!service) return { ok: false, formError: "Услуга не найдена или отключена." };
+
+//     const master = await prisma.master.findUnique({
+//       where: { id: data.masterId },
+//       select: { id: true },
+//     });
+//     if (!master) return { ok: false, formError: "Мастер не найден." };
+
+//     // 4) расчёт времени в UTC (из «стеновых» минут дня в TZ салона)
+//     const startAt = wallMinutesToUtc(data.dateISO, data.startMin);
+//     const endAt = wallMinutesToUtc(data.dateISO, data.endMin);
+
+//     // 5) запрет на прошлое/слишком близко
+//     const threshold = new Date(Date.now() + MIN_LEAD_MIN * 60_000);
+//     if (startAt < threshold) {
+//       return {
+//         ok: false,
+//         formError:
+//           MIN_LEAD_MIN > 0
+//             ? `Нельзя записаться на время раньше чем за ${MIN_LEAD_MIN} мин от текущего. Обновите слоты и выберите доступное время.`
+//             : "Нельзя записаться на прошедшее время. Обновите слоты и выберите доступное время.",
+//       };
+//     }
+
+//     // 6) клиент
+//     const emailStr = data.email.trim() || undefined;
+//     const phoneStr = data.phone.trim();
+//     const nameStr = data.name.trim();
+//     const notesStr = (data.notes || "").trim() || null;
+
+//     let clientId: string | undefined = undefined;
+
+//     if (emailStr && nameStr && phoneStr && data.birthDate) {
+//       const existing = await prisma.client.findFirst({
+//         where: { OR: [{ email: emailStr }, { phone: phoneStr }] },
+//         select: { id: true },
+//       });
+//       if (existing) {
+//         clientId = existing.id;
+//       } else {
+//         const birth = new Date(data.birthDate);
+//         const created = await prisma.client.create({
+//           data: {
+//             id: randomUUID(),
+//             name: nameStr,
+//             phone: phoneStr,
+//             email: emailStr,
+//             birthDate: birth,
+//           },
+//           select: { id: true },
+//         });
+//         clientId = created.id;
+//       }
+//     }
+
+//     // 7) бронь — с защитой от гонки (ещё одна проверка пересечений)
+//     const overlap = await prisma.appointment.findFirst({
+//       where: {
+//         masterId: master.id,
+//         status: { in: ["PENDING", "CONFIRMED"] },
+//         startAt: { lt: endAt },
+//         endAt: { gt: startAt },
+//       },
+//       select: { id: true },
+//     });
+
+//     if (overlap) {
+//       return {
+//         ok: false,
+//         formError: "Выбранное время уже занято. Обновите слоты и попробуйте снова.",
+//       };
+//     }
+
+//     await prisma.appointment.create({
+//       data: {
+//         id: randomUUID(),
+//         serviceId: service.id,
+//         clientId,
+//         masterId: master.id,
+//         startAt,
+//         endAt,
+//         customerName: nameStr,
+//         phone: phoneStr,
+//         email: emailStr,
+//         notes: notesStr,
+//         status: "PENDING",
+//       },
+//       select: { id: true },
+//     });
+
+//     return { ok: true };
+//   } catch (e) {
+//     const msg =
+//       process.env.NODE_ENV === "development"
+//         ? `Ошибка при бронировании: ${String(e)}`
+//         : "Не удалось создать запись. Попробуйте ещё раз.";
+//     return { ok: false, formError: msg };
+//   }
+// }
+
+
+
+
+
+
+//-------------------
+// // src/app/booking/book.ts
+// "use server";
+
+// import { randomUUID } from "crypto";
+// import { prisma } from "@/lib/prisma";
+// import { BookingSchema } from "@/lib/validation/booking";
+// import { wallMinutesToUtc } from "@/lib/orgTime";
+
+// // За сколько минут до начала ещё разрешаем запись.
+// const MIN_LEAD_MIN = 30;
+
+// // ----- возвращаемое состояние для useActionState
+// export type BookState = {
+//   ok: boolean;
+//   formError?: string;
+//   fieldErrors?: Record<string, string>;
+// };
+
+// export async function book(
+//   _prev: BookState,
+//   formData: FormData
+// ): Promise<BookState> {
+//   try {
+//     // ----- собрать данные из формы
+//     const payload = {
+//       serviceSlug: String(formData.get("serviceSlug") || ""),
+//       dateISO: String(formData.get("dateISO") || ""),
+//       startMin: Number(formData.get("startMin")),
+//       endMin: Number(formData.get("endMin")),
+//       masterId: String(formData.get("masterId") || ""),
+//       name: String(formData.get("name") || ""),
+//       phone: String(formData.get("phone") || ""),
+//       email: (formData.get("email") as string | null) || "",
+//       birthDate: (formData.get("birthDate") as string | null) || "",
+//       source: (formData.get("source") as string | null) || undefined,
+//       notes: (formData.get("notes") as string | null) || undefined,
+//     };
+
+//     // ----- валидация Zod
+//     const parsed = BookingSchema.safeParse(payload);
+//     if (!parsed.success) {
+//       const fieldErrors: Record<string, string> = {};
+//       for (const issue of parsed.error.issues) {
+//         const key = String(issue.path?.[0] ?? "");
+//         if (!fieldErrors[key]) fieldErrors[key] = issue.message;
+//       }
+//       return { ok: false, fieldErrors };
+//     }
+//     const data = parsed.data;
+
+//     // ----- справочные сущности
+//     const service = await prisma.service.findFirst({
+//       where: { slug: data.serviceSlug, isActive: true },
+//       select: { id: true, durationMin: true },
+//     });
+//     if (!service) {
+//       return { ok: false, formError: "Услуга не найдена или отключена." };
+//     }
+
+//     const master = await prisma.master.findUnique({
+//       where: { id: data.masterId },
+//       select: { id: true },
+//     });
+//     if (!master) {
+//       return { ok: false, formError: "Мастер не найден." };
+//     }
+
+//     // Проверка длительности выбранного слота против услуги
+//     const slotDuration = data.endMin - data.startMin;
+//     if (slotDuration !== service.durationMin) {
+//       return {
+//         ok: false,
+//         formError:
+//           "Длительность выбранного слота не совпадает с длительностью услуги. Обновите слоты и выберите корректное время.",
+//       };
+//     }
+
+//     // ----- расчёт времени (строго по TZ салона → в UTC для БД)
+//     const startAt = wallMinutesToUtc(data.dateISO, data.startMin);
+//     const endAt = wallMinutesToUtc(data.dateISO, data.endMin);
+
+//     // ----- защита: нельзя бронировать на прошедшее время (и ближе чем за MIN_LEAD_MIN минут)
+//     const threshold = new Date(Date.now() + MIN_LEAD_MIN * 60_000);
+//     if (startAt < threshold) {
+//       return {
+//         ok: false,
+//         formError:
+//           MIN_LEAD_MIN > 0
+//             ? `Нельзя записаться на время раньше чем за ${MIN_LEAD_MIN} мин от текущего. Обновите слоты и выберите доступное время.`
+//             : "Нельзя записаться на прошедшее время. Обновите слоты и выберите доступное время.",
+//       };
+//     }
+
+//     // ===== клиент (создаём при достаточных данных)
+//     const emailStr = data.email.trim() || undefined; // undefined, не null
+//     const phoneStr = data.phone.trim();
+//     const nameStr = data.name.trim();
+//     const notesStr = (data.notes || "").trim() || null;
+
+//     let clientId: string | undefined = undefined;
+
+//     if (emailStr && nameStr && phoneStr && data.birthDate) {
+//       const existing = await prisma.client.findFirst({
+//         where: { OR: [{ email: emailStr }, { phone: phoneStr }] },
+//         select: { id: true },
+//       });
+
+//       if (existing) {
+//         clientId = existing.id;
+//       } else {
+//         const birth = new Date(data.birthDate);
+//         const created = await prisma.client.create({
+//           data: {
+//             id: randomUUID(),
+//             name: nameStr,
+//             phone: phoneStr,
+//             email: emailStr,
+//             birthDate: birth,
+//           },
+//           select: { id: true },
+//         });
+//         clientId = created.id;
+//       }
+//     }
+
+//     // ===== транзакция: повторная проверка пересечений + создание записи
+//     await prisma.$transaction(async (tx) => {
+//       // повторная проверка конфликтов на случай гонок
+//       const overlap = await tx.appointment.findFirst({
+//         where: {
+//           masterId: master.id,
+//           status: { in: ["PENDING", "CONFIRMED"] },
+//           startAt: { lt: endAt },
+//           endAt: { gt: startAt },
+//         },
+//         select: { id: true },
+//       });
+//       if (overlap) {
+//         throw new Error(
+//           "CONFLICT: Выбранное время уже занято. Обновите слоты и попробуйте снова."
+//         );
+//       }
+
+//       await tx.appointment.create({
+//         data: {
+//           id: randomUUID(),
+//           serviceId: service.id,
+//           clientId,
+//           masterId: master.id,
+//           startAt,
+//           endAt,
+//           customerName: nameStr,
+//           phone: phoneStr,
+//           email: emailStr,
+//           notes: notesStr,
+//           status: "PENDING",
+//         },
+//         select: { id: true },
+//       });
+//     });
+
+//     return { ok: true };
+//   } catch (e) {
+//     const msgRaw =
+//       e instanceof Error ? e.message : typeof e === "string" ? e : String(e);
+
+//     const isConflict = msgRaw.startsWith("CONFLICT:");
+//     const msg = isConflict
+//       ? "Выбранное время уже занято. Обновите слоты и попробуйте снова."
+//       : process.env.NODE_ENV === "development"
+//       ? `Ошибка при бронировании: ${msgRaw}`
+//       : "Не удалось создать запись. Попробуйте ещё раз.";
+
+//     return { ok: false, formError: msg };
+//   }
+// }
+
+
+
+
+
+
+//---------пока оставлю
+// // src/app/booking/book.ts
+// "use server";
+
+// import { randomUUID } from "crypto";
+// import { prisma } from "@/lib/prisma";
+// import { BookingSchema } from "@/lib/validation/booking";
+// import { wallMinutesToUtc } from "@/lib/orgTime";
+
+// // За сколько минут до начала ещё разрешаем запись.
+// // Поставь 30, если нужно запрещать ближе чем за 30 минут.
+// const MIN_LEAD_MIN = 30;
+
+// // ----- возвращаемое состояние для useActionState
+// export type BookState = {
+//   ok: boolean;
+//   formError?: string;
+//   fieldErrors?: Record<string, string>;
+// };
+
+// export async function book(
+//   _prev: BookState,
+//   formData: FormData
+// ): Promise<BookState> {
+//   try {
+//     // ----- собрать данные из формы
+//     const payload = {
+//       serviceSlug: String(formData.get("serviceSlug") || ""),
+//       dateISO: String(formData.get("dateISO") || ""),
+//       startMin: Number(formData.get("startMin")),
+//       endMin: Number(formData.get("endMin")),
+//       masterId: String(formData.get("masterId") || ""),
+//       name: String(formData.get("name") || ""),
+//       phone: String(formData.get("phone") || ""),
+//       email: (formData.get("email") as string | null) || "",
+//       birthDate: (formData.get("birthDate") as string | null) || "",
+//       source: (formData.get("source") as string | null) || undefined,
+//       notes: (formData.get("notes") as string | null) || undefined,
+//     };
+
+//     // ----- валидация Zod
+//     const parsed = BookingSchema.safeParse(payload);
+//     if (!parsed.success) {
+//       const fieldErrors: Record<string, string> = {};
+//       for (const issue of parsed.error.issues) {
+//         const key = String(issue.path?.[0] ?? "");
+//         if (!fieldErrors[key]) fieldErrors[key] = issue.message;
+//       }
+//       return { ok: false, fieldErrors };
+//     }
+//     const data = parsed.data;
+
+//     // ----- справочные сущности
+//     const service = await prisma.service.findFirst({
+//       where: { slug: data.serviceSlug, isActive: true },
+//       select: { id: true, durationMin: true },
+//     });
+//     if (!service) {
+//       return { ok: false, formError: "Услуга не найдена или отключена." };
+//     }
+
+//     const master = await prisma.master.findUnique({
+//       where: { id: data.masterId },
+//       select: { id: true },
+//     });
+//     if (!master) {
+//       return { ok: false, formError: "Мастер не найден." };
+//     }
+
+//     // ----- расчёт времени (строго по TZ салона → в UTC для БД)
+//     const startAt = wallMinutesToUtc(data.dateISO, data.startMin);
+//     const endAt = wallMinutesToUtc(data.dateISO, data.endMin);
+
+//     // ----- защита: нельзя бронировать на прошедшее время (и ближе чем за MIN_LEAD_MIN минут)
+//     const threshold = new Date(Date.now() + MIN_LEAD_MIN * 60_000);
+//     if (startAt < threshold) {
+//       return {
+//         ok: false,
+//         formError:
+//           MIN_LEAD_MIN > 0
+//             ? `Нельзя записаться на время раньше чем за ${MIN_LEAD_MIN} мин от текущего. Обновите слоты и выберите доступное время.`
+//             : "Нельзя записаться на прошедшее время. Обновите слоты и выберите доступное время.",
+//       };
+//     }
+
+//     // ----- проверка пересечений для мастера (PENDING/CONFIRMED)
+//     const overlap = await prisma.appointment.findFirst({
+//       where: {
+//         masterId: master.id,
+//         status: { in: ["PENDING", "CONFIRMED"] },
+//         startAt: { lt: endAt },
+//         endAt: { gt: startAt },
+//       },
+//       select: { id: true },
+//     });
+//     if (overlap) {
+//       return {
+//         ok: false,
+//         formError:
+//           "Выбранное время уже занято. Обновите слоты и попробуйте снова.",
+//       };
+//     }
+
+//     // ===== клиент (создаём при достаточных данных)
+//     const emailStr = data.email.trim() || undefined; // undefined, не null
+//     const phoneStr = data.phone.trim();
+//     const nameStr = data.name.trim();
+//     const notesStr = (data.notes || "").trim() || null;
+
+//     let clientId: string | undefined = undefined;
+
+//     if (emailStr && nameStr && phoneStr && data.birthDate) {
+//       const existing = await prisma.client.findFirst({
+//         where: { OR: [{ email: emailStr }, { phone: phoneStr }] },
+//         select: { id: true },
+//       });
+
+//       if (existing) {
+//         clientId = existing.id;
+//       } else {
+//         const birth = new Date(data.birthDate);
+//         const created = await prisma.client.create({
+//           data: {
+//             id: randomUUID(),
+//             name: nameStr,
+//             phone: phoneStr,
+//             email: emailStr,
+//             birthDate: birth,
+//           },
+//           select: { id: true },
+//         });
+//         clientId = created.id;
+//       }
+//     }
+
+//     // ===== создаём запись
+//     await prisma.appointment.create({
+//       data: {
+//         id: randomUUID(),
+//         serviceId: service.id,
+//         clientId,
+//         masterId: master.id,
+//         startAt,
+//         endAt,
+//         customerName: nameStr,
+//         phone: phoneStr,
+//         email: emailStr,
+//         notes: notesStr,
+//         status: "PENDING",
+//       },
+//       select: { id: true },
+//     });
+
+//     return { ok: true };
+//   } catch (e) {
+//     const msg =
+//       process.env.NODE_ENV === "development"
+//         ? `Ошибка при бронировании: ${String(e)}`
+//         : "Не удалось создать запись. Попробуйте ещё раз.";
+//     return { ok: false, formError: msg };
+//   }
+// }
+
 
 
 

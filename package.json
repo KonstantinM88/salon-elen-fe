@@ -46,6 +46,7 @@
     "@tailwindcss/typography": "^0.5.19",
     "@types/bcrypt": "^6.0.0",
     "@types/node": "24.5.2",
+    "@types/node-fetch": "^2.6.13",
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.0",
     "autoprefixer": "^10.4.21",

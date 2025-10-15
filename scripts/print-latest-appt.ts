@@ -1,4 +1,9 @@
 // scripts/print-latest-appt.ts
+
+import './_env';
+import { assertEnv } from './_env';
+assertEnv();
+
 import "dotenv/config";
 import { prisma } from "@/lib/prisma";
 import { toZonedTime, format } from "date-fns-tz";
