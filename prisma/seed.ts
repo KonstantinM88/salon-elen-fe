@@ -1,6 +1,6 @@
 // prisma/seed.ts
 import { PrismaClient, ArticleType, AppointmentStatus, Role } from "@prisma/client";
-import bcrypt from "bcrypt";
+import bcrypt from "bcryptjs";
 import { ensureServices as ensureServiceHierarchy } from "./seed-services";
 
 const prisma = new PrismaClient();

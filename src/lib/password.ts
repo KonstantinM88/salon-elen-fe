@@ -1,5 +1,5 @@
 // src/lib/password.ts
-import bcrypt from "bcrypt";
+import bcrypt from "bcryptjs";
 
 const ROUNDS = 12;
 

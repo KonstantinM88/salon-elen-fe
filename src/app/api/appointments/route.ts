@@ -1,23 +1,15 @@
-// src/app/api/appointments/route.ts
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { z } from "zod";
-import { orgDayRange } from "@/lib/orgTime";
+import { makeUtcSlot } from "@/lib/orgTime";
 
-/** Пауза после каждой записи (мин) */
-const BREAK_AFTER_MIN = 10;
+/** Пауза после каждой записи (мин) — НЕ используем, слоты строго [start,end) */
+// const BREAK_AFTER_MIN = 10;
 
 /* ───── helpers ───── */
 
-function isValidISODate(d: string): boolean {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(d)) return false;
-  const test = new Date(`${d}T00:00:00`);
-  return Number.isFinite(test.getTime());
-}
-
-function localDayStart(dateISO: string): Date {
-  // Локальные сутки организации (Europe/Berlin) → UTC-инстант их полуночи
-  return orgDayRange(dateISO).start;
+function isYmd(d: string): boolean {
+  return /^\d{4}-\d{2}-\d{2}$/.test(d);
 }
 
 /* ───── схема входных данных ───── */
@@ -25,12 +17,13 @@ function localDayStart(dateISO: string): Date {
 const bodySchema = z
   .object({
     serviceSlug: z.string().trim().min(1, "serviceSlug required"),
-    dateISO: z.string().refine(isValidISODate, "dateISO must be YYYY-MM-DD"),
+    masterId: z.string().trim().min(1, "masterId required"),
+    dateISO: z.string().refine(isYmd, "dateISO must be YYYY-MM-DD"),
     startMin: z.number().int().nonnegative(),
     endMin: z.number().int().positive(),
     name: z.string().trim().min(1, "Name required"),
-    phone: z.string().trim().regex(/^[\d\s+()\-]{6,}$/, "Phone invalid"),
-    notes: z.string().trim().min(1).nullish(),
+    phone: z.string().trim().min(3).max(40).optional().nullable(),
+    notes: z.string().trim().min(1).optional().nullable(),
   })
   .refine((v) => v.endMin > v.startMin, {
     message: "Invalid time range",
@@ -49,8 +42,16 @@ export async function POST(req: Request) {
         { status: 400 }
       );
     }
-    const { serviceSlug, dateISO, startMin, endMin, name, phone, notes } =
-      parsed.data as BodyIn;
+    const {
+      serviceSlug,
+      masterId,
+      dateISO,
+      startMin,
+      endMin,
+      name,
+      phone,
+      notes,
+    } = parsed.data as BodyIn;
 
     const service = await prisma.service.findUnique({
       where: { slug: serviceSlug },
@@ -63,65 +64,310 @@ export async function POST(req: Request) {
       );
     }
 
-    // Вычисляем желаемые времена (локальные сутки → UTC)
-    const startOfDay = localDayStart(dateISO);
-    const requestedStart = new Date(startOfDay.getTime() + startMin * 60_000);
-    const requestedEnd = new Date(startOfDay.getTime() + endMin * 60_000);
-
-    // Окно проверки конфликтов (чуть шире на BREAK_AFTER_MIN)
-    const windowStart = new Date(
-      requestedStart.getTime() - BREAK_AFTER_MIN * 60_000
-    );
-    const windowEnd = requestedEnd;
-
-    const result = await prisma.$transaction(async (tx) => {
-      const busy = await tx.appointment.findMany({
-        where: {
-          status: { in: ["PENDING", "CONFIRMED"] },
-          startAt: { lt: windowEnd },
-          endAt: { gt: windowStart },
-        },
-        select: { startAt: true, endAt: true },
-      });
-
-      const hasConflict = busy.some(({ startAt, endAt }) => {
-        const expandedEnd = new Date(endAt.getTime() + BREAK_AFTER_MIN * 60_000);
-        return requestedStart < expandedEnd && startAt < requestedEnd;
-      });
-
-      if (hasConflict) {
-        return {
-          ok: false as const,
-          status: 409,
-          error: "Time slot is already taken",
-        };
-      }
-
-      await tx.appointment.create({
-        data: {
-          serviceId: service.id,
-          startAt: requestedStart,
-          endAt: requestedEnd,
-          status: "PENDING",
-          customerName: name,
-          phone,
-          notes: notes ?? null,
-        },
-      });
-
-      return { ok: true as const };
+    // проверим, что мастер существует и умеет эту услугу
+    const masterHasService = await prisma.master.findFirst({
+      where: { id: masterId, services: { some: { id: service.id } } },
+      select: { id: true },
     });
-
-    if (!result.ok) {
-      return NextResponse.json({ error: result.error }, { status: result.status });
+    if (!masterHasService) {
+      return NextResponse.json(
+        { error: "Selected master does not provide this service" },
+        { status: 400 }
+      );
     }
 
-    return NextResponse.json({ ok: true });
+    // UTC-интервал из локальных минут
+    const { start, end } = makeUtcSlot(dateISO, startMin, endMin);
+
+    // safety: конфликтов быть не должно из-за БД-ограничения, но заранее проверим и вернём 409
+    const conflict = await prisma.appointment.findFirst({
+      where: {
+        masterId,
+        status: { in: ["PENDING", "CONFIRMED"] },
+        startAt: { lt: end },
+        endAt: { gt: start },
+      },
+      select: { id: true },
+    });
+    if (conflict) {
+      return NextResponse.json(
+        { error: "Time slot is already taken" },
+        { status: 409 }
+      );
+    }
+
+    await prisma.appointment.create({
+      data: {
+        serviceId: service.id,
+        masterId,
+        startAt: start,
+        endAt: end,
+        status: "PENDING",
+        customerName: name,
+        phone: phone ?? "",
+        notes: notes ?? null,
+      },
+    });
+
+    return NextResponse.json({ ok: true }, { status: 200 });
   } catch (e) {
+    // если внезапно прилетело от БД (например, exclusion constraint)
+    const text = String(e);
+    if (text.includes("23P01") || text.toLowerCase().includes("exclusion")) {
+      return NextResponse.json(
+        { error: "Time slot is already taken" },
+        { status: 409 }
+      );
+    }
     console.error("appointments POST error:", e);
     return NextResponse.json({ error: "Internal error" }, { status: 500 });
   }
 }
+
+export const runtime = "nodejs";
+
+
+
+
+
+
+
+// import { NextResponse } from "next/server";
+// import { prisma } from "@/lib/prisma";
+// import { addMinutes } from "date-fns";
+// import { wallMinutesToUtc } from "@/lib/orgTime";
+
+// type Slot = { start: string; end: string };
+
+// // через сколько минут от «сейчас» ещё показываем слот
+// const MIN_LEAD_MIN = 30;
+// // шаг, если у услуги нет duration (на всякий случай)
+// const STEP_FALLBACK_MIN = 10;
+// // технологические буферы вокруг занятости
+// const BASE_BREAK_BEFORE_MIN = 10; // базовый минимум «до» записи (далее усилим до длительности)
+// const BREAK_AFTER_MIN = 10;       // «после» записи
+
+// function isValidISODate(d: string): boolean {
+//   // YYYY-MM-DD
+//   return /^\d{4}-\d{2}-\d{2}$/.test(d);
+// }
+
+// type UtcIntv = { start: Date; end: Date };
+// type DebugInfo = {
+//   params: { serviceSlug: string; dateISO: string; masterId?: string };
+//   weekday: number;
+//   workingHours: { startMin: number; endMin: number };
+//   duration: number;
+//   step: number;
+//   bufferBefore: number;
+//   bufferAfter: number;
+//   timeOffUtc: { start: string; end: string }[];
+//   apptsUtc: { start: string; end: string }[];
+//   busyUtc: { start: string; end: string }[];
+// };
+
+// function mergeUtcIntervals(list: UtcIntv[]): UtcIntv[] {
+//   if (!list.length) return [];
+//   const sorted = [...list].sort((a, b) => a.start.getTime() - b.start.getTime());
+//   const out: UtcIntv[] = [];
+//   let cur = { ...sorted[0] };
+//   for (let i = 1; i < sorted.length; i += 1) {
+//     const it = sorted[i];
+//     if (it.start.getTime() <= cur.end.getTime()) {
+//       if (it.end.getTime() > cur.end.getTime()) cur.end = it.end;
+//     } else {
+//       out.push(cur);
+//       cur = { ...it };
+//     }
+//   }
+//   out.push(cur);
+//   return out;
+// }
+
+// export async function GET(req: Request): Promise<Response> {
+//   try {
+//     const url = new URL(req.url);
+//     const serviceSlug = (url.searchParams.get("serviceSlug") ?? "").trim();
+//     const dateISO = (url.searchParams.get("dateISO") ?? "").trim();
+//     const masterId = (
+//       url.searchParams.get("masterId") ??
+//       url.searchParams.get("staffId") ??
+//       ""
+//     ).trim();
+//     const wantDebug = url.searchParams.get("debug") === "1";
+
+//     if (!serviceSlug || !isValidISODate(dateISO)) {
+//       return NextResponse.json({ error: "Invalid parameters" }, { status: 400 });
+//     }
+
+//     const service = await prisma.service.findUnique({
+//       where: { slug: serviceSlug },
+//       select: { id: true, durationMin: true, isActive: true },
+//     });
+
+//     if (!service || !service.isActive || !Number.isFinite(service.durationMin)) {
+//       return NextResponse.json(
+//         { error: "Service not found or inactive" },
+//         { status: 404 }
+//       );
+//     }
+
+//     // ❗ Локальный weekday вычисляем из самой строки даты (без TZ), чтобы не съехать на день назад в UTC.
+//     // Sunday=0 ... Saturday=6 — как в JS Date.
+//     const weekday = new Date(`${dateISO}T00:00:00Z`).getUTCDay();
+
+//     // Локальная полуночь и конец суток -> UTC интервалы
+//     const dayStartUtc = wallMinutesToUtc(dateISO, 0);
+//     const dayEndUtc = wallMinutesToUtc(dateISO, 24 * 60);
+
+//     // --- рабочие часы (минуты от локальной полуночи)
+//     let startMin = 0;
+//     let endMin = 0;
+
+//     if (masterId) {
+//       const wh = await prisma.masterWorkingHours.findUnique({
+//         where: { masterId_weekday: { masterId, weekday } },
+//         select: { isClosed: true, startMinutes: true, endMinutes: true },
+//       });
+//       if (!wh || wh.isClosed) {
+//         const res = NextResponse.json<Slot[]>([], { status: 200 });
+//         res.headers.set("Cache-Control", "no-store");
+//         return res;
+//       }
+//       startMin = Math.max(0, Math.min(24 * 60, wh.startMinutes));
+//       endMin = Math.max(startMin, wh.endMinutes);
+//     } else {
+//       const wh = await prisma.workingHours.findUnique({
+//         where: { weekday },
+//         select: { isClosed: true, startMinutes: true, endMinutes: true },
+//       });
+//       if (!wh || !wh.startMinutes || !wh.endMinutes || wh.isClosed) {
+//         const res = NextResponse.json<Slot[]>([], { status: 200 });
+//         res.headers.set("Cache-Control", "no-store");
+//         return res;
+//       }
+//       startMin = Math.max(0, Math.min(24 * 60, wh.startMinutes));
+//       endMin = Math.max(startMin, wh.endMinutes);
+//     }
+
+//     // --- перерывы/отпуска: локальные минуты → UTC интервалы
+//     const timeOffRaw = masterId
+//       ? await prisma.masterTimeOff.findMany({
+//           where: { masterId, date: { gte: dayStartUtc, lt: dayEndUtc } },
+//           select: { startMinutes: true, endMinutes: true },
+//         })
+//       : await prisma.timeOff.findMany({
+//           where: { date: { gte: dayStartUtc, lt: dayEndUtc } },
+//           select: { startMinutes: true, endMinutes: true },
+//         });
+
+//     const timeOffUtc: UtcIntv[] = timeOffRaw
+//       .map(({ startMinutes, endMinutes }) => ({
+//         start: wallMinutesToUtc(dateISO, startMinutes),
+//         end: wallMinutesToUtc(dateISO, endMinutes),
+//       }))
+//       .filter((x) => x.end.getTime() > x.start.getTime());
+
+//     // --- уже забронированные интервалы (UTC) + буферы ДО/ПОСЛЕ
+//     const appts = await prisma.appointment.findMany({
+//       where: {
+//         status: { in: ["PENDING", "CONFIRMED"] },
+//         ...(masterId ? { masterId } : {}),
+//         startAt: { lt: dayEndUtc },
+//         endAt: { gt: dayStartUtc },
+//       },
+//       select: { startAt: true, endAt: true },
+//       orderBy: { startAt: "asc" },
+//     });
+
+//     const duration = service.durationMin!;
+//     const step = duration || STEP_FALLBACK_MIN;
+
+//     // буфер «до» — не меньше длительности услуги (чтобы не строить слоты, врезающиеся «вплотную» в чужую запись)
+//     const bufferBefore = Math.max(BASE_BREAK_BEFORE_MIN, duration);
+//     const bufferAfter = BREAK_AFTER_MIN;
+
+//     const apptsUtc: UtcIntv[] = appts.map(({ startAt, endAt }) => ({
+//       start: addMinutes(startAt, -bufferBefore),
+//       end: addMinutes(endAt, bufferAfter),
+//     }));
+
+//     // --- объединённые занятые окна
+//     const busyUtc = mergeUtcIntervals([...apptsUtc, ...timeOffUtc]);
+
+//     // --- построение свободных слотов
+//     const leadThresholdUtc = new Date(Date.now() + MIN_LEAD_MIN * 60_000);
+
+//     const alignUp = (m: number, st: number): number => Math.ceil(m / st) * st;
+
+//     const out: Slot[] = [];
+//     let s = alignUp(startMin, step);
+//     const lastStart = endMin - duration;
+
+//     // пересечение: касания считаем конфликтом (<= / >=), чтобы не давать слот «впритык»
+//     const overlapsUtc = (a: Date, b: Date): boolean =>
+//       busyUtc.some((x) => x.start <= b && a <= x.end);
+
+//     while (s <= lastStart) {
+//       const slotStartUtc = wallMinutesToUtc(dateISO, s);
+//       const slotEndUtc = wallMinutesToUtc(dateISO, s + duration);
+
+//       if (slotStartUtc.getTime() < leadThresholdUtc.getTime()) {
+//         s += step;
+//         continue;
+//       }
+
+//       if (!overlapsUtc(slotStartUtc, slotEndUtc)) {
+//         out.push({
+//           start: slotStartUtc.toISOString(),
+//           end: slotEndUtc.toISOString(),
+//         });
+//       }
+//       s += step;
+//     }
+
+//     if (wantDebug) {
+//       const payload: { slots: Slot[]; debug: DebugInfo } = {
+//         slots: out,
+//         debug: {
+//           params: { serviceSlug, dateISO, masterId: masterId || undefined },
+//           weekday,
+//           workingHours: { startMin, endMin },
+//           duration,
+//           step,
+//           bufferBefore,
+//           bufferAfter,
+//           timeOffUtc: timeOffUtc.map((t) => ({
+//             start: t.start.toISOString(),
+//             end: t.end.toISOString(),
+//           })),
+//           apptsUtc: apptsUtc.map((a) => ({
+//             start: a.start.toISOString(),
+//             end: a.end.toISOString(),
+//           })),
+//           busyUtc: busyUtc.map((b) => ({
+//             start: b.start.toISOString(),
+//             end: b.end.toISOString(),
+//           })),
+//         },
+//       };
+//       const res = NextResponse.json(payload, { status: 200 });
+//       res.headers.set("Cache-Control", "no-store");
+//       return res;
+//     }
+
+//     const res = NextResponse.json<Slot[]>(out, { status: 200 });
+//     res.headers.set("Cache-Control", "no-store");
+//     return res;
+//   } catch (e) {
+//     const msg =
+//       process.env.NODE_ENV === "development"
+//         ? `availability error: ${String(e)}`
+//         : "Internal error";
+//     console.error(msg);
+//     return NextResponse.json({ error: msg }, { status: 500 });
+//   }
+// }
 
 
 

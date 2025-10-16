@@ -1,5 +1,13 @@
 @import "tailwindcss";
-@plugin "tailwindcss-animate";
+/* @plugin "tailwindcss-animate";
+
+
+*/
+
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
 /* вариант тёмной темы для Tailwind v4 */
 @custom-variant dark (&:is(.dark *));
