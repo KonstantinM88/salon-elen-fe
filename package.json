@@ -4,13 +4,14 @@
     "private":  true,
     "scripts":  {
                     "dev":  "next dev",
-                    "build":  "next build",
+                    "build":  "prisma generate && next build",
                     "start":  "next start -p 3000",
                     "lint":  "next lint",
                     "prisma:generate":  "prisma generate",
                     "prisma:migrate":  "prisma migrate deploy",
                     "typecheck":  "tsc --noEmit",
                     "db:reset": "rimraf prisma/dev.db && prisma migrate reset --force",
+                    "vercel-build": "prisma generate && next build",
                     "prisma:seed":  "tsx prisma/seed.ts"
                 },
     "dependencies":  {
