@@ -136,11 +136,43 @@ export async function ensureAdminOrOwnMasterResponse(targetMasterId: string): Pr
   return null;
 }
 
-/* ───────────────────────── Черновики/утилиты (оставлены закомментированными для справки) ───────────────────────── */
+// ───────────────────────── API guards expected by route-guards.ts ─────────────────────────
 
-// Ниже — примеры, которые можно быстро реанимировать при необходимости.
-// Они оставлены закомментированными, чтобы не менять текущую бизнес-логику,
-// но служат шпаргалкой для будущих задач авторизации.
+/** Возвращает 401/403 для не-ADMIN, иначе null */
+export async function assertAdminApi(): Promise<Response | null> {
+  return ensureAdminResponse();
+}
+
+/** Возвращает 401/403 для всех, кроме ADMIN|MASTER, иначе null */
+export async function assertAdminOrMasterApi(): Promise<Response | null> {
+  const bad = await ensureAdminResponse();
+  if (bad === null) {
+    // ADMIN уже прошёл
+    return null;
+  }
+  // Проверим MASTER
+  const session = await getServerSession(authOptions);
+
+  const okUser =
+    session?.user &&
+    typeof session.user.id === "string" &&
+    isRole((session.user as { role?: unknown }).role);
+
+  if (!okUser) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const role = (session.user as { role: Role }).role;
+  if (role !== "MASTER") {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+  return null;
+}
+
+// Алиас для совместимости с route-guards.ts (ожидает имя assertAdminOrMasterAction)
+export { assertMasterOrAdminAction as assertAdminOrMasterAction };
+
+/* ───────────────────────── Черновики/утилиты (оставлены закомментированными для справки) ───────────────────────── */
 
 /*
 // Универсальная проверка роли
