@@ -1,130 +1,746 @@
+// src/app/api/appointments/route.ts
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
 import { z } from "zod";
-import { makeUtcSlot } from "@/lib/orgTime";
+import { prisma } from "@/lib/db";
+import {
+  ORG_TZ,
+  isYmd,
+  makeUtcSlot,
+  formatWallRangeLabel,
+} from "@/lib/orgTime";
 
-/** Пауза после каждой записи (мин) — НЕ используем, слоты строго [start,end) */
-// const BREAK_AFTER_MIN = 10;
+/* ============ схема входа ============ */
 
-/* ───── helpers ───── */
-
-function isYmd(d: string): boolean {
-  return /^\d{4}-\d{2}-\d{2}$/.test(d);
-}
-
-/* ───── схема входных данных ───── */
-
-const bodySchema = z
+const BodySchema = z
   .object({
-    serviceSlug: z.string().trim().min(1, "serviceSlug required"),
-    masterId: z.string().trim().min(1, "masterId required"),
+    serviceSlug: z.string().trim().min(1),
+    masterId: z.string().trim().min(1),
     dateISO: z.string().refine(isYmd, "dateISO must be YYYY-MM-DD"),
     startMin: z.number().int().nonnegative(),
     endMin: z.number().int().positive(),
-    name: z.string().trim().min(1, "Name required"),
-    phone: z.string().trim().min(3).max(40).optional().nullable(),
-    notes: z.string().trim().min(1).optional().nullable(),
+    name: z.string().trim().min(1),
+    phone: z.string().trim().min(1).optional(),
+    email: z.string().trim().email().optional(),
+    notes: z.string().trim().optional(),
+    // клиента создаём только если birthDate передан и валиден
+    birthDate: z
+      .string()
+      .refine((v) => !v || isYmd(v), "birthDate must be YYYY-MM-DD")
+      .optional(),
   })
   .refine((v) => v.endMin > v.startMin, {
-    message: "Invalid time range",
+    message: "endMin must be > startMin",
     path: ["endMin"],
   });
 
-type BodyIn = z.infer<typeof bodySchema>;
+type BodyIn = z.infer<typeof BodySchema>;
 
-export async function POST(req: Request) {
+/* ============ утилиты ============ */
+
+function overlaps(aStart: Date, aEnd: Date, bStart: Date, bEnd: Date): boolean {
+  // полуоткрытые интервалы [start,end)
+  return aStart < bEnd && bStart < aEnd;
+}
+
+function norm(s?: string): string | null {
+  const t = (s ?? "").trim();
+  return t.length ? t : null;
+}
+
+/* ============ handler ============ */
+
+export async function POST(req: Request): Promise<Response> {
   try {
-    const json = await req.json();
-    const parsed = bodySchema.safeParse(json);
+    const raw = await req.json();
+    const parsed = BodySchema.safeParse(raw);
     if (!parsed.success) {
       return NextResponse.json(
         { error: "Invalid body", details: parsed.error.flatten() },
         { status: 400 }
       );
     }
-    const {
-      serviceSlug,
-      masterId,
-      dateISO,
-      startMin,
-      endMin,
-      name,
-      phone,
-      notes,
-    } = parsed.data as BodyIn;
+    const body: BodyIn = parsed.data;
 
+    // ---- сервис
     const service = await prisma.service.findUnique({
-      where: { slug: serviceSlug },
-      select: { id: true, durationMin: true, isActive: true },
+      where: { slug: body.serviceSlug },
+      select: {
+        id: true,
+        isActive: true,
+        durationMin: true,
+        masters: { select: { id: true } },
+      },
     });
-    if (!service || !service.isActive) {
+    if (!service || !service.isActive || !service.durationMin) {
       return NextResponse.json(
         { error: "Service not found or inactive" },
         { status: 404 }
       );
     }
 
-    // проверим, что мастер существует и умеет эту услугу
-    const masterHasService = await prisma.master.findFirst({
-      where: { id: masterId, services: { some: { id: service.id } } },
-      select: { id: true },
-    });
-    if (!masterHasService) {
+    // Требуем совпадение длительности
+    const requestedDuration = body.endMin - body.startMin;
+    if (requestedDuration !== service.durationMin) {
       return NextResponse.json(
-        { error: "Selected master does not provide this service" },
+        {
+          error: "Duration mismatch",
+          expectedMin: service.durationMin,
+          gotMin: requestedDuration,
+        },
         { status: 400 }
       );
     }
 
-    // UTC-интервал из локальных минут
-    const { start, end } = makeUtcSlot(dateISO, startMin, endMin);
+    // ---- мастер оказывает услугу?
+    const masterProvides = service.masters.some((m) => m.id === body.masterId);
+    if (!masterProvides) {
+      return NextResponse.json(
+        { error: "This master does not provide the selected service" },
+        { status: 400 }
+      );
+    }
 
-    // safety: конфликтов быть не должно из-за БД-ограничения, но заранее проверим и вернём 409
+    // ---- UTC интервал слота по тайзоне салона
+    const { start, end } = makeUtcSlot(body.dateISO, body.startMin, body.endMin);
+
+    // ---- мягкая проверка конфликтов (PENDING/CONFIRMED)
     const conflict = await prisma.appointment.findFirst({
       where: {
-        masterId,
+        masterId: body.masterId,
         status: { in: ["PENDING", "CONFIRMED"] },
         startAt: { lt: end },
         endAt: { gt: start },
       },
-      select: { id: true },
+      select: { id: true, startAt: true, endAt: true },
     });
-    if (conflict) {
+
+    if (conflict && overlaps(start, end, conflict.startAt, conflict.endAt)) {
       return NextResponse.json(
-        { error: "Time slot is already taken" },
+        { error: "Time slot already taken" },
         { status: 409 }
       );
     }
 
-    await prisma.appointment.create({
-      data: {
-        serviceId: service.id,
-        masterId,
-        startAt: start,
-        endAt: end,
-        status: "PENDING",
-        customerName: name,
-        phone: phone ?? "",
-        notes: notes ?? null,
-      },
-    });
+    // ---- клиент (ищем по phone/email). Создаём ТОЛЬКО если есть birthDate.
+    const phoneStr = norm(body.phone);
+    const emailStr = norm(body.email);
+    const notesStr = norm(body.notes);
 
-    return NextResponse.json({ ok: true }, { status: 200 });
-  } catch (e) {
-    // если внезапно прилетело от БД (например, exclusion constraint)
-    const text = String(e);
-    if (text.includes("23P01") || text.toLowerCase().includes("exclusion")) {
+    let clientId: string | null = null;
+
+    if (phoneStr || emailStr) {
+      const existing = await prisma.client.findFirst({
+        where: {
+          OR: [
+            ...(phoneStr ? [{ phone: phoneStr }] as const : []),
+            ...(emailStr ? [{ email: emailStr }] as const : []),
+          ],
+        },
+        select: { id: true },
+      });
+      if (existing) clientId = existing.id;
+    }
+
+    if (!clientId && body.birthDate) {
+      // полуночь локального дня birthDate -> UTC (берём start из makeUtcSlot)
+      const { start: bdStartUtc } = makeUtcSlot(body.birthDate, 0, 1);
+      const createdClient = await prisma.client.create({
+        data: {
+          name: body.name.trim(),
+          phone: phoneStr ?? "",
+          email: emailStr ?? "",
+          birthDate: bdStartUtc,
+        },
+        select: { id: true },
+      });
+      clientId = createdClient.id;
+    }
+
+    // ---- создаём запись (спина-в-спину возможна, т.к. [start,end))
+    try {
+      const created = await prisma.appointment.create({
+        data: {
+          serviceId: service.id,
+          masterId: body.masterId,
+          clientId, // может быть null — если поле nullable в схеме
+          startAt: start,
+          endAt: end,
+          status: "PENDING",
+          customerName: body.name.trim(),
+          phone: phoneStr ?? "",
+          email: emailStr ?? "",
+          notes: notesStr,
+        },
+        select: {
+          id: true,
+          startAt: true,
+          endAt: true,
+          status: true,
+          masterId: true,
+          serviceId: true,
+        },
+      });
+
       return NextResponse.json(
-        { error: "Time slot is already taken" },
-        { status: 409 }
+        {
+          ok: true as const,
+          booking: created,
+          label: formatWallRangeLabel(created.startAt, created.endAt),
+          timeZone: ORG_TZ,
+        },
+        { status: 200 }
       );
+    } catch (e) {
+      // ловим исключающее ограничение БД на пересечения (Postgres 23P01)
+      const err = e as { code?: string; message?: string };
+      if (err?.code === "23P01" || String(err?.message ?? "").includes("exclusion constraint")) {
+        return NextResponse.json({ error: "Time slot already taken" }, { status: 409 });
+      }
+      throw e;
+    }
+  } catch (e) {
+    // кривой JSON → 400, а не 500
+    if (e instanceof SyntaxError) {
+      return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
     }
     console.error("appointments POST error:", e);
     return NextResponse.json({ error: "Internal error" }, { status: 500 });
   }
 }
 
-export const runtime = "nodejs";
+
+
+
+
+//----------без POST
+// import { NextResponse } from "next/server";
+// import { z } from "zod";
+// import { prisma } from "@/lib/db";
+// import {
+//   ORG_TZ,
+//   isYmd,
+//   makeUtcSlot,
+//   formatWallRangeLabel,
+// } from "@/lib/orgTime";
+
+// /* ============ схема входа ============ */
+
+// const BodySchema = z
+//   .object({
+//     serviceSlug: z.string().trim().min(1),
+//     masterId: z.string().trim().min(1),
+//     dateISO: z.string().refine(isYmd, "dateISO must be YYYY-MM-DD"),
+//     startMin: z.number().int().nonnegative(),
+//     endMin: z.number().int().positive(),
+//     name: z.string().trim().min(1),
+//     phone: z.string().trim().min(1).optional(),
+//     email: z.string().trim().email().optional(),
+//     notes: z.string().trim().optional(),
+//     // клиента создаём только если birthDate передан и валиден
+//     birthDate: z
+//       .string()
+//       .refine((v) => !v || isYmd(v), "birthDate must be YYYY-MM-DD")
+//       .optional(),
+//   })
+//   .refine((v) => v.endMin > v.startMin, {
+//     message: "endMin must be > startMin",
+//     path: ["endMin"],
+//   });
+
+// type BodyIn = z.infer<typeof BodySchema>;
+
+// /* ============ утилиты ============ */
+
+// function overlaps(aStart: Date, aEnd: Date, bStart: Date, bEnd: Date): boolean {
+//   // полуоткрытые интервалы [start,end)
+//   return aStart < bEnd && bStart < aEnd;
+// }
+
+// function norm(s?: string): string | null {
+//   const t = (s ?? "").trim();
+//   return t.length ? t : null;
+// }
+
+// /* ============ handler ============ */
+
+// export async function POST(req: Request): Promise<Response> {
+//   try {
+//     const raw = await req.json();
+//     const parsed = BodySchema.safeParse(raw);
+//     if (!parsed.success) {
+//       return NextResponse.json(
+//         { error: "Invalid body", details: parsed.error.flatten() },
+//         { status: 400 }
+//       );
+//     }
+//     const body = parsed.data as BodyIn;
+
+//     // ---- сервис
+//     const service = await prisma.service.findUnique({
+//       where: { slug: body.serviceSlug },
+//       select: {
+//         id: true,
+//         isActive: true,
+//         durationMin: true,
+//         masters: { select: { id: true } },
+//       },
+//     });
+//     if (!service || !service.isActive || !service.durationMin) {
+//       return NextResponse.json(
+//         { error: "Service not found or inactive" },
+//         { status: 404 }
+//       );
+//     }
+
+//     // Требуем совпадение длительности
+//     const requestedDuration = body.endMin - body.startMin;
+//     if (requestedDuration !== service.durationMin) {
+//       return NextResponse.json(
+//         {
+//           error: "Duration mismatch",
+//           expectedMin: service.durationMin,
+//           gotMin: requestedDuration,
+//         },
+//         { status: 400 }
+//       );
+//     }
+
+//     // ---- мастер
+//     const masterProvides = service.masters.some((m) => m.id === body.masterId);
+//     if (!masterProvides) {
+//       return NextResponse.json(
+//         { error: "This master does not provide the selected service" },
+//         { status: 400 }
+//       );
+//     }
+
+//     // ---- UTC интервал слота по тайзоне салона
+//     const { start, end } = makeUtcSlot(body.dateISO, body.startMin, body.endMin);
+
+//     // ---- мягкая проверка конфликтов (PENDING/CONFIRMED)
+//     const conflict = await prisma.appointment.findFirst({
+//       where: {
+//         masterId: body.masterId,
+//         status: { in: ["PENDING", "CONFIRMED"] },
+//         startAt: { lt: end },
+//         endAt: { gt: start },
+//       },
+//       select: { id: true, startAt: true, endAt: true },
+//     });
+
+//     if (conflict && overlaps(start, end, conflict.startAt, conflict.endAt)) {
+//       return NextResponse.json(
+//         { error: "Time slot already taken" },
+//         { status: 409 }
+//       );
+//     }
+
+//     // ---- клиент (ищем по phone/email). Создаём ТОЛЬКО если есть birthDate.
+//     const phoneStr = norm(body.phone);
+//     const emailStr = norm(body.email);
+//     const notesStr = norm(body.notes);
+
+//     let clientId: string | null = null;
+
+//     if (phoneStr || emailStr) {
+//       const existing = await prisma.client.findFirst({
+//         where: {
+//           OR: [
+//             ...(phoneStr ? [{ phone: phoneStr }] as const : []),
+//             ...(emailStr ? [{ email: emailStr }] as const : []),
+//           ],
+//         },
+//         select: { id: true },
+//       });
+//       if (existing) clientId = existing.id;
+//     }
+
+//     if (!clientId && body.birthDate) {
+//       // Возьмём полуночь локального дня birthDate -> UTC (start части makeUtcSlot)
+//       const { start: bdStartUtc } = makeUtcSlot(body.birthDate, 0, 1);
+//       const createdClient = await prisma.client.create({
+//         data: {
+//           name: body.name.trim(),
+//           phone: phoneStr ?? "",
+//           email: emailStr ?? "",
+//           birthDate: bdStartUtc,
+//         },
+//         select: { id: true },
+//       });
+//       clientId = createdClient.id;
+//     }
+
+//     // ---- создаём запись (спина-в-спину возможна, т.к. [start,end))
+//     try {
+//       const created = await prisma.appointment.create({
+//         data: {
+//           serviceId: service.id,
+//           masterId: body.masterId,
+//           clientId, // может быть null — если поле nullable в схеме
+//           startAt: start,
+//           endAt: end,
+//           status: "PENDING",
+//           customerName: body.name.trim(),
+//           phone: phoneStr ?? "",
+//           email: emailStr ?? "",
+//           notes: notesStr,
+//         },
+//         select: {
+//           id: true,
+//           startAt: true,
+//           endAt: true,
+//           status: true,
+//           masterId: true,
+//           serviceId: true,
+//         },
+//       });
+
+//       return NextResponse.json(
+//         {
+//           ok: true as const,
+//           booking: created,
+//           label: formatWallRangeLabel(created.startAt, created.endAt),
+//           timeZone: ORG_TZ,
+//         },
+//         { status: 200 }
+//       );
+//     } catch (e: unknown) {
+//       // ловим исключающее ограничение БД на пересечения (Postgres 23P01)
+//       // у Prisma часть таких ошибок идёт как код 23P01 из драйвера
+//       const err = e as { code?: string; message?: string };
+//       if (err?.code === "23P01" || String(err?.message ?? "").includes("exclusion constraint")) {
+//         return NextResponse.json({ error: "Time slot already taken" }, { status: 409 });
+//       }
+//       throw e;
+//     }
+//   } catch (e) {
+//     console.error("appointments POST error:", e);
+//     return NextResponse.json({ error: "Internal error" }, { status: 500 });
+//   }
+// }
+
+
+
+
+
+
+// import { NextResponse } from "next/server";
+// import { z } from "zod";
+// import { prisma } from "@/lib/db";
+// import {
+//   ORG_TZ,
+//   isYmd,
+//   makeUtcSlot,
+//   formatWallRangeLabel,
+// } from "@/lib/orgTime";
+
+// /* ============ схема входа ============ */
+
+// const BodySchema = z.object({
+//   serviceSlug: z.string().trim().min(1),
+//   masterId: z.string().trim().min(1),
+//   dateISO: z.string().refine(isYmd, "dateISO must be YYYY-MM-DD"),
+//   startMin: z.number().int().nonnegative(),
+//   endMin: z.number().int().positive(),
+//   name: z.string().trim().min(1),
+//   phone: z.string().trim().min(1).optional(),
+//   email: z.string().trim().email().optional(),
+//   notes: z.string().trim().optional(),
+//   // клиента создаём только если birthDate передан и валиден
+//   birthDate: z.string().refine((v) => !v || isYmd(v), "birthDate must be YYYY-MM-DD").optional(),
+// });
+
+// type BodyIn = z.infer<typeof BodySchema>;
+
+// /* ============ утилиты ============ */
+
+// function overlaps(aStart: Date, aEnd: Date, bStart: Date, bEnd: Date): boolean {
+//   // полуоткрытые интервалы [start,end)
+//   return aStart < bEnd && bStart < aEnd;
+// }
+
+// function norm(s?: string): string | null {
+//   const t = (s ?? "").trim();
+//   return t.length ? t : null;
+// }
+
+// /* ============ handler ============ */
+
+// export async function POST(req: Request): Promise<Response> {
+//   try {
+//     const raw = await req.json();
+//     const parsed = BodySchema.safeParse(raw);
+//     if (!parsed.success) {
+//       return NextResponse.json(
+//         { error: "Invalid body", details: parsed.error.flatten() },
+//         { status: 400 }
+//       );
+//     }
+//     const body = parsed.data;
+
+//     // ---- сервис
+//     const service = await prisma.service.findUnique({
+//       where: { slug: body.serviceSlug },
+//       select: { id: true, isActive: true, durationMin: true, masters: { select: { id: true } } },
+//     });
+//     if (!service || !service.isActive) {
+//       return NextResponse.json({ error: "Service not found or inactive" }, { status: 404 });
+//     }
+
+//     // ---- мастер
+//     const master = await prisma.master.findUnique({
+//       where: { id: body.masterId },
+//       select: { id: true },
+//     });
+//     if (!master) {
+//       return NextResponse.json({ error: "Master not found" }, { status: 404 });
+//     }
+//     // мастер оказывает услугу?
+//     const masterProvides = service.masters.some((m) => m.id === master.id);
+//     if (!masterProvides) {
+//       return NextResponse.json(
+//         { error: "This master does not provide the selected service" },
+//         { status: 400 }
+//       );
+//     }
+
+//     // ---- UTC интервал слота
+//     const { start, end } = makeUtcSlot(body.dateISO, body.startMin, body.endMin);
+
+//     // ---- мягкая проверка конфликтов (PENDING/CONFIRMED)
+//     const conflict = await prisma.appointment.findFirst({
+//       where: {
+//         masterId: master.id,
+//         status: { in: ["PENDING", "CONFIRMED"] },
+//         startAt: { lt: end },
+//         endAt: { gt: start },
+//       },
+//       select: { id: true, startAt: true, endAt: true },
+//     });
+
+//     if (conflict && overlaps(start, end, conflict.startAt, conflict.endAt)) {
+//       return NextResponse.json(
+//         { error: "Time slot already taken" },
+//         { status: 409 }
+//       );
+//     }
+
+//     // ---- клиент (ищем по phone/email). Создаём ТОЛЬКО если есть birthDate.
+//     const phoneStr = norm(body.phone);
+//     const emailStr = norm(body.email);
+
+//     let clientId: string | null = null;
+
+//     if (phoneStr || emailStr) {
+//       const existing = await prisma.client.findFirst({
+//         where: {
+//           OR: [
+//             ...(phoneStr ? [{ phone: phoneStr }] as const : []),
+//             ...(emailStr ? [{ email: emailStr }] as const : []),
+//           ],
+//         },
+//         select: { id: true },
+//       });
+//       if (existing) clientId = existing.id;
+//     }
+
+//     if (!clientId && body.birthDate) {
+//       // возьмём полуночь локального дня birthDate -> UTC
+//       const { start: bdStartUtc } = makeUtcSlot(body.birthDate, 0, 1);
+//       const createdClient = await prisma.client.create({
+//         data: {
+//           name: body.name.trim(),
+//           phone: phoneStr ?? "",
+//           email: emailStr ?? "",
+//           birthDate: bdStartUtc,
+//         },
+//         select: { id: true },
+//       });
+//       clientId = createdClient.id;
+//     }
+
+//     // ---- создаём запись
+//     try {
+//       const created = await prisma.appointment.create({
+//         data: {
+//           serviceId: service.id,
+//           masterId: master.id,
+//           clientId, // может остаться null — ок, если поле nullable
+//           startAt: start,
+//           endAt: end,
+//           status: "PENDING",
+//           customerName: body.name.trim(),
+//           phone: phoneStr ?? "",
+//           email: emailStr ?? "",
+//           notes: norm(body.notes),
+//         },
+//         select: {
+//           id: true,
+//           startAt: true,
+//           endAt: true,
+//           status: true,
+//           masterId: true,
+//           serviceId: true,
+//         },
+//       });
+
+//       return NextResponse.json(
+//         {
+//           ok: true,
+//           booking: created,
+//           label: formatWallRangeLabel(created.startAt, created.endAt),
+//           timeZone: ORG_TZ,
+//         },
+//         { status: 200 }
+//       );
+//     } catch (e) {
+//       // ловим исключающее ограничение БД на пересечения (Postgres 23P01)
+//       const pgErr = e as { code?: string };
+//       if (pgErr?.code === "23P01") {
+//         return NextResponse.json({ error: "Time slot already taken" }, { status: 409 });
+//       }
+//       throw e;
+//     }
+//   } catch (e) {
+//     console.error("appointments POST error:", e);
+//     return NextResponse.json({ error: "Internal error" }, { status: 500 });
+//   }
+// }
+
+
+
+
+
+
+
+//--------работал после сборки
+// import { NextResponse } from "next/server";
+// import { prisma } from "@/lib/db";
+// import { z } from "zod";
+// import { makeUtcSlot } from "@/lib/orgTime";
+
+// /** Пауза после каждой записи (мин) — НЕ используем, слоты строго [start,end) */
+// // const BREAK_AFTER_MIN = 10;
+
+// /* ───── helpers ───── */
+
+// function isYmd(d: string): boolean {
+//   return /^\d{4}-\d{2}-\d{2}$/.test(d);
+// }
+
+// /* ───── схема входных данных ───── */
+
+// const bodySchema = z
+//   .object({
+//     serviceSlug: z.string().trim().min(1, "serviceSlug required"),
+//     masterId: z.string().trim().min(1, "masterId required"),
+//     dateISO: z.string().refine(isYmd, "dateISO must be YYYY-MM-DD"),
+//     startMin: z.number().int().nonnegative(),
+//     endMin: z.number().int().positive(),
+//     name: z.string().trim().min(1, "Name required"),
+//     phone: z.string().trim().min(3).max(40).optional().nullable(),
+//     notes: z.string().trim().min(1).optional().nullable(),
+//   })
+//   .refine((v) => v.endMin > v.startMin, {
+//     message: "Invalid time range",
+//     path: ["endMin"],
+//   });
+
+// type BodyIn = z.infer<typeof bodySchema>;
+
+// export async function POST(req: Request) {
+//   try {
+//     const json = await req.json();
+//     const parsed = bodySchema.safeParse(json);
+//     if (!parsed.success) {
+//       return NextResponse.json(
+//         { error: "Invalid body", details: parsed.error.flatten() },
+//         { status: 400 }
+//       );
+//     }
+//     const {
+//       serviceSlug,
+//       masterId,
+//       dateISO,
+//       startMin,
+//       endMin,
+//       name,
+//       phone,
+//       notes,
+//     } = parsed.data as BodyIn;
+
+//     const service = await prisma.service.findUnique({
+//       where: { slug: serviceSlug },
+//       select: { id: true, durationMin: true, isActive: true },
+//     });
+//     if (!service || !service.isActive) {
+//       return NextResponse.json(
+//         { error: "Service not found or inactive" },
+//         { status: 404 }
+//       );
+//     }
+
+//     // проверим, что мастер существует и умеет эту услугу
+//     const masterHasService = await prisma.master.findFirst({
+//       where: { id: masterId, services: { some: { id: service.id } } },
+//       select: { id: true },
+//     });
+//     if (!masterHasService) {
+//       return NextResponse.json(
+//         { error: "Selected master does not provide this service" },
+//         { status: 400 }
+//       );
+//     }
+
+//     // UTC-интервал из локальных минут
+//     const { start, end } = makeUtcSlot(dateISO, startMin, endMin);
+
+//     // safety: конфликтов быть не должно из-за БД-ограничения, но заранее проверим и вернём 409
+//     const conflict = await prisma.appointment.findFirst({
+//       where: {
+//         masterId,
+//         status: { in: ["PENDING", "CONFIRMED"] },
+//         startAt: { lt: end },
+//         endAt: { gt: start },
+//       },
+//       select: { id: true },
+//     });
+//     if (conflict) {
+//       return NextResponse.json(
+//         { error: "Time slot is already taken" },
+//         { status: 409 }
+//       );
+//     }
+
+//     await prisma.appointment.create({
+//       data: {
+//         serviceId: service.id,
+//         masterId,
+//         startAt: start,
+//         endAt: end,
+//         status: "PENDING",
+//         customerName: name,
+//         phone: phone ?? "",
+//         notes: notes ?? null,
+//       },
+//     });
+
+//     return NextResponse.json({ ok: true }, { status: 200 });
+//   } catch (e) {
+//     // если внезапно прилетело от БД (например, exclusion constraint)
+//     const text = String(e);
+//     if (text.includes("23P01") || text.toLowerCase().includes("exclusion")) {
+//       return NextResponse.json(
+//         { error: "Time slot is already taken" },
+//         { status: 409 }
+//       );
+//     }
+//     console.error("appointments POST error:", e);
+//     return NextResponse.json({ error: "Internal error" }, { status: 500 });
+//   }
+// }
+
+// export const runtime = "nodejs";
 
 
 
