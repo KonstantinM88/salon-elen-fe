@@ -3,22 +3,75 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { withAdminRoute } from "@/lib/route-guards";
 
-// READ-ONLY (список мастеров можно отдавать публично)
-export async function GET() {
+/**
+ * READ-ONLY:
+ * Если передан ?serviceSlug=xxx — вернуть только тех мастеров,
+ * у кого среди активных услуг есть подуслуга со слугом xxx.
+ * Иначе — вернуть общий список (лайтовые поля).
+ */
+export async function GET(req: Request) {
+  const { searchParams } = new URL(req.url);
+  const serviceSlug: string | null = searchParams.get("serviceSlug");
+
+  if (serviceSlug) {
+    // Мастера, у которых в списке услуг есть указанная активная подуслуга
+    const masters = await prisma.master.findMany({
+      where: {
+        services: {
+          some: {
+            slug: serviceSlug,
+            isActive: true,
+          },
+        },
+      },
+      select: { id: true, name: true },
+      orderBy: { name: "asc" },
+    });
+    return NextResponse.json(masters);
+  }
+
+  // Без фильтра — минимальный публичный список
   const list = await prisma.master.findMany({
-    orderBy: { createdAt: "desc" },
-    select: { id: true, name: true, email: true, phone: true, userId: true },
+    select: { id: true, name: true },
+    orderBy: { name: "asc" },
   });
   return NextResponse.json(list);
 }
 
-// MUTATIONS (ADMIN)
+/* ───────────────────────── MUTATIONS (ADMIN) ───────────────────────── */
+
 async function postHandler(req: Request) {
   const data = await req.json();
   const created = await prisma.master.create({ data });
   return NextResponse.json(created);
 }
 export const POST = withAdminRoute(postHandler);
+
+
+
+
+
+// // src/app/api/masters/route.ts
+// import { NextResponse } from "next/server";
+// import { prisma } from "@/lib/db";
+// import { withAdminRoute } from "@/lib/route-guards";
+
+// // READ-ONLY (список мастеров можно отдавать публично)
+// export async function GET() {
+//   const list = await prisma.master.findMany({
+//     orderBy: { createdAt: "desc" },
+//     select: { id: true, name: true, email: true, phone: true, userId: true },
+//   });
+//   return NextResponse.json(list);
+// }
+
+// // MUTATIONS (ADMIN)
+// async function postHandler(req: Request) {
+//   const data = await req.json();
+//   const created = await prisma.master.create({ data });
+//   return NextResponse.json(created);
+// }
+// export const POST = withAdminRoute(postHandler);
 
 
 
