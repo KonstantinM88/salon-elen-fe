@@ -1,3 +1,4 @@
+// src/app/booking/page.tsx
 import { prisma } from '@/lib/db';
 import PublicBookingForm from '@/components/public-booking-form';
 

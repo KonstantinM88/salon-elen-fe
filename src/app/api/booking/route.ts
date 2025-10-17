@@ -1,75 +1,56 @@
-// src/app/api/booking/route.ts
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
+import { prisma } from "@/lib/prisma"; // или "@/lib/db" — оставь как у тебя
+import { wallMinutesToUtc } from "@/lib/orgTime";
 
-/* ================= helpers & types ================= */
+/* ================ helpers & types ================= */
 
-type PostBody = {
+type BodyStart =
+  | {
+      // Вариант A: одно поле (ISO)
+      startAtISO: string; // если без Z/offset — трактуем как UTC (без сдвигов)
+      dateISO?: string;
+      startMin?: number;
+      startMin2?: number;
+    }
+  | {
+      // Вариант B: пара полей
+      startAtISO?: string;
+      dateISO: string;   // YYYY-MM-DD
+      startMin: number;  // минуты от локальной полуночи
+      startMin2?: number;
+    };
+
+type PostBody = BodyStart & {
   serviceSlug: string;
   masterId: string;
-  startAtISO: string; // если без Z — трактуем как UTC (без сдвигов)
   customerName: string;
   phone?: string | null;
   email?: string | null;
   birthDate: string; // YYYY-MM-DD (обязателен)
   notes?: string | null;
-  // durationMin игнорируем (берём из услуги), но поле допустимо
-  durationMin?: number;
+  durationMin?: number; // игнорируем, берём из услуги
 };
 
 function isString(v: unknown): v is string {
   return typeof v === "string";
 }
-
 function isOptionalString(v: unknown): v is string | null | undefined {
   return typeof v === "string" || v === null || typeof v === "undefined";
 }
-
-function isPostBody(v: unknown): v is PostBody {
-  if (!v || typeof v !== "object") return false;
-  const o = v as Record<string, unknown>;
-  return (
-    isString(o.serviceSlug) &&
-    isString(o.masterId) &&
-    isString(o.startAtISO) &&
-    isString(o.customerName) &&
-    isString(o.birthDate) &&
-    isOptionalString(o.phone) &&
-    isOptionalString(o.email) &&
-    (typeof o.durationMin === "number" ||
-      typeof o.durationMin === "undefined") &&
-    isOptionalString(o.notes)
-  );
-}
-
-/** YYYY-MM-DD */
 function isISODate(d?: string): d is string {
   return !!d && /^\d{4}-\d{2}-\d{2}$/.test(d);
 }
-
-/** 00:00 UTC для даты YYYY-MM-DD */
-function parseIsoDateToUtcMidnight(d: string): Date {
-  // всегда добавляем Z, чтобы не было сдвигов
-  return new Date(`${d}T00:00:00Z`);
+function norm(s?: string | null): string {
+  return (s ?? "").trim();
 }
 
-/** Если пришло без offset — считаем строку UTC и добавляем Z */
+/** Если ISO без offset — считаем строку UTC и добавляем Z */
 function toUtcDate(iso: string): Date {
   const hasTZ = /[zZ]|[+\-]\d{2}:\d{2}$/.test(iso);
   const s = hasTZ ? iso : `${iso}Z`;
   const d = new Date(s);
-  if (!Number.isFinite(d.getTime())) {
-    throw new Error("Invalid startAtISO");
-  }
+  if (!Number.isFinite(d.getTime())) throw new Error("Invalid startAtISO");
   return d;
-}
-
-function overlaps(aStart: Date, aEnd: Date, bStart: Date, bEnd: Date): boolean {
-  return aStart < bEnd && aEnd > bStart;
-}
-
-function norm(s?: string | null): string {
-  return (s ?? "").trim();
 }
 
 /* ================= handler ================= */
@@ -77,60 +58,53 @@ function norm(s?: string | null): string {
 export async function POST(req: Request): Promise<Response> {
   try {
     const raw = await req.json();
+    const o = raw as Record<string, unknown>;
 
-    if (!isPostBody(raw)) {
-      return NextResponse.json(
-        { error: "Invalid body shape" },
-        { status: 400 }
-      );
+    // базовая валидация формы
+    if (
+      !isString(o.serviceSlug) ||
+      !isString(o.masterId) ||
+      !isString(o.customerName) ||
+      !isString(o.birthDate) ||
+      !isOptionalString(o.phone) ||
+      !isOptionalString(o.email) ||
+      !isOptionalString(o.notes)
+    ) {
+      return NextResponse.json({ error: "Invalid body shape" }, { status: 400 });
     }
-    const body = raw;
 
-    if (!isISODate(body.birthDate)) {
+    if (!isISODate(o.birthDate as string)) {
       return NextResponse.json(
         { error: "birthDate должен быть в формате YYYY-MM-DD" },
         { status: 400 }
       );
     }
 
-    // приводим ко всему UTC (убираем «минус два часа»)
-    const startAt = toUtcDate(body.startAtISO);
+    const serviceSlug = o.serviceSlug as string;
+    const masterId = o.masterId as string;
 
     // услуга
     const service = await prisma.service.findUnique({
-      where: { slug: body.serviceSlug },
+      where: { slug: serviceSlug },
       select: { id: true, isActive: true, durationMin: true },
     });
-    if (
-      !service ||
-      !service.isActive ||
-      !Number.isFinite(service.durationMin)
-    ) {
+    if (!service || !service.isActive || !Number.isFinite(service.durationMin)) {
       return NextResponse.json(
         { error: "Услуга не найдена или неактивна" },
         { status: 404 }
       );
     }
+    const durationMin = service.durationMin!;
 
     // мастер
     const master = await prisma.master.findUnique({
-      where: { id: body.masterId },
-      select: { id: true },
+      where: { id: masterId },
+      select: { id: true, services: { select: { id: true } } },
     });
     if (!master) {
       return NextResponse.json({ error: "Мастер не найден" }, { status: 404 });
     }
-
-    // мастер оказывает услугу?
-    // мастер оказывает услугу?
-    const masterHasService = await prisma.master.findFirst({
-      where: {
-        id: body.masterId,
-        services: { some: { id: service.id } },
-      },
-      select: { id: true },
-    });
-
+    const masterHasService = master.services.some((s) => s.id === service.id);
     if (!masterHasService) {
       return NextResponse.json(
         { error: "Эта услуга не выполняется выбранным мастером" },
@@ -138,102 +112,569 @@ export async function POST(req: Request): Promise<Response> {
       );
     }
 
-    const durationMin = service.durationMin!;
+    // вычисляем startAt/endAt в UTC
+    let startAt: Date;
+    if (isString(o.startAtISO) && o.startAtISO) {
+      startAt = toUtcDate(o.startAtISO);
+    } else if (isString(o.dateISO) && typeof o.startMin === "number") {
+      startAt = wallMinutesToUtc(o.dateISO, o.startMin);
+    } else {
+      return NextResponse.json(
+        { error: "Передай startAtISO или пару {dateISO, startMin}" },
+        { status: 400 }
+      );
+    }
     const endAt = new Date(startAt.getTime() + durationMin * 60_000);
 
-    // конфликт с существующими заявками
+    // проверяем коллизию корректно (без any)
     const conflicting = await prisma.appointment.findFirst({
       where: {
-        masterId: master.id,
+        masterId,
         status: { in: ["PENDING", "CONFIRMED"] },
-        startAt: { lt: endAt },
-        endAt: { gt: startAt },
+        startAt: { lt: endAt }, // есть пересечение, если (startAt < newEnd)
+        endAt: { gt: startAt }, // и (endAt > newStart)
       },
       select: { id: true, startAt: true, endAt: true },
     });
-
-    if (
-      conflicting &&
-      overlaps(startAt, endAt, conflicting.startAt, conflicting.endAt)
-    ) {
+    if (conflicting) {
       return NextResponse.json(
         { error: "Этот слот уже занят у мастера" },
         { status: 409 }
       );
     }
 
-    // клиент: ищем по phone/email; создаём при отсутствии
-    const phoneStr = norm(body.phone);
-    const emailStr = norm(body.email);
+    // клиент
+    const phoneStr = norm(o.phone as string | null | undefined);
+    const emailStr = norm(o.email as string | null | undefined);
 
     let clientId: string | null = null;
-
     if (phoneStr || emailStr) {
       const existing = await prisma.client.findFirst({
         where: {
           OR: [
-            ...(phoneStr ? ([{ phone: phoneStr }] as const) : []),
-            ...(emailStr ? ([{ email: emailStr }] as const) : []),
+            ...(phoneStr ? [{ phone: phoneStr }] : []),
+            ...(emailStr ? [{ email: emailStr }] : []),
           ],
         },
         select: { id: true },
       });
       if (existing) clientId = existing.id;
     }
-
     if (!clientId) {
-      const createdClient = await prisma.client.create({
+      const created = await prisma.client.create({
         data: {
-          // В вашей схеме email/phone — тип string (НЕ null). Поэтому даём строки.
-          name: norm(body.customerName),
+          name: norm(o.customerName as string),
           phone: phoneStr,
           email: emailStr,
-          birthDate: parseIsoDateToUtcMidnight(body.birthDate),
+          // храним полночь по UTC для birthDate
+          birthDate: new Date(`${o.birthDate as string}T00:00:00Z`),
         },
         select: { id: true },
       });
-      clientId = createdClient.id;
+      clientId = created.id;
     }
 
     const created = await prisma.appointment.create({
       data: {
         serviceId: service.id,
-        clientId: clientId,
-        masterId: master.id,
+        clientId,
+        masterId,
         startAt,
         endAt,
-        customerName: norm(body.customerName),
+        customerName: norm(o.customerName as string),
         phone: phoneStr,
         email: emailStr,
-        notes: norm(body.notes),
+        notes: norm(o.notes as string | null | undefined),
         status: "PENDING",
       },
-      select: {
-        id: true,
-        startAt: true,
-        endAt: true,
-        status: true,
-        masterId: true,
-        serviceId: true,
-      },
+      select: { id: true, startAt: true, endAt: true, status: true },
     });
 
     return NextResponse.json(created, { status: 200 });
-  } catch (e: unknown) {
-    // аккуратное ветвление без any
-    if (e instanceof SyntaxError) {
-      return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
-    }
-
-    const message =
-      typeof e === "object" && e !== null && "toString" in e
-        ? String(e)
+  } catch (e) {
+    const msg =
+      process.env.NODE_ENV === "development"
+        ? `booking error: ${String(e)}`
         : "Internal error";
-
-    console.error("booking error:", message);
+    console.error(msg);
     return NextResponse.json({ error: "Internal error" }, { status: 500 });
   }
 }
+
+
+
+
+
+
+
+
+// // src/app/api/booking/route.ts
+// import { NextResponse } from "next/server";
+// import { prisma } from "@/lib/db";
+// import { Prisma } from "@prisma/client";
+
+// /* ================= helpers & types ================= */
+
+// type PostBody = {
+//   serviceSlug: string;
+//   masterId: string;
+//   /** ISO дата-время начала визита.
+//    * Если без суффикса часового пояса — трактуем как UTC и добавляем 'Z'. */
+//   startAtISO: string;
+//   customerName: string;
+//   phone?: string | null;
+//   email?: string | null;
+//   /** YYYY-MM-DD (обязательно) */
+//   birthDate: string;
+//   /** произвольный комментарий */
+//   notes?: string | null;
+//   /** игнорируется — берем из услуги, поле допустимо */
+//   durationMin?: number;
+// };
+
+// function isString(v: unknown): v is string {
+//   return typeof v === "string";
+// }
+// function isOptionalString(v: unknown): v is string | null | undefined {
+//   return typeof v === "string" || v === null || typeof v === "undefined";
+// }
+// function isPostBody(v: unknown): v is PostBody {
+//   if (!v || typeof v !== "object") return false;
+//   const o = v as Record<string, unknown>;
+//   return (
+//     isString(o.serviceSlug) &&
+//     isString(o.masterId) &&
+//     isString(o.startAtISO) &&
+//     isString(o.customerName) &&
+//     isString(o.birthDate) &&
+//     isOptionalString(o.phone) &&
+//     isOptionalString(o.email) &&
+//     (typeof o.durationMin === "number" || typeof o.durationMin === "undefined") &&
+//     isOptionalString(o.notes)
+//   );
+// }
+// /** YYYY-MM-DD */
+// function isISODate(d?: string): d is string {
+//   return !!d && /^\d{4}-\d{2}-\d{2}$/.test(d);
+// }
+// /** 00:00 UTC для даты YYYY-MM-DD */
+// function parseIsoDateToUtcMidnight(d: string): Date {
+//   return new Date(`${d}T00:00:00Z`);
+// }
+// /** Если пришло без offset — считаем строку UTC и добавляем 'Z' */
+// function toUtcDate(iso: string): Date {
+//   const hasTZ = /[zZ]|[+\-]\d{2}:\d{2}$/.test(iso);
+//   const s = hasTZ ? iso : `${iso}Z`;
+//   const d = new Date(s);
+//   if (!Number.isFinite(d.getTime())) throw new Error("Invalid startAtISO");
+//   return d;
+// }
+// /** Перекрытие для полуоткрытых интервалов [start,end) */
+// function overlaps(aStart: Date, aEnd: Date, bStart: Date, bEnd: Date): boolean {
+//   return aStart < bEnd && aEnd > bStart;
+// }
+// function norm(s?: string | null): string {
+//   return (s ?? "").trim();
+// }
+
+// /* ================= handler ================= */
+
+// export async function POST(req: Request): Promise<Response> {
+//   try {
+//     const raw = await req.json();
+//     if (!isPostBody(raw)) {
+//       return NextResponse.json({ error: "Invalid body shape" }, { status: 400 });
+//     }
+//     const body = raw;
+
+//     if (!isISODate(body.birthDate)) {
+//       return NextResponse.json(
+//         { error: "birthDate должен быть в формате YYYY-MM-DD" },
+//         { status: 400 }
+//       );
+//     }
+
+//     // 1) Нормализуем ко времени UTC
+//     const startAt = toUtcDate(body.startAtISO);
+
+//     // 2) Получаем услугу
+//     const service = await prisma.service.findUnique({
+//       where: { slug: body.serviceSlug },
+//       select: { id: true, isActive: true, durationMin: true },
+//     });
+//     if (!service || !service.isActive || !Number.isFinite(service.durationMin)) {
+//       return NextResponse.json(
+//         { error: "Услуга не найдена или неактивна" },
+//         { status: 404 }
+//       );
+//     }
+//     const durationMin = service.durationMin!;
+//     const endAt = new Date(startAt.getTime() + durationMin * 60_000); // [start,end)
+
+//     // 3) Проверяем мастера и что он оказывает услугу
+//     const masterHasService = await prisma.master.findFirst({
+//       where: {
+//         id: body.masterId,
+//         services: { some: { id: service.id } },
+//       },
+//       select: { id: true },
+//     });
+//     if (!masterHasService) {
+//       return NextResponse.json(
+//         { error: "Эта услуга не выполняется выбранным мастером" },
+//         { status: 400 }
+//       );
+//     }
+//     const masterId = masterHasService.id;
+
+//     // 4) Готовим клиентские данные
+//     const phoneStr = norm(body.phone);
+//     const emailStr = norm(body.email);
+//     const customerName = norm(body.customerName);
+//     const notes = norm(body.notes);
+
+//     // 5) Атомарно: повторная проверка конфликта + создание записи.
+//     // Используем serializable-транзакцию, чтобы параллельные запросы не проскочили.
+//     const created = await prisma.$transaction(
+//       async (tx) => {
+//         // 5.1) Быстрый поиск конфликтующего аппойнтмента
+//         const conflicting = await tx.appointment.findFirst({
+//           where: {
+//             masterId,
+//             status: { in: ["PENDING", "CONFIRMED"] }, // блокирующие статусы
+//             startAt: { lt: endAt },
+//             endAt: { gt: startAt },
+//           },
+//           select: { id: true, startAt: true, endAt: true },
+//         });
+
+//         if (conflicting && overlaps(startAt, endAt, conflicting.startAt, conflicting.endAt)) {
+//           // полуоткрытые интервалы: если существующий заканчивается ровно в startAt — это не конфликт,
+//           // но наше условие уже это учитывает (aEnd > bStart), так что тут реальный конфликт.
+//           throw new Error("CONFLICT");
+//         }
+
+//         // 5.2) Получить/создать клиента
+//         let clientId: string | null = null;
+//         if (phoneStr || emailStr) {
+//           const existing = await tx.client.findFirst({
+//             where: {
+//               OR: [
+//                 ...(phoneStr ? ([{ phone: phoneStr }] as const) : []),
+//                 ...(emailStr ? ([{ email: emailStr }] as const) : []),
+//               ],
+//             },
+//             select: { id: true },
+//           });
+//           if (existing) clientId = existing.id;
+//         }
+//         if (!clientId) {
+//           const createdClient = await tx.client.create({
+//             data: {
+//               name: customerName,
+//               phone: phoneStr,
+//               email: emailStr,
+//               birthDate: parseIsoDateToUtcMidnight(body.birthDate),
+//             },
+//             select: { id: true },
+//           });
+//           clientId = createdClient.id;
+//         }
+
+//         // 5.3) Создаём бронь со статусом PENDING
+//         return tx.appointment.create({
+//           data: {
+//             serviceId: service.id,
+//             clientId,
+//             masterId,
+//             startAt,
+//             endAt, // ВАЖНО: конец не включён — полуоткрытый слот
+//             customerName,
+//             phone: phoneStr,
+//             email: emailStr,
+//             notes,
+//             status: "PENDING",
+//           },
+//           select: {
+//             id: true,
+//             startAt: true,
+//             endAt: true,
+//             status: true,
+//             masterId: true,
+//             serviceId: true,
+//           },
+//         });
+//       },
+//       {
+//         isolationLevel:
+//           (Prisma.TransactionIsolationLevel as unknown as { Serializable: Prisma.TransactionIsolationLevel })
+//             .Serializable ?? undefined,
+//       }
+//     );
+
+//     return NextResponse.json(created, { status: 201 });
+//   } catch (e: unknown) {
+//     // свои осмысленные ответы
+//     if (e instanceof SyntaxError) {
+//       return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+//     }
+//     if (e instanceof Error && e.message === "CONFLICT") {
+//       return NextResponse.json(
+//         { error: "Этот слот уже занят у мастера" },
+//         { status: 409 }
+//       );
+//     }
+
+//     const message =
+//       typeof e === "object" && e !== null && "toString" in e ? String(e) : "Internal error";
+//     console.error("booking error:", message);
+//     return NextResponse.json({ error: "Internal error" }, { status: 500 });
+//   }
+// }
+
+
+
+
+
+
+
+//----------ранее было так:----------
+// // src/app/api/booking/route.ts
+// import { NextResponse } from "next/server";
+// import { prisma } from "@/lib/db";
+
+// /* ================= helpers & types ================= */
+
+// type PostBody = {
+//   serviceSlug: string;
+//   masterId: string;
+//   startAtISO: string; // если без Z — трактуем как UTC (без сдвигов)
+//   customerName: string;
+//   phone?: string | null;
+//   email?: string | null;
+//   birthDate: string; // YYYY-MM-DD (обязателен)
+//   notes?: string | null;
+//   // durationMin игнорируем (берём из услуги), но поле допустимо
+//   durationMin?: number;
+// };
+
+// function isString(v: unknown): v is string {
+//   return typeof v === "string";
+// }
+
+// function isOptionalString(v: unknown): v is string | null | undefined {
+//   return typeof v === "string" || v === null || typeof v === "undefined";
+// }
+
+// function isPostBody(v: unknown): v is PostBody {
+//   if (!v || typeof v !== "object") return false;
+//   const o = v as Record<string, unknown>;
+//   return (
+//     isString(o.serviceSlug) &&
+//     isString(o.masterId) &&
+//     isString(o.startAtISO) &&
+//     isString(o.customerName) &&
+//     isString(o.birthDate) &&
+//     isOptionalString(o.phone) &&
+//     isOptionalString(o.email) &&
+//     (typeof o.durationMin === "number" ||
+//       typeof o.durationMin === "undefined") &&
+//     isOptionalString(o.notes)
+//   );
+// }
+
+// /** YYYY-MM-DD */
+// function isISODate(d?: string): d is string {
+//   return !!d && /^\d{4}-\d{2}-\d{2}$/.test(d);
+// }
+
+// /** 00:00 UTC для даты YYYY-MM-DD */
+// function parseIsoDateToUtcMidnight(d: string): Date {
+//   // всегда добавляем Z, чтобы не было сдвигов
+//   return new Date(`${d}T00:00:00Z`);
+// }
+
+// /** Если пришло без offset — считаем строку UTC и добавляем Z */
+// function toUtcDate(iso: string): Date {
+//   const hasTZ = /[zZ]|[+\-]\d{2}:\d{2}$/.test(iso);
+//   const s = hasTZ ? iso : `${iso}Z`;
+//   const d = new Date(s);
+//   if (!Number.isFinite(d.getTime())) {
+//     throw new Error("Invalid startAtISO");
+//   }
+//   return d;
+// }
+
+// function overlaps(aStart: Date, aEnd: Date, bStart: Date, bEnd: Date): boolean {
+//   return aStart < bEnd && aEnd > bStart;
+// }
+
+// function norm(s?: string | null): string {
+//   return (s ?? "").trim();
+// }
+
+// /* ================= handler ================= */
+
+// export async function POST(req: Request): Promise<Response> {
+//   try {
+//     const raw = await req.json();
+
+//     if (!isPostBody(raw)) {
+//       return NextResponse.json(
+//         { error: "Invalid body shape" },
+//         { status: 400 }
+//       );
+//     }
+//     const body = raw;
+
+//     if (!isISODate(body.birthDate)) {
+//       return NextResponse.json(
+//         { error: "birthDate должен быть в формате YYYY-MM-DD" },
+//         { status: 400 }
+//       );
+//     }
+
+//     // приводим ко всему UTC (убираем «минус два часа»)
+//     const startAt = toUtcDate(body.startAtISO);
+
+//     // услуга
+//     const service = await prisma.service.findUnique({
+//       where: { slug: body.serviceSlug },
+//       select: { id: true, isActive: true, durationMin: true },
+//     });
+//     if (
+//       !service ||
+//       !service.isActive ||
+//       !Number.isFinite(service.durationMin)
+//     ) {
+//       return NextResponse.json(
+//         { error: "Услуга не найдена или неактивна" },
+//         { status: 404 }
+//       );
+//     }
+
+//     // мастер
+//     const master = await prisma.master.findUnique({
+//       where: { id: body.masterId },
+//       select: { id: true },
+//     });
+//     if (!master) {
+//       return NextResponse.json({ error: "Мастер не найден" }, { status: 404 });
+//     }
+
+//     // мастер оказывает услугу?
+//     // мастер оказывает услугу?
+//     const masterHasService = await prisma.master.findFirst({
+//       where: {
+//         id: body.masterId,
+//         services: { some: { id: service.id } },
+//       },
+//       select: { id: true },
+//     });
+
+//     if (!masterHasService) {
+//       return NextResponse.json(
+//         { error: "Эта услуга не выполняется выбранным мастером" },
+//         { status: 400 }
+//       );
+//     }
+
+//     const durationMin = service.durationMin!;
+//     const endAt = new Date(startAt.getTime() + durationMin * 60_000);
+
+//     // конфликт с существующими заявками
+//     const conflicting = await prisma.appointment.findFirst({
+//       where: {
+//         masterId: master.id,
+//         status: { in: ["PENDING", "CONFIRMED"] },
+//         startAt: { lt: endAt },
+//         endAt: { gt: startAt },
+//       },
+//       select: { id: true, startAt: true, endAt: true },
+//     });
+
+//     if (
+//       conflicting &&
+//       overlaps(startAt, endAt, conflicting.startAt, conflicting.endAt)
+//     ) {
+//       return NextResponse.json(
+//         { error: "Этот слот уже занят у мастера" },
+//         { status: 409 }
+//       );
+//     }
+
+//     // клиент: ищем по phone/email; создаём при отсутствии
+//     const phoneStr = norm(body.phone);
+//     const emailStr = norm(body.email);
+
+//     let clientId: string | null = null;
+
+//     if (phoneStr || emailStr) {
+//       const existing = await prisma.client.findFirst({
+//         where: {
+//           OR: [
+//             ...(phoneStr ? ([{ phone: phoneStr }] as const) : []),
+//             ...(emailStr ? ([{ email: emailStr }] as const) : []),
+//           ],
+//         },
+//         select: { id: true },
+//       });
+//       if (existing) clientId = existing.id;
+//     }
+
+//     if (!clientId) {
+//       const createdClient = await prisma.client.create({
+//         data: {
+//           // В вашей схеме email/phone — тип string (НЕ null). Поэтому даём строки.
+//           name: norm(body.customerName),
+//           phone: phoneStr,
+//           email: emailStr,
+//           birthDate: parseIsoDateToUtcMidnight(body.birthDate),
+//         },
+//         select: { id: true },
+//       });
+//       clientId = createdClient.id;
+//     }
+
+//     const created = await prisma.appointment.create({
+//       data: {
+//         serviceId: service.id,
+//         clientId: clientId,
+//         masterId: master.id,
+//         startAt,
+//         endAt,
+//         customerName: norm(body.customerName),
+//         phone: phoneStr,
+//         email: emailStr,
+//         notes: norm(body.notes),
+//         status: "PENDING",
+//       },
+//       select: {
+//         id: true,
+//         startAt: true,
+//         endAt: true,
+//         status: true,
+//         masterId: true,
+//         serviceId: true,
+//       },
+//     });
+
+//     return NextResponse.json(created, { status: 200 });
+//   } catch (e: unknown) {
+//     // аккуратное ветвление без any
+//     if (e instanceof SyntaxError) {
+//       return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+//     }
+
+//     const message =
+//       typeof e === "object" && e !== null && "toString" in e
+//         ? String(e)
+//         : "Internal error";
+
+//     console.error("booking error:", message);
+//     return NextResponse.json({ error: "Internal error" }, { status: 500 });
+//   }
+// }
 
 // import { NextResponse } from "next/server";
 // import { prisma } from "@/lib/db";

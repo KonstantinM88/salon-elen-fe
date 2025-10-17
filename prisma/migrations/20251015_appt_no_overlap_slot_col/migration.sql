@@ -1,0 +1,2 @@
+-- NOOP placeholder to keep migration history aligned with the database.
+-- Intentionally left blank.
