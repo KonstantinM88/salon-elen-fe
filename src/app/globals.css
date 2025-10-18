@@ -1,73 +1,43 @@
+/* src/app/globals.css — Tailwind v4 совместимая версия */
 @import "tailwindcss";
-/* @plugin "tailwindcss-animate";
+/* @plugin "tailwindcss-animate"; */
 
-
-*/
-
-
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-
-/* вариант тёмной темы для Tailwind v4 */
+/* ============== VARIANTS ============== */
 @custom-variant dark (&:is(.dark *));
 
+/* ============== BASE ============== */
 @layer base {
-  html,
-  body {
-    @apply h-full;
-  }
+  html, body { @apply h-full; }
 
-  /* рендерим системные селекты в тёмной схеме */
-  .dark select {
-    color-scheme: dark;
-  }
+  /* системные селекты в тёмной теме */
+  .dark select { color-scheme: dark; }
 
-  /* ───────── ДОБАВЛЕНО: фон и текст для select и option ───────── */
-  /* Делает и сам <select>, и выпадающий список options под цвет темы.
-     На Chrome/Edge/Firefox работает из коробки; на Safari фон списка
-     зависит от платформы, но сам <select> будет окрашен. */
-  select,
-  select option {
+  /* единый фон/цвет для select и option */
+  select, select option {
     background-color: var(--background);
     color: var(--foreground);
+  }
+  select {
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
   }
   select:focus {
     outline: none;
     box-shadow: 0 0 0 2px var(--ring);
     border-color: var(--ring);
   }
-  /* немного скруглим */
-  select {
-    border-radius: var(--radius);
-    border: 1px solid var(--border);
-  }
-  /* ─────────────────────────────────────────────────────────────── */
 
-  /* Светлая тема по умолчанию */
-  body {
-    @apply bg-white text-gray-900 antialiased;
-  }
+  /* по токенам темы */
+  body { @apply bg-background text-foreground antialiased; }
 
-  /* Тёмная тема перекрывает светлую */
-  .dark body {
-    @apply bg-gray-900 text-gray-100;
-  }
-
-  /* (необязательно, но полезно для скроллбаров и форм) */
-  :root {
-    color-scheme: light;
-  }
-  .dark {
-    color-scheme: dark;
-  }
+  :root { color-scheme: light; }
+  .dark  { color-scheme: dark; }
 }
 
-/* слегка сгладить переходы у изображений */
-img {
-  image-rendering: auto;
-}
+/* сглаживание картинок */
+img { image-rendering: auto; }
 
+/* ============ типографика статей (как было) ============ */
 @layer components {
   .btn {
     @apply inline-flex items-center gap-2 rounded-2xl px-4 py-2
@@ -75,58 +45,55 @@ img {
            hover:bg-gray-50 active:shadow-none shadow transition
            dark:bg-gray-800 dark:text-gray-100 dark:border-gray-700 dark:hover:bg-gray-700;
   }
-
   .link {
     @apply text-gray-700 hover:text-gray-900
            dark:text-gray-300 dark:hover:text-white transition;
   }
-
-  /* ───────────────── типографика статей ─────────────────
-     Работает совместно с Tailwind Typography и классами:
-     `prose prose-elen dark:prose-invert`
-  */
-  /* картинки внутри статьи — без внешних отступов */
-  .prose img {
-    @apply m-0;
-  }
-
-  /* обёртка-figure с плавным zoom (используй вместе с .group) */
+  .prose img { @apply m-0; }
   .article-figure {
     @apply overflow-hidden rounded-2xl border border-gray-200/70 dark:border-gray-800 shadow-sm;
   }
   .article-figure img,
-  .article-figure .next-image {
-    @apply transition-transform duration-500 ease-out;
-  }
+  .article-figure .next-image { @apply transition-transform duration-500 ease-out; }
   .group:hover .article-figure img,
-  .group:hover .article-figure .next-image {
-    @apply scale-105;
-  }
+  .group:hover .article-figure .next-image { @apply scale-105; }
 
-  /* тонкая настройка заголовков/лида в варианте prose-elen */
-  .prose-elen h1 {
-    @apply text-3xl sm:text-4xl font-semibold tracking-tight;
-  }
-  .prose-elen h2 {
-    @apply text-2xl font-semibold tracking-tight mt-7;
-  }
-  .prose-elen p {
-    @apply leading-7;
-  }
-  .prose-elen a {
-    @apply no-underline;
-  }
-  .prose-elen blockquote {
-    @apply italic border-l-4 pl-4;
-  }
-  .prose-elen ul {
-    @apply my-4;
-  }
-  .prose-elen li {
-    @apply pl-1;
-  }
+  .prose-elen h1 { @apply text-3xl sm:text-4xl font-semibold tracking-tight; }
+  .prose-elen h2 { @apply text-2xl font-semibold tracking-tight mt-7; }
+  .prose-elen p  { @apply leading-7; }
+  .prose-elen a  { @apply no-underline; }
+  .prose-elen blockquote { @apply italic border-l-4 pl-4; }
+  .prose-elen ul { @apply my-4; }
+  .prose-elen li { @apply pl-1; }
 }
 
+/* =================================================================== */
+/* ======= КОМПОЗИТНЫЕ УТИЛИТЫ ДЛЯ АДМИНКИ (v4: @utility) ============= */
+@utility admin-card { @apply rounded-2xl border border-white/10 bg-[#0b1220]/90 backdrop-blur-sm; }
+@utility admin-section { @apply admin-card p-4 md:p-6; }
+
+@utility admin-input    { @apply w-full rounded-lg border border-white/15 bg-transparent px-3 py-2 focus:outline-none focus:ring-2 focus:ring-fuchsia-500/40; }
+@utility admin-select   { @apply admin-input pr-8; }
+@utility admin-textarea { @apply admin-input; }
+@utility admin-switch   { @apply rounded border-white/20; }
+
+@utility btn-base       { @apply inline-flex items-center justify-center rounded-full px-4 py-2 transition; }
+@utility btn-primary    { @apply btn-base border border-emerald-500/40 text-emerald-300 hover:bg-emerald-500/10; }
+@utility btn-secondary  { @apply btn-base border border-white/15 text-white/80 hover:bg-white/10; }
+@utility btn-danger     { @apply btn-base border border-rose-500/60 text-rose-300 hover:bg-rose-500/10; }
+
+@utility tag-active     { @apply inline-flex items-center gap-1 rounded-full border border-emerald-500/40 px-2 py-0.5 text-xs text-emerald-300; }
+
+@utility table-base     { @apply w-full min-w-[960px] text-sm; }
+@utility thead-base     { @apply bg-white/5; }
+@utility th-base        { @apply px-3 py-2 text-left font-medium text-white/70; }
+@utility td-base        { @apply px-3 py-2 align-top; }
+@utility row-base       { @apply border-t border-white/10; }
+
+@utility popover-panel  { @apply absolute right-0 z-20 mt-2 w-[36rem] admin-card p-4 shadow-xl; }
+/* =================================================================== */
+
+/* ===================== THEME TOKENS ===================== */
 @theme inline {
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
@@ -168,22 +135,19 @@ img {
   --color-sidebar-ring: var(--ring);
 }
 
-/* ── МОЛОЧНАЯ СВЕТЛАЯ ТЕМА ────────────────────────── */
+/* ── Светлая тема ── */
 :root {
   --radius: 0.625rem;
 
-  /* фон и текст */
-  --background: oklch(0.98 0.01 95); /* молочный белый */
-  --foreground: oklch(0.22 0.02 260); /* мягкий графит */
+  --background: oklch(0.98 0.01 95);
+  --foreground: oklch(0.22 0.02 260);
 
-  /* карточки/поверхности */
   --card: oklch(0.99 0.005 95);
   --card-foreground: var(--foreground);
   --popover: var(--card);
   --popover-foreground: var(--foreground);
 
-  /* акценты */
-  --primary: oklch(0.6 0.16 278); /* нежная лаванда */
+  --primary: oklch(0.6 0.16 278);
   --primary-foreground: oklch(0.99 0 0);
 
   --secondary: oklch(0.97 0.01 95);
@@ -195,13 +159,11 @@ img {
   --accent: oklch(0.97 0.015 95);
   --accent-foreground: var(--foreground);
 
-  /* прочее */
   --destructive: oklch(0.58 0.23 25);
   --border: oklch(0.93 0.005 95);
   --input: var(--border);
   --ring: oklch(0.78 0.03 270);
 
-  /* графики/сайдбар */
   --chart-1: oklch(0.646 0.222 41.116);
   --chart-2: oklch(0.6 0.118 184.704);
   --chart-3: oklch(0.398 0.07 227.392);
@@ -218,9 +180,9 @@ img {
   --sidebar-ring: var(--ring);
 }
 
-/* ── МЯГКАЯ ТЁМНАЯ ТЕМА ───────────────────────────── */
+/* ── Тёмная тема ── */
 .dark {
-  --background: oklch(0.16 0.02 260); /* не абсолютный чёрный */
+  --background: oklch(0.16 0.02 260);
   --foreground: oklch(0.98 0.01 95);
 
   --card: oklch(0.2 0.02 260);
@@ -228,7 +190,7 @@ img {
   --popover: var(--card);
   --popover-foreground: var(--foreground);
 
-  --primary: oklch(0.72 0.16 278); /* живее на тёмном */
+  --primary: oklch(0.72 0.16 278);
   --primary-foreground: oklch(0.14 0.02 260);
 
   --secondary: oklch(0.26 0.02 260);
@@ -242,8 +204,8 @@ img {
 
   --destructive: oklch(0.7 0.19 22);
   --border: oklch(0.36 0.02 260 / 0.55);
-  --input: oklch(0.32 0.02 260 / 0.55);
-  --ring: oklch(0.64 0.04 270);
+  --input:  oklch(0.32 0.02 260 / 0.55);
+  --ring:   oklch(0.64 0.04 270);
 
   --chart-1: oklch(0.488 0.243 264.376);
   --chart-2: oklch(0.696 0.17 162.48);
@@ -261,380 +223,136 @@ img {
   --sidebar-ring: var(--ring);
 }
 
+/* общий outline/border от токенов темы */
 @layer base {
-  * {
-    @apply border-border outline-ring/50;
-  }
-  body {
-    @apply bg-background text-foreground;
-  }
+  *   { @apply border-border outline-ring/50; }
+  body{ @apply bg-background text-foreground; }
 }
 
-html {
-  scroll-behavior: smooth;
-}
-/* Показывать одиночные \n внутри параграфов в новости */
-.prose-elen p {
-  white-space: pre-line;
-  text-indent: 0em;
-}
+html { scroll-behavior: smooth; }
+/* показывать одиночные \n внутри параграфов */
+.prose-elen p { white-space: pre-line; text-indent: 0; }
 
 /* =================================================================== */
-/* ===================== HERO CTA (без @utility) ===================== */
-/* База: дыхание, shimmer по hover, ripple */
+/* ===================== HERO CTA (как было) ========================= */
 @keyframes btn-breathe {
-  0%,
-  100% {
-    box-shadow: 0 6px 22px rgba(255, 255, 255, 0.08);
-    transform: translateY(0);
-  }
-  50% {
-    box-shadow: 0 10px 28px rgba(255, 255, 255, 0.14);
-    transform: translateY(-1px);
-  }
+  0%, 100% { box-shadow: 0 6px 22px rgba(255,255,255,.08); transform: translateY(0); }
+  50%      { box-shadow: 0 10px 28px rgba(255,255,255,.14); transform: translateY(-1px); }
 }
 @keyframes btn-shimmer {
-  0% {
-    transform: translateX(-120%) skewX(-12deg);
-    opacity: 0;
-  }
-  40% {
-    opacity: 0.35;
-  }
-  100% {
-    transform: translateX(220%) skewX(-12deg);
-    opacity: 0;
-  }
+  0% { transform: translateX(-120%) skewX(-12deg); opacity: 0; }
+  40%{ opacity: .35; }
+  100%{ transform: translateX(220%) skewX(-12deg); opacity: 0; }
 }
 @keyframes btn-ripple {
-  from {
-    transform: translate(-50%, -50%) scale(0.2);
-    opacity: 0.35;
-  }
-  to {
-    transform: translate(-50%, -50%) scale(2.4);
-    opacity: 0;
-  }
+  from { transform: translate(-50%, -50%) scale(.2); opacity: .35; }
+  to   { transform: translate(-50%, -50%) scale(2.4); opacity: 0; }
 }
 
-/* классы */
-.animate-breathe {
-  animation: btn-breathe 2.6s ease-in-out infinite;
-}
-.will-transform {
-  will-change: transform, box-shadow, opacity;
-}
+.animate-breathe { animation: btn-breathe 2.6s ease-in-out infinite; }
+.will-transform  { will-change: transform, box-shadow, opacity; }
 
-.btn-primary-sheen {
-  position: relative;
+.btn-primary-sheen { position: relative; }
+.btn-primary-sheen::after{
+  content:""; position:absolute; inset:0; pointer-events:none;
+  background: linear-gradient(120deg, transparent 20%, rgba(255,255,255,.45) 45%, transparent 60%);
+  transform: translateX(-120%) skewX(-12deg); opacity:0; transition: opacity .2s ease;
 }
-.btn-primary-sheen::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background: linear-gradient(
-    120deg,
-    transparent 20%,
-    rgba(255, 255, 255, 0.45) 45%,
-    transparent 60%
-  );
-  transform: translateX(-120%) skewX(-12deg);
-  opacity: 0;
-  transition: opacity 0.2s ease;
-}
-.btn-primary-hover-shimmer:hover::after {
-  animation: btn-shimmer 1.1s ease;
-  opacity: 0.3;
-}
+.btn-primary-hover-shimmer:hover::after { animation: btn-shimmer 1.1s ease; opacity:.3; }
 
-/* IDLE эффекты (в покое) */
+/* idle эффекты */
 @keyframes btn-sheen-loop {
-  0% {
-    transform: translateX(-140%) skewX(-12deg);
-    opacity: 0;
-  }
-  3% {
-    opacity: 0.35;
-  }
-  8% {
-    transform: translateX(240%) skewX(-12deg);
-    opacity: 0;
-  }
-  100% {
-    transform: translateX(240%) skewX(-12deg);
-    opacity: 0;
-  }
+  0%{ transform: translateX(-140%) skewX(-12deg); opacity:0; }
+  3%{ opacity:.35; }
+  8%{ transform: translateX(240%) skewX(-12deg); opacity:0; }
+  100%{ transform: translateX(240%) skewX(-12deg); opacity:0; }
 }
 @keyframes btn-aura-pulse {
-  0%,
-  100% {
-    box-shadow:
-      0 0 0 0 rgba(255, 255, 255, 0.14),
-      0 12px 28px rgba(255, 255, 255, 0.1);
-  }
-  50% {
-    box-shadow:
-      0 0 0 6px rgba(255, 255, 255, 0.07),
-      0 14px 34px rgba(255, 255, 255, 0.14);
-  }
+  0%,100%{ box-shadow: 0 0 0 0 rgba(255,255,255,.14), 0 12px 28px rgba(255,255,255,.1); }
+  50%    { box-shadow: 0 0 0 6px rgba(255,255,255,.07), 0 14px 34px rgba(255,255,255,.14); }
 }
-@keyframes btn-gradient-shift {
-  0%,
-  100% {
-    background-position: 0% 50%;
-  }
-  50% {
-    background-position: 100% 50%;
-  }
-}
+@keyframes btn-gradient-shift { 0%,100%{background-position:0% 50%} 50%{background-position:100% 50%} }
 
-/* 1) редкий автоблик */
-.idle-sheen.btn-primary::after,
-.btn-primary.idle-sheen::after {
-  animation: btn-sheen-loop 5.5s ease-in-out infinite;
-  opacity: 0.25;
-}
-/* 2) мягкая аура */
-.idle-aura {
-  animation: btn-aura-pulse 3.6s ease-in-out infinite;
-}
-/* 3) тёплый градиент со сдвигом */
-.idle-gradient {
-  background-image: linear-gradient(
-    90deg,
-    #ffffff 0%,
-    #fff7f0 50%,
-    #ffffff 100%
-  );
-  background-size: 220% 220%;
-  animation: btn-gradient-shift 9s ease-in-out infinite;
-}
+.idle-sheen.btn-primary::after, .btn-primary.idle-sheen::after { animation: btn-sheen-loop 5.5s ease-in-out infinite; opacity:.25; }
+.idle-aura{ animation: btn-aura-pulse 3.6s ease-in-out infinite; }
+.idle-gradient{ background-image:linear-gradient(90deg,#fff 0%,#fff7f0 50%,#fff 100%); background-size:220% 220%; animation: btn-gradient-shift 9s ease-in-out infinite; }
 
-/* уважение к reduced motion (отключаем idle/дыхание) */
 @media (prefers-reduced-motion: reduce) {
   :root:not([data-allow-motion="true"]) .animate-breathe,
   :root:not([data-allow-motion="true"]) .idle-aura,
   :root:not([data-allow-motion="true"]) .idle-gradient,
   :root:not([data-allow-motion="true"]) .btn-primary.idle-sheen::after,
-  :root:not([data-allow-motion="true"]) .idle-sheen.btn-primary::after {
-    animation: none !important;
-  }
+  :root:not([data-allow-motion="true"]) .idle-sheen.btn-primary::after { animation: none !important; }
 }
 
-/* ========= DESKTOP CTA BOOST ========= */
-@media (min-width: 1024px) and (hover: hover) and (pointer: fine) {
-  .cta-boost.btn-primary::after {
-    animation-duration: 4.2s !important;
-    opacity: 0.35 !important;
-  }
-  .cta-boost.idle-aura {
-    animation-duration: 3s !important;
-  }
-  .cta-boost.idle-gradient {
-    animation-duration: 7.5s !important;
-    background-size: 240% 240% !important;
-  }
-  .cta-boost {
-    box-shadow:
-      0 8px 26px rgba(255, 255, 255, 0.14),
-      0 0 0 0 rgba(255, 255, 255, 0);
-  }
-  .cta-boost:hover {
-    box-shadow:
-      0 12px 34px rgba(255, 255, 255, 0.18),
-      0 0 0 0 rgba(255, 255, 255, 0);
-  }
+/* desktop boost */
+@media (min-width:1024px) and (hover:hover) and (pointer:fine){
+  .cta-boost.btn-primary::after{ animation-duration:4.2s!important; opacity:.35!important; }
+  .cta-boost.idle-aura{ animation-duration:3s!important; }
+  .cta-boost.idle-gradient{ animation-duration:7.5s!important; background-size:240% 240%!important; }
+  .cta-boost{ box-shadow:0 8px 26px rgba(255,255,255,.14), 0 0 0 0 rgba(255,255,255,0); }
+  .cta-boost:hover{ box-shadow:0 12px 34px rgba(255,255,255,.18), 0 0 0 0 rgba(255,255,255,0); }
 }
-
-/* ========= MOBILE CTA BOOST ========= */
-@media (hover: none) and (pointer: coarse), (max-width: 767px) {
-  .cta-boost-mobile.btn-primary::after {
-    animation-duration: 3.8s !important;
-    opacity: 0.4 !important;
-  }
-  .cta-boost-mobile.idle-aura {
-    animation-duration: 2.6s !important;
-  }
-  .cta-boost-mobile.idle-gradient {
-    animation-duration: 6.5s !important;
-    background-size: 260% 260% !important;
-  }
-  .cta-boost-mobile {
-    box-shadow:
-      0 8px 26px rgba(255, 255, 255, 0.16),
-      0 0 0 0 rgba(255, 255, 255, 0);
-  }
-  .cta-boost-mobile:active {
-    box-shadow:
-      0 6px 18px rgba(255, 255, 255, 0.14),
-      0 0 0 0 rgba(255, 255, 255, 0);
-  }
+/* mobile boost */
+@media (hover:none) and (pointer:coarse), (max-width:767px){
+  .cta-boost-mobile.btn-primary::after{ animation-duration:3.8s!important; opacity:.4!important; }
+  .cta-boost-mobile.idle-aura{ animation-duration:2.6s!important; }
+  .cta-boost-mobile.idle-gradient{ animation-duration:6.5s!important; background-size:260% 260%!important; }
+  .cta-boost-mobile{ box-shadow:0 8px 26px rgba(255,255,255,.16), 0 0 0 0 rgba(255,255,255,0); }
+  .cta-boost-mobile:active{ box-shadow:0 6px 18px rgba(255,255,255,.14), 0 0 0 0 rgba(255,255,255,0); }
 }
-
 @media (prefers-reduced-motion: reduce) {
   :root:not([data-allow-motion="true"]) .cta-boost-mobile.btn-primary::after,
   :root:not([data-allow-motion="true"]) .cta-boost-mobile.idle-aura,
-  :root:not([data-allow-motion="true"]) .cta-boost-mobile.idle-gradient {
-    animation: none !important;
-  }
+  :root:not([data-allow-motion="true"]) .cta-boost-mobile.idle-gradient { animation: none !important; }
 }
 
-/* ==== subtle background color cycle for the button ==== */
-@keyframes btn-bg-cycle {
-  0% {
-    background-color: #ffffff;
-  }
-  50% {
-    background-color: #fff4ea;
-  }
-  100% {
-    background-color: #ffffff;
-  }
-}
-
-@keyframes btn-text-fade {
-  0% {
-    opacity: 0;
-    transform: translateY(4px);
-  }
-  100% {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.btn-cycle-bg {
-  animation: btn-bg-cycle 8s ease-in-out infinite;
-}
-.btn-text-fade {
-  animation: btn-text-fade 260ms ease both;
-}
-
-@media (min-width: 1024px) and (hover: hover) and (pointer: fine) {
-  .btn-cycle-bg {
-    animation-duration: 6.5s;
-  }
-}
+/* ==== subtle BG/text anims ==== */
+@keyframes btn-bg-cycle { 0%{background-color:#fff} 50%{background-color:#fff4ea} 100%{background-color:#fff} }
+@keyframes btn-text-fade { 0%{opacity:0;transform:translateY(4px)} 100%{opacity:1;transform:translateY(0)} }
+.btn-cycle-bg { animation: btn-bg-cycle 8s ease-in-out infinite; }
+.btn-text-fade { animation: btn-text-fade 260ms ease both; }
+@media (min-width:1024px) and (hover:hover) and (pointer:fine){ .btn-cycle-bg{ animation-duration:6.5s } }
 
 /* ====== Rainbow CTA (градиентный неон) ====== */
-@keyframes rainbow-eff {
-  0% {
-    background-position: 0 0;
-  }
-  50% {
-    background-position: 400% 0;
-  }
-  100% {
-    background-position: 0 0;
-  }
-}
+@keyframes rainbow-eff { 0%{background-position:0 0} 50%{background-position:400% 0} 100%{background-position:0 0} }
 
 @layer components {
   .rainbow-btn {
-    @apply relative inline-flex items-center justify-center
-           rounded-xl px-6 h-12 text-[15px] tracking-[0.1em] uppercase
-           select-none overflow-hidden bg-black text-white
-           transition-[transform,box-shadow,opacity] duration-300 ease-out;
-    -webkit-box-reflect: below 1px linear-gradient(transparent, #0004);
+    @apply relative inline-flex items-center justify-center rounded-xl px-6 h-12 text-[15px] tracking-[0.1em] uppercase
+           select-none overflow-hidden bg-black text-white transition-[transform,box-shadow,opacity] duration-300 ease-out;
+    -webkit-box-reflect: below 1px linear-gradient(transparent,#0004);
   }
-
-  .rainbow-btn > span {
-    @apply relative z-[2];
-  }
-
+  .rainbow-btn > span { @apply relative z-[2]; }
   .rainbow-btn > span::before {
-    content: "";
-    position: absolute;
-    inset: 0 0 50% 0;
-    border-top-left-radius: 0.75rem;
-    border-top-right-radius: 0.75rem;
-    background: rgba(255, 255, 255, 0.08);
-    pointer-events: none;
+    content:""; position:absolute; inset:0 0 50% 0; border-top-left-radius:.75rem; border-top-right-radius:.75rem;
+    background: rgba(255,255,255,.08); pointer-events:none;
   }
-
-  .rainbow-btn::before,
-  .rainbow-btn::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    border-radius: 0.75rem;
-    background: linear-gradient(
-      45deg,
-      #c0392b,
-      #f39c12,
-      #f1c40f,
-      #2ecc71,
-      #3498db,
-      #2980b9,
-      #9b59b6,
-      #8e44ad,
-      #c0392b,
-      #f39c12,
-      #f1c40f,
-      #2ecc71,
-      #3498db,
-      #2980b9,
-      #9b59b6,
-      #8e44ad
-    );
-    background-size: 400%;
-    opacity: 0;
-    transition: opacity 0.5s ease;
-    z-index: 0;
+  .rainbow-btn::before, .rainbow-btn::after {
+    content:""; position:absolute; inset:0; border-radius:.75rem;
+    background: linear-gradient(45deg,#c0392b,#f39c12,#f1c40f,#2ecc71,#3498db,#2980b9,#9b59b6,#8e44ad,#c0392b,#f39c12,#f1c40f,#2ecc71,#3498db,#2980b9,#9b59b6,#8e44ad);
+    background-size:400%; opacity:0; transition:opacity .5s ease; z-index:0;
   }
-
-  .rainbow-btn::after {
-    filter: blur(18px);
-  }
-
+  .rainbow-btn::after { filter: blur(18px); }
   .rainbow-btn:hover::before,
   .rainbow-btn:hover::after,
   .rainbow-btn:focus-visible::before,
-  .rainbow-btn:focus-visible::after {
-    opacity: 1;
-    animation: rainbow-eff 12s linear infinite;
-  }
-
+  .rainbow-btn:focus-visible::after { opacity:1; animation: rainbow-eff 12s linear infinite; }
   .rainbow-btn:hover > span,
-  .rainbow-btn:focus-visible > span {
-    color: #fff;
-  }
-
+  .rainbow-btn:focus-visible > span { color:#fff; }
   .rainbow-btn:focus-visible {
-    outline: none;
-    box-shadow:
-      0 0 0 3px rgba(255, 255, 255, 0.55),
-      0 0 0 6px rgba(255, 255, 255, 0.18);
+    outline:none; box-shadow: 0 0 0 3px rgba(255,255,255,.55), 0 0 0 6px rgba(255,255,255,.18);
   }
-
-  .rainbow-animate-idle::before,
-  .rainbow-animate-idle::after {
-    opacity: 1;
-    animation: rainbow-eff 12s linear infinite;
-  }
-
-  .rainbow-no-reflect {
-    -webkit-box-reflect: unset;
-  }
+  .rainbow-animate-idle::before, .rainbow-animate-idle::after { opacity:1; animation: rainbow-eff 12s linear infinite; }
+  .rainbow-no-reflect { -webkit-box-reflect: unset; }
 }
-
-@media (min-width: 1024px) and (hover: hover) and (pointer: fine) {
-  .rainbow-btn:hover {
-    box-shadow: 0 10px 28px rgba(255, 255, 255, 0.16);
-    transform: translateY(-1px);
-  }
-  .rainbow-animate-idle::before,
-  .rainbow-animate-idle::after {
-    animation-duration: 10s;
-  }
+@media (min-width:1024px) and (hover:hover) and (pointer:fine){
+  .rainbow-btn:hover { box-shadow:0 10px 28px rgba(255,255,255,.16); transform: translateY(-1px); }
+  .rainbow-animate-idle::before, .rainbow-animate-idle::after { animation-duration:10s; }
 }
-
-@media (prefers-reduced-motion: reduce) {
+@media (prefers-reduced-motion: reduce){
   :root:not([data-allow-motion="true"]) .rainbow-btn::before,
   :root:not([data-allow-motion="true"]) .rainbow-btn::after,
   :root:not([data-allow-motion="true"]) .rainbow-animate-idle::before,
-  :root:not([data-allow-motion="true"]) .rainbow-animate-idle::after {
-    animation: none !important;
-  }
+  :root:not([data-allow-motion="true"]) .rainbow-animate-idle::after { animation: none !important; }
 }
