@@ -8,7 +8,7 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
-// ───────── Контент ─────────
+// ───────── Контент ───────── 
 
 enum ArticleType {
   NEWS
@@ -34,7 +34,8 @@ model Article {
   @@index([expiresAt])
 }
 
-// ───────── Старая форма обратной связи ─────────
+// ───────── Старая форма обратной связи ───────── 
+
 model Booking {
   id        String   @id @default(cuid())
   name      String
@@ -44,7 +45,7 @@ model Booking {
   createdAt DateTime @default(now())
 }
 
-// ───────── Онлайн-запись ─────────
+// ───────── Онлайн-запись ───────── 
 
 model Service {
   id          String  @id @default(cuid())
@@ -54,6 +55,10 @@ model Service {
   durationMin Int
   priceCents  Int?
   isActive    Boolean @default(true)
+
+  /// Мягкое удаление: скрываем из интерфейса,
+  /// данные и связи остаются (для истории).
+  isArchived  Boolean @default(false)
 
   parentId String?
   parent   Service?  @relation("ServiceChildren", fields: [parentId], references: [id])
@@ -68,6 +73,7 @@ model Service {
   updatedAt DateTime @updatedAt
 
   @@index([isActive])
+  @@index([isArchived])
   @@index([slug])
   @@index([parentId])
   @@map("Service")
@@ -80,7 +86,8 @@ enum AppointmentStatus {
   DONE
 }
 
-// ───────── Клиент ─────────
+// ───────── Клиент ───────── 
+
 model Client {
   id        String   @id @default(cuid())
   name      String
@@ -102,7 +109,7 @@ model Client {
   @@map("Client")
 }
 
-// ───────── Мастера и их персональный график ─────────
+// ───────── Мастера и их персональный график ───────── 
 
 model Master {
   id        String   @id @default(cuid())
@@ -193,7 +200,7 @@ model Appointment {
   @@map("Appointment")
 }
 
-// ───────── Глобальный график салона ─────────
+// ───────── Глобальный график салона ───────── 
 
 model WorkingHours {
   id           String   @id @default(cuid())
@@ -217,7 +224,7 @@ model TimeOff {
   @@index([date])
 }
 
-// ───────── RBAC + NextAuth ─────────
+// ───────── RBAC + NextAuth ───────── 
 
 enum Role {
   USER
@@ -282,9 +289,8 @@ model VerificationToken {
   @@unique([identifier, token])
 }
 
-// ───────── Архив удалённых логинов ─────────
-// Позволяет «удалять» пользователя, сохраняя его email/роль
-// для истории и предотвращения повторного конфликта уникальности.
+// ───────── Архив удалённых логинов ───────── 
+
 model OrphanedUser {
   id           String   @id @default(cuid())
   email        String   @unique
