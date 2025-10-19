@@ -1,9 +1,24 @@
 'use server';
 
 import { prisma } from '@/lib/db';
+import { revalidatePath } from 'next/cache';
 
-/** очень простое slugify без внешних пакетов */
-function slugify(src: string) {
+/* ───────── Types ───────── */
+
+export type Kind = 'category' | 'service';
+
+export type ActionResult =
+  | { ok: true }
+  | { ok: false; message: string };
+
+/* ───────── Helpers ───────── */
+
+function asMessage(err: unknown, fallback = 'Неизвестная ошибка'): string {
+  return err instanceof Error ? err.message : fallback;
+}
+
+/** Простое slugify без зависимостей */
+function slugify(src: string): string {
   return src
     .toLowerCase()
     .normalize('NFKD')
@@ -13,10 +28,15 @@ function slugify(src: string) {
     .replace(/^-|-$/g, '');
 }
 
-/** гарантирует уникальность с добавкой -01, -02 ... */
-async function ensureUniqueSlug(base: string, excludeId?: string) {
+/** Обеспечивает уникальность slug (добавляет -01, -02, …) */
+async function ensureUniqueSlug(base: string, excludeId?: string): Promise<string> {
   let slug = base || 'item';
   let i = 1;
+
+  // исключаем текущую запись при апдейте
+  // чтобы не ловить конфликт "сама с собой"
+  // (NOT: { id: excludeId })
+  // eslint-disable-next-line no-constant-condition
   while (true) {
     const exists = await prisma.service.findFirst({
       where: { slug, ...(excludeId ? { NOT: { id: excludeId } } : {}) },
@@ -28,95 +48,496 @@ async function ensureUniqueSlug(base: string, excludeId?: string) {
   }
 }
 
-export async function createService(formData: FormData) {
-  const kind = (formData.get('kind') as 'category' | 'service') ?? 'category';
-  const name = String(formData.get('name') ?? '').trim();
-  if (!name) throw new Error('Название обязательно');
-
-  const isActive = formData.get('isActive') ? true : false;
-  const description = (formData.get('description') as string) || null;
-
-  const parentIdRaw = (formData.get('parentId') as string) || '';
-  const parentId = kind === 'service' && parentIdRaw ? parentIdRaw : null;
-
-  const durationMin =
-    kind === 'service' ? Number(formData.get('durationMin') || 0) : 0;
-  const priceCents =
-    kind === 'service'
-      ? (() => {
-          const v = String(formData.get('price') ?? '').replace(',', '.');
-          const num = Number(v || 0);
-          return Number.isFinite(num) ? Math.round(num * 100) : 0;
-        })()
-      : null;
-
-  // генерируем slug только по названию
-  const base = slugify(name);
-  const slug = await ensureUniqueSlug(base);
-
-  await prisma.service.create({
-    data: {
-      name,
-      slug,
-      description,
-      isActive,
-      durationMin,
-      priceCents,
-      parentId,
-    },
-  });
+/** "10,5" -> 1050 (центов), пустое -> 0 */
+function euroToCents(v: FormDataEntryValue | null): number {
+  const str = String(v ?? '').replace(',', '.').trim();
+  if (!str) return 0;
+  const n = Number(str);
+  return Number.isFinite(n) ? Math.round(n * 100) : 0;
 }
 
-export async function updateService(formData: FormData) {
-  const id = String(formData.get('id') || '');
-  if (!id) throw new Error('Не передан id');
+/* ───────── Actions ───────── */
 
-  const kind = (formData.get('kind') as 'category' | 'service') ?? 'category';
-  const name = String(formData.get('name') ?? '').trim();
-  const description = (formData.get('description') as string) || null;
-  const isActive = formData.get('isActive') ? true : false;
+export async function createService(formData: FormData): Promise<ActionResult> {
+  try {
+    const kind = (formData.get('kind') as Kind) ?? 'category';
+    const name = String(formData.get('name') ?? '').trim();
+    if (!name) return { ok: false, message: 'Название обязательно' };
 
-  const parentIdRaw = (formData.get('parentId') as string) || '';
-  const parentId = kind === 'service' && parentIdRaw ? parentIdRaw : null;
+    const isActive = Boolean(formData.get('isActive'));
+    const description = (formData.get('description') as string) || null;
 
-  const durationMin =
-    kind === 'service' ? Number(formData.get('durationMin') || 0) : 0;
-  const priceCents =
-    kind === 'service'
-      ? (() => {
-          const v = String(formData.get('price') ?? '').replace(',', '.');
-          const num = Number(v || 0);
-          return Number.isFinite(num) ? Math.round(num * 100) : 0;
-        })()
+    const parentIdRaw = (formData.get('parentId') as string) || '';
+    const parentId = kind === 'service' && parentIdRaw ? parentIdRaw : null;
+
+    const durationMin = kind === 'service'
+      ? Math.max(0, Number(formData.get('durationMin') || 0))
+      : 0;
+
+    const priceCents = kind === 'service'
+      ? euroToCents(formData.get('price'))
       : null;
 
-  // если поменяли имя — пересчитаем slug (но сохраним уникальность)
-  let slugToSave: string | undefined;
-  if (name) {
     const base = slugify(name);
-    slugToSave = await ensureUniqueSlug(base, id);
+    const slug = await ensureUniqueSlug(base);
+
+    await prisma.service.create({
+      data: {
+        name,
+        slug,
+        description,
+        isActive,       // ← сохраняем активность
+        durationMin,
+        priceCents,
+        parentId,
+      },
+    });
+
+    revalidatePath('/admin/services');
+    return { ok: true };
+  } catch (err: unknown) {
+    return { ok: false, message: asMessage(err, 'Ошибка создания') };
   }
-
-  await prisma.service.update({
-    where: { id },
-    data: {
-      name,
-      description,
-      isActive,
-      durationMin,
-      priceCents,
-      parentId,
-      ...(slugToSave ? { slug: slugToSave } : {}),
-    },
-  });
 }
 
-export async function deleteService(formData: FormData) {
-  const id = String(formData.get('id') || '');
-  if (!id) throw new Error('Не передан id');
+export async function updateService(formData: FormData): Promise<ActionResult> {
+  try {
+    const id = String(formData.get('id') ?? '');
+    if (!id) return { ok: false, message: 'Не передан id' };
 
-  await prisma.service.delete({ where: { id } });
+    const kind = (formData.get('kind') as Kind) ?? 'category';
+    const name = String(formData.get('name') ?? '').trim();
+    const description = (formData.get('description') as string) || null;
+    const isActive = Boolean(formData.get('isActive'));
+
+    const parentIdRaw = (formData.get('parentId') as string) || '';
+    const parentId = kind === 'service' && parentIdRaw ? parentIdRaw : null;
+
+    const durationMin = kind === 'service'
+      ? Math.max(0, Number(formData.get('durationMin') || 0))
+      : 0;
+
+    const priceCents = kind === 'service'
+      ? euroToCents(formData.get('price'))
+      : null;
+
+    const current = await prisma.service.findUnique({
+      where: { id },
+      select: { id: true, name: true, slug: true },
+    });
+    if (!current) return { ok: false, message: 'Услуга не найдена' };
+
+    let slugToSave: string | undefined;
+    if (name) {
+      const base = slugify(name);
+      if (base && base !== current.slug) {
+        slugToSave = await ensureUniqueSlug(base, id);
+      }
+    }
+
+    await prisma.service.update({
+      where: { id },
+      data: {
+        name,
+        description,
+        isActive,       // ← обновляем активность
+        durationMin,
+        priceCents,
+        parentId,
+        ...(slugToSave ? { slug: slugToSave } : {}),
+      },
+    });
+
+    revalidatePath('/admin/services');
+    return { ok: true };
+  } catch (err: unknown) {
+    return { ok: false, message: asMessage(err, 'Ошибка обновления') };
+  }
 }
+
+/**
+ * Безопасное удаление:
+ *  - Категория: запрещаем, если есть подуслуги или записи, связанные с её подуслугами.
+ *  - Подуслуга: запрещаем, если есть связанные записи.
+ *  Возвращаем ActionResult вместо необработанных исключений.
+ */
+export async function deleteService(formData: FormData): Promise<ActionResult> {
+  try {
+    const id = String(formData.get('id') ?? '');
+    if (!id) return { ok: false, message: 'Не передан id' };
+
+    const svc = await prisma.service.findUnique({
+      where: { id },
+      select: { id: true, name: true, parentId: true },
+    });
+    if (!svc) {
+      revalidatePath('/admin/services');
+      return { ok: true };
+    }
+
+    if (svc.parentId === null) {
+      // Категория
+      const childrenCount = await prisma.service.count({ where: { parentId: id } });
+      if (childrenCount > 0) {
+        return {
+          ok: false,
+          message: `Нельзя удалить категорию «${svc.name}»: у неё есть ${childrenCount} подуслуг(и). Сначала удалите/перенесите подуслуги.`,
+        };
+      }
+
+      // На всякий случай — записи, привязанные напрямую к категории (если такие когда-то попадут)
+      const apptsDirect = await prisma.appointment.count({ where: { serviceId: id } });
+      if (apptsDirect > 0) {
+        return {
+          ok: false,
+          message: `Нельзя удалить категорию «${svc.name}»: с ней связано ${apptsDirect} записей(ь). Перенесите/удалите их.`,
+        };
+      }
+
+      const apptsViaChildren = await prisma.appointment.count({
+        where: { service: { parentId: id } },
+      });
+      if (apptsViaChildren > 0) {
+        return {
+          ok: false,
+          message: `Нельзя удалить категорию «${svc.name}»: с её услугами связано ${apptsViaChildren} записей(ь). Перенесите/удалите их.`,
+        };
+      }
+    } else {
+      // Подуслуга
+      const apptCount = await prisma.appointment.count({ where: { serviceId: id } });
+      if (apptCount > 0) {
+        return {
+          ok: false,
+          message: `Нельзя удалить услугу «${svc.name}»: с ней связано ${apptCount} записей(ь). Перенесите/удалите их.`,
+        };
+      }
+    }
+
+    await prisma.service.delete({ where: { id } });
+    revalidatePath('/admin/services');
+    return { ok: true };
+  } catch (err: unknown) {
+    const message =
+      (err as { code?: string })?.code === 'P2003'
+        ? 'Нельзя удалить: есть связанные записи. Перенесите/удалите их и попробуйте снова.'
+        : asMessage(err, 'Ошибка удаления');
+    return { ok: false, message };
+  }
+}
+
+
+
+
+
+
+
+
+// 'use server';
+
+// import { revalidatePath } from 'next/cache';
+// import { prisma } from '@/lib/db';
+
+// /** Простой slugify без внешних пакетов */
+// function slugify(src: string) {
+//   const base = src
+//     .toLowerCase()
+//     .normalize('NFKD')
+//     .replace(/[\u0300-\u036f]/g, '')
+//     .replace(/[^a-z0-9]+/g, '-')
+//     .replace(/-{2,}/g, '-')
+//     .replace(/^-|-$/g, '');
+//   return base || 'item';
+// }
+
+// /** Гарантирует уникальность с суффиксом -01, -02, ... */
+// async function ensureUniqueSlug(base: string, excludeId?: string) {
+//   let slug = base || 'item';
+//   let i = 1;
+//   // защищаемся от бесконечного цикла
+//   // (на практике i не вырастет больше пары десятков)
+//   // eslint-disable-next-line no-constant-condition
+//   while (true) {
+//     const exists = await prisma.service.findFirst({
+//       where: { slug, ...(excludeId ? { NOT: { id: excludeId } } : {}) },
+//       select: { id: true },
+//     });
+//     if (!exists) return slug;
+//     i += 1;
+//     slug = `${base}-${String(i).padStart(2, '0')}`;
+//   }
+// }
+
+// /* ===================== CREATE ===================== */
+
+// export async function createService(formData: FormData) {
+//   const kind = (formData.get('kind') as 'category' | 'service') ?? 'category';
+//   const name = String(formData.get('name') ?? '').trim();
+//   if (!name) throw new Error('Название обязательно');
+
+//   const isActive = !!formData.get('isActive');
+//   const description = (formData.get('description') as string) || null;
+
+//   const parentIdRaw = (formData.get('parentId') as string) || '';
+//   const parentId = kind === 'service' && parentIdRaw ? parentIdRaw : null;
+
+//   const durationMin =
+//     kind === 'service' ? Number(formData.get('durationMin') || 0) : 0;
+
+//   const priceCents =
+//     kind === 'service'
+//       ? (() => {
+//           const v = String(formData.get('price') ?? '').replace(',', '.');
+//           const num = Number(v || 0);
+//           return Number.isFinite(num) ? Math.round(num * 100) : 0;
+//         })()
+//       : null;
+
+//   // генерируем slug автоматически из названия
+//   const base = slugify(name);
+//   const slug = await ensureUniqueSlug(base);
+
+//   await prisma.service.create({
+//     data: {
+//       name,
+//       slug,
+//       description,
+//       isActive,
+//       durationMin,
+//       priceCents,
+//       parentId,
+//     },
+//   });
+
+//   revalidatePath('/admin/services');
+// }
+
+// /* ===================== UPDATE ===================== */
+
+// export async function updateService(formData: FormData) {
+//   const id = String(formData.get('id') || '');
+//   if (!id) throw new Error('Не передан id');
+
+//   const kind = (formData.get('kind') as 'category' | 'service') ?? 'category';
+//   const name = String(formData.get('name') ?? '').trim();
+//   const description = (formData.get('description') as string) || null;
+//   const isActive = !!formData.get('isActive');
+
+//   const parentIdRaw = (formData.get('parentId') as string) || '';
+//   const parentId = kind === 'service' && parentIdRaw ? parentIdRaw : null;
+
+//   const durationMin =
+//     kind === 'service' ? Number(formData.get('durationMin') || 0) : 0;
+
+//   const priceCents =
+//     kind === 'service'
+//       ? (() => {
+//           const v = String(formData.get('price') ?? '').replace(',', '.');
+//           const num = Number(v || 0);
+//           return Number.isFinite(num) ? Math.round(num * 100) : 0;
+//         })()
+//       : null;
+
+//   // Если поменяли имя — пересчитаем slug и обеспечим уникальность
+//   let slugToSave: string | undefined;
+//   if (name) {
+//     const base = slugify(name);
+//     slugToSave = await ensureUniqueSlug(base, id);
+//   }
+
+//   await prisma.service.update({
+//     where: { id },
+//     data: {
+//       name,
+//       description,
+//       isActive,
+//       durationMin,
+//       priceCents,
+//       parentId,
+//       ...(slugToSave ? { slug: slugToSave } : {}),
+//     },
+//   });
+
+//   revalidatePath('/admin/services');
+// }
+
+// /* ===================== DELETE (с запретом при зависимостях) ===================== */
+// /**
+//  * Поведение:
+//  * - Если это КАТЕГОРИЯ (parentId = null) и у неё есть подуслуги — бросаем ошибку
+//  * - Если это ПОДУСЛУГА и на неё есть заявки (Appointment) — бросаем ошибку
+//  * - Иначе удаляем
+//  *
+//  * Это предотвращает P2003 (Foreign key constraint violated)
+//  * и сохраняет целостность без изменения схемы БД.
+//  */
+// export async function deleteService(formData: FormData) {
+//   const id = String(formData.get('id') || '');
+//   if (!id) throw new Error('Не передан id');
+
+//   const svc = await prisma.service.findUnique({
+//     where: { id },
+//     select: { id: true, parentId: true, name: true },
+//   });
+//   if (!svc) throw new Error('Услуга/категория не найдена');
+
+//   // Категория: запрещаем удаление, если есть подуслуги
+//   if (svc.parentId === null) {
+//     const childrenCount = await prisma.service.count({
+//       where: { parentId: id },
+//     });
+//     if (childrenCount > 0) {
+//       throw new Error(
+//         `Нельзя удалить категорию «${svc.name}»: у неё есть ${childrenCount} подуслуг(и). ` +
+//           'Сначала удалите/перенесите подуслуги.',
+//       );
+//     }
+
+//     await prisma.service.delete({ where: { id } });
+//     revalidatePath('/admin/services');
+//     return;
+//   }
+
+//   // Подуслуга: запрещаем удаление, если на неё ссылаются заявки
+//   const apptCount = await prisma.appointment.count({
+//     where: { serviceId: id },
+//   });
+//   if (apptCount > 0) {
+//     throw new Error(
+//       `Нельзя удалить услугу «${svc.name}»: с ней связано ${apptCount} заявок(и). ` +
+//         'Отвяжите или перенесите заявки.',
+//     );
+//   }
+
+//   await prisma.service.delete({ where: { id } });
+//   revalidatePath('/admin/services');
+// }
+
+
+
+
+
+
+//-------------работал но не удалял категорию
+// 'use server';
+
+// import { prisma } from '@/lib/db';
+
+// /** очень простое slugify без внешних пакетов */
+// function slugify(src: string) {
+//   return src
+//     .toLowerCase()
+//     .normalize('NFKD')
+//     .replace(/[\u0300-\u036f]/g, '')
+//     .replace(/[^a-z0-9]+/g, '-')
+//     .replace(/-{2,}/g, '-')
+//     .replace(/^-|-$/g, '');
+// }
+
+// /** гарантирует уникальность с добавкой -01, -02 ... */
+// async function ensureUniqueSlug(base: string, excludeId?: string) {
+//   let slug = base || 'item';
+//   let i = 1;
+//   while (true) {
+//     const exists = await prisma.service.findFirst({
+//       where: { slug, ...(excludeId ? { NOT: { id: excludeId } } : {}) },
+//       select: { id: true },
+//     });
+//     if (!exists) return slug;
+//     i += 1;
+//     slug = `${base}-${String(i).padStart(2, '0')}`;
+//   }
+// }
+
+// export async function createService(formData: FormData) {
+//   const kind = (formData.get('kind') as 'category' | 'service') ?? 'category';
+//   const name = String(formData.get('name') ?? '').trim();
+//   if (!name) throw new Error('Название обязательно');
+
+//   const isActive = formData.get('isActive') ? true : false;
+//   const description = (formData.get('description') as string) || null;
+
+//   const parentIdRaw = (formData.get('parentId') as string) || '';
+//   const parentId = kind === 'service' && parentIdRaw ? parentIdRaw : null;
+
+//   const durationMin =
+//     kind === 'service' ? Number(formData.get('durationMin') || 0) : 0;
+//   const priceCents =
+//     kind === 'service'
+//       ? (() => {
+//           const v = String(formData.get('price') ?? '').replace(',', '.');
+//           const num = Number(v || 0);
+//           return Number.isFinite(num) ? Math.round(num * 100) : 0;
+//         })()
+//       : null;
+
+//   // генерируем slug только по названию
+//   const base = slugify(name);
+//   const slug = await ensureUniqueSlug(base);
+
+//   await prisma.service.create({
+//     data: {
+//       name,
+//       slug,
+//       description,
+//       isActive,
+//       durationMin,
+//       priceCents,
+//       parentId,
+//     },
+//   });
+// }
+
+// export async function updateService(formData: FormData) {
+//   const id = String(formData.get('id') || '');
+//   if (!id) throw new Error('Не передан id');
+
+//   const kind = (formData.get('kind') as 'category' | 'service') ?? 'category';
+//   const name = String(formData.get('name') ?? '').trim();
+//   const description = (formData.get('description') as string) || null;
+//   const isActive = formData.get('isActive') ? true : false;
+
+//   const parentIdRaw = (formData.get('parentId') as string) || '';
+//   const parentId = kind === 'service' && parentIdRaw ? parentIdRaw : null;
+
+//   const durationMin =
+//     kind === 'service' ? Number(formData.get('durationMin') || 0) : 0;
+//   const priceCents =
+//     kind === 'service'
+//       ? (() => {
+//           const v = String(formData.get('price') ?? '').replace(',', '.');
+//           const num = Number(v || 0);
+//           return Number.isFinite(num) ? Math.round(num * 100) : 0;
+//         })()
+//       : null;
+
+//   // если поменяли имя — пересчитаем slug (но сохраним уникальность)
+//   let slugToSave: string | undefined;
+//   if (name) {
+//     const base = slugify(name);
+//     slugToSave = await ensureUniqueSlug(base, id);
+//   }
+
+//   await prisma.service.update({
+//     where: { id },
+//     data: {
+//       name,
+//       description,
+//       isActive,
+//       durationMin,
+//       priceCents,
+//       parentId,
+//       ...(slugToSave ? { slug: slugToSave } : {}),
+//     },
+//   });
+// }
+
+// export async function deleteService(formData: FormData) {
+//   const id = String(formData.get('id') || '');
+//   if (!id) throw new Error('Не передан id');
+
+//   await prisma.service.delete({ where: { id } });
+// }
 
 
 

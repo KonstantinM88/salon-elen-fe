@@ -1,21 +1,28 @@
 'use client';
 
 import React, { useMemo, useState, ChangeEvent } from 'react';
+import { useActionState } from 'react'; // React 19
+
+// Тип результата серверного экшена (должен совпадать с actions.ts)
+export type ActionResult = {
+  ok: boolean;
+  message?: string;
+};
 
 type ParentOption = { id: string; name: string };
 
 type Sub = {
   id: string;
   name: string;
-  slug: string | null;                 // отображаем, но НЕ редактируем
+  slug: string | null;
   description: string | null;
   durationMin: number | null;
   priceCents: number | null;
   isActive: boolean;
   parentId: string | null;
-  parentName: string;                  // приходит из страницы
-  createdAt: string;                   // ISO
-  updatedAt: string;                   // ISO
+  parentName: string;
+  createdAt: string;
+  updatedAt: string;
 };
 
 type ViewMode = 'cards' | 'table';
@@ -24,14 +31,42 @@ type SortKey = 'name' | 'price' | 'minutes';
 type Props = {
   parentOptions: ParentOption[];
   subservices: Sub[];
-  updateAction: (formData: FormData) => Promise<void>;
-  deleteAction: (formData: FormData) => Promise<void>;
+  updateAction: (formData: FormData) => Promise<ActionResult>;
+  deleteAction: (formData: FormData) => Promise<ActionResult>;
 };
 
 function euro(cents: number | null): string {
   if (cents === null) return '—';
-  return new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'EUR' }).format((cents ?? 0) / 100);
+  return new Intl.NumberFormat('ru-RU', {
+    style: 'currency',
+    currency: 'EUR',
+  }).format((cents ?? 0) / 100);
 }
+
+/** Небольшой адаптер: делает удобный хук под server action */
+function useServerAction(
+  action: (fd: FormData) => Promise<ActionResult>,
+  initial: ActionResult = { ok: true }
+) {
+  // useActionState принимает reducer-like экшен
+  const [state, formAction] = useActionState(
+    async (_prev: ActionResult, formData: FormData) => {
+      try {
+        const res = await action(formData);
+        return res ?? { ok: true };
+      } catch (e: unknown) {
+        const msg =
+          e instanceof Error ? e.message : 'Произошла неизвестная ошибка';
+        return { ok: false, message: msg };
+      }
+    },
+    initial
+  );
+
+  return { state, formAction };
+}
+
+/* ======================= ГЛАВНАЯ ПАНЕЛЬ ======================= */
 
 export default function SubservicesPanel({
   parentOptions,
@@ -47,22 +82,23 @@ export default function SubservicesPanel({
 
   const filtered = useMemo<Sub[]>(() => {
     const query = q.trim().toLowerCase();
-    const arr = subservices.filter((s) => {
+    const list = subservices.filter((s) => {
       if (onlyActive && !s.isActive) return false;
       if (filterParent !== 'all' && s.parentId !== filterParent) return false;
       if (!query) return true;
-      const hay = `${s.name} ${s.slug ?? ''} ${s.parentName} ${s.description ?? ''}`.toLowerCase();
+      const hay = `${s.name} ${s.slug ?? ''} ${s.parentName} ${
+        s.description ?? ''
+      }`.toLowerCase();
       return hay.includes(query);
     });
 
-    arr.sort((a, b) => {
+    list.sort((a, b) => {
       if (sort === 'name') return a.name.localeCompare(b.name);
       if (sort === 'price') return (a.priceCents ?? 0) - (b.priceCents ?? 0);
-      // minutes
       return (a.durationMin ?? 0) - (b.durationMin ?? 0);
     });
 
-    return arr;
+    return list;
   }, [subservices, onlyActive, filterParent, q, sort]);
 
   return (
@@ -70,7 +106,6 @@ export default function SubservicesPanel({
       <header className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <h2 className="text-lg font-medium">Подуслуги</h2>
 
-        {/* Фильтры / вид */}
         <div className="flex flex-wrap items-center gap-2">
           <input
             value={q}
@@ -81,7 +116,9 @@ export default function SubservicesPanel({
 
           <select
             value={filterParent}
-            onChange={(e: ChangeEvent<HTMLSelectElement>) => setFilterParent(e.target.value)}
+            onChange={(e: ChangeEvent<HTMLSelectElement>) =>
+              setFilterParent(e.target.value)
+            }
             className="admin-select"
           >
             <option value="all">Все категории</option>
@@ -139,7 +176,6 @@ export default function SubservicesPanel({
         </div>
       </header>
 
-      {/* ==== Рендер ==== */}
       {view === 'cards' ? (
         <CardsView
           items={filtered}
@@ -159,6 +195,136 @@ export default function SubservicesPanel({
   );
 }
 
+/* ===================== УТИЛИТНЫЕ ФОРМЫ ===================== */
+
+function UpdateServiceForm({
+  s,
+  parentOptions,
+  updateAction,
+  layout = 'grid',
+}: {
+  s: Sub;
+  parentOptions: ParentOption[];
+  updateAction: (fd: FormData) => Promise<ActionResult>;
+  /** 'grid' — две колонки, 'stack' — одна колонка */
+  layout?: 'grid' | 'stack';
+}) {
+  const initial: ActionResult = { ok: true };
+  const { state, formAction } = useServerAction(updateAction, initial);
+
+  const gridClass =
+    layout === 'grid'
+      ? 'grid grid-cols-2 gap-2'
+      : 'grid grid-cols-1 gap-2';
+
+  return (
+    <>
+      <form action={formAction} className={gridClass}>
+        <input type="hidden" name="id" value={s.id} />
+        <input type="hidden" name="kind" value="service" />
+
+        <div className="col-span-2">
+          <label className="mb-1 block text-xs opacity-70">Название</label>
+          <input name="name" defaultValue={s.name} className="admin-input" />
+        </div>
+
+        <div>
+          <label className="mb-1 block text-xs opacity-70">Минуты</label>
+          <input
+            name="durationMin"
+            type="number"
+            min={0}
+            step={5}
+            defaultValue={s.durationMin ?? 0}
+            className="admin-input"
+          />
+        </div>
+
+        <div>
+          <label className="mb-1 block text-xs opacity-70">Цена (€)</label>
+          <input
+            name="price"
+            inputMode="decimal"
+            defaultValue={s.priceCents ? (s.priceCents / 100).toString() : ''}
+            className="admin-input"
+          />
+        </div>
+
+        <div>
+          <label className="mb-1 block text-xs opacity-70">Категория</label>
+          <select
+            name="parentId"
+            defaultValue={s.parentId ?? ''}
+            className="admin-select"
+          >
+            <option value="">— без категории —</option>
+            {parentOptions.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.name}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <input
+            id={`active-${s.id}`}
+            name="isActive"
+            type="checkbox"
+            defaultChecked={s.isActive}
+            className="admin-switch"
+          />
+          <label htmlFor={`active-${s.id}`} className="text-sm">
+            Активна
+          </label>
+        </div>
+
+        <div className="col-span-2">
+          <label className="mb-1 block text-xs opacity-70">Описание</label>
+          <textarea
+            name="description"
+            defaultValue={s.description ?? ''}
+            rows={2}
+            className="admin-textarea"
+          />
+        </div>
+
+        <div className="col-span-2 mt-1">
+          <button className="btn-primary">Сохранить</button>
+        </div>
+      </form>
+
+      {!state.ok && state.message && (
+        <p className="mt-2 text-sm text-rose-300/90">{state.message}</p>
+      )}
+    </>
+  );
+}
+
+function DeleteServiceForm({
+  id,
+  deleteAction,
+  compact = false,
+}: {
+  id: string;
+  deleteAction: (fd: FormData) => Promise<ActionResult>;
+  compact?: boolean;
+}) {
+  const { state, formAction } = useServerAction(deleteAction, { ok: true });
+
+  return (
+    <>
+      <form action={formAction} className={compact ? 'inline-block' : ''}>
+        <input type="hidden" name="id" value={id} />
+        <button className="btn-danger">Удалить</button>
+      </form>
+      {!state.ok && state.message && (
+        <p className="mt-2 text-sm text-rose-300/90">{state.message}</p>
+      )}
+    </>
+  );
+}
+
 /* ===================== ВИД: КАРТОЧКИ ===================== */
 
 function CardsView({
@@ -169,8 +335,8 @@ function CardsView({
 }: {
   items: Sub[];
   parentOptions: ParentOption[];
-  updateAction: (formData: FormData) => Promise<void>;
-  deleteAction: (formData: FormData) => Promise<void>;
+  updateAction: (formData: FormData) => Promise<ActionResult>;
+  deleteAction: (formData: FormData) => Promise<ActionResult>;
 }) {
   if (items.length === 0) {
     return (
@@ -198,92 +364,24 @@ function CardsView({
             )}
           </div>
 
-          {/* Форма обновления — ОТДЕЛЬНО */}
-          <form action={updateAction} className="grid grid-cols-2 gap-2">
-            <input type="hidden" name="id" value={s.id} />
-            <input type="hidden" name="kind" value="service" />
+          {/* ОБНОВЛЕНИЕ */}
+          <UpdateServiceForm
+            s={s}
+            parentOptions={parentOptions}
+            updateAction={updateAction}
+            layout="grid"
+          />
 
-            <div className="col-span-2">
-              <label className="mb-1 block text-xs opacity-70">Название</label>
-              <input name="name" defaultValue={s.name} className="admin-input" />
-            </div>
-
-            <div>
-              <label className="mb-1 block text-xs opacity-70">Минуты</label>
-              <input
-                name="durationMin"
-                type="number"
-                min={0}
-                step={5}
-                defaultValue={s.durationMin ?? 0}
-                className="admin-input"
-              />
-            </div>
-
-            <div>
-              <label className="mb-1 block text-xs opacity-70">Цена (€)</label>
-              <input
-                name="price"
-                inputMode="decimal"
-                defaultValue={s.priceCents ? (s.priceCents / 100).toString() : ''}
-                className="admin-input"
-              />
-            </div>
-
-            <div>
-              <label className="mb-1 block text-xs opacity-70">Категория</label>
-              <select
-                name="parentId"
-                defaultValue={s.parentId ?? ''}
-                className="admin-select"
-              >
-                <option value="">— без категории —</option>
-                {parentOptions.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <input
-                id={`active-${s.id}`}
-                name="isActive"
-                type="checkbox"
-                defaultChecked={s.isActive}
-                className="admin-switch"
-              />
-              <label htmlFor={`active-${s.id}`} className="text-sm">
-                Активна
-              </label>
-            </div>
-
-            <div className="col-span-2">
-              <label className="mb-1 block text-xs opacity-70">Описание</label>
-              <textarea
-                name="description"
-                defaultValue={s.description ?? ''}
-                rows={2}
-                className="admin-textarea"
-              />
-            </div>
-
-            <div className="col-span-2 mt-1 flex items-center justify-between gap-2">
-              <button className="btn-primary">Сохранить</button>
-
-              {/* ВАЖНО: форма удаления — ОТДЕЛЬНАЯ, НЕ внутри form выше */}
-              <form action={deleteAction}>
-                <input type="hidden" name="id" value={s.id} />
-                <button className="btn-danger">Удалить</button>
-              </form>
-            </div>
-          </form>
-
-          {/* тонкая подпись с системной инфой */}
-          <div className="mt-3 flex items-center justify-between text-xs text-white/40">
-            <span>Цена: {euro(s.priceCents)}</span>
-            <span>Мин: {s.durationMin ?? 0}</span>
+          {/* УДАЛЕНИЕ — ОТДЕЛЬНАЯ ФОРМА, НЕ вложенная */}
+          <div className="mt-2 flex items-center justify-between">
+            <span className="text-xs text-white/45">
+              Цена: {euro(s.priceCents)} · Мин: {s.durationMin ?? 0}
+            </span>
+            <DeleteServiceForm
+              id={s.id}
+              deleteAction={deleteAction}
+              compact
+            />
           </div>
         </article>
       ))}
@@ -301,8 +399,8 @@ function TableView({
 }: {
   items: Sub[];
   parentOptions: ParentOption[];
-  updateAction: (formData: FormData) => Promise<void>;
-  deleteAction: (formData: FormData) => Promise<void>;
+  updateAction: (formData: FormData) => Promise<ActionResult>;
+  deleteAction: (formData: FormData) => Promise<ActionResult>;
 }) {
   return (
     <div className="overflow-x-auto rounded-xl border border-white/10">
@@ -343,88 +441,29 @@ function TableView({
                     Редактировать
                   </summary>
 
-                  {/* поповер с формой: ОТДЕЛЬНАЯ форма удаления */}
                   <div className="popover">
-                    <form action={updateAction} className="grid grid-cols-2 gap-2">
-                      <input type="hidden" name="id" value={s.id} />
-                      <input type="hidden" name="kind" value="service" />
+                    {/* ОБНОВЛЕНИЕ */}
+                    <UpdateServiceForm
+                      s={s}
+                      parentOptions={parentOptions}
+                      updateAction={updateAction}
+                      layout="grid"
+                    />
 
-                      <div className="col-span-2">
-                        <label className="mb-1 block text-xs opacity-70">Название</label>
-                        <input name="name" defaultValue={s.name} className="admin-input" />
-                      </div>
-
-                      <div>
-                        <label className="mb-1 block text-xs opacity-70">Минуты</label>
-                        <input
-                          name="durationMin"
-                          type="number"
-                          min={0}
-                          step={5}
-                          defaultValue={s.durationMin ?? 0}
-                          className="admin-input"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="mb-1 block text-xs opacity-70">Цена (€)</label>
-                        <input
-                          name="price"
-                          inputMode="decimal"
-                          defaultValue={s.priceCents ? (s.priceCents / 100).toString() : ''}
-                          className="admin-input"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="mb-1 block text-xs opacity-70">Категория</label>
-                        <select
-                          name="parentId"
-                          defaultValue={s.parentId ?? ''}
-                          className="admin-select"
-                        >
-                          <option value="">— без категории —</option>
-                          {parentOptions.map((p) => (
-                            <option key={p.id} value={p.id}>
-                              {p.name}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-
-                      <div className="flex items-center gap-2">
-                        <input
-                          id={`active-pop-${s.id}`}
-                          name="isActive"
-                          type="checkbox"
-                          defaultChecked={s.isActive}
-                          className="admin-switch"
-                        />
-                        <label htmlFor={`active-pop-${s.id}`} className="text-sm">
-                          Активна
-                        </label>
-                      </div>
-
-                      <div className="col-span-2">
-                        <label className="mb-1 block text-xs opacity-70">Описание</label>
-                        <textarea
-                          name="description"
-                          defaultValue={s.description ?? ''}
-                          rows={2}
-                          className="admin-textarea"
-                        />
-                      </div>
-
-                      <div className="col-span-2 mt-1 flex items-center justify-between gap-2">
-                        <button className="btn-primary">Сохранить</button>
-
-                        {/* Отдельная форма удаления, НЕ вложенная */}
-                        <form action={deleteAction}>
-                          <input type="hidden" name="id" value={s.id} />
-                          <button className="btn-danger">Удалить</button>
-                        </form>
-                      </div>
-                    </form>
+                    {/* УДАЛЕНИЕ — РЯДОМ, НЕ ВЛОЖЕНО */}
+                    <div className="mt-2 flex items-center justify-between">
+                      <span className="text-xs text-white/45">
+                        ID: {s.id.slice(0, 8)}… · Slug:{' '}
+                        <span className="font-mono opacity-80">
+                          {s.slug ?? '—'}
+                        </span>
+                      </span>
+                      <DeleteServiceForm
+                        id={s.id}
+                        deleteAction={deleteAction}
+                        compact
+                      />
+                    </div>
                   </div>
                 </details>
               </td>
@@ -443,6 +482,905 @@ function TableView({
     </div>
   );
 }
+
+
+
+
+
+
+// 'use client';
+
+// import React, { useMemo, useState, ChangeEvent } from 'react';
+
+// type ParentOption = { id: string; name: string };
+
+// type Sub = {
+//   id: string;
+//   name: string;
+//   slug: string | null;                 // показываем при необходимости, не редактируем
+//   description: string | null;
+//   durationMin: number | null;
+//   priceCents: number | null;
+//   isActive: boolean;
+//   parentId: string | null;
+//   parentName: string;                  // приходит с сервера
+//   createdAt: string;                   // ISO
+//   updatedAt: string;                   // ISO
+// };
+
+// type ViewMode = 'cards' | 'table';
+// type SortKey = 'name' | 'price' | 'minutes';
+
+// type Props = {
+//   parentOptions: ParentOption[];
+//   subservices: Sub[];
+//   updateAction: (formData: FormData) => Promise<void>;
+//   deleteAction: (formData: FormData) => Promise<void>;
+// };
+
+// function euro(cents: number | null): string {
+//   if (cents === null) return '—';
+//   return new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'EUR' }).format((cents ?? 0) / 100);
+// }
+
+// export default function SubservicesPanel({
+//   parentOptions,
+//   subservices,
+//   updateAction,
+//   deleteAction,
+// }: Props) {
+//   const [q, setQ] = useState<string>('');
+//   const [onlyActive, setOnlyActive] = useState<boolean>(false);
+//   const [sort, setSort] = useState<SortKey>('name');
+//   const [view, setView] = useState<ViewMode>('cards');
+//   const [filterParent, setFilterParent] = useState<string>('all');
+
+//   const filtered = useMemo<Sub[]>(() => {
+//     const query = q.trim().toLowerCase();
+//     const arr = subservices.filter((s) => {
+//       if (onlyActive && !s.isActive) return false;
+//       if (filterParent !== 'all' && s.parentId !== filterParent) return false;
+//       if (!query) return true;
+//       const hay = `${s.name} ${s.slug ?? ''} ${s.parentName} ${s.description ?? ''}`.toLowerCase();
+//       return hay.includes(query);
+//     });
+
+//     arr.sort((a, b) => {
+//       if (sort === 'name') return a.name.localeCompare(b.name);
+//       if (sort === 'price') return (a.priceCents ?? 0) - (b.priceCents ?? 0);
+//       // minutes
+//       return (a.durationMin ?? 0) - (b.durationMin ?? 0);
+//     });
+
+//     return arr;
+//   }, [subservices, onlyActive, filterParent, q, sort]);
+
+//   return (
+//     <section className="admin-section space-y-4">
+//       <header className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+//         <h2 className="text-lg font-medium">Подуслуги</h2>
+
+//         {/* Фильтры / вид */}
+//         <div className="flex flex-wrap items-center gap-2">
+//           <input
+//             value={q}
+//             onChange={(e: ChangeEvent<HTMLInputElement>) => setQ(e.target.value)}
+//             placeholder="Поиск по названию, описанию…"
+//             className="admin-input min-w-[14rem]"
+//           />
+
+//           <select
+//             value={filterParent}
+//             onChange={(e: ChangeEvent<HTMLSelectElement>) => setFilterParent(e.target.value)}
+//             className="admin-select"
+//           >
+//             <option value="all">Все категории</option>
+//             {parentOptions.map((p) => (
+//               <option key={p.id} value={p.id}>
+//                 {p.name}
+//               </option>
+//             ))}
+//           </select>
+
+//           <select
+//             value={sort}
+//             onChange={(e: ChangeEvent<HTMLSelectElement>) =>
+//               setSort(e.target.value as SortKey)
+//             }
+//             className="admin-select"
+//           >
+//             <option value="name">Сортировать: имя</option>
+//             <option value="price">Сортировать: цена</option>
+//             <option value="minutes">Сортировать: минуты</option>
+//           </select>
+
+//           <label className="inline-flex select-none items-center gap-2 rounded-full border border-white/15 px-3 py-2">
+//             <input
+//               type="checkbox"
+//               checked={onlyActive}
+//               onChange={(e: ChangeEvent<HTMLInputElement>) =>
+//                 setOnlyActive(e.target.checked)
+//               }
+//               className="admin-switch"
+//             />
+//             Только активные
+//           </label>
+
+//           <div className="ml-1 inline-flex rounded-full border border-white/15 p-1">
+//             <button
+//               type="button"
+//               onClick={() => setView('cards')}
+//               className={`rounded-full px-3 py-1.5 text-sm transition ${
+//                 view === 'cards' ? 'bg-white/10' : 'hover:bg-white/5'
+//               }`}
+//             >
+//               Карточки
+//             </button>
+//             <button
+//               type="button"
+//               onClick={() => setView('table')}
+//               className={`rounded-full px-3 py-1.5 text-sm transition ${
+//                 view === 'table' ? 'bg-white/10' : 'hover:bg-white/5'
+//               }`}
+//             >
+//               Таблица
+//             </button>
+//           </div>
+//         </div>
+//       </header>
+
+//       {/* ==== Рендер ==== */}
+//       {view === 'cards' ? (
+//         <CardsView
+//           items={filtered}
+//           parentOptions={parentOptions}
+//           updateAction={updateAction}
+//           deleteAction={deleteAction}
+//         />
+//       ) : (
+//         <TableView
+//           items={filtered}
+//           parentOptions={parentOptions}
+//           updateAction={updateAction}
+//           deleteAction={deleteAction}
+//         />
+//       )}
+//     </section>
+//   );
+// }
+
+// /* ===================== ВИД: КАРТОЧКИ ===================== */
+
+// function CardsView({
+//   items,
+//   parentOptions,
+//   updateAction,
+//   deleteAction,
+// }: {
+//   items: Sub[];
+//   parentOptions: ParentOption[];
+//   updateAction: (formData: FormData) => Promise<void>;
+//   deleteAction: (formData: FormData) => Promise<void>;
+// }) {
+//   if (items.length === 0) {
+//     return (
+//       <div className="rounded-xl border border-white/10 p-6 text-center text-white/60">
+//         Ничего не найдено
+//       </div>
+//     );
+//   }
+
+//   return (
+//     <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+//       {items.map((s) => (
+//         <article key={s.id} className="admin-card p-4">
+//           <div className="mb-3 flex items-start justify-between gap-3">
+//             <div>
+//               <div className="text-base font-medium">{s.name}</div>
+//               <div className="text-xs text-white/50">{s.parentName}</div>
+//             </div>
+//             {s.isActive ? (
+//               <span className="tag-active">активна</span>
+//             ) : (
+//               <span className="inline-flex items-center gap-1 rounded-full border border-white/15 px-2 py-0.5 text-xs text-white/60">
+//                 выкл
+//               </span>
+//             )}
+//           </div>
+
+//           {/* ЕДИНАЯ форма: сохранение (action) + удаление (formAction) */}
+//           <form action={updateAction} className="grid grid-cols-2 gap-2">
+//             <input type="hidden" name="id" value={s.id} />
+//             <input type="hidden" name="kind" value="service" />
+
+//             <div className="col-span-2">
+//               <label className="mb-1 block text-xs opacity-70">Название</label>
+//               <input name="name" defaultValue={s.name} className="admin-input" />
+//             </div>
+
+//             <div>
+//               <label className="mb-1 block text-xs opacity-70">Минуты</label>
+//               <input
+//                 name="durationMin"
+//                 type="number"
+//                 min={0}
+//                 step={5}
+//                 defaultValue={s.durationMin ?? 0}
+//                 className="admin-input"
+//               />
+//             </div>
+
+//             <div>
+//               <label className="mb-1 block text-xs opacity-70">Цена (€)</label>
+//               <input
+//                 name="price"
+//                 inputMode="decimal"
+//                 defaultValue={s.priceCents ? (s.priceCents / 100).toString() : ''}
+//                 className="admin-input"
+//               />
+//             </div>
+
+//             <div>
+//               <label className="mb-1 block text-xs opacity-70">Категория</label>
+//               <select
+//                 name="parentId"
+//                 defaultValue={s.parentId ?? ''}
+//                 className="admin-select"
+//               >
+//                 <option value="">— без категории —</option>
+//                 {parentOptions.map((p) => (
+//                   <option key={p.id} value={p.id}>
+//                     {p.name}
+//                   </option>
+//                 ))}
+//               </select>
+//             </div>
+
+//             <div className="flex items-center gap-2">
+//               <input
+//                 id={`active-${s.id}`}
+//                 name="isActive"
+//                 type="checkbox"
+//                 defaultChecked={s.isActive}
+//                 className="admin-switch"
+//               />
+//               <label htmlFor={`active-${s.id}`} className="text-sm">
+//                 Активна
+//               </label>
+//             </div>
+
+//             <div className="col-span-2">
+//               <label className="mb-1 block text-xs opacity-70">Описание</label>
+//               <textarea
+//                 name="description"
+//                 defaultValue={s.description ?? ''}
+//                 rows={2}
+//                 className="admin-textarea"
+//               />
+//             </div>
+
+//             <div className="col-span-2 mt-1 flex items-center justify-between gap-2">
+//               <button className="btn-primary">Сохранить</button>
+
+//               {/* Удаление без вложенной формы */}
+//               <button formAction={deleteAction} className="btn-danger">
+//                 Удалить
+//               </button>
+//             </div>
+//           </form>
+
+//           {/* тонкая подпись с системной инфой */}
+//           <div className="mt-3 flex items-center justify-between text-xs text-white/40">
+//             <span>Цена: {euro(s.priceCents)}</span>
+//             <span>Мин: {s.durationMin ?? 0}</span>
+//           </div>
+//         </article>
+//       ))}
+//     </div>
+//   );
+// }
+
+// /* ===================== ВИД: ТАБЛИЦА ===================== */
+
+// function TableView({
+//   items,
+//   parentOptions,
+//   updateAction,
+//   deleteAction,
+// }: {
+//   items: Sub[];
+//   parentOptions: ParentOption[];
+//   updateAction: (formData: FormData) => Promise<void>;
+//   deleteAction: (formData: FormData) => Promise<void>;
+// }) {
+//   return (
+//     <div className="overflow-x-auto rounded-xl border border-white/10">
+//       <table className="table">
+//         <thead className="thead">
+//           <tr>
+//             <th className="th">Название</th>
+//             <th className="th">Категория</th>
+//             <th className="th">Цена</th>
+//             <th className="th">Мин</th>
+//             <th className="th">Активна</th>
+//             <th className="th">Описание</th>
+//             <th className="th" style={{ width: 220 }} />
+//           </tr>
+//         </thead>
+//         <tbody>
+//           {items.map((s) => (
+//             <tr key={s.id} className="row">
+//               <td className="td font-medium">{s.name}</td>
+//               <td className="td">{s.parentName || '—'}</td>
+//               <td className="td">{euro(s.priceCents)}</td>
+//               <td className="td">{s.durationMin ?? 0}</td>
+//               <td className="td">
+//                 {s.isActive ? (
+//                   <span className="tag-active">Да</span>
+//                 ) : (
+//                   <span className="inline-flex items-center gap-1 rounded-full border border-white/15 px-2 py-0.5 text-xs text-white/60">
+//                     Нет
+//                   </span>
+//                 )}
+//               </td>
+//               <td className="td max-w-[32rem]">
+//                 <span className="block truncate">{s.description ?? '—'}</span>
+//               </td>
+//               <td className="td">
+//                 <details className="relative">
+//                   <summary className="btn-secondary cursor-pointer list-none">
+//                     Редактировать
+//                   </summary>
+
+//                   {/* Поповер с ЕДИНОЙ формой (удаление через formAction) */}
+//                   <div className="popover">
+//                     <form action={updateAction} className="grid grid-cols-2 gap-2">
+//                       <input type="hidden" name="id" value={s.id} />
+//                       <input type="hidden" name="kind" value="service" />
+
+//                       <div className="col-span-2">
+//                         <label className="mb-1 block text-xs opacity-70">Название</label>
+//                         <input name="name" defaultValue={s.name} className="admin-input" />
+//                       </div>
+
+//                       <div>
+//                         <label className="mb-1 block text-xs opacity-70">Минуты</label>
+//                         <input
+//                           name="durationMin"
+//                           type="number"
+//                           min={0}
+//                           step={5}
+//                           defaultValue={s.durationMin ?? 0}
+//                           className="admin-input"
+//                         />
+//                       </div>
+
+//                       <div>
+//                         <label className="mb-1 block text-xs opacity-70">Цена (€)</label>
+//                         <input
+//                           name="price"
+//                           inputMode="decimal"
+//                           defaultValue={s.priceCents ? (s.priceCents / 100).toString() : ''}
+//                           className="admin-input"
+//                         />
+//                       </div>
+
+//                       <div>
+//                         <label className="mb-1 block text-xs opacity-70">Категория</label>
+//                         <select
+//                           name="parentId"
+//                           defaultValue={s.parentId ?? ''}
+//                           className="admin-select"
+//                         >
+//                           <option value="">— без категории —</option>
+//                           {parentOptions.map((p) => (
+//                             <option key={p.id} value={p.id}>
+//                               {p.name}
+//                             </option>
+//                           ))}
+//                         </select>
+//                       </div>
+
+//                       <div className="flex items-center gap-2">
+//                         <input
+//                           id={`active-pop-${s.id}`}
+//                           name="isActive"
+//                           type="checkbox"
+//                           defaultChecked={s.isActive}
+//                           className="admin-switch"
+//                         />
+//                         <label htmlFor={`active-pop-${s.id}`} className="text-sm">
+//                           Активна
+//                         </label>
+//                       </div>
+
+//                       <div className="col-span-2">
+//                         <label className="mb-1 block text-xs opacity-70">Описание</label>
+//                         <textarea
+//                           name="description"
+//                           defaultValue={s.description ?? ''}
+//                           rows={2}
+//                           className="admin-textarea"
+//                         />
+//                       </div>
+
+//                       <div className="col-span-2 mt-1 flex items-center justify-between gap-2">
+//                         <button className="btn-primary">Сохранить</button>
+//                         <button formAction={deleteAction} className="btn-danger">
+//                           Удалить
+//                         </button>
+//                       </div>
+//                     </form>
+//                   </div>
+//                 </details>
+//               </td>
+//             </tr>
+//           ))}
+
+//           {items.length === 0 && (
+//             <tr>
+//               <td className="td py-6 text-center text-white/50" colSpan={7}>
+//                 Ничего не найдено
+//               </td>
+//             </tr>
+//           )}
+//         </tbody>
+//       </table>
+//     </div>
+//   );
+// }
+
+
+
+
+
+
+//------------пока оставим
+// 'use client';
+
+// import React, { useMemo, useState, ChangeEvent } from 'react';
+
+// type ParentOption = { id: string; name: string };
+
+// type Sub = {
+//   id: string;
+//   name: string;
+//   slug: string | null;                 // отображаем, но НЕ редактируем
+//   description: string | null;
+//   durationMin: number | null;
+//   priceCents: number | null;
+//   isActive: boolean;
+//   parentId: string | null;
+//   parentName: string;                  // приходит из страницы
+//   createdAt: string;                   // ISO
+//   updatedAt: string;                   // ISO
+// };
+
+// type ViewMode = 'cards' | 'table';
+// type SortKey = 'name' | 'price' | 'minutes';
+
+// type Props = {
+//   parentOptions: ParentOption[];
+//   subservices: Sub[];
+//   updateAction: (formData: FormData) => Promise<void>;
+//   deleteAction: (formData: FormData) => Promise<void>;
+// };
+
+// function euro(cents: number | null): string {
+//   if (cents === null) return '—';
+//   return new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'EUR' }).format((cents ?? 0) / 100);
+// }
+
+// export default function SubservicesPanel({
+//   parentOptions,
+//   subservices,
+//   updateAction,
+//   deleteAction,
+// }: Props) {
+//   const [q, setQ] = useState<string>('');
+//   const [onlyActive, setOnlyActive] = useState<boolean>(false);
+//   const [sort, setSort] = useState<SortKey>('name');
+//   const [view, setView] = useState<ViewMode>('cards');
+//   const [filterParent, setFilterParent] = useState<string>('all');
+
+//   const filtered = useMemo<Sub[]>(() => {
+//     const query = q.trim().toLowerCase();
+//     const arr = subservices.filter((s) => {
+//       if (onlyActive && !s.isActive) return false;
+//       if (filterParent !== 'all' && s.parentId !== filterParent) return false;
+//       if (!query) return true;
+//       const hay = `${s.name} ${s.slug ?? ''} ${s.parentName} ${s.description ?? ''}`.toLowerCase();
+//       return hay.includes(query);
+//     });
+
+//     arr.sort((a, b) => {
+//       if (sort === 'name') return a.name.localeCompare(b.name);
+//       if (sort === 'price') return (a.priceCents ?? 0) - (b.priceCents ?? 0);
+//       // minutes
+//       return (a.durationMin ?? 0) - (b.durationMin ?? 0);
+//     });
+
+//     return arr;
+//   }, [subservices, onlyActive, filterParent, q, sort]);
+
+//   return (
+//     <section className="admin-section space-y-4">
+//       <header className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+//         <h2 className="text-lg font-medium">Подуслуги</h2>
+
+//         {/* Фильтры / вид */}
+//         <div className="flex flex-wrap items-center gap-2">
+//           <input
+//             value={q}
+//             onChange={(e: ChangeEvent<HTMLInputElement>) => setQ(e.target.value)}
+//             placeholder="Поиск по названию, описанию…"
+//             className="admin-input min-w-[14rem]"
+//           />
+
+//           <select
+//             value={filterParent}
+//             onChange={(e: ChangeEvent<HTMLSelectElement>) => setFilterParent(e.target.value)}
+//             className="admin-select"
+//           >
+//             <option value="all">Все категории</option>
+//             {parentOptions.map((p) => (
+//               <option key={p.id} value={p.id}>
+//                 {p.name}
+//               </option>
+//             ))}
+//           </select>
+
+//           <select
+//             value={sort}
+//             onChange={(e: ChangeEvent<HTMLSelectElement>) =>
+//               setSort(e.target.value as SortKey)
+//             }
+//             className="admin-select"
+//           >
+//             <option value="name">Сортировать: имя</option>
+//             <option value="price">Сортировать: цена</option>
+//             <option value="minutes">Сортировать: минуты</option>
+//           </select>
+
+//           <label className="inline-flex select-none items-center gap-2 rounded-full border border-white/15 px-3 py-2">
+//             <input
+//               type="checkbox"
+//               checked={onlyActive}
+//               onChange={(e: ChangeEvent<HTMLInputElement>) =>
+//                 setOnlyActive(e.target.checked)
+//               }
+//               className="admin-switch"
+//             />
+//             Только активные
+//           </label>
+
+//           <div className="ml-1 inline-flex rounded-full border border-white/15 p-1">
+//             <button
+//               type="button"
+//               onClick={() => setView('cards')}
+//               className={`rounded-full px-3 py-1.5 text-sm transition ${
+//                 view === 'cards' ? 'bg-white/10' : 'hover:bg-white/5'
+//               }`}
+//             >
+//               Карточки
+//             </button>
+//             <button
+//               type="button"
+//               onClick={() => setView('table')}
+//               className={`rounded-full px-3 py-1.5 text-sm transition ${
+//                 view === 'table' ? 'bg-white/10' : 'hover:bg-white/5'
+//               }`}
+//             >
+//               Таблица
+//             </button>
+//           </div>
+//         </div>
+//       </header>
+
+//       {/* ==== Рендер ==== */}
+//       {view === 'cards' ? (
+//         <CardsView
+//           items={filtered}
+//           parentOptions={parentOptions}
+//           updateAction={updateAction}
+//           deleteAction={deleteAction}
+//         />
+//       ) : (
+//         <TableView
+//           items={filtered}
+//           parentOptions={parentOptions}
+//           updateAction={updateAction}
+//           deleteAction={deleteAction}
+//         />
+//       )}
+//     </section>
+//   );
+// }
+
+// /* ===================== ВИД: КАРТОЧКИ ===================== */
+
+// function CardsView({
+//   items,
+//   parentOptions,
+//   updateAction,
+//   deleteAction,
+// }: {
+//   items: Sub[];
+//   parentOptions: ParentOption[];
+//   updateAction: (formData: FormData) => Promise<void>;
+//   deleteAction: (formData: FormData) => Promise<void>;
+// }) {
+//   if (items.length === 0) {
+//     return (
+//       <div className="rounded-xl border border-white/10 p-6 text-center text-white/60">
+//         Ничего не найдено
+//       </div>
+//     );
+//   }
+
+//   return (
+//     <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+//       {items.map((s) => (
+//         <article key={s.id} className="admin-card p-4">
+//           <div className="mb-3 flex items-start justify-between gap-3">
+//             <div>
+//               <div className="text-base font-medium">{s.name}</div>
+//               <div className="text-xs text-white/50">{s.parentName}</div>
+//             </div>
+//             {s.isActive ? (
+//               <span className="tag-active">активна</span>
+//             ) : (
+//               <span className="inline-flex items-center gap-1 rounded-full border border-white/15 px-2 py-0.5 text-xs text-white/60">
+//                 выкл
+//               </span>
+//             )}
+//           </div>
+
+//           {/* Форма обновления — ОТДЕЛЬНО */}
+//           <form action={updateAction} className="grid grid-cols-2 gap-2">
+//             <input type="hidden" name="id" value={s.id} />
+//             <input type="hidden" name="kind" value="service" />
+
+//             <div className="col-span-2">
+//               <label className="mb-1 block text-xs opacity-70">Название</label>
+//               <input name="name" defaultValue={s.name} className="admin-input" />
+//             </div>
+
+//             <div>
+//               <label className="mb-1 block text-xs opacity-70">Минуты</label>
+//               <input
+//                 name="durationMin"
+//                 type="number"
+//                 min={0}
+//                 step={5}
+//                 defaultValue={s.durationMin ?? 0}
+//                 className="admin-input"
+//               />
+//             </div>
+
+//             <div>
+//               <label className="mb-1 block text-xs opacity-70">Цена (€)</label>
+//               <input
+//                 name="price"
+//                 inputMode="decimal"
+//                 defaultValue={s.priceCents ? (s.priceCents / 100).toString() : ''}
+//                 className="admin-input"
+//               />
+//             </div>
+
+//             <div>
+//               <label className="mb-1 block text-xs opacity-70">Категория</label>
+//               <select
+//                 name="parentId"
+//                 defaultValue={s.parentId ?? ''}
+//                 className="admin-select"
+//               >
+//                 <option value="">— без категории —</option>
+//                 {parentOptions.map((p) => (
+//                   <option key={p.id} value={p.id}>
+//                     {p.name}
+//                   </option>
+//                 ))}
+//               </select>
+//             </div>
+
+//             <div className="flex items-center gap-2">
+//               <input
+//                 id={`active-${s.id}`}
+//                 name="isActive"
+//                 type="checkbox"
+//                 defaultChecked={s.isActive}
+//                 className="admin-switch"
+//               />
+//               <label htmlFor={`active-${s.id}`} className="text-sm">
+//                 Активна
+//               </label>
+//             </div>
+
+//             <div className="col-span-2">
+//               <label className="mb-1 block text-xs opacity-70">Описание</label>
+//               <textarea
+//                 name="description"
+//                 defaultValue={s.description ?? ''}
+//                 rows={2}
+//                 className="admin-textarea"
+//               />
+//             </div>
+
+//             <div className="col-span-2 mt-1 flex items-center justify-between gap-2">
+//               <button className="btn-primary">Сохранить</button>
+
+//               {/* ВАЖНО: форма удаления — ОТДЕЛЬНАЯ, НЕ внутри form выше */}
+//               <form action={deleteAction}>
+//                 <input type="hidden" name="id" value={s.id} />
+//                 <button className="btn-danger">Удалить</button>
+//               </form>
+//             </div>
+//           </form>
+
+//           {/* тонкая подпись с системной инфой */}
+//           <div className="mt-3 flex items-center justify-between text-xs text-white/40">
+//             <span>Цена: {euro(s.priceCents)}</span>
+//             <span>Мин: {s.durationMin ?? 0}</span>
+//           </div>
+//         </article>
+//       ))}
+//     </div>
+//   );
+// }
+
+// /* ===================== ВИД: ТАБЛИЦА ===================== */
+
+// function TableView({
+//   items,
+//   parentOptions,
+//   updateAction,
+//   deleteAction,
+// }: {
+//   items: Sub[];
+//   parentOptions: ParentOption[];
+//   updateAction: (formData: FormData) => Promise<void>;
+//   deleteAction: (formData: FormData) => Promise<void>;
+// }) {
+//   return (
+//     <div className="overflow-x-auto rounded-xl border border-white/10">
+//       <table className="table">
+//         <thead className="thead">
+//           <tr>
+//             <th className="th">Название</th>
+//             <th className="th">Категория</th>
+//             <th className="th">Цена</th>
+//             <th className="th">Мин</th>
+//             <th className="th">Активна</th>
+//             <th className="th">Описание</th>
+//             <th className="th" style={{ width: 220 }} />
+//           </tr>
+//         </thead>
+//         <tbody>
+//           {items.map((s) => (
+//             <tr key={s.id} className="row">
+//               <td className="td font-medium">{s.name}</td>
+//               <td className="td">{s.parentName || '—'}</td>
+//               <td className="td">{euro(s.priceCents)}</td>
+//               <td className="td">{s.durationMin ?? 0}</td>
+//               <td className="td">
+//                 {s.isActive ? (
+//                   <span className="tag-active">Да</span>
+//                 ) : (
+//                   <span className="inline-flex items-center gap-1 rounded-full border border-white/15 px-2 py-0.5 text-xs text-white/60">
+//                     Нет
+//                   </span>
+//                 )}
+//               </td>
+//               <td className="td max-w-[32rem]">
+//                 <span className="block truncate">{s.description ?? '—'}</span>
+//               </td>
+//               <td className="td">
+//                 <details className="relative">
+//                   <summary className="btn-secondary cursor-pointer list-none">
+//                     Редактировать
+//                   </summary>
+
+//                   {/* поповер с формой: ОТДЕЛЬНАЯ форма удаления */}
+//                   <div className="popover">
+//                     <form action={updateAction} className="grid grid-cols-2 gap-2">
+//                       <input type="hidden" name="id" value={s.id} />
+//                       <input type="hidden" name="kind" value="service" />
+
+//                       <div className="col-span-2">
+//                         <label className="mb-1 block text-xs opacity-70">Название</label>
+//                         <input name="name" defaultValue={s.name} className="admin-input" />
+//                       </div>
+
+//                       <div>
+//                         <label className="mb-1 block text-xs opacity-70">Минуты</label>
+//                         <input
+//                           name="durationMin"
+//                           type="number"
+//                           min={0}
+//                           step={5}
+//                           defaultValue={s.durationMin ?? 0}
+//                           className="admin-input"
+//                         />
+//                       </div>
+
+//                       <div>
+//                         <label className="mb-1 block text-xs opacity-70">Цена (€)</label>
+//                         <input
+//                           name="price"
+//                           inputMode="decimal"
+//                           defaultValue={s.priceCents ? (s.priceCents / 100).toString() : ''}
+//                           className="admin-input"
+//                         />
+//                       </div>
+
+//                       <div>
+//                         <label className="mb-1 block text-xs opacity-70">Категория</label>
+//                         <select
+//                           name="parentId"
+//                           defaultValue={s.parentId ?? ''}
+//                           className="admin-select"
+//                         >
+//                           <option value="">— без категории —</option>
+//                           {parentOptions.map((p) => (
+//                             <option key={p.id} value={p.id}>
+//                               {p.name}
+//                             </option>
+//                           ))}
+//                         </select>
+//                       </div>
+
+//                       <div className="flex items-center gap-2">
+//                         <input
+//                           id={`active-pop-${s.id}`}
+//                           name="isActive"
+//                           type="checkbox"
+//                           defaultChecked={s.isActive}
+//                           className="admin-switch"
+//                         />
+//                         <label htmlFor={`active-pop-${s.id}`} className="text-sm">
+//                           Активна
+//                         </label>
+//                       </div>
+
+//                       <div className="col-span-2">
+//                         <label className="mb-1 block text-xs opacity-70">Описание</label>
+//                         <textarea
+//                           name="description"
+//                           defaultValue={s.description ?? ''}
+//                           rows={2}
+//                           className="admin-textarea"
+//                         />
+//                       </div>
+
+//                       <div className="col-span-2 mt-1 flex items-center justify-between gap-2">
+//                         <button className="btn-primary">Сохранить</button>
+
+//                         {/* Отдельная форма удаления, НЕ вложенная */}
+//                         <form action={deleteAction}>
+//                           <input type="hidden" name="id" value={s.id} />
+//                           <button className="btn-danger">Удалить</button>
+//                         </form>
+//                       </div>
+//                     </form>
+//                   </div>
+//                 </details>
+//               </td>
+//             </tr>
+//           ))}
+
+//           {items.length === 0 && (
+//             <tr>
+//               <td className="td py-6 text-center text-white/50" colSpan={7}>
+//                 Ничего не найдено
+//               </td>
+//             </tr>
+//           )}
+//         </tbody>
+//       </table>
+//     </div>
+//   );
+// }
 
 
 
