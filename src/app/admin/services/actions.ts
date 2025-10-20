@@ -1,138 +1,175 @@
-'use server';
+"use server";
 
-import { prisma } from '@/lib/db';
-import { revalidatePath } from 'next/cache';
-
-/* ───────── Types ───────── */
-
-export type Kind = 'category' | 'service';
+import { revalidatePath } from "next/cache";
+import { prisma } from "@/lib/prisma";
 
 export type ActionResult =
-  | { ok: true }
+  | { ok: true; message?: string }
   | { ok: false; message: string };
 
-/* ───────── Helpers ───────── */
+/* ───────────────── helpers ───────────────── */
 
-function asMessage(err: unknown, fallback = 'Неизвестная ошибка'): string {
-  return err instanceof Error ? err.message : fallback;
-}
-
-/** Простое slugify без зависимостей */
-function slugify(src: string): string {
-  return src
+function toSlug(input: string): string {
+  // очень компактная транслитерация ru → lat + нормализация
+  const map: Record<string, string> = {
+    ё: "yo", й: "i", ц: "ts", у: "u", к: "k", е: "e", н: "n", г: "g", ш: "sh",
+    щ: "sch", з: "z", х: "h", ф: "f", ы: "y", в: "v", а: "a", п: "p", р: "r",
+    о: "o", л: "l", д: "d", ж: "zh", э: "e", я: "ya", ч: "ch", с: "s", м: "m",
+    и: "i", т: "t", ь: "", б: "b", ю: "yu", ъ: "",
+  };
+  return input
+    .trim()
     .toLowerCase()
-    .normalize('NFKD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/-{2,}/g, '-')
-    .replace(/^-|-$/g, '');
+    .replace(/[а-яё]/g, (c) => map[c] ?? c)
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .replace(/--+/g, "-");
 }
 
-/** Обеспечивает уникальность slug (добавляет -01, -02, …) */
-async function ensureUniqueSlug(base: string, excludeId?: string): Promise<string> {
-  let slug = base || 'item';
+async function ensureUniqueSlug(base: string): Promise<string> {
+  const candidate = toSlug(base) || "service";
+  let slug = candidate;
   let i = 1;
+  // добьём до уникальности
+  while (await prisma.service.findUnique({ where: { slug } })) {
+    slug = `${candidate}-${++i}`;
+  }
+  return slug;
+}
 
-  // исключаем текущую запись при апдейте
-  // чтобы не ловить конфликт "сама с собой"
-  // (NOT: { id: excludeId })
-  // eslint-disable-next-line no-constant-condition
-  while (true) {
-    const exists = await prisma.service.findFirst({
-      where: { slug, ...(excludeId ? { NOT: { id: excludeId } } : {}) },
-      select: { id: true },
-    });
-    if (!exists) return slug;
-    i += 1;
-    slug = `${base}-${String(i).padStart(2, '0')}`;
+/** рекурсивная архивация ветки */
+async function archiveSubtree(serviceId: string): Promise<void> {
+  await prisma.service.update({
+    where: { id: serviceId },
+    data: { isArchived: true, isActive: false },
+  });
+  const children = await prisma.service.findMany({
+    where: { parentId: serviceId, isArchived: false },
+    select: { id: true },
+  });
+  for (const ch of children) await archiveSubtree(ch.id);
+}
+
+/* ───────────────── actions ───────────────── */
+
+/** Создание категории или подуслуги (определяется по `kind`) */
+export async function createService(formData: FormData): Promise<ActionResult> {
+  try {
+    const kind = String(formData.get("kind") ?? "category"); // "category" | "service"
+    const name = String(formData.get("name") ?? "").trim();
+    const description =
+      (formData.get("description")?.toString().trim() ?? "") || null;
+    const isActive = formData.get("isActive") ? true : false;
+
+    if (!name) return { ok: false, message: "Введите название." };
+
+    if (kind === "category") {
+      // категория: без parentId, без цены, минуты = 0
+      const slug = await ensureUniqueSlug(name);
+      await prisma.service.create({
+        data: {
+          name,
+          slug,
+          description,
+          durationMin: 0,
+          priceCents: null,
+          parentId: null,
+          isActive,
+          isArchived: false,
+        },
+      });
+    } else {
+      // подуслуга
+      const parentId =
+        (formData.get("parentId")?.toString().trim() || "") || null;
+      const durationMin = Number(formData.get("durationMin") ?? 0);
+      const priceStr = formData.get("price")?.toString().trim() ?? "";
+      const priceCents =
+        priceStr === "" ? null : Math.round(Number(priceStr.replace(",", ".")) * 100);
+
+      if (!parentId) {
+        return { ok: false, message: "Выберите категорию для услуги." };
+      }
+      if (!Number.isFinite(durationMin) || durationMin < 0) {
+        return { ok: false, message: "Минуты должны быть неотрицательным числом." };
+      }
+
+      const slug = await ensureUniqueSlug(name);
+      await prisma.service.create({
+        data: {
+          name,
+          slug,
+          description,
+          durationMin,
+          priceCents,
+          parentId,
+          isActive,
+          isArchived: false,
+        },
+      });
+    }
+
+    revalidatePath("/admin/services");
+    return { ok: true, message: "Создано." };
+  } catch {
+    return { ok: false, message: "Не удалось создать запись." };
   }
 }
 
-/** "10,5" -> 1050 (центов), пустое -> 0 */
-function euroToCents(v: FormDataEntryValue | null): number {
-  const str = String(v ?? '').replace(',', '.').trim();
-  if (!str) return 0;
-  const n = Number(str);
-  return Number.isFinite(n) ? Math.round(n * 100) : 0;
-}
-
-/* ───────── Actions ───────── */
-
-export async function createService(formData: FormData): Promise<ActionResult> {
+/** Обновление КАТЕГОРИИ (parentId: null) */
+export async function updateCategory(formData: FormData): Promise<ActionResult> {
   try {
-    const kind = (formData.get('kind') as Kind) ?? 'category';
-    const name = String(formData.get('name') ?? '').trim();
-    if (!name) return { ok: false, message: 'Название обязательно' };
+    const id = String(formData.get("id") ?? "");
+    const name = String(formData.get("name") ?? "").trim();
+    const description =
+      (formData.get("description")?.toString().trim() ?? "") || null;
+    const isActive = formData.get("isActive") ? true : false;
 
-    const isActive = Boolean(formData.get('isActive'));
-    const description = (formData.get('description') as string) || null;
+    if (!id) return { ok: false, message: "Не найден ID." };
+    if (!name) return { ok: false, message: "Введите название." };
 
-    const parentIdRaw = (formData.get('parentId') as string) || '';
-    const parentId = kind === 'service' && parentIdRaw ? parentIdRaw : null;
-
-    const durationMin = kind === 'service'
-      ? Math.max(0, Number(formData.get('durationMin') || 0))
-      : 0;
-
-    const priceCents = kind === 'service'
-      ? euroToCents(formData.get('price'))
-      : null;
-
-    const base = slugify(name);
-    const slug = await ensureUniqueSlug(base);
-
-    await prisma.service.create({
+    await prisma.service.update({
+      where: { id },
       data: {
         name,
-        slug,
         description,
-        isActive,       // ← сохраняем активность
-        durationMin,
-        priceCents,
-        parentId,
+        isActive,
+        // гарантируем, что это именно категория
+        parentId: null,
+        durationMin: 0,
+        priceCents: null,
       },
     });
 
-    revalidatePath('/admin/services');
-    return { ok: true };
-  } catch (err: unknown) {
-    return { ok: false, message: asMessage(err, 'Ошибка создания') };
+    revalidatePath("/admin/services");
+    return { ok: true, message: "Сохранено." };
+  } catch {
+    return { ok: false, message: "Не удалось обновить категорию." };
   }
 }
 
-export async function updateService(formData: FormData): Promise<ActionResult> {
+/** Обновление ПОДУСЛУГИ */
+export async function updateSubservice(
+  formData: FormData
+): Promise<ActionResult> {
   try {
-    const id = String(formData.get('id') ?? '');
-    if (!id) return { ok: false, message: 'Не передан id' };
+    const id = String(formData.get("id") ?? "");
+    const name = String(formData.get("name") ?? "").trim();
+    const description =
+      (formData.get("description")?.toString().trim() ?? "") || null;
+    const isActive = formData.get("isActive") ? true : false;
+    const parentId = (formData.get("parentId")?.toString().trim() || "") || null;
 
-    const kind = (formData.get('kind') as Kind) ?? 'category';
-    const name = String(formData.get('name') ?? '').trim();
-    const description = (formData.get('description') as string) || null;
-    const isActive = Boolean(formData.get('isActive'));
+    const durationMin = Number(formData.get("durationMin") ?? 0);
+    const priceStr = formData.get("price")?.toString().trim() ?? "";
+    const priceCents =
+      priceStr === "" ? null : Math.round(Number(priceStr.replace(",", ".")) * 100);
 
-    const parentIdRaw = (formData.get('parentId') as string) || '';
-    const parentId = kind === 'service' && parentIdRaw ? parentIdRaw : null;
-
-    const durationMin = kind === 'service'
-      ? Math.max(0, Number(formData.get('durationMin') || 0))
-      : 0;
-
-    const priceCents = kind === 'service'
-      ? euroToCents(formData.get('price'))
-      : null;
-
-    const current = await prisma.service.findUnique({
-      where: { id },
-      select: { id: true, name: true, slug: true },
-    });
-    if (!current) return { ok: false, message: 'Услуга не найдена' };
-
-    let slugToSave: string | undefined;
-    if (name) {
-      const base = slugify(name);
-      if (base && base !== current.slug) {
-        slugToSave = await ensureUniqueSlug(base, id);
-      }
+    if (!id) return { ok: false, message: "Не найден ID." };
+    if (!name) return { ok: false, message: "Введите название." };
+    if (!parentId) return { ok: false, message: "Выберите категорию." };
+    if (!Number.isFinite(durationMin) || durationMin < 0) {
+      return { ok: false, message: "Минуты должны быть неотрицательным числом." };
     }
 
     await prisma.service.update({
@@ -140,91 +177,304 @@ export async function updateService(formData: FormData): Promise<ActionResult> {
       data: {
         name,
         description,
-        isActive,       // ← обновляем активность
+        isActive,
+        parentId,
         durationMin,
         priceCents,
-        parentId,
-        ...(slugToSave ? { slug: slugToSave } : {}),
       },
     });
 
-    revalidatePath('/admin/services');
-    return { ok: true };
-  } catch (err: unknown) {
-    return { ok: false, message: asMessage(err, 'Ошибка обновления') };
+    revalidatePath("/admin/services");
+    return { ok: true, message: "Сохранено." };
+  } catch {
+    return { ok: false, message: "Не удалось обновить услугу." };
   }
 }
 
-/**
- * Безопасное удаление:
- *  - Категория: запрещаем, если есть подуслуги или записи, связанные с её подуслугами.
- *  - Подуслуга: запрещаем, если есть связанные записи.
- *  Возвращаем ActionResult вместо необработанных исключений.
- */
+/** Удалить (или заархивировать, если есть связи) */
 export async function deleteService(formData: FormData): Promise<ActionResult> {
   try {
-    const id = String(formData.get('id') ?? '');
-    if (!id) return { ok: false, message: 'Не передан id' };
+    const id = String(formData.get("id") ?? "");
+    if (!id) return { ok: false, message: "Не найден ID." };
 
     const svc = await prisma.service.findUnique({
       where: { id },
-      select: { id: true, name: true, parentId: true },
+      select: { id: true, isArchived: true },
     });
-    if (!svc) {
-      revalidatePath('/admin/services');
-      return { ok: true };
-    }
+    if (!svc) return { ok: false, message: "Услуга не найдена." };
 
-    if (svc.parentId === null) {
-      // Категория
-      const childrenCount = await prisma.service.count({ where: { parentId: id } });
-      if (childrenCount > 0) {
-        return {
-          ok: false,
-          message: `Нельзя удалить категорию «${svc.name}»: у неё есть ${childrenCount} подуслуг(и). Сначала удалите/перенесите подуслуги.`,
-        };
-      }
+    const [children, appts, masters] = await Promise.all([
+      prisma.service.count({ where: { parentId: id, isArchived: false } }),
+      prisma.appointment.count({
+        where: { OR: [{ serviceId: id }, { service: { parentId: id } }] },
+      }),
+      prisma.master.count({ where: { services: { some: { id } } } }),
+    ]);
 
-      // На всякий случай — записи, привязанные напрямую к категории (если такие когда-то попадут)
-      const apptsDirect = await prisma.appointment.count({ where: { serviceId: id } });
-      if (apptsDirect > 0) {
-        return {
-          ok: false,
-          message: `Нельзя удалить категорию «${svc.name}»: с ней связано ${apptsDirect} записей(ь). Перенесите/удалите их.`,
-        };
-      }
+    const used = children > 0 || appts > 0 || masters > 0;
 
-      const apptsViaChildren = await prisma.appointment.count({
-        where: { service: { parentId: id } },
-      });
-      if (apptsViaChildren > 0) {
-        return {
-          ok: false,
-          message: `Нельзя удалить категорию «${svc.name}»: с её услугами связано ${apptsViaChildren} записей(ь). Перенесите/удалите их.`,
-        };
-      }
-    } else {
-      // Подуслуга
-      const apptCount = await prisma.appointment.count({ where: { serviceId: id } });
-      if (apptCount > 0) {
-        return {
-          ok: false,
-          message: `Нельзя удалить услугу «${svc.name}»: с ней связано ${apptCount} записей(ь). Перенесите/удалите их.`,
-        };
-      }
+    if (used) {
+      await archiveSubtree(id);
+      revalidatePath("/admin/services");
+      return {
+        ok: true,
+        message:
+          "Связи обнаружены — ветка скрыта (архив).",
+      };
     }
 
     await prisma.service.delete({ where: { id } });
-    revalidatePath('/admin/services');
-    return { ok: true };
-  } catch (err: unknown) {
-    const message =
-      (err as { code?: string })?.code === 'P2003'
-        ? 'Нельзя удалить: есть связанные записи. Перенесите/удалите их и попробуйте снова.'
-        : asMessage(err, 'Ошибка удаления');
-    return { ok: false, message };
+    revalidatePath("/admin/services");
+    return { ok: true, message: "Удалено." };
+  } catch {
+    // страховка: если FK помешали — архивируем
+    try {
+      const id = String(formData.get("id") ?? "");
+      if (id) await archiveSubtree(id);
+      revalidatePath("/admin/services");
+      return { ok: true, message: "Перемещено в архив." };
+    } catch {
+      return { ok: false, message: "Не удалось удалить/архивировать." };
+    }
   }
 }
+
+
+
+
+
+
+
+
+
+//--------работал добавляем удаление
+// 'use server';
+
+// import { prisma } from '@/lib/db';
+// import { revalidatePath } from 'next/cache';
+
+// /* ───────── Types ───────── */
+
+// export type Kind = 'category' | 'service';
+
+// export type ActionResult =
+//   | { ok: true }
+//   | { ok: false; message: string };
+
+// /* ───────── Helpers ───────── */
+
+// function asMessage(err: unknown, fallback = 'Неизвестная ошибка'): string {
+//   return err instanceof Error ? err.message : fallback;
+// }
+
+// /** Простое slugify без зависимостей */
+// function slugify(src: string): string {
+//   return src
+//     .toLowerCase()
+//     .normalize('NFKD')
+//     .replace(/[\u0300-\u036f]/g, '')
+//     .replace(/[^a-z0-9]+/g, '-')
+//     .replace(/-{2,}/g, '-')
+//     .replace(/^-|-$/g, '');
+// }
+
+// /** Обеспечивает уникальность slug (добавляет -01, -02, …) */
+// async function ensureUniqueSlug(base: string, excludeId?: string): Promise<string> {
+//   let slug = base || 'item';
+//   let i = 1;
+
+//   // исключаем текущую запись при апдейте
+//   // чтобы не ловить конфликт "сама с собой"
+//   // (NOT: { id: excludeId })
+//   // eslint-disable-next-line no-constant-condition
+//   while (true) {
+//     const exists = await prisma.service.findFirst({
+//       where: { slug, ...(excludeId ? { NOT: { id: excludeId } } : {}) },
+//       select: { id: true },
+//     });
+//     if (!exists) return slug;
+//     i += 1;
+//     slug = `${base}-${String(i).padStart(2, '0')}`;
+//   }
+// }
+
+// /** "10,5" -> 1050 (центов), пустое -> 0 */
+// function euroToCents(v: FormDataEntryValue | null): number {
+//   const str = String(v ?? '').replace(',', '.').trim();
+//   if (!str) return 0;
+//   const n = Number(str);
+//   return Number.isFinite(n) ? Math.round(n * 100) : 0;
+// }
+
+// /* ───────── Actions ───────── */
+
+// export async function createService(formData: FormData): Promise<ActionResult> {
+//   try {
+//     const kind = (formData.get('kind') as Kind) ?? 'category';
+//     const name = String(formData.get('name') ?? '').trim();
+//     if (!name) return { ok: false, message: 'Название обязательно' };
+
+//     const isActive = Boolean(formData.get('isActive'));
+//     const description = (formData.get('description') as string) || null;
+
+//     const parentIdRaw = (formData.get('parentId') as string) || '';
+//     const parentId = kind === 'service' && parentIdRaw ? parentIdRaw : null;
+
+//     const durationMin = kind === 'service'
+//       ? Math.max(0, Number(formData.get('durationMin') || 0))
+//       : 0;
+
+//     const priceCents = kind === 'service'
+//       ? euroToCents(formData.get('price'))
+//       : null;
+
+//     const base = slugify(name);
+//     const slug = await ensureUniqueSlug(base);
+
+//     await prisma.service.create({
+//       data: {
+//         name,
+//         slug,
+//         description,
+//         isActive,       // ← сохраняем активность
+//         durationMin,
+//         priceCents,
+//         parentId,
+//       },
+//     });
+
+//     revalidatePath('/admin/services');
+//     return { ok: true };
+//   } catch (err: unknown) {
+//     return { ok: false, message: asMessage(err, 'Ошибка создания') };
+//   }
+// }
+
+// export async function updateService(formData: FormData): Promise<ActionResult> {
+//   try {
+//     const id = String(formData.get('id') ?? '');
+//     if (!id) return { ok: false, message: 'Не передан id' };
+
+//     const kind = (formData.get('kind') as Kind) ?? 'category';
+//     const name = String(formData.get('name') ?? '').trim();
+//     const description = (formData.get('description') as string) || null;
+//     const isActive = Boolean(formData.get('isActive'));
+
+//     const parentIdRaw = (formData.get('parentId') as string) || '';
+//     const parentId = kind === 'service' && parentIdRaw ? parentIdRaw : null;
+
+//     const durationMin = kind === 'service'
+//       ? Math.max(0, Number(formData.get('durationMin') || 0))
+//       : 0;
+
+//     const priceCents = kind === 'service'
+//       ? euroToCents(formData.get('price'))
+//       : null;
+
+//     const current = await prisma.service.findUnique({
+//       where: { id },
+//       select: { id: true, name: true, slug: true },
+//     });
+//     if (!current) return { ok: false, message: 'Услуга не найдена' };
+
+//     let slugToSave: string | undefined;
+//     if (name) {
+//       const base = slugify(name);
+//       if (base && base !== current.slug) {
+//         slugToSave = await ensureUniqueSlug(base, id);
+//       }
+//     }
+
+//     await prisma.service.update({
+//       where: { id },
+//       data: {
+//         name,
+//         description,
+//         isActive,       // ← обновляем активность
+//         durationMin,
+//         priceCents,
+//         parentId,
+//         ...(slugToSave ? { slug: slugToSave } : {}),
+//       },
+//     });
+
+//     revalidatePath('/admin/services');
+//     return { ok: true };
+//   } catch (err: unknown) {
+//     return { ok: false, message: asMessage(err, 'Ошибка обновления') };
+//   }
+// }
+
+// /**
+//  * Безопасное удаление:
+//  *  - Категория: запрещаем, если есть подуслуги или записи, связанные с её подуслугами.
+//  *  - Подуслуга: запрещаем, если есть связанные записи.
+//  *  Возвращаем ActionResult вместо необработанных исключений.
+//  */
+// export async function deleteService(formData: FormData): Promise<ActionResult> {
+//   try {
+//     const id = String(formData.get('id') ?? '');
+//     if (!id) return { ok: false, message: 'Не передан id' };
+
+//     const svc = await prisma.service.findUnique({
+//       where: { id },
+//       select: { id: true, name: true, parentId: true },
+//     });
+//     if (!svc) {
+//       revalidatePath('/admin/services');
+//       return { ok: true };
+//     }
+
+//     if (svc.parentId === null) {
+//       // Категория
+//       const childrenCount = await prisma.service.count({ where: { parentId: id } });
+//       if (childrenCount > 0) {
+//         return {
+//           ok: false,
+//           message: `Нельзя удалить категорию «${svc.name}»: у неё есть ${childrenCount} подуслуг(и). Сначала удалите/перенесите подуслуги.`,
+//         };
+//       }
+
+//       // На всякий случай — записи, привязанные напрямую к категории (если такие когда-то попадут)
+//       const apptsDirect = await prisma.appointment.count({ where: { serviceId: id } });
+//       if (apptsDirect > 0) {
+//         return {
+//           ok: false,
+//           message: `Нельзя удалить категорию «${svc.name}»: с ней связано ${apptsDirect} записей(ь). Перенесите/удалите их.`,
+//         };
+//       }
+
+//       const apptsViaChildren = await prisma.appointment.count({
+//         where: { service: { parentId: id } },
+//       });
+//       if (apptsViaChildren > 0) {
+//         return {
+//           ok: false,
+//           message: `Нельзя удалить категорию «${svc.name}»: с её услугами связано ${apptsViaChildren} записей(ь). Перенесите/удалите их.`,
+//         };
+//       }
+//     } else {
+//       // Подуслуга
+//       const apptCount = await prisma.appointment.count({ where: { serviceId: id } });
+//       if (apptCount > 0) {
+//         return {
+//           ok: false,
+//           message: `Нельзя удалить услугу «${svc.name}»: с ней связано ${apptCount} записей(ь). Перенесите/удалите их.`,
+//         };
+//       }
+//     }
+
+//     await prisma.service.delete({ where: { id } });
+//     revalidatePath('/admin/services');
+//     return { ok: true };
+//   } catch (err: unknown) {
+//     const message =
+//       (err as { code?: string })?.code === 'P2003'
+//         ? 'Нельзя удалить: есть связанные записи. Перенесите/удалите их и попробуйте снова.'
+//         : asMessage(err, 'Ошибка удаления');
+//     return { ok: false, message };
+//   }
+// }
 
 
 

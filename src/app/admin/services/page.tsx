@@ -1,35 +1,37 @@
 // src/app/admin/services/page.tsx
-import { prisma } from '@/lib/db';
-import { createService, updateService, deleteService } from './actions';
+import { prisma } from '@/lib/prisma';
+import {
+  createService,      // (fd) => Promise<ActionResult> — для ServiceCreateForm
+  updateCategory,     // (fd) => Promise<ActionResult> — редактирование категории
+  updateSubservice,   // (fd) => Promise<ActionResult> — редактирование подуслуги
+  deleteService,      // (fd) => Promise<ActionResult> — удаление/архив
+} from './actions';
 import ServiceCreateForm from './ServiceCreateForm';
 import SubservicesPanel from './SubservicesPanel';
 
 function euro(cents: number | null): string {
   if (cents === null) return '—';
-  return new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'EUR' }).format((cents ?? 0) / 100);
+  return new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'EUR' })
+    .format((cents ?? 0) / 100);
 }
 
 export const dynamic = 'force-dynamic';
 
-/** Обёртки под <form action=...>, чтобы сигнатура была Promise<void> */
-const createServiceVoid = async (formData: FormData): Promise<void> => {
+/** Next требует: <form action> => функция (fd)=>void|Promise<void>.
+ *  Делаем тонкие адаптеры поверх наших экшенов. */
+const updateCategoryVoid = async (formData: FormData): Promise<void> => {
   'use server';
-  await createService(formData);
+  await updateCategory(formData);
 };
-
-const updateServiceVoid = async (formData: FormData): Promise<void> => {
-  'use server';
-  await updateService(formData);
-};
-
-const deleteServiceVoid = async (formData: FormData): Promise<void> => {
+const deleteCategoryVoid = async (formData: FormData): Promise<void> => {
   'use server';
   await deleteService(formData);
 };
 
 export default async function AdminServicesPage() {
+  // показываем только неархивные категории
   const categories = await prisma.service.findMany({
-    where: { parentId: null },
+    where: { parentId: null, isArchived: false },
     orderBy: { name: 'asc' },
     select: {
       id: true,
@@ -42,6 +44,7 @@ export default async function AdminServicesPage() {
       createdAt: true,
       updatedAt: true,
       children: {
+        where: { isArchived: false },
         orderBy: { name: 'asc' },
         select: {
           id: true,
@@ -92,15 +95,23 @@ export default async function AdminServicesPage() {
       {/* Добавить */}
       <section className="admin-section">
         <h2 className="text-lg font-medium mb-4">Добавить</h2>
-        {/* ВАЖНО: action принимает Promise<void>, поэтому передаём createServiceVoid */}
-        <ServiceCreateForm parentOptions={parentOptions} action={createServiceVoid} />
+        {/* Клиентский компонент ожидает (fd)=>Promise<ActionResult> */}
+        <ServiceCreateForm parentOptions={parentOptions} action={createService} />
       </section>
 
-      {/* ======== КАТЕГОРИИ (десктоп, выровнено + стиль админки) ======== */}
+      {/* ======== КАТЕГОРИИ (десктоп) ======== */}
       <section className="admin-section hidden lg:block overflow-x-auto">
         <table className="table table-fixed">
-          {/* colgroup одной строкой — без переносов/комментов, чтобы не было hydration warning */}
-          <colgroup><col style={{width:'18rem'}}/><col style={{width:'12rem'}}/><col style={{width:'7rem'}}/><col style={{width:'6rem'}}/><col style={{width:'8rem'}}/><col style={{width:'12rem'}}/><col style={{width:'auto'}}/><col style={{width:'11rem'}}/></colgroup>
+          <colgroup>
+            <col style={{ width: '18rem' }} />
+            <col style={{ width: '12rem' }} />
+            <col style={{ width: '7rem' }} />
+            <col style={{ width: '6rem' }} />
+            <col style={{ width: '8rem' }} />
+            <col style={{ width: '12rem' }} />
+            <col style={{ width: 'auto' }} />
+            <col style={{ width: '11rem' }} />
+          </colgroup>
           <thead className="thead">
             <tr>
               <th className="th text-left  text-amber-500/85 font-semibold tracking-wid">Название</th>
@@ -154,8 +165,8 @@ export default async function AdminServicesPage() {
                     </summary>
 
                     <div className="popover right-0">
-                      {/* форма редактирования */}
-                      <form action={updateServiceVoid} className="grid grid-cols-2 gap-3">
+                      {/* форма редактирования категории — требуется Promise<void> */}
+                      <form action={updateCategoryVoid} className="grid grid-cols-2 gap-3">
                         <input type="hidden" name="id" value={c.id} />
                         <input type="hidden" name="kind" value="category" />
 
@@ -166,7 +177,7 @@ export default async function AdminServicesPage() {
 
                         <div>
                           <label className="mb-1 block text-xs opacity-70">Slug</label>
-                          <input value={c.slug} readOnly className="admin-input cursor-not-allowed text-white/70" />
+                          <input value={c.slug ?? ''} readOnly className="admin-input cursor-not-allowed text-white/70" />
                         </div>
 
                         <div className="flex items-center gap-2">
@@ -197,9 +208,9 @@ export default async function AdminServicesPage() {
                         </div>
                       </form>
 
-                      {/* отдельная форма удаления */}
+                      {/* удаление — тоже Promise<void> через обёртку */}
                       <div className="my-3 border-t border-white/10" />
-                      <form action={deleteServiceVoid} className="mt-1">
+                      <form action={deleteCategoryVoid} className="mt-1">
                         <input type="hidden" name="id" value={c.id} />
                         <button className="btn-danger w-full">Удалить категорию</button>
                       </form>
@@ -232,7 +243,7 @@ export default async function AdminServicesPage() {
             </summary>
 
             <div className="p-4 space-y-3">
-              <form action={updateServiceVoid} className="grid grid-cols-1 gap-3">
+              <form action={updateCategoryVoid} className="grid grid-cols-1 gap-3">
                 <input type="hidden" name="id" value={c.id} />
                 <input type="hidden" name="kind" value="category" />
 
@@ -243,7 +254,7 @@ export default async function AdminServicesPage() {
 
                 <div>
                   <label className="block text-xs mb-1 opacity-80">Slug</label>
-                  <input defaultValue={c.slug} className="admin-input" readOnly />
+                  <input defaultValue={c.slug ?? ''} className="admin-input" readOnly />
                 </div>
 
                 <div className="flex items-center gap-2">
@@ -269,7 +280,7 @@ export default async function AdminServicesPage() {
                 </div>
               </form>
 
-              <form action={deleteServiceVoid}>
+              <form action={deleteCategoryVoid}>
                 <input type="hidden" name="id" value={c.id} />
                 <button className="w-full btn-danger">Удалить категорию</button>
               </form>
@@ -282,12 +293,311 @@ export default async function AdminServicesPage() {
       <SubservicesPanel
         parentOptions={parentOptions}
         subservices={subservices}
-        updateAction={updateService}
-        deleteAction={deleteService}
+        updateAction={updateSubservice}   // (fd)=>Promise<ActionResult>
+        deleteAction={deleteService}      // (fd)=>Promise<ActionResult>
       />
     </main>
   );
 }
+
+
+
+
+
+
+
+
+//----------работало но добавили удаление старых услуг
+// // src/app/admin/services/page.tsx
+// import { prisma } from '@/lib/db';
+// import { createService, updateService, deleteService } from './actions';
+// import ServiceCreateForm from './ServiceCreateForm';
+// import SubservicesPanel from './SubservicesPanel';
+
+// function euro(cents: number | null): string {
+//   if (cents === null) return '—';
+//   return new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'EUR' }).format((cents ?? 0) / 100);
+// }
+
+// export const dynamic = 'force-dynamic';
+
+// /** Обёртки под <form action=...>, чтобы сигнатура была Promise<void> */
+// const createServiceVoid = async (formData: FormData): Promise<void> => {
+//   'use server';
+//   await createService(formData);
+// };
+
+// const updateServiceVoid = async (formData: FormData): Promise<void> => {
+//   'use server';
+//   await updateService(formData);
+// };
+
+// const deleteServiceVoid = async (formData: FormData): Promise<void> => {
+//   'use server';
+//   await deleteService(formData);
+// };
+
+// export default async function AdminServicesPage() {
+//   const categories = await prisma.service.findMany({
+//     where: { parentId: null },
+//     orderBy: { name: 'asc' },
+//     select: {
+//       id: true,
+//       name: true,
+//       slug: true,
+//       description: true,
+//       durationMin: true,
+//       priceCents: true,
+//       isActive: true,
+//       createdAt: true,
+//       updatedAt: true,
+//       children: {
+//         orderBy: { name: 'asc' },
+//         select: {
+//           id: true,
+//           name: true,
+//           slug: true,
+//           description: true,
+//           durationMin: true,
+//           priceCents: true,
+//           isActive: true,
+//           parentId: true,
+//           createdAt: true,
+//           updatedAt: true,
+//         },
+//       },
+//     },
+//   });
+
+//   const parentOptions = categories.map((c) => ({ id: c.id, name: c.name }));
+
+//   const subservices = categories.flatMap((c) =>
+//     c.children.map((s) => ({
+//       ...s,
+//       parentName: c.name,
+//       createdAt: s.createdAt.toISOString(),
+//       updatedAt: s.updatedAt.toISOString(),
+//     })),
+//   );
+
+//   return (
+//     <main className="container py-8 space-y-8">
+//       {/* шапка */}
+//       <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-fuchsia-700/30 via-indigo-700/20 to-cyan-600/20 p-6 md:p-8">
+//         <div
+//           className="pointer-events-none absolute inset-0 -translate-x-1/3 translate-y-6 blur-3xl"
+//           style={{
+//             background:
+//               'radial-gradient(1200px 300px at 90% 25%, rgba(59,130,246,0.25), transparent 60%), radial-gradient(600px 200px at 40% 10%, rgba(168,85,247,0.35), transparent 55%)',
+//           }}
+//         />
+//         <div className="relative z-10">
+//           <h1 className="text-2xl md:text-3xl font-semibold">Услуги</h1>
+//           <p className="mt-1 text-sm text-white/70">
+//             Управление категориями и подуслугами. Быстрое редактирование и обновление цен.
+//           </p>
+//         </div>
+//       </div>
+
+//       {/* Добавить */}
+//       <section className="admin-section">
+//         <h2 className="text-lg font-medium mb-4">Добавить</h2>
+//         {/* ВАЖНО: action принимает Promise<void>, поэтому передаём createServiceVoid */}
+//         <ServiceCreateForm parentOptions={parentOptions} action={createServiceVoid} />
+//       </section>
+
+//       {/* ======== КАТЕГОРИИ (десктоп, выровнено + стиль админки) ======== */}
+//       <section className="admin-section hidden lg:block overflow-x-auto">
+//         <table className="table table-fixed">
+//           {/* colgroup одной строкой — без переносов/комментов, чтобы не было hydration warning */}
+//           <colgroup><col style={{width:'18rem'}}/><col style={{width:'12rem'}}/><col style={{width:'7rem'}}/><col style={{width:'6rem'}}/><col style={{width:'8rem'}}/><col style={{width:'12rem'}}/><col style={{width:'auto'}}/><col style={{width:'11rem'}}/></colgroup>
+//           <thead className="thead">
+//             <tr>
+//               <th className="th text-left  text-amber-500/85 font-semibold tracking-wid">Название</th>
+//               <th className="th text-left  text-amber-500/85 font-semibold tracking-wid">Slug</th>
+//               <th className="th text-right text-amber-500/85 font-semibold tracking-wid">Цена</th>
+//               <th className="th text-right text-amber-500/85 font-semibold tracking-wid">Мин</th>
+//               <th className="th text-center text-amber-500/85 font-semibold tracking-wide">Активна</th>
+//               <th className="th text-center text-amber-500/85 font-semibold tracking-wid">Категория</th>
+//               <th className="th text-center text-amber-500/85 font-semibold tracking-wid">Описание</th>
+//               <th className="th text-right" />
+//             </tr>
+//           </thead>
+
+//           <tbody>
+//             {categories.map((c) => (
+//               <tr key={c.id} className="row align-middle">
+//                 <td className="td font-medium">{c.name}</td>
+
+//                 <td className="td">
+//                   <span className="font-mono text-white/70 whitespace-nowrap">{c.slug}</span>
+//                 </td>
+
+//                 <td className="td text-right whitespace-nowrap">{euro(c.priceCents)}</td>
+//                 <td className="td text-right whitespace-nowrap">{c.durationMin ?? 0}</td>
+
+//                 <td className="td text-center">
+//                   {c.isActive ? (
+//                     <span className="tag-active">Да</span>
+//                   ) : (
+//                     <span className="inline-flex items-center gap-1 rounded-full border border-white/15 px-2 py-0.5 text-xs text-white/60">
+//                       Нет
+//                     </span>
+//                   )}
+//                 </td>
+
+//                 <td className="td text-white/60 text-center">—</td>
+
+//                 <td className="td max-w-[48rem]">
+//                   <span className="block truncate" title={c.description ?? ''}>
+//                     {c.description ?? '—'}
+//                   </span>
+//                 </td>
+
+//                 <td className="td text-right">
+//                   <details className="relative inline-block">
+//                     <summary
+//                       className="btn-primary cta-boost btn-primary-sheen idle-aura cursor-pointer list-none"
+//                       role="button"
+//                     >
+//                       Редактировать
+//                     </summary>
+
+//                     <div className="popover right-0">
+//                       {/* форма редактирования */}
+//                       <form action={updateServiceVoid} className="grid grid-cols-2 gap-3">
+//                         <input type="hidden" name="id" value={c.id} />
+//                         <input type="hidden" name="kind" value="category" />
+
+//                         <div className="col-span-2">
+//                           <label className="mb-1 block text-xs opacity-70">Название</label>
+//                           <input name="name" defaultValue={c.name} className="admin-input" />
+//                         </div>
+
+//                         <div>
+//                           <label className="mb-1 block text-xs opacity-70">Slug</label>
+//                           <input value={c.slug} readOnly className="admin-input cursor-not-allowed text-white/70" />
+//                         </div>
+
+//                         <div className="flex items-center gap-2">
+//                           <input
+//                             id={`active-${c.id}`}
+//                             name="isActive"
+//                             type="checkbox"
+//                             defaultChecked={c.isActive}
+//                             className="admin-switch"
+//                           />
+//                           <label htmlFor={`active-${c.id}`} className="text-sm">
+//                             Активна
+//                           </label>
+//                         </div>
+
+//                         <div className="col-span-2">
+//                           <label className="mb-1 block text-xs opacity-70">Описание</label>
+//                           <textarea
+//                             name="description"
+//                             defaultValue={c.description ?? ''}
+//                             rows={3}
+//                             className="admin-textarea"
+//                           />
+//                         </div>
+
+//                         <div className="col-span-2 mt-1 flex items-center justify-between gap-2">
+//                           <button className="btn-primary">Сохранить</button>
+//                         </div>
+//                       </form>
+
+//                       {/* отдельная форма удаления */}
+//                       <div className="my-3 border-t border-white/10" />
+//                       <form action={deleteServiceVoid} className="mt-1">
+//                         <input type="hidden" name="id" value={c.id} />
+//                         <button className="btn-danger w-full">Удалить категорию</button>
+//                       </form>
+//                     </div>
+//                   </details>
+//                 </td>
+//               </tr>
+//             ))}
+
+//             {categories.length === 0 && (
+//               <tr>
+//                 <td className="td py-6 text-center text-white/50" colSpan={8}>
+//                   Услуг пока нет
+//                 </td>
+//               </tr>
+//             )}
+//           </tbody>
+//         </table>
+//       </section>
+
+//       {/* ======== КАТЕГОРИИ (мобайл) ======== */}
+//       <section className="lg:hidden space-y-4">
+//         {categories.length === 0 && <div className="admin-section text-sm text-gray-400">Услуг пока нет</div>}
+
+//         {categories.map((c) => (
+//           <details key={c.id} className="admin-card overflow-hidden">
+//             <summary className="cursor-pointer select-none px-4 py-3 bg-white/5 flex items-center justify-between">
+//               <span className="font-medium">{c.name}</span>
+//               <span className="text-xs opacity-70">{c.isActive ? 'активна' : 'выкл'}</span>
+//             </summary>
+
+//             <div className="p-4 space-y-3">
+//               <form action={updateServiceVoid} className="grid grid-cols-1 gap-3">
+//                 <input type="hidden" name="id" value={c.id} />
+//                 <input type="hidden" name="kind" value="category" />
+
+//                 <div>
+//                   <label className="block text-xs mb-1 opacity-80">Название</label>
+//                   <input name="name" defaultValue={c.name} className="admin-input" />
+//                 </div>
+
+//                 <div>
+//                   <label className="block text-xs mb-1 opacity-80">Slug</label>
+//                   <input defaultValue={c.slug} className="admin-input" readOnly />
+//                 </div>
+
+//                 <div className="flex items-center gap-2">
+//                   <input
+//                     id={`active-m-${c.id}`}
+//                     name="isActive"
+//                     type="checkbox"
+//                     defaultChecked={c.isActive}
+//                     className="admin-switch"
+//                   />
+//                   <label htmlFor={`active-m-${c.id}`} className="text-sm">
+//                     Активна
+//                   </label>
+//                 </div>
+
+//                 <div>
+//                   <label className="block text-xs mb-1 opacity-80">Описание</label>
+//                   <textarea name="description" defaultValue={c.description ?? ''} rows={3} className="admin-textarea" />
+//                 </div>
+
+//                 <div>
+//                   <button className="w-full btn-primary">Сохранить</button>
+//                 </div>
+//               </form>
+
+//               <form action={deleteServiceVoid}>
+//                 <input type="hidden" name="id" value={c.id} />
+//                 <button className="w-full btn-danger">Удалить категорию</button>
+//               </form>
+//             </div>
+//           </details>
+//         ))}
+//       </section>
+
+//       {/* ======== ПОДУСЛУГИ ======== */}
+//       <SubservicesPanel
+//         parentOptions={parentOptions}
+//         subservices={subservices}
+//         updateAction={updateService}
+//         deleteAction={deleteService}
+//       />
+//     </main>
+//   );
+// }
 
 
 
