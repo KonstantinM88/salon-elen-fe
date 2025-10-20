@@ -189,6 +189,7 @@ model Appointment {
   status AppointmentStatus @default(PENDING)
 
   createdAt DateTime @default(now())
+  appt_range Unsupported("tstzrange")? @map("appt_range")
 
   // Индексы для быстрого поиска и проверок пересечений:
   @@index([masterId])
