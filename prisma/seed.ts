@@ -5,7 +5,49 @@ import { ensureServices as ensureServiceHierarchy } from "./seed-services";
 
 const prisma = new PrismaClient();
 
-/* ───────── helpers: dates ───────── */
+/* ───────── утилиты ошибок (без any) ───────── */
+type ErrorWithProps = { code?: unknown; message?: unknown };
+
+function getErrCode(e: unknown): string | null {
+  if (typeof e === "object" && e !== null && "code" in (e as ErrorWithProps)) {
+    const c = (e as ErrorWithProps).code;
+    return typeof c === "string" ? c : null;
+  }
+  return null;
+}
+function getErrMsg(e: unknown): string {
+  if (typeof e === "object" && e !== null && "message" in (e as ErrorWithProps)) {
+    const m = (e as ErrorWithProps).message;
+    return typeof m === "string" ? m : String(m);
+  }
+  return String(e);
+}
+
+/* ───────── ретраи для сетевых/соединения ───────── */
+async function withRetry<T>(fn: () => Promise<T>, attempts = 4): Promise<T> {
+  let last: unknown;
+  for (let i = 1; i <= attempts; i++) {
+    try {
+      return await fn();
+    } catch (e: unknown) {
+      last = e;
+      const code = getErrCode(e);
+      const msg = getErrMsg(e);
+      const transient =
+        code === "P1017" || code === "P1001" ||
+        /Server has closed the connection|Connection terminated|socket|ECONN/i.test(msg);
+      if (!transient || i === attempts) throw e;
+
+      try { await prisma.$disconnect(); } catch { /* ignore */ }
+      await new Promise(r => setTimeout(r, 250 * i));
+      await prisma.$connect();
+    }
+  }
+  // unreachable
+  throw last;
+}
+
+/* ───────── helpers: даты ───────── */
 function atUTC(d: Date, h: number, m: number) {
   return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), h, m, 0, 0));
 }
@@ -27,38 +69,42 @@ function prevWeekday(from: Date, weekday: number) {
   return addDays(from, -diff);
 }
 
-/* ───────── admin user ───────── */
+/* ───────── admin ───────── */
 async function ensureAdminUser(): Promise<void> {
   const email = process.env.ADMIN_EMAIL ?? "admin@example.com";
   const pass = process.env.ADMIN_PASSWORD ?? "AdminStrongPass123";
   const hash = await bcrypt.hash(pass, 12);
 
-  await prisma.user.upsert({
-    where: { email },
-    update: { passwordHash: hash, role: Role.ADMIN, name: "Admin" },
-    create: { email, passwordHash: hash, role: Role.ADMIN, name: "Admin" },
-  });
+  await withRetry(() =>
+    prisma.user.upsert({
+      where: { email },
+      update: { passwordHash: hash, role: Role.ADMIN, name: "Admin" },
+      create: { email, passwordHash: hash, role: Role.ADMIN, name: "Admin" },
+    })
+  );
 }
 
 /* ───────── working hours ───────── */
 async function ensureWorkingHours(): Promise<void> {
   console.log("→ [WorkingHours] upsert...");
   const plan = [
-    { weekday: 0, isClosed: true, startMinutes: 0, endMinutes: 0 },
+    { weekday: 0, isClosed: true,  startMinutes: 0,   endMinutes: 0   },
     { weekday: 1, isClosed: false, startMinutes: 600, endMinutes: 1140 },
     { weekday: 2, isClosed: false, startMinutes: 600, endMinutes: 1140 },
     { weekday: 3, isClosed: false, startMinutes: 600, endMinutes: 1140 },
     { weekday: 4, isClosed: false, startMinutes: 600, endMinutes: 1140 },
     { weekday: 5, isClosed: false, startMinutes: 600, endMinutes: 1140 },
-    { weekday: 6, isClosed: true, startMinutes: 0, endMinutes: 0 },
+    { weekday: 6, isClosed: true,  startMinutes: 0,   endMinutes: 0   },
   ] as const;
 
   for (const p of plan) {
-    await prisma.workingHours.upsert({
-      where: { weekday: p.weekday },
-      update: { isClosed: p.isClosed, startMinutes: p.startMinutes, endMinutes: p.endMinutes },
-      create: { weekday: p.weekday, isClosed: p.isClosed, startMinutes: p.startMinutes, endMinutes: p.endMinutes },
-    });
+    await withRetry(() =>
+      prisma.workingHours.upsert({
+        where: { weekday: p.weekday },
+        update: { isClosed: p.isClosed, startMinutes: p.startMinutes, endMinutes: p.endMinutes },
+        create: { weekday: p.weekday, isClosed: p.isClosed, startMinutes: p.startMinutes, endMinutes: p.endMinutes },
+      })
+    );
   }
 }
 
@@ -78,11 +124,28 @@ async function demoArticles(): Promise<void> {
   ] as const;
 
   for (const a of items) {
-    await prisma.article.upsert({
-      where: { slug: a.slug },
-      update: { title: a.title, excerpt: a.excerpt, cover: a.cover, type: a.type, content: a.content, publishedAt: a.publishedAt },
-      create: { slug: a.slug, title: a.title, excerpt: a.excerpt, cover: a.cover, type: a.type, content: a.content, publishedAt: a.publishedAt },
-    });
+    await withRetry(() =>
+      prisma.article.upsert({
+        where: { slug: a.slug },
+        update: {
+          title: a.title,
+          excerpt: a.excerpt,
+          cover: a.cover,
+          type: a.type,
+          content: a.content,
+          publishedAt: a.publishedAt,
+        },
+        create: {
+          slug: a.slug,
+          title: a.title,
+          excerpt: a.excerpt,
+          cover: a.cover,
+          type: a.type,
+          content: a.content,
+          publishedAt: a.publishedAt,
+        },
+      })
+    );
   }
 }
 
@@ -90,72 +153,136 @@ async function demoArticles(): Promise<void> {
 async function ensureClients() {
   console.log("→ [Clients] upsert...");
   const clients = [
-    { name: "Мария Смирнова", phone: "+49 160 0000001", email: "maria@example.com", birthDate: new Date(Date.UTC(1992, 4, 12)), referral: "Instagram", notes: "Предпочитает безнал." },
-    { name: "Ольга Иванова",  phone: "+49 160 0000002", email: "olga@example.com",  birthDate: new Date(Date.UTC(1988,10, 3)), referral: "Сарафан",  notes: null as string | null },
+    {
+      name: "Мария Смирнова",
+      phone: "+49 160 0000001",
+      email: "maria@example.com",
+      birthDate: new Date(Date.UTC(1992, 4, 12)),
+      referral: "Instagram",
+      notes: "Предпочитает безнал.",
+    },
+    {
+      name: "Ольга Иванова",
+      phone: "+49 160 0000002",
+      email: "olga@example.com",
+      birthDate: new Date(Date.UTC(1988, 10, 3)),
+      referral: "Сарафан",
+      notes: null as string | null,
+    },
   ] as const;
 
   for (const c of clients) {
-    await prisma.client.upsert({
-      where: { email: c.email },
-      update: { name: c.name, phone: c.phone, birthDate: c.birthDate, referral: c.referral ?? undefined, notes: c.notes ?? undefined },
-      create: { name: c.name, phone: c.phone, email: c.email, birthDate: c.birthDate, referral: c.referral ?? undefined, notes: c.notes ?? undefined },
-    });
+    await withRetry(() =>
+      prisma.client.upsert({
+        where: { email: c.email },
+        update: {
+          name: c.name,
+          phone: c.phone,
+          birthDate: c.birthDate,
+          referral: c.referral ?? undefined,
+          notes: c.notes ?? undefined,
+        },
+        create: {
+          name: c.name,
+          phone: c.phone,
+          email: c.email,
+          birthDate: c.birthDate,
+          referral: c.referral ?? undefined,
+          notes: c.notes ?? undefined,
+        },
+      })
+    );
   }
-  return prisma.client.findMany({ orderBy: { createdAt: "asc" } });
+
+  return withRetry(() =>
+    prisma.client.findMany({
+      orderBy: { createdAt: "asc" },
+    })
+  );
 }
 
 /* ───────── masters ───────── */
 type SeededMaster = { id: string; name: string; email: string };
 
+/** Возвращает только бронируемые услуги (durationMin > 0, не архив). */
+async function listBookableServices(limit = 12) {
+  return withRetry(() =>
+    prisma.service.findMany({
+      where: { isActive: true, isArchived: false, durationMin: { gt: 0 } },
+      select: { id: true, slug: true, durationMin: true },
+      orderBy: { createdAt: "asc" },
+      take: limit,
+    })
+  );
+}
+
 async function ensureMasters(): Promise<SeededMaster[]> {
   console.log("→ [Masters] upsert...");
   const masters = [
-    { name: "Елена Петрова", email: "master.elena@example.com", phone: "+49 160 1000001", birthDate: new Date(Date.UTC(1990, 1, 15)), bio: "Парикмахер-стилист. Женские стрижки и укладки." },
-    { name: "Анна Кузнецова", email: "master.anna@example.com",  phone: "+49 160 1000002", birthDate: new Date(Date.UTC(1994, 7, 22)), bio: "Мастер маникюра/педикюра. Аппаратный маникюр, покрытие гель-лак." },
+    {
+      name: "Елена Петрова",
+      email: "master.elena@example.com",
+      phone: "+49 160 1000001",
+      birthDate: new Date(Date.UTC(1990, 1, 15)),
+      bio: "Парикмахер-стилист. Женские стрижки и укладки.",
+    },
+    {
+      name: "Анна Кузнецова",
+      email: "master.anna@example.com",
+      phone: "+49 160 1000002",
+      birthDate: new Date(Date.UTC(1994, 7, 22)),
+      bio: "Мастер маникюра/педикюра. Аппаратный маникюр, покрытие гель-лак.",
+    },
   ] as const;
 
-  // берём активные НЕархивные услуги, чтобы привязать к мастерам
-  const services = await prisma.service.findMany({
-    where: { isActive: true, isArchived: false },
-    select: { id: true, slug: true },
-    orderBy: { createdAt: "asc" },
-    take: 6,
-  });
-
+  const services = await listBookableServices(8);
   const results: SeededMaster[] = [];
+
   for (let i = 0; i < masters.length; i++) {
     const m = masters[i];
-    const created = await prisma.master.upsert({
-      where: { email: m.email },
-      update: { name: m.name, phone: m.phone, birthDate: m.birthDate, bio: m.bio },
-      create: { name: m.name, email: m.email, phone: m.phone, birthDate: m.birthDate, bio: m.bio },
-    });
+    const created = await withRetry(() =>
+      prisma.master.upsert({
+        where: { email: m.email },
+        update: { name: m.name, phone: m.phone, birthDate: m.birthDate, bio: m.bio },
+        create: { name: m.name, email: m.email, phone: m.phone, birthDate: m.birthDate, bio: m.bio },
+      })
+    );
 
-    const picked = (services.slice(i * 2, i * 2 + 2).length ? services.slice(i * 2, i * 2 + 2) : services.slice(0, 2)).map(s => ({ id: s.id }));
-    await prisma.master.update({ where: { id: created.id }, data: { services: { set: picked } } });
+    const slice = services.slice(i * 2, i * 2 + 2);
+    const picked = (slice.length ? slice : services.slice(0, 2)).map(s => ({ id: s.id }));
+    await withRetry(() =>
+      prisma.master.update({
+        where: { id: created.id },
+        data: { services: { set: picked } },
+      })
+    );
 
     results.push({ id: created.id, name: created.name, email: created.email });
   }
+
   return results;
 }
 
 /* ───────── master working hours & time off ───────── */
 async function ensureMasterWorkingHours(masterId: string) {
   const plan = [
-    { weekday: 0, isClosed: true, startMinutes: 0,   endMinutes: 0   },
+    { weekday: 0, isClosed: true,  startMinutes: 0,   endMinutes: 0   },
     { weekday: 1, isClosed: false, startMinutes: 600, endMinutes: 1140 },
     { weekday: 2, isClosed: false, startMinutes: 600, endMinutes: 1140 },
     { weekday: 3, isClosed: false, startMinutes: 600, endMinutes: 1140 },
     { weekday: 4, isClosed: false, startMinutes: 600, endMinutes: 1140 },
     { weekday: 5, isClosed: false, startMinutes: 600, endMinutes: 1140 },
-    { weekday: 6, isClosed: true, startMinutes: 0,   endMinutes: 0   },
+    { weekday: 6, isClosed: true,  startMinutes: 0,   endMinutes: 0   },
   ] as const;
+
   for (const p of plan) {
-    await prisma.masterWorkingHours.upsert({
-      where: { masterId_weekday: { masterId, weekday: p.weekday } },
-      update: { isClosed: p.isClosed, startMinutes: p.startMinutes, endMinutes: p.endMinutes },
-      create: { masterId, weekday: p.weekday, isClosed: p.isClosed, startMinutes: p.startMinutes, endMinutes: p.endMinutes },
-    });
+    await withRetry(() =>
+      prisma.masterWorkingHours.upsert({
+        where: { masterId_weekday: { masterId, weekday: p.weekday } },
+        update: { isClosed: p.isClosed, startMinutes: p.startMinutes, endMinutes: p.endMinutes },
+        create: { masterId, weekday: p.weekday, isClosed: p.isClosed, startMinutes: p.startMinutes, endMinutes: p.endMinutes },
+      })
+    );
   }
 }
 
@@ -164,13 +291,19 @@ async function ensureMasterTimeOff(masterId: string) {
   const nextSunday = nextWeekday(now, 0);
   const dateOnly = new Date(Date.UTC(nextSunday.getUTCFullYear(), nextSunday.getUTCMonth(), nextSunday.getUTCDate(), 0, 0, 0, 0));
 
-  const existed = await prisma.masterTimeOff.findFirst({ where: { masterId, date: dateOnly, startMinutes: 0, endMinutes: 1440 } });
+  const existed = await withRetry(() =>
+    prisma.masterTimeOff.findFirst({ where: { masterId, date: dateOnly, startMinutes: 0, endMinutes: 1440 } })
+  );
   if (!existed) {
-    await prisma.masterTimeOff.create({ data: { masterId, date: dateOnly, startMinutes: 0, endMinutes: 1440, reason: "Выходной (seed)" } });
+    await withRetry(() =>
+      prisma.masterTimeOff.create({
+        data: { masterId, date: dateOnly, startMinutes: 0, endMinutes: 1440, reason: "Выходной (seed)" },
+      })
+    );
   }
 }
 
-/* ───────── appointments (STRICT keys) ───────── */
+/* ───────── appointments ───────── */
 async function upsertAppointmentByNaturalKey(params: {
   masterId: string;
   serviceId: string;
@@ -185,92 +318,116 @@ async function upsertAppointmentByNaturalKey(params: {
 }) {
   const { masterId, serviceId, startAt, endAt, clientId, customerName, phone, email, notes, status } = params;
 
-  await prisma.$transaction(async (tx) => {
-    const existing = await tx.appointment.findFirst({
-      where: { masterId, serviceId, startAt },
-      select: { id: true },
-    });
-
-    if (existing) {
-      await tx.appointment.update({
-        where: { id: existing.id },
-        data: { endAt, clientId, customerName, phone, email, notes, status },
+  await withRetry(() =>
+    prisma.$transaction(async (tx) => {
+      const existing = await tx.appointment.findFirst({
+        where: { masterId, serviceId, startAt },
+        select: { id: true },
       });
-    } else {
-      // ВАЖНО: только разрешённые поля, никаких spread!
-      const data = {
-        masterId,
-        serviceId,
-        startAt,
-        endAt,
-        customerName,
-        phone,
-        email,
-        notes,
-        status,
-      };
-      // временная диагностика — увидим какие ключи реально уезжают
-      // если здесь когда-либо появится 'new', увидим это в консоли
-      // и мгновенно поймём источник
-      // eslint-disable-next-line no-console
-      console.log("DEBUG appointment.create keys =", Object.keys(data));
 
-      await tx.appointment.create({ data });
-    }
-  });
+      if (existing) {
+        await tx.appointment.update({
+          where: { id: existing.id },
+          data: { endAt, clientId, customerName, phone, email, notes, status },
+        });
+      } else {
+        const data = { masterId, serviceId, startAt, endAt, customerName, phone, email, notes, status };
+        // eslint-disable-next-line no-console
+        console.log("DEBUG appointment.create keys =", Object.keys(data));
+        await tx.appointment.create({ data });
+      }
+    })
+  );
+}
+
+/** Найти первую бронируемую услугу у мастера (durationMin > 0). */
+async function getFirstBookableServiceForMaster(masterId: string) {
+  const m = await withRetry(() =>
+    prisma.master.findUnique({
+      where: { id: masterId },
+      include: { services: { where: { durationMin: { gt: 0 }, isArchived: false }, take: 1 } },
+    })
+  );
+  return m?.services[0] ?? null;
 }
 
 async function ensureAppointments(seededMasters: ReadonlyArray<SeededMaster>, clientEmails: ReadonlyArray<string>) {
   console.log("→ [Appointments] seed...");
-  const clients = await prisma.client.findMany({
-    where: { email: { in: [...clientEmails] } },
-    select: { id: true, email: true, name: true, phone: true },
-  });
+  const clients = await withRetry(() =>
+    prisma.client.findMany({
+      where: { email: { in: [...clientEmails] } },
+      select: { id: true, email: true, name: true, phone: true },
+    })
+  );
 
   for (const m of seededMasters) {
-    const masterWithServices = await prisma.master.findUnique({
-      where: { id: m.id },
-      include: { services: { take: 1 } },
-    });
-    if (!masterWithServices || masterWithServices.services.length === 0) continue;
+    const svc = await getFirstBookableServiceForMaster(m.id);
+    if (!svc) continue;
 
-    const serviceId = masterWithServices.services[0].id;
-    const service = await prisma.service.findUnique({ where: { id: serviceId }, select: { durationMin: true } });
-    if (!service) continue;
+    const svcDuration = svc.durationMin ?? 0;
+    const duration = svcDuration > 0 ? svcDuration : 30; // дефолт, чтобы пройти CHECK
 
-    const duration = service.durationMin;
     const now = new Date();
     const c1 = clients[0];
     const c2 = clients[1] ?? clients[0];
 
-    { // будущая CONFIRMED: понедельник 10:00
+    // Будущая CONFIRMED: понедельник 10:00
+    {
       const start = atUTC(nextWeekday(now, 1), 10, 0);
-      const end = new Date(start); end.setUTCMinutes(end.getUTCMinutes() + duration);
+      const end = new Date(start);
+      end.setUTCMinutes(end.getUTCMinutes() + duration);
+
       await upsertAppointmentByNaturalKey({
-        masterId: m.id, serviceId, startAt: start, endAt: end,
-        clientId: c1?.id ?? null, customerName: c1?.name ?? "Гость",
-        phone: c1?.phone ?? "+49 160 999999", email: c1?.email ?? null,
-        notes: "Будущая запись (seed)", status: AppointmentStatus.CONFIRMED,
+        masterId: m.id,
+        serviceId: svc.id,
+        startAt: start,
+        endAt: end,
+        clientId: c1?.id ?? null,
+        customerName: c1?.name ?? "Гость",
+        phone: c1?.phone ?? "+49 160 999999",
+        email: c1?.email ?? null,
+        notes: "Будущая запись (seed)",
+        status: AppointmentStatus.CONFIRMED,
       });
     }
-    { // прошлая DONE: понедельник 11:30
+
+    // Прошлая DONE: прошлый понедельник 11:30
+    {
       const start = atUTC(prevWeekday(now, 1), 11, 30);
-      const end = new Date(start); end.setUTCMinutes(end.getUTCMinutes() + duration);
+      const end = new Date(start);
+      end.setUTCMinutes(end.getUTCMinutes() + duration);
+
       await upsertAppointmentByNaturalKey({
-        masterId: m.id, serviceId, startAt: start, endAt: end,
-        clientId: c2?.id ?? null, customerName: c2?.name ?? "Гость",
-        phone: c2?.phone ?? "+49 160 999998", email: c2?.email ?? null,
-        notes: "Прошлая запись (seed)", status: AppointmentStatus.DONE,
+        masterId: m.id,
+        serviceId: svc.id,
+        startAt: start,
+        endAt: end,
+        clientId: c2?.id ?? null,
+        customerName: c2?.name ?? "Гость",
+        phone: c2?.phone ?? "+49 160 999998",
+        email: c2?.email ?? null,
+        notes: "Прошлая запись (seed)",
+        status: AppointmentStatus.DONE,
       });
     }
-    { // отменённая: вторник 12:00
+
+    // Отменённая: следующий вторник 12:00
+    {
       const start = atUTC(nextWeekday(now, 2), 12, 0);
-      const end = new Date(start); end.setUTCMinutes(end.getUTCMinutes() + duration);
+      const end = new Date(start);
+      end.setUTCMinutes(end.getUTCMinutes() + duration);
+
       await upsertAppointmentByNaturalKey({
-        masterId: m.id, serviceId, startAt: start, endAt: end,
-        clientId: c1?.id ?? null, customerName: c1?.name ?? "Гость",
-        phone: c1?.phone ?? "+49 160 999997", email: c1?.email ?? null,
-        notes: "Отменено (seed)", status: AppointmentStatus.CANCELED,
+        masterId: m.id,
+        serviceId: svc.id,
+        startAt: start,
+        endAt: end,
+        clientId: c1?.id ?? null,
+        customerName: c1?.name ?? "Гость",
+        phone: c1?.phone ?? "+49 160 999997",
+        email: c1?.email ?? null,
+        notes: "Отменено (seed)",
+        status: AppointmentStatus.CANCELED,
       });
     }
   }
@@ -279,29 +436,39 @@ async function ensureAppointments(seededMasters: ReadonlyArray<SeededMaster>, cl
 /* ───────── main ───────── */
 async function main(): Promise<void> {
   console.log("⏳ Seeding start");
+  await prisma.$connect();
+
   await ensureAdminUser();
   await ensureWorkingHours();
+
   console.log("→ [Services] ensure hierarchy...");
-  await ensureServiceHierarchy();
+  await withRetry(() => ensureServiceHierarchy());
+
   await demoArticles();
+
   const clients = await ensureClients();
   const masters = await ensureMasters();
+
   console.log("→ [MasterWorkingHours] upsert...");
   for (const m of masters) await ensureMasterWorkingHours(m.id);
+
   console.log("→ [MasterTimeOff] ensure example day off for first master...");
   if (masters[0]) await ensureMasterTimeOff(masters[0].id);
+
   await ensureAppointments(masters, clients.map(c => c.email));
+
   console.log("✅ Seeding done");
 }
 
 main()
-  .catch((e) => {
+  .catch((e: unknown) => {
     console.error("❌ Seeding error:", e);
     process.exit(1);
   })
   .finally(async () => {
     await prisma.$disconnect();
   });
+
 
 
 
