@@ -4,30 +4,37 @@
 import * as React from 'react';
 import { JSX, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import Link from 'next/link';
 
-// ===== Types =====
+/* =========================
+   ВСПОМОГАТЕЛЬНЫЕ ТИПЫ
+========================= */
+
 type Slot = {
-  startAt: string;      // ISO
+  startAt: string;      // ISO: 2025-10-29T09:00:00.000Z
   endAt: string;        // ISO
-  startMinutes: number; // целые минуты с начала суток
-  endMinutes: number;
+  startMinutes: number; // минуты с полуночи в ТЗ организации
+  endMinutes: number;   // минуты с полуночи в ТЗ организации
 };
 
 type ApiPayload = {
   slots: Slot[];
-  splitRequired: boolean;
+  splitRequired: boolean; // не используется, но приходит с API
 };
 
-// ===== Utils =====
+/* =========================
+   НАСТРОЙКИ ВРЕМЕННОЙ ЗОНЫ
+========================= */
+
+// Таймзона организации; при необходимости вынесите в .env
+const ORG_TZ = process.env.NEXT_PUBLIC_ORG_TZ || 'Europe/Berlin';
+
+// 'YYYY-MM-DD' в заданной TZ
+const todayISO = (tz: string = ORG_TZ): string => {
+  const s = new Date().toLocaleString('sv-SE', { timeZone: tz, hour12: false });
+  return s.split(' ')[0]; // 'YYYY-MM-DD'
+};
+
 const toISODate = (d: Date): string => d.toISOString().slice(0, 10);
-
-const todayISO = (): string => {
-  const now = new Date();
-  // нормализуем к местной дате без смещения по часовому поясу
-  const local = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  return toISODate(local);
-};
 
 const addDaysISO = (iso: string, days: number): string => {
   const [y, m, d] = iso.split('-').map(Number);
@@ -44,64 +51,57 @@ const clampISO = (iso: string, minISO: string, maxISO: string): string => {
   return iso;
 };
 
-const fmtHM = (iso: string): string => {
-  const d = new Date(iso);
-  const hh = String(d.getHours()).padStart(2, '0');
-  const mm = String(d.getMinutes()).padStart(2, '0');
-  return `${hh}:${mm}`;
+// Час:минуты для кнопки слота из минут от полуночи
+const formatHM = (minutes: number): string => {
+  const hh = Math.floor(minutes / 60);
+  const mm = minutes % 60;
+  const pad = (n: number): string => String(n).padStart(2, '0');
+  return `${pad(hh)}:${pad(mm)}`;
 };
 
-// ===== Page =====
-export default function CalendarPage(): JSX.Element {
-  return (
-    <Suspense
-      fallback={
-        <div className="mx-auto max-w-4xl px-4">
-          <h1 className="mt-6 text-2xl font-semibold">Онлайн-запись</h1>
-          <h2 className="mt-2 text-lg text-muted-foreground">Календарь</h2>
-          <div className="mt-6 rounded-lg border border-border bg-card p-4">
-            Загрузка доступных слотов…
-          </div>
-        </div>
-      }
-    >
-      <CalendarInner />
-    </Suspense>
-  );
-}
+/* =========================
+   КЛИЕНТСКОЕ ВНУТРЕННЕЕ UI
+========================= */
 
 function CalendarInner(): JSX.Element {
   const router = useRouter();
   const params = useSearchParams();
 
-  // параметры шага
+  // Параметры из URL
   const serviceIds = React.useMemo<string[]>(
     () => params.getAll('s').filter(Boolean),
     [params],
   );
-  const masterId = params.get('m') || '';
+  const masterId = params.get('m') ?? undefined;
+  const urlDate = params.get('d') ?? undefined;
 
-  // границы календаря
+  // Границы календаря
   const minISO = todayISO();
   const maxISO = max9WeeksISO();
 
-  // начальная дата: из параметра d либо сегодня, зажатая в диапазон
-  const initialDateISO = clampISO(params.get('d') || minISO, minISO, maxISO);
+  // Текущая дата в состоянии
+  const [dateISO, setDateISO] = React.useState<string>(() => {
+    const initial = urlDate ?? minISO;
+    return clampISO(initial, minISO, maxISO);
+  });
 
-  const [dateISO, setDateISO] = React.useState<string>(initialDateISO);
+  // Слоты и статусы
   const [slots, setSlots] = React.useState<Slot[]>([]);
   const [loading, setLoading] = React.useState<boolean>(false);
   const [error, setError] = React.useState<string | null>(null);
 
-  // загрузка слотов при смене даты/набора/мастера
+  // Флаг, был ли параметр даты в URL, чтобы понять нужно ли авто-сканирование
+  const hasDateParam = React.useMemo<boolean>(() => params.has('d'), [params]);
+
+  // Загрузка слотов для текущей dateISO
   React.useEffect(() => {
     let alive = true;
 
     async function load(): Promise<void> {
       if (!masterId || serviceIds.length === 0) return;
-
       setLoading(true);
       setError(null);
+      setSlots([]);
 
       try {
         const qs = new URLSearchParams();
@@ -113,90 +113,135 @@ function CalendarInner(): JSX.Element {
           method: 'GET',
           cache: 'no-store',
         });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
-        if (!res.ok) throw new Error(`Failed: ${res.status}`);
+        const data: ApiPayload = await res.json();
+        if (!alive) return;
 
-        const { slots: dataSlots }: ApiPayload = await res.json();
-
-        if (alive) {
-          // защита от сломанных данных
-          const safe = Array.isArray(dataSlots) ? dataSlots : [];
-          setSlots(safe);
-        }
-      } catch (e) {
-        if (alive) {
-          const msg = e instanceof Error ? e.message : 'Не удалось загрузить слоты';
-          setError(msg);
-          setSlots([]);
-        }
+        setSlots(Array.isArray(data.slots) ? data.slots : []);
+      } catch (e: unknown) {
+        if (!alive) return;
+        const msg = e instanceof Error ? e.message : 'Не удалось загрузить слоты';
+        setError(msg);
       } finally {
         if (alive) setLoading(false);
       }
     }
 
-    load();
+    void load();
     return () => {
       alive = false;
     };
-  }, [masterId, serviceIds, dateISO]);
+  }, [dateISO, masterId, serviceIds]);
 
-  // смена даты через инпут
-  const onDateChange = (next: string): void => {
-    const clamped = clampISO(next, minISO, maxISO);
-    setDateISO(clamped);
-    // подсветим дату в URL для перезагрузки/шеринга
-    const qs = new URLSearchParams();
-    serviceIds.forEach(id => qs.append('s', id));
-    if (masterId) qs.set('m', masterId);
-    qs.set('d', clamped);
-    router.replace(`/booking/calendar?${qs.toString()}`);
-  };
+  // Сканирование вперёд при пустом URL-параметре d: ищем ближайший день со слотами
+  const scanningRef = React.useRef(false);
+  const scanForwardForFirstDayWithSlots = React.useCallback(async (): Promise<void> => {
+    if (scanningRef.current) return;
+    if (!masterId || serviceIds.length === 0) return;
 
-  // кнопки день назад/вперед
-  const prevDisabled = dateISO <= minISO;
-  const nextDisabled = dateISO >= maxISO;
+    scanningRef.current = true;
+    try {
+      let d = dateISO;
+      while (d <= maxISO) {
+        const qs = new URLSearchParams();
+        qs.set('masterId', masterId);
+        qs.set('dateISO', d);
+        qs.set('serviceIds', serviceIds.join(','));
+
+        const res = await fetch(`/api/availability?${qs.toString()}`, { cache: 'no-store' });
+        if (!res.ok) break;
+
+        const { slots: s }: ApiPayload = await res.json();
+        if (Array.isArray(s) && s.length > 0) {
+          setDateISO(d);
+          setSlots(s);
+
+          // Синхронизация URL
+          const urlQS = new URLSearchParams();
+          serviceIds.forEach(id => urlQS.append('s', id));
+          if (masterId) urlQS.set('m', masterId);
+          urlQS.set('d', d);
+          router.replace(`/booking/calendar?${urlQS.toString()}`);
+          break;
+        }
+
+        d = addDaysISO(d, 1);
+      }
+    } finally {
+      scanningRef.current = false;
+    }
+  }, [dateISO, masterId, serviceIds, maxISO, router]);
+
+  // Запустить сканирование, если пользователь пришёл без d и слотов нет
+  React.useEffect(() => {
+    if (!hasDateParam && !loading && !error && slots.length === 0) {
+      void scanForwardForFirstDayWithSlots();
+    }
+  }, [hasDateParam, loading, error, slots.length, scanForwardForFirstDayWithSlots]);
+
+  // Навигация по датам
+  const canPrev = dateISO > minISO;
+  const canNext = dateISO < maxISO;
 
   const goPrev = (): void => {
-    if (prevDisabled) return;
-    onDateChange(addDaysISO(dateISO, -1));
+    if (!canPrev) return;
+    const d = addDaysISO(dateISO, -1);
+    setDateISO(d);
+    syncUrl(d);
   };
 
   const goNext = (): void => {
-    if (nextDisabled) return;
-    onDateChange(addDaysISO(dateISO, +1));
+    if (!canNext) return;
+    const d = addDaysISO(dateISO, +1);
+    setDateISO(d);
+    syncUrl(d);
   };
 
-  // переход на подтверждение
-  const goConfirm = (t: Slot): void => {
+  const onPickDate: React.ChangeEventHandler<HTMLInputElement> = e => {
+    const raw = e.target.value; // YYYY-MM-DD
+    if (!raw) return;
+    const d = clampISO(raw, minISO, maxISO);
+    setDateISO(d);
+    syncUrl(d);
+  };
+
+  const syncUrl = (d: string): void => {
     const qs = new URLSearchParams();
     serviceIds.forEach(id => qs.append('s', id));
     if (masterId) qs.set('m', masterId);
-    qs.set('start', t.startAt);
-    qs.set('end', t.endAt);
+    qs.set('d', d);
+    router.replace(`/booking/calendar?${qs.toString()}`);
+  };
+
+  // Переход к подтверждению
+  const goConfirm = (slot: Slot): void => {
+    const qs = new URLSearchParams();
+    serviceIds.forEach(id => qs.append('s', id));
+    if (masterId) qs.set('m', masterId);
+    qs.set('start', slot.startAt);
+    qs.set('end', slot.endAt);
     router.push(`/booking/confirm?${qs.toString()}`);
   };
 
   return (
-    <div className="mx-auto max-w-4xl px-4 pb-24">
+    <div className="mx-auto max-w-4xl px-4 pb-28">
       <h1 className="mt-6 text-2xl font-semibold">Онлайн-запись</h1>
       <h2 className="mt-2 text-lg text-muted-foreground">Календарь</h2>
 
       {/* Панель выбора даты */}
-      <div className="mt-6 flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="text-sm text-muted-foreground">
-          Дата: <span className="font-medium text-foreground">{dateISO}</span>
-        </div>
-
+      <div className="mt-6 flex flex-wrap items-center gap-3">
+        <span className="text-sm text-muted-foreground">Дата:</span>
         <div className="flex items-center gap-2">
           <button
             type="button"
             onClick={goPrev}
-            disabled={prevDisabled}
-            className={`rounded-xl border px-3 py-2 text-sm ${
-              prevDisabled ? 'cursor-not-allowed opacity-50' : 'hover:bg-muted'
+            disabled={!canPrev}
+            className={`rounded-md border px-3 py-1 text-sm ${
+              canPrev ? 'hover:bg-muted' : 'opacity-50'
             }`}
           >
-            ← Предыдущий день
+            ←
           </button>
 
           <input
@@ -204,27 +249,29 @@ function CalendarInner(): JSX.Element {
             value={dateISO}
             min={minISO}
             max={maxISO}
-            onChange={e => onDateChange(e.currentTarget.value)}
-            className="rounded-xl border bg-background px-3 py-2 text-sm"
+            onChange={onPickDate}
+            className="rounded-md border bg-background px-3 py-1 text-sm"
           />
 
           <button
             type="button"
             onClick={goNext}
-            disabled={nextDisabled}
-            className={`rounded-xl border px-3 py-2 text-sm ${
-              nextDisabled ? 'cursor-not-allowed opacity-50' : 'hover:bg-muted'
+            disabled={!canNext}
+            className={`rounded-md border px-3 py-1 text-sm ${
+              canNext ? 'hover:bg-muted' : 'opacity-50'
             }`}
           >
-            Следующий день →
+            →
           </button>
         </div>
       </div>
 
       {/* Слоты */}
-      <div className="mt-6">
+      <section className="mt-4">
         {loading && (
-          <div className="rounded-lg border border-border bg-card p-4">Загрузка…</div>
+          <div className="rounded-lg border border-border bg-card p-4">
+            Загрузка свободных окон…
+          </div>
         )}
 
         {error && (
@@ -235,45 +282,50 @@ function CalendarInner(): JSX.Element {
 
         {!loading && !error && slots.length === 0 && (
           <div className="rounded-lg border border-border bg-card p-4">
-            На выбранную дату нет свободных окон. Попробуйте другую дату.
+            На выбранную дату нет свободных окон. Попробуйте выбрать другую дату.
           </div>
         )}
 
         {!loading && !error && slots.length > 0 && (
-          <ul className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4">
-            {slots.map((t) => {
-              const key = `${t.startAt}-${t.endAt}`; // уникальный ключ
-              return (
-                <li key={key}>
-                  <button
-                    type="button"
-                    onClick={() => goConfirm(t)}
-                    className="w-full rounded-xl border px-4 py-2 text-sm hover:border-indigo-300"
-                    title={`${fmtHM(t.startAt)}–${fmtHM(t.endAt)}`}
-                  >
-                    {fmtHM(t.startAt)}
-                  </button>
-                </li>
-              );
-            })}
+          <ul className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4">
+            {slots.map((t) => (
+              <li key={t.startAt}>
+                <button
+                  type="button"
+                  onClick={() => goConfirm(t)}
+                  className="w-full rounded-lg border border-border bg-card px-3 py-2 text-sm hover:bg-muted"
+                >
+                  {formatHM(t.startMinutes)}
+                </button>
+              </li>
+            ))}
           </ul>
         )}
-      </div>
+      </section>
 
-      {/* Навигация назад */}
-      <div className="mt-8">
-        <Link
-          href={
-            serviceIds.length > 0
-              ? `/booking/master?s=${serviceIds.join('&s=')}`
-              : '/booking/services'
-          }
-          className="inline-flex rounded-xl border px-4 py-2 text-sm hover:bg-muted"
-        >
-          Назад
-        </Link>
+      {/* Нижняя строка статуса */}
+      <div className="mt-6 text-xs text-muted-foreground">
+        Доступно слотов: <span className="font-medium text-foreground">{slots.length}</span>
       </div>
     </div>
+  );
+}
+
+/* =========================
+   СТРАНИЦА: ОБЁРТКА С SUSPENSE
+========================= */
+
+export default function CalendarPage(): JSX.Element {
+  return (
+    <Suspense
+      fallback={
+        <div className="mx-auto mt-6 max-w-4xl rounded-lg border border-border bg-card p-4">
+          Инициализация календаря…
+        </div>
+      }
+    >
+      <CalendarInner />
+    </Suspense>
   );
 }
 
