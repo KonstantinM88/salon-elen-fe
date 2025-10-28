@@ -58,7 +58,7 @@ model Service {
 
   /// Мягкое удаление: скрываем из интерфейса,
   /// данные и связи остаются (для истории).
-  isArchived  Boolean @default(false)
+  isArchived Boolean @default(false)
 
   parentId String?
   parent   Service?  @relation("ServiceChildren", fields: [parentId], references: [id])
@@ -68,6 +68,9 @@ model Service {
 
   /// m:n с мастерами (implicit join table)
   masters Master[] @relation("MasterServices")
+
+  /// обратная сторона связи PromotionItem.service
+  promotionItems PromotionItem[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -105,6 +108,9 @@ model Client {
   updatedAt DateTime @updatedAt
 
   appointments Appointment[]
+
+  /// обратная сторона связи ClientDiscount.client
+  discount ClientDiscount?
 
   @@map("Client")
 }
@@ -188,7 +194,7 @@ model Appointment {
 
   status AppointmentStatus @default(PENDING)
 
-  createdAt DateTime @default(now())
+  createdAt  DateTime                  @default(now())
   appt_range Unsupported("tstzrange")? @map("appt_range")
 
   // Индексы для быстрого поиска и проверок пересечений:
@@ -301,4 +307,54 @@ model OrphanedUser {
   archivedAt   DateTime @default(now())
 
   @@index([archivedAt])
+}
+
+model Promotion {
+  id        String   @id @default(cuid())
+  title     String
+  percent   Int
+  from      DateTime
+  to        DateTime
+  isGlobal  Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  items PromotionItem[]
+
+  @@index([from])
+  @@index([to])
+  @@index([isGlobal])
+}
+
+//------------------промоакции
+model PromotionItem {
+  id          String    @id @default(cuid())
+  promotionId String
+  serviceId   String
+  promotion   Promotion @relation(fields: [promotionId], references: [id], onDelete: Cascade)
+  service     Service   @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
+  @@unique([promotionId, serviceId])
+  @@index([serviceId])
+}
+
+model ClientDiscount {
+  id        String   @id @default(cuid())
+  clientId  String   @unique
+  percent   Int
+  createdAt DateTime @default(now())
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+}
+
+model EmailVerification {
+  id        String   @id @default(cuid())
+  email     String
+  code      String
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([email])
+  @@index([expiresAt])
+  @@index([used])
 }

@@ -78,7 +78,7 @@ export default function AdminFooter() {
           <FooterLink href="/admin/services" icon={<Scissors className="h-4 w-4" />} label="Услуги" />
           <FooterLink href="/admin/bookings" icon={<CalendarRange className="h-4 w-4" />} label="Заявки" />
           <FooterLink href="/admin/clients" icon={<Users className="h-4 w-4" />} label="Клиенты" />
-
+          <FooterLink href="/admin/promotions" icon={<Users className="h-4 w-4" />} label="Акции" />
           <FooterLink href="/admin/masters" icon={<Layers3 className="h-4 w-4" />} label="Сотрудники" />
           <FooterLink href="/admin/calendar" icon={<CalendarRange className="h-4 w-4" />} label="Календарь" />
           <FooterLink href="/admin/stats" icon={<BarChart3 className="h-4 w-4" />} label="Статистика" />

@@ -1,32 +1,44 @@
 // src/app/booking/page.tsx
-import { prisma } from '@/lib/db';
-import PublicBookingForm from '@/components/public-booking-form';
-
-export const metadata = { title: 'Онлайн-запись' };
-export const dynamic = 'force-dynamic';
-
-export default async function BookingPage() {
-  const categories = await prisma.service.findMany({
-    where: { parentId: null, isActive: true },
-    orderBy: { name: 'asc' },
-    select: {
-      id: true,
-      name: true,
-      children: {
-        where: { isActive: true },
-        orderBy: { name: 'asc' },
-        select: { slug: true, name: true, description: true, durationMin: true, priceCents: true },
-      },
-    },
-  });
-
-  return (
-    <section className="container py-10">
-      <h1 className="text-3xl font-bold mb-6">Запись онлайн</h1>
-      <PublicBookingForm categories={categories} />
-    </section>
-  );
+import { redirect } from "next/navigation";
+export default function BookingIndex() {
+  redirect("/booking/services");
 }
+
+
+
+
+
+
+//-------------работало но меняем структуру---------
+// // src/app/booking/page.tsx
+// import { prisma } from '@/lib/db';
+// import PublicBookingForm from '@/components/public-booking-form';
+
+// export const metadata = { title: 'Онлайн-запись' };
+// export const dynamic = 'force-dynamic';
+
+// export default async function BookingPage() {
+//   const categories = await prisma.service.findMany({
+//     where: { parentId: null, isActive: true },
+//     orderBy: { name: 'asc' },
+//     select: {
+//       id: true,
+//       name: true,
+//       children: {
+//         where: { isActive: true },
+//         orderBy: { name: 'asc' },
+//         select: { slug: true, name: true, description: true, durationMin: true, priceCents: true },
+//       },
+//     },
+//   });
+
+//   return (
+//     <section className="container py-10">
+//       <h1 className="text-3xl font-bold mb-6">Запись онлайн</h1>
+//       <PublicBookingForm categories={categories} />
+//     </section>
+//   );
+// }
 
 
 

@@ -1,3 +1,4 @@
+//src/lib/db.ts
 import { PrismaClient } from "@prisma/client";
 
 /** Храним клиент в глобале, чтобы не плодить экземпляры в dev */
