@@ -214,14 +214,16 @@ function CalendarInner(): JSX.Element {
     router.replace(`/booking/calendar?${qs.toString()}`);
   };
 
-  // Переход к подтверждению
+  // Переход к шагу клиента
   const goConfirm = (slot: Slot): void => {
     const qs = new URLSearchParams();
     serviceIds.forEach(id => qs.append('s', id));
     if (masterId) qs.set('m', masterId);
     qs.set('start', slot.startAt);
     qs.set('end', slot.endAt);
-    router.push(`/booking/confirm?${qs.toString()}`);
+    // важно: прокидываем выбранную дату, чтобы на следующем шаге был контекст
+    qs.set('d', slot.startAt.slice(0, 10));
+    router.push(`/booking/client?${qs.toString()}`);
   };
 
   return (
