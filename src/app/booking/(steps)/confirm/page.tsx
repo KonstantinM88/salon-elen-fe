@@ -1,298 +1,484 @@
-'use client';
+// src/app/booking/(steps)/confirm/page.tsx
+import { redirect } from 'next/navigation';
 
-import * as React from 'react';
-import { JSX, Suspense, useCallback, useMemo, useState } from 'react';
-import Link from 'next/link';
-import { useRouter, useSearchParams } from 'next/navigation';
-
-type PostResult =
-  | { ok: true; id: string }
-  | { ok: false; status: number; code: string };
-
-function formatCurrencyEUR(cents: number): string {
-  return new Intl.NumberFormat('de-DE', {
-    style: 'currency',
-    currency: 'EUR',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(cents / 100);
-}
-
-function formatDateTimeLocal(iso: string): string {
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return iso;
-  return new Intl.DateTimeFormat('ru-RU', {
-    year: 'numeric',
-    month: 'long',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-  }).format(d);
-}
+type SearchParams = Record<string, string | string[] | undefined>;
 
 /**
- * Избегаем жалобы Next.js на отсутствие Suspense вокруг useSearchParams:
- * сам хук используется внутри ConfirmInner, а страница возвращает Suspense boundary.
+ * Временная заглушка: страница подтверждения не используется.
+ * Если пользователь попал сюда, сразу переносим его на /booking/success
+ * с сохранением всех query-параметров.
  */
-export default function ConfirmPage(): JSX.Element {
-  return (
-    <Suspense
-      fallback={
-        <div className="mx-auto max-w-3xl px-4 py-12">Загрузка данных записи…</div>
-      }
-    >
-      <ConfirmInner />
-    </Suspense>
-  );
-}
+export default function Page(props: { searchParams: SearchParams }): never {
+  const sp = props.searchParams;
 
-function ConfirmInner(): JSX.Element {
-  const router = useRouter();
-  const params = useSearchParams();
-
-  // Вытаскиваем входные параметры из query
-  const serviceIds = useMemo<string[]>(() => {
-    const all = params.getAll('s').filter(Boolean);
-    // Удалим дубли, сохраним порядок
-    const seen = new Set<string>();
-    const uniq: string[] = [];
-    for (const id of all) {
-      if (!seen.has(id)) {
-        seen.add(id);
-        uniq.push(id);
+  const qs = new URLSearchParams();
+  for (const [key, value] of Object.entries(sp)) {
+    if (Array.isArray(value)) {
+      for (const v of value) {
+        if (v != null) qs.append(key, String(v));
       }
+    } else if (value != null) {
+      qs.set(key, String(value));
     }
-    return uniq;
-  }, [params]);
-
-  const masterId = params.get('m') ?? undefined;
-  const startISO = params.get('start') ?? undefined;
-  const endISO = params.get('end') ?? undefined;
-
-  // Валидация наличия обязательных параметров URL
-  const urlError = useMemo<string | null>(() => {
-    if (serviceIds.length === 0) return 'Не выбраны услуги.';
-    if (!masterId) return 'Не выбран мастер.';
-    if (!startISO) return 'Не выбрано время начала.';
-    return null;
-  }, [serviceIds, masterId, startISO]);
-
-  // Локальная форма клиента
-  const [customerName, setCustomerName] = useState<string>('');
-  const [phone, setPhone] = useState<string>('');
-  const [email, setEmail] = useState<string>('');
-  const [notes, setNotes] = useState<string>('');
-
-  // Состояния отправки
-  const [submitting, setSubmitting] = useState<boolean>(false);
-  const [submitError, setSubmitError] = useState<string | null>(null);
-
-  const handleSubmit = useCallback(async (): Promise<void> => {
-    if (!startISO) return;
-    setSubmitting(true);
-    setSubmitError(null);
-
-    try {
-      const payload = {
-        serviceIds,
-        masterId,
-        startAt: startISO,
-        endAt: endISO,
-        customerName: customerName.trim(),
-        phone: phone.trim(),
-        email: email.trim() || undefined,
-        notes: notes.trim() || undefined,
-      };
-
-      const res = await fetch('/api/appointments', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-        cache: 'no-store',
-      });
-
-      if (!res.ok) {
-        const code =
-          (await res.json().catch(() => ({} as { error?: string }))).error ??
-          'unknown_error';
-        const fail: PostResult = { ok: false, status: res.status, code };
-        onPostFailed(fail);
-        return;
-      }
-
-      const data = (await res.json()) as { id: string };
-      const success: PostResult = { ok: true, id: data.id };
-      onPostSuccess(success);
-    } catch {
-      setSubmitError('Не удалось отправить заявку. Проверьте подключение и повторите попытку.');
-    } finally {
-      setSubmitting(false);
-    }
-  }, [customerName, email, endISO, masterId, notes, phone, serviceIds, startISO]);
-
-  function onPostSuccess(_r: { ok: true; id: string }): void {
-    // После успешного создания можно вести в личный кабинет или на главную.
-    router.replace('/'); // при необходимости поменяйте на страницу кабинета
   }
 
-  function onPostFailed(r: { ok: false; status: number; code: string }): void {
-    // Читаемые сообщения для известных кодов API
-    const map: Record<string, string> = {
-      contact_required: 'Заполните имя и телефон.',
-      service_required: 'Не выбран ни один сервис.',
-      startAt_required: 'Не выбрано время начала.',
-      duration_invalid: 'Невалидная суммарная длительность.',
-      endAt_invalid: 'Невалидное время окончания.',
-      split_required:
-        'Выбранный мастер не выполняет часть услуг. Разделите заказ на несколько записей.',
-      time_overlaps:
-        'Выбранный слот уже занят. Вернитесь к календарю и выберите другое время.',
-    };
-    setSubmitError(map[r.code] ?? `Ошибка создания записи (${r.status}).`);
-  }
-
-  // UI
-  return (
-    <div className="mx-auto max-w-3xl px-4 pb-24">
-      <h1 className="mt-6 text-2xl font-semibold">Подтверждение записи</h1>
-      <h2 className="mt-2 text-lg text-muted-foreground">
-        Проверьте данные и укажите контакты
-      </h2>
-
-      {urlError && (
-        <div className="mt-6 rounded-lg border border-destructive bg-destructive/10 p-4 text-destructive">
-          {urlError}
-        </div>
-      )}
-
-      {!urlError && (
-        <>
-          <section className="mt-6 rounded-xl border border-border bg-card p-4">
-            <div className="grid gap-2 text-sm">
-              <div>
-                <span className="text-muted-foreground">Мастер: </span>
-                <span className="font-medium">{masterId}</span>
-              </div>
-              <div>
-                <span className="text-muted-foreground">Услуги: </span>
-                <span className="font-medium">{serviceIds.join(', ')}</span>
-              </div>
-              <div>
-                <span className="text-muted-foreground">Начало: </span>
-                <span className="font-medium">{formatDateTimeLocal(startISO!)}</span>
-              </div>
-              {endISO && (
-                <div>
-                  <span className="text-muted-foreground">Окончание: </span>
-                  <span className="font-medium">{formatDateTimeLocal(endISO)}</span>
-                </div>
-              )}
-            </div>
-          </section>
-
-          <section className="mt-6 rounded-xl border border-border bg-card p-4">
-            <div className="grid gap-4">
-              <div className="grid gap-2">
-                <label className="text-sm text-muted-foreground" htmlFor="name">
-                  Имя клиента
-                </label>
-                <input
-                  id="name"
-                  type="text"
-                  value={customerName}
-                  onChange={(e) => setCustomerName(e.target.value)}
-                  className="rounded-lg border border-border bg-background px-3 py-2"
-                  placeholder="Имя и фамилия"
-                  required
-                />
-              </div>
-
-              <div className="grid gap-2">
-                <label className="text-sm text-muted-foreground" htmlFor="phone">
-                  Телефон
-                </label>
-                <input
-                  id="phone"
-                  type="tel"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  className="rounded-lg border border-border bg-background px-3 py-2"
-                  placeholder="+49 ..."
-                  required
-                />
-              </div>
-
-              <div className="grid gap-2">
-                <label className="text-sm text-muted-foreground" htmlFor="email">
-                  E-mail
-                </label>
-                <input
-                  id="email"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="rounded-lg border border-border bg-background px-3 py-2"
-                  placeholder="name@example.com"
-                />
-              </div>
-
-              <div className="grid gap-2">
-                <label className="text-sm text-muted-foreground" htmlFor="notes">
-                  Комментарий
-                </label>
-                <textarea
-                  id="notes"
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  className="min-h-[90px] rounded-lg border border-border bg-background px-3 py-2"
-                  placeholder="Пожелания к визиту"
-                />
-              </div>
-
-              {submitError && (
-                <div className="rounded-lg border border-destructive bg-destructive/10 p-3 text-destructive">
-                  {submitError}
-                </div>
-              )}
-            </div>
-          </section>
-
-          <div className="fixed inset-x-0 bottom-0 z-20 border-t border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-            <div className="mx-auto flex max-w-3xl items-center justify-between gap-4 px-4 py-3">
-              <Link
-                href={{
-                  pathname: '/booking/calendar',
-                  query: {
-                    m: masterId!,
-                    ...(serviceIds.length > 0
-                      ? Object.fromEntries(serviceIds.map((s) => ['s', s]))
-                      : {}),
-                  },
-                }}
-                className="rounded-xl px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground"
-              >
-                Назад к календарю
-              </Link>
-
-              <button
-                type="button"
-                onClick={handleSubmit}
-                disabled={submitting || !customerName.trim() || !phone.trim()}
-                className={`rounded-xl px-5 py-2 text-sm font-semibold transition ${
-                  submitting || !customerName.trim() || !phone.trim()
-                    ? 'pointer-events-none bg-muted text-muted-foreground'
-                    : 'bg-indigo-600 text-white hover:bg-indigo-500'
-                }`}
-              >
-                {submitting ? 'Отправляем…' : 'Подтвердить запись'}
-              </button>
-            </div>
-          </div>
-        </>
-      )}
-    </div>
-  );
+  redirect(`/booking/success?${qs.toString()}`);
 }
+
+
+
+
+
+// 'use client';
+
+// import * as React from 'react';
+// import { useRouter, useSearchParams } from 'next/navigation';
+
+
+// type CreatePayload = {
+//   s: string[]; // service ids (используем первую для создания единичной записи, как и прежде)
+//   m: string;   // masterId
+//   start: string;
+//   end: string;
+//   name: string;
+//   phone: string;
+//   email?: string;
+//   notes?: string;
+//   birth?: string;
+//   ref?: string;
+//   refOther?: string;
+//   pay?: string;
+// };
+
+// type CreateResponseOk = {
+//   ok: true;
+//   data: { id: string };
+// };
+
+// type CreateResponseFail = {
+//   ok: false;
+//   error: string;
+// };
+
+// export default function ConfirmPage(): React.JSX.Element {
+//   const params = useSearchParams();
+//   const router = useRouter();
+
+//   const [submitting, setSubmitting] = React.useState(false);
+//   const [err, setErr] = React.useState<string | null>(null);
+
+//   const payload: CreatePayload = React.useMemo(() => {
+//     const s = params.getAll('s').filter(Boolean);
+//     return {
+//       s,
+//       m: params.get('m') ?? '',
+//       start: params.get('start') ?? '',
+//       end: params.get('end') ?? '',
+//       name: params.get('name') ?? '',
+//       phone: params.get('phone') ?? '',
+//       email: params.get('email') ?? undefined,
+//       notes: params.get('notes') ?? undefined,
+//       birth: params.get('birth') ?? undefined,
+//       ref: params.get('ref') ?? undefined,
+//       refOther: params.get('refOther') ?? undefined,
+//       pay: params.get('pay') ?? undefined,
+//     };
+//   }, [params]);
+
+//   const disabled =
+//     submitting ||
+//     payload.s.length === 0 ||
+//     !payload.m ||
+//     !payload.start ||
+//     !payload.end ||
+//     payload.name.trim().length < 2 ||
+//     payload.phone.trim().length < 6;
+
+//   async function onConfirm(): Promise<void> {
+//     if (disabled) return;
+//     setSubmitting(true);
+//     setErr(null);
+//     try {
+//       // Создаем запись
+//       const body = {
+//         serviceId: payload.s[0],
+//         masterId: payload.m,
+//         startAt: payload.start,
+//         endAt: payload.end,
+//         customerName: payload.name.trim(),
+//         phone: payload.phone.trim(),
+//         email: payload.email?.trim() ?? null,
+//         notes: payload.notes?.trim() ?? null,
+//       };
+//       const res = await fetch('/api/appointments', {
+//         method: 'POST',
+//         headers: { 'Content-Type': 'application/json' },
+//         body: JSON.stringify(body),
+//       });
+//       const j = (await res.json()) as CreateResponseOk | CreateResponseFail;
+//       if (!res.ok || !('ok' in j) || j.ok === false) {
+//         setErr('Не удалось подтвердить запись.');
+//         setSubmitting(false);
+//         return;
+//       }
+//       router.replace(`/booking/success?id=${encodeURIComponent(j.data.id)}`);
+//     } catch {
+//       setErr('Ошибка сети при подтверждении записи.');
+//       setSubmitting(false);
+//     }
+//   }
+
+//   return (
+//     <div className="mx-auto max-w-3xl px-4 pb-28">
+//       <h1 className="mt-6 text-2xl font-semibold">Онлайн-запись</h1>
+//       <h2 className="mt-2 text-lg text-muted-foreground">Подтверждение и оплата</h2>
+
+//       <div className="mt-6 space-y-4 rounded-xl border border-border bg-card p-4 text-sm text-muted-foreground">
+//         <div>Мастер: <span className="font-medium text-foreground">{payload.m.slice(0, 8)}…</span></div>
+//         <div>Услуг: <span className="font-medium text-foreground">{payload.s.length}</span></div>
+//         <div>Начало: <span className="font-medium text-foreground">{new Date(payload.start).toLocaleString()}</span></div>
+//         <div>Окончание: <span className="font-medium text-foreground">{new Date(payload.end).toLocaleString()}</span></div>
+//       </div>
+
+//       <div className="mt-6 grid gap-3 sm:grid-cols-2">
+//         <div className="rounded-xl border border-border p-4">
+//           <div className="font-medium">Клиент</div>
+//           <div className="mt-2 text-sm text-muted-foreground">Имя: <span className="text-foreground">{payload.name}</span></div>
+//           <div className="text-sm text-muted-foreground">Телефон: <span className="text-foreground">{payload.phone}</span></div>
+//           {payload.email && <div className="text-sm text-muted-foreground">E-mail: <span className="text-foreground">{payload.email}</span></div>}
+//           {payload.notes && <div className="text-sm text-muted-foreground">Комментарий: <span className="text-foreground">{payload.notes}</span></div>}
+//         </div>
+
+//         <div className="rounded-xl border border-border p-4">
+//           <div className="font-medium">Оплата</div>
+//           <div className="mt-2 text-sm text-muted-foreground">
+//             Выбрано: <span className="text-foreground">{payload.pay ?? '—'}</span>
+//           </div>
+//           {/* Здесь можно вставить виджеты оплаты (stripe/paypal) по готовности */}
+//         </div>
+//       </div>
+
+//       {err && (
+//         <div className="mt-4 rounded-lg border border-destructive bg-destructive/10 p-3 text-sm text-destructive">
+//           {err}
+//         </div>
+//       )}
+
+//       <div className="mt-6 flex justify-end">
+//         <button
+//           type="button"
+//           onClick={onConfirm}
+//           disabled={disabled}
+//           className={`rounded-xl px-5 py-2 text-sm font-semibold transition
+//             ${disabled ? 'pointer-events-none bg-muted text-muted-foreground' : 'bg-indigo-600 text-white hover:bg-indigo-500'}`}
+//         >
+//           Подтвердить запись
+//         </button>
+//       </div>
+//     </div>
+//   );
+// }
+
+
+
+
+
+//-----------------рабочая но сырая версия
+// 'use client';
+
+// import * as React from 'react';
+// import { JSX, Suspense, useCallback, useMemo, useState } from 'react';
+// import Link from 'next/link';
+// import { useRouter, useSearchParams } from 'next/navigation';
+
+// type PostResult =
+//   | { ok: true; id: string }
+//   | { ok: false; status: number; code: string };
+
+// function formatCurrencyEUR(cents: number): string {
+//   return new Intl.NumberFormat('de-DE', {
+//     style: 'currency',
+//     currency: 'EUR',
+//     minimumFractionDigits: 0,
+//     maximumFractionDigits: 0,
+//   }).format(cents / 100);
+// }
+
+// function formatDateTimeLocal(iso: string): string {
+//   const d = new Date(iso);
+//   if (Number.isNaN(d.getTime())) return iso;
+//   return new Intl.DateTimeFormat('ru-RU', {
+//     year: 'numeric',
+//     month: 'long',
+//     day: '2-digit',
+//     hour: '2-digit',
+//     minute: '2-digit',
+//   }).format(d);
+// }
+
+// /**
+//  * Избегаем жалобы Next.js на отсутствие Suspense вокруг useSearchParams:
+//  * сам хук используется внутри ConfirmInner, а страница возвращает Suspense boundary.
+//  */
+// export default function ConfirmPage(): JSX.Element {
+//   return (
+//     <Suspense
+//       fallback={
+//         <div className="mx-auto max-w-3xl px-4 py-12">Загрузка данных записи…</div>
+//       }
+//     >
+//       <ConfirmInner />
+//     </Suspense>
+//   );
+// }
+
+// function ConfirmInner(): JSX.Element {
+//   const router = useRouter();
+//   const params = useSearchParams();
+
+//   // Вытаскиваем входные параметры из query
+//   const serviceIds = useMemo<string[]>(() => {
+//     const all = params.getAll('s').filter(Boolean);
+//     // Удалим дубли, сохраним порядок
+//     const seen = new Set<string>();
+//     const uniq: string[] = [];
+//     for (const id of all) {
+//       if (!seen.has(id)) {
+//         seen.add(id);
+//         uniq.push(id);
+//       }
+//     }
+//     return uniq;
+//   }, [params]);
+
+//   const masterId = params.get('m') ?? undefined;
+//   const startISO = params.get('start') ?? undefined;
+//   const endISO = params.get('end') ?? undefined;
+
+//   // Валидация наличия обязательных параметров URL
+//   const urlError = useMemo<string | null>(() => {
+//     if (serviceIds.length === 0) return 'Не выбраны услуги.';
+//     if (!masterId) return 'Не выбран мастер.';
+//     if (!startISO) return 'Не выбрано время начала.';
+//     return null;
+//   }, [serviceIds, masterId, startISO]);
+
+//   // Локальная форма клиента
+//   const [customerName, setCustomerName] = useState<string>('');
+//   const [phone, setPhone] = useState<string>('');
+//   const [email, setEmail] = useState<string>('');
+//   const [notes, setNotes] = useState<string>('');
+
+//   // Состояния отправки
+//   const [submitting, setSubmitting] = useState<boolean>(false);
+//   const [submitError, setSubmitError] = useState<string | null>(null);
+
+//   const handleSubmit = useCallback(async (): Promise<void> => {
+//     if (!startISO) return;
+//     setSubmitting(true);
+//     setSubmitError(null);
+
+//     try {
+//       const payload = {
+//         serviceIds,
+//         masterId,
+//         startAt: startISO,
+//         endAt: endISO,
+//         customerName: customerName.trim(),
+//         phone: phone.trim(),
+//         email: email.trim() || undefined,
+//         notes: notes.trim() || undefined,
+//       };
+
+//       const res = await fetch('/api/appointments', {
+//         method: 'POST',
+//         headers: { 'Content-Type': 'application/json' },
+//         body: JSON.stringify(payload),
+//         cache: 'no-store',
+//       });
+
+//       if (!res.ok) {
+//         const code =
+//           (await res.json().catch(() => ({} as { error?: string }))).error ??
+//           'unknown_error';
+//         const fail: PostResult = { ok: false, status: res.status, code };
+//         onPostFailed(fail);
+//         return;
+//       }
+
+//       const data = (await res.json()) as { id: string };
+//       const success: PostResult = { ok: true, id: data.id };
+//       onPostSuccess(success);
+//     } catch {
+//       setSubmitError('Не удалось отправить заявку. Проверьте подключение и повторите попытку.');
+//     } finally {
+//       setSubmitting(false);
+//     }
+//   }, [customerName, email, endISO, masterId, notes, phone, serviceIds, startISO]);
+
+//   function onPostSuccess(_r: { ok: true; id: string }): void {
+//     // После успешного создания можно вести в личный кабинет или на главную.
+//     router.replace('/'); // при необходимости поменяйте на страницу кабинета
+//   }
+
+//   function onPostFailed(r: { ok: false; status: number; code: string }): void {
+//     // Читаемые сообщения для известных кодов API
+//     const map: Record<string, string> = {
+//       contact_required: 'Заполните имя и телефон.',
+//       service_required: 'Не выбран ни один сервис.',
+//       startAt_required: 'Не выбрано время начала.',
+//       duration_invalid: 'Невалидная суммарная длительность.',
+//       endAt_invalid: 'Невалидное время окончания.',
+//       split_required:
+//         'Выбранный мастер не выполняет часть услуг. Разделите заказ на несколько записей.',
+//       time_overlaps:
+//         'Выбранный слот уже занят. Вернитесь к календарю и выберите другое время.',
+//     };
+//     setSubmitError(map[r.code] ?? `Ошибка создания записи (${r.status}).`);
+//   }
+
+//   // UI
+//   return (
+//     <div className="mx-auto max-w-3xl px-4 pb-24">
+//       <h1 className="mt-6 text-2xl font-semibold">Подтверждение записи</h1>
+//       <h2 className="mt-2 text-lg text-muted-foreground">
+//         Проверьте данные и укажите контакты
+//       </h2>
+
+//       {urlError && (
+//         <div className="mt-6 rounded-lg border border-destructive bg-destructive/10 p-4 text-destructive">
+//           {urlError}
+//         </div>
+//       )}
+
+//       {!urlError && (
+//         <>
+//           <section className="mt-6 rounded-xl border border-border bg-card p-4">
+//             <div className="grid gap-2 text-sm">
+//               <div>
+//                 <span className="text-muted-foreground">Мастер: </span>
+//                 <span className="font-medium">{masterId}</span>
+//               </div>
+//               <div>
+//                 <span className="text-muted-foreground">Услуги: </span>
+//                 <span className="font-medium">{serviceIds.join(', ')}</span>
+//               </div>
+//               <div>
+//                 <span className="text-muted-foreground">Начало: </span>
+//                 <span className="font-medium">{formatDateTimeLocal(startISO!)}</span>
+//               </div>
+//               {endISO && (
+//                 <div>
+//                   <span className="text-muted-foreground">Окончание: </span>
+//                   <span className="font-medium">{formatDateTimeLocal(endISO)}</span>
+//                 </div>
+//               )}
+//             </div>
+//           </section>
+
+//           <section className="mt-6 rounded-xl border border-border bg-card p-4">
+//             <div className="grid gap-4">
+//               <div className="grid gap-2">
+//                 <label className="text-sm text-muted-foreground" htmlFor="name">
+//                   Имя клиента
+//                 </label>
+//                 <input
+//                   id="name"
+//                   type="text"
+//                   value={customerName}
+//                   onChange={(e) => setCustomerName(e.target.value)}
+//                   className="rounded-lg border border-border bg-background px-3 py-2"
+//                   placeholder="Имя и фамилия"
+//                   required
+//                 />
+//               </div>
+
+//               <div className="grid gap-2">
+//                 <label className="text-sm text-muted-foreground" htmlFor="phone">
+//                   Телефон
+//                 </label>
+//                 <input
+//                   id="phone"
+//                   type="tel"
+//                   value={phone}
+//                   onChange={(e) => setPhone(e.target.value)}
+//                   className="rounded-lg border border-border bg-background px-3 py-2"
+//                   placeholder="+49 ..."
+//                   required
+//                 />
+//               </div>
+
+//               <div className="grid gap-2">
+//                 <label className="text-sm text-muted-foreground" htmlFor="email">
+//                   E-mail
+//                 </label>
+//                 <input
+//                   id="email"
+//                   type="email"
+//                   value={email}
+//                   onChange={(e) => setEmail(e.target.value)}
+//                   className="rounded-lg border border-border bg-background px-3 py-2"
+//                   placeholder="name@example.com"
+//                 />
+//               </div>
+
+//               <div className="grid gap-2">
+//                 <label className="text-sm text-muted-foreground" htmlFor="notes">
+//                   Комментарий
+//                 </label>
+//                 <textarea
+//                   id="notes"
+//                   value={notes}
+//                   onChange={(e) => setNotes(e.target.value)}
+//                   className="min-h-[90px] rounded-lg border border-border bg-background px-3 py-2"
+//                   placeholder="Пожелания к визиту"
+//                 />
+//               </div>
+
+//               {submitError && (
+//                 <div className="rounded-lg border border-destructive bg-destructive/10 p-3 text-destructive">
+//                   {submitError}
+//                 </div>
+//               )}
+//             </div>
+//           </section>
+
+//           <div className="fixed inset-x-0 bottom-0 z-20 border-t border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+//             <div className="mx-auto flex max-w-3xl items-center justify-between gap-4 px-4 py-3">
+//               <Link
+//                 href={{
+//                   pathname: '/booking/calendar',
+//                   query: {
+//                     m: masterId!,
+//                     ...(serviceIds.length > 0
+//                       ? Object.fromEntries(serviceIds.map((s) => ['s', s]))
+//                       : {}),
+//                   },
+//                 }}
+//                 className="rounded-xl px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground"
+//               >
+//                 Назад к календарю
+//               </Link>
+
+//               <button
+//                 type="button"
+//                 onClick={handleSubmit}
+//                 disabled={submitting || !customerName.trim() || !phone.trim()}
+//                 className={`rounded-xl px-5 py-2 text-sm font-semibold transition ${
+//                   submitting || !customerName.trim() || !phone.trim()
+//                     ? 'pointer-events-none bg-muted text-muted-foreground'
+//                     : 'bg-indigo-600 text-white hover:bg-indigo-500'
+//                 }`}
+//               >
+//                 {submitting ? 'Отправляем…' : 'Подтвердить запись'}
+//               </button>
+//             </div>
+//           </div>
+//         </>
+//       )}
+//     </div>
+//   );
+// }
 
 
 

@@ -9,7 +9,6 @@ export default function ClientStep(): JSX.Element {
   const router = useRouter();
   const params = useSearchParams();
 
-  // чтение параметров из URL
   const serviceIds: string[] = React.useMemo(
     () => params.getAll('s').filter(Boolean),
     [params],
@@ -19,13 +18,11 @@ export default function ClientStep(): JSX.Element {
   const endISO = params.get('end') ?? null;
   const dateISO = params.get('d') ?? undefined;
 
-  // локальная форма
   const [name, setName] = React.useState<string>('');
   const [phone, setPhone] = React.useState<string>('');
   const [email, setEmail] = React.useState<string>('');
   const [notes, setNotes] = React.useState<string>('');
 
-  // следующая страница: CONFIRM (подтверждение/оплата)
   const nextHref = React.useMemo(() => {
     const qs = new URLSearchParams();
     serviceIds.forEach(s => qs.append('s', s));
@@ -37,7 +34,7 @@ export default function ClientStep(): JSX.Element {
     qs.set('phone', phone.trim());
     if (email.trim()) qs.set('email', email.trim());
     if (notes.trim()) qs.set('notes', notes.trim());
-    return `/booking/confirm?${qs.toString()}`;
+    return `/booking/success?${qs.toString()}`;
   }, [serviceIds, masterId, startISO, endISO, dateISO, name, phone, email, notes]);
 
   const canProceed = name.trim().length > 1 && phone.trim().length >= 7;
