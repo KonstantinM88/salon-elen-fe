@@ -18,6 +18,7 @@ type Slot = {
 type ApiPayload = {
   slots: Slot[];
   splitRequired: boolean;
+  firstDateISO?: string | null;
 };
 
 type Master = { id: string; name: string };
@@ -139,13 +140,31 @@ function CalendarInner(): JSX.Element {
       try {
         const qs = new URLSearchParams();
         qs.set('masterId', masterId);
-        qs.set('dateISO', dateISO);
         qs.set('serviceIds', serviceIds.join(','));
+
+        // Если есть параметр даты в URL - запрашиваем конкретную дату
+        // Если нет - API сам найдет первую доступную дату
+        if (hasDateParam) {
+          qs.set('dateISO', dateISO);
+        }
+
         const res = await fetch(`/api/availability?${qs.toString()}`, { cache: 'no-store' });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data: ApiPayload = await res.json();
         if (!alive) return;
+
         setSlots(Array.isArray(data.slots) ? data.slots : []);
+
+        // Если API вернул firstDateISO и мы не запрашивали конкретную дату,
+        // обновляем dateISO и URL
+        if (!hasDateParam && data.firstDateISO) {
+          setDateISO(data.firstDateISO);
+          const urlQS = new URLSearchParams();
+          serviceIds.forEach(id => urlQS.append('s', id));
+          if (masterId) urlQS.set('m', masterId);
+          urlQS.set('d', data.firstDateISO);
+          router.replace(`/booking/calendar?${urlQS.toString()}`);
+        }
       } catch (e: unknown) {
         if (!alive) return;
         const msg = e instanceof Error ? e.message : 'Не удалось загрузить слоты';
@@ -156,47 +175,7 @@ function CalendarInner(): JSX.Element {
     }
     void load();
     return () => { alive = false; };
-  }, [dateISO, masterId, serviceIds]);
-
-  // Сканирование ближайшей даты со слотами, если пользователь пришел без d=
-  const scanningRef = React.useRef(false);
-  const scanForwardForFirstDayWithSlots = React.useCallback(async (): Promise<void> => {
-    if (scanningRef.current) return;
-    if (!masterId || serviceIds.length === 0) return;
-
-    scanningRef.current = true;
-    try {
-      let d = dateISO;
-      while (d <= maxISO) {
-        const qs = new URLSearchParams();
-        qs.set('masterId', masterId);
-        qs.set('dateISO', d);
-        qs.set('serviceIds', serviceIds.join(','));
-        const res = await fetch(`/api/availability?${qs.toString()}`, { cache: 'no-store' });
-        if (!res.ok) break;
-        const { slots: s }: ApiPayload = await res.json();
-        if (Array.isArray(s) && s.length > 0) {
-          setDateISO(d);
-          setSlots(s);
-          const urlQS = new URLSearchParams();
-          serviceIds.forEach(id => urlQS.append('s', id));
-          if (masterId) urlQS.set('m', masterId);
-          urlQS.set('d', d);
-          router.replace(`/booking/calendar?${urlQS.toString()}`);
-          break;
-        }
-        d = addDaysISO(d, 1);
-      }
-    } finally {
-      scanningRef.current = false;
-    }
-  }, [dateISO, masterId, serviceIds, maxISO, router]);
-
-  React.useEffect(() => {
-    if (!hasDateParam && !loading && !error && slots.length === 0) {
-      void scanForwardForFirstDayWithSlots();
-    }
-  }, [hasDateParam, loading, error, slots.length, scanForwardForFirstDayWithSlots]);
+  }, [dateISO, masterId, serviceIds, hasDateParam, router]);
 
   // Навигация по датам
   const canPrev = dateISO > minISO;
