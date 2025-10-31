@@ -89,197 +89,49 @@ export async function GET(req: Request) {
       }
     }
 
-    // Если dateISO не передан, ищем первую доступную дату в пределах 9 недель
-    // ОПТИМИЗАЦИЯ: Загружаем все данные одним батчем вместо цикла по дням
+    // Если dateISO не передан, ищем первую доступную дату в пределах 2 недель
+    // ОПТИМИЗАЦИЯ: Ограничиваем поиск 14 днями вместо 63 для быстрой работы
     if (!dateISO) {
       const today = new Date().toISOString().slice(0, 10);
-      const maxDate = addDaysISO(today, 9 * 7 - 1);
+      const maxDate = addDaysISO(today, 14 - 1); // 2 недели вместо 9
 
-      // Вспомогательная функция для вычисления weekday
-      const getWeekdayInOrgTZ = (dateISO: string): number => {
-        const ORG_TZ = process.env.NEXT_PUBLIC_ORG_TZ || "Europe/Berlin";
-        const localMidnight = new Date(`${dateISO}T00:00:00.000Z`);
-        const shown = new Intl.DateTimeFormat("en-US", {
-          timeZone: ORG_TZ,
-          weekday: "short",
-        }).format(localMidnight);
-        const map: Record<string, number> = {
-          sun: 0, mon: 1, tue: 2, wed: 3, thu: 4, fri: 5, sat: 6
-        };
-        return map[shown.toLowerCase()] ?? new Date(localMidnight).getUTCDay();
-      };
-
-      // BATCH 1: Загружаем ВСЕ рабочие часы мастера (все 7 дней недели) - 1 запрос
+      // Предзагружаем рабочие часы мастера для всех дней недели (1 запрос)
       const allWorkingHours = await prisma.masterWorkingHours.findMany({
         where: { masterId },
-        select: { weekday: true, isClosed: true, startMinutes: true, endMinutes: true },
+        select: { weekday: true, isClosed: true },
       });
-      const workingHoursMap = new Map(
-        allWorkingHours.map(wh => [wh.weekday, wh])
+      const closedDays = new Set(
+        allWorkingHours.filter(wh => wh.isClosed).map(wh => wh.weekday)
       );
 
-      // BATCH 2: Загружаем ВСЕ time offs для диапазона 9 недель - 1 запрос
-      const ORG_TZ = process.env.NEXT_PUBLIC_ORG_TZ || "Europe/Berlin";
-      const zonedMidnightUTC = (dateISO: string): Date => {
-        const localMidnight = new Date(`${dateISO}T00:00:00.000Z`);
-        const dtf = new Intl.DateTimeFormat("en-US", {
-          timeZone: ORG_TZ,
-          year: "numeric",
-          month: "2-digit",
-          day: "2-digit",
-          hour: "2-digit",
-          minute: "2-digit",
-          second: "2-digit",
-          hour12: false,
-        });
-        const parts = Object.fromEntries(
-          dtf.formatToParts(localMidnight).map((p) => [p.type, p.value])
-        );
-        const asUTC = Date.UTC(
-          Number(parts.year),
-          Number(parts.month) - 1,
-          Number(parts.day),
-          Number(parts.hour),
-          Number(parts.minute),
-          Number(parts.second)
-        );
-        const off = asUTC - localMidnight.getTime();
-        return new Date(localMidnight.getTime() - off);
+      // Функция для определения дня недели
+      const getWeekday = (dateISO: string): number => {
+        const d = new Date(`${dateISO}T12:00:00Z`);
+        return d.getUTCDay();
       };
 
-      const rangeStartUTC = zonedMidnightUTC(today);
-      const rangeEndUTC = new Date(zonedMidnightUTC(maxDate).getTime() + 24 * 60 * 60 * 1000);
-
-      const allTimeOffs = await prisma.masterTimeOff.findMany({
-        where: {
-          masterId,
-          date: { gte: rangeStartUTC, lt: rangeEndUTC },
-        },
-        select: { date: true, startMinutes: true, endMinutes: true },
-      });
-
-      // BATCH 3: Загружаем ВСЕ записи для диапазона 9 недель - 1 запрос
-      const allAppointments = await prisma.appointment.findMany({
-        where: {
-          masterId,
-          status: { in: ["PENDING", "CONFIRMED"] },
-          startAt: { gte: rangeStartUTC, lt: rangeEndUTC },
-        },
-        select: { startAt: true, endAt: true },
-        orderBy: { startAt: "asc" },
-      });
-
-      // Теперь итерируем по датам В ПАМЯТИ, без SQL-запросов
       let currentDate = today;
       while (currentDate <= maxDate) {
         try {
-          const weekday = getWeekdayInOrgTZ(currentDate);
-          const wh = workingHoursMap.get(weekday);
-
-          // Если выходной - пропускаем
-          if (!wh || wh.isClosed) {
+          // Пропускаем выходные дни без запросов к БД
+          const weekday = getWeekday(currentDate);
+          if (closedDays.has(weekday)) {
             currentDate = addDaysISO(currentDate, 1);
             continue;
           }
 
-          // Границы дня в UTC
-          const dayStartUTC = zonedMidnightUTC(currentDate);
-          const dayEndUTC = new Date(dayStartUTC.getTime() + 24 * 60 * 60 * 1000);
+          const slots = await getFreeSlots({
+            dateISO: currentDate,
+            masterId,
+            durationMin: totalDurationMin,
+          });
 
-          // Фильтруем timeOffs для этого дня
-          const dayTimeOffs = allTimeOffs.filter(
-            t => t.date >= dayStartUTC && t.date < dayEndUTC
-          );
-
-          // Фильтруем appointments для этого дня
-          const dayAppointments = allAppointments.filter(
-            a => a.startAt < dayEndUTC && a.endAt > dayStartUTC
-          );
-
-          // Вычисляем свободные слоты в памяти (копия логики из getFreeSlots)
-          const workStart = wh.startMinutes;
-          const workEnd = wh.endMinutes;
-
-          type Interval = { a: number; b: number };
-          const busy: Interval[] = [];
-
-          // Добавляем time offs
-          for (const t of dayTimeOffs) {
-            const a = Math.max(t.startMinutes, workStart);
-            const b = Math.min(t.endMinutes, workEnd);
-            if (a < b) busy.push({ a, b });
-          }
-
-          // Добавляем appointments
-          const diffMin = (a: Date, b: Date) => Math.round((a.getTime() - b.getTime()) / 60000);
-          for (const appt of dayAppointments) {
-            const a = diffMin(appt.startAt, dayStartUTC);
-            const b = diffMin(appt.endAt, dayStartUTC);
-            const aa = Math.max(a, workStart);
-            const bb = Math.min(b, workEnd);
-            if (aa < bb) busy.push({ a: aa, b: bb });
-          }
-
-          // Сливаем пересекающиеся busy интервалы
-          busy.sort((x, y) => x.a - y.a);
-          const merged: Interval[] = [];
-          for (const cur of busy) {
-            if (merged.length === 0 || merged[merged.length - 1].b <= cur.a) {
-              merged.push({ ...cur });
-            } else {
-              merged[merged.length - 1].b = Math.max(merged[merged.length - 1].b, cur.b);
-            }
-          }
-
-          // Вычисляем свободные интервалы
-          const free: Interval[] = [];
-          let cursor = workStart;
-          for (const blk of merged) {
-            if (cursor < blk.a) free.push({ a: cursor, b: blk.a });
-            cursor = Math.max(cursor, blk.b);
-          }
-          if (cursor < workEnd) free.push({ a: cursor, b: workEnd });
-
-          // Проверяем, есть ли хотя бы один слот
-          const SLOT_STEP_MIN = 5;
-          const MIN_LEAD_TIME_MS = 60 * 60 * 1000;
-          const minBookingTime = new Date(Date.now() + MIN_LEAD_TIME_MS);
-
-          const ceilToStep = (m: number, step: number) => Math.ceil(m / step) * step;
-          const addMinutesFromZonedMidnight = (dateISO: string, mins: number): Date => {
-            const base = zonedMidnightUTC(dateISO);
-            return new Date(base.getTime() + mins * 60000);
-          };
-
-          let hasSlots = false;
-          for (const f of free) {
-            let start = ceilToStep(f.a, SLOT_STEP_MIN);
-            while (start + totalDurationMin <= f.b) {
-              const startAtUTC = addMinutesFromZonedMidnight(currentDate, start);
-              if (startAtUTC >= minBookingTime) {
-                hasSlots = true;
-                break;
-              }
-              start += SLOT_STEP_MIN;
-            }
-            if (hasSlots) break;
-          }
-
-          // Если нашли доступные слоты, вызываем getFreeSlots для генерации полного списка
-          if (hasSlots) {
-            const slots = await getFreeSlots({
-              dateISO: currentDate,
-              masterId,
-              durationMin: totalDurationMin,
+          if (slots.length > 0) {
+            return NextResponse.json({
+              slots,
+              splitRequired: false,
+              firstDateISO: currentDate
             });
-
-            if (slots.length > 0) {
-              return NextResponse.json({
-                slots,
-                splitRequired: false,
-                firstDateISO: currentDate
-              });
-            }
           }
         } catch {
           // Игнорируем ошибки для отдельных дат и продолжаем поиск
@@ -287,7 +139,7 @@ export async function GET(req: Request) {
         currentDate = addDaysISO(currentDate, 1);
       }
 
-      // Не найдено доступных дат в пределах 9 недель
+      // Не найдено доступных дат в пределах 2 недель
       return NextResponse.json({
         slots: [],
         splitRequired: false,
