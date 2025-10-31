@@ -95,6 +95,8 @@ export default function ServicesPage(): JSX.Element {
     };
   }, []);
 
+  const [masterWarning, setMasterWarning] = React.useState<string | null>(null);
+
   const toggleService = (id: string): void => {
     setSelected(prev => {
       const next = new Set(prev);
@@ -103,6 +105,50 @@ export default function ServicesPage(): JSX.Element {
       return next;
     });
   };
+
+  // Проверка совместимости мастеров при изменении выбора
+  React.useEffect(() => {
+    if (selected.size === 0) {
+      setMasterWarning(null);
+      return;
+    }
+
+    let cancelled = false;
+
+    async function checkMasterCompatibility(): Promise<void> {
+      try {
+        const serviceIdsParam = Array.from(selected).join(',');
+        const res = await fetch(`/api/masters?serviceIds=${encodeURIComponent(serviceIdsParam)}`, {
+          method: 'GET',
+          cache: 'no-store',
+        });
+
+        if (!res.ok) throw new Error('Failed to check masters');
+
+        const data = await res.json();
+        const masters = Array.isArray(data.masters) ? data.masters : [];
+
+        if (!cancelled) {
+          if (masters.length === 0) {
+            setMasterWarning(
+              'Эти услуги выполняются разными мастерами. Пожалуйста, оформите отдельные записи для несовместимых услуг.'
+            );
+          } else {
+            setMasterWarning(null);
+          }
+        }
+      } catch (e) {
+        console.error('Master compatibility check failed:', e);
+        if (!cancelled) setMasterWarning(null);
+      }
+    }
+
+    void checkMasterCompatibility();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [selected]);
 
   // Плоский список и расчеты итогов
   const flatServices: Service[] = React.useMemo(
@@ -149,6 +195,12 @@ export default function ServicesPage(): JSX.Element {
       {error && (
         <div className="mt-6 rounded-lg border border-destructive bg-destructive/10 p-4 text-destructive">
           Ошибка: {error}
+        </div>
+      )}
+
+      {masterWarning && (
+        <div className="mt-6 rounded-lg border border-amber-500 bg-amber-50 dark:bg-amber-500/10 p-4 text-amber-700 dark:text-amber-300">
+          ⚠️ {masterWarning}
         </div>
       )}
 
@@ -225,14 +277,14 @@ export default function ServicesPage(): JSX.Element {
 
           <Link
             href={
-              selected.size > 0
+              selected.size > 0 && !masterWarning
                 ? `/booking/master?s=${Array.from(selected).map(encodeURIComponent).join('&s=')}`
                 : '#'
             }
             prefetch={false}
-            aria-disabled={selected.size === 0}
+            aria-disabled={selected.size === 0 || !!masterWarning}
             className={`rounded-xl px-5 py-2 text-sm font-semibold transition
-              ${selected.size === 0
+              ${selected.size === 0 || masterWarning
                 ? 'pointer-events-none bg-muted text-muted-foreground'
                 : 'bg-indigo-600 text-white hover:bg-indigo-500'}`}
           >

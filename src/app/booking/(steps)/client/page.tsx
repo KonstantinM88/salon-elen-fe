@@ -131,24 +131,31 @@ function ClientForm(): React.JSX.Element {
     setSubmitting(true);
     setSubmitErr(null);
     try {
-      const q = new URLSearchParams();
-      for (const s of serviceIds) q.append('s', s);
-      q.set('m', masterId);
-      q.set('start', startISO);
-      q.set('end', endISO);
+      // Импортируем checkout action
+      const { checkout } = await import('../../actions');
 
-      q.set('name', name.trim());
-      q.set('phone', phone.trim());
-      if (email) q.set('email', email.trim());
+      // Создаём черновик (PENDING appointment)
+      const result = await checkout({
+        masterId,
+        serviceIds,
+        startAt: startISO,
+        client: {
+          name: name.trim(),
+          email: email.trim() || '',
+          phone: phone.trim(),
+        },
+      });
 
-      q.set('birth', birth);
-      q.set('ref', referral);
-      if (referral === 'other' && referralOther.trim()) q.set('refOther', referralOther.trim());
-      q.set('pay', payment);
+      if (!result.ok) {
+        throw new Error(result.error || 'Не удалось создать запись');
+      }
 
-      router.push(`/booking/success?${q.toString()}`);
-    } catch {
-      setSubmitErr('Не удалось перейти к подтверждению. Попробуйте еще раз.');
+      // Переход к верификации
+      const { draftId } = result.data;
+      router.push(`/booking/verify?draft=${encodeURIComponent(draftId)}&email=${encodeURIComponent(email.trim())}`);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Не удалось перейти к подтверждению. Попробуйте еще раз.';
+      setSubmitErr(msg);
     } finally {
       setSubmitting(false);
     }
