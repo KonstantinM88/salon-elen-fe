@@ -30,11 +30,25 @@ function PaymentInner() {
     setBusy(true);
     try {
       if (!draftId) throw new Error("Черновик не найден (draft)");
+
+      // Для карт и PayPal показываем сообщение о разработке
+      if (method === "card") {
+        setMsg("Оплата картой будет доступна в ближайшее время. Пожалуйста, выберите наличные.");
+        setBusy(false);
+        return;
+      }
+
+      if (method === "paypal") {
+        setMsg("Оплата через PayPal будет доступна в ближайшее время. Пожалуйста, выберите наличные.");
+        setBusy(false);
+        return;
+      }
+
       const r = await pay({ method, draftId });
       if (!r.ok) throw new Error(r.error);
 
       // успех — на страницу успеха
-      router.replace("/booking/success");
+      router.replace(`/booking/success?draft=${encodeURIComponent(draftId)}`);
     } catch (e) {
       const text = e instanceof Error ? e.message : "Не удалось завершить оплату";
       setMsg(text);
@@ -44,58 +58,85 @@ function PaymentInner() {
   };
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-xl font-semibold">Оплата бронирования</h1>
+    <div className="mx-auto max-w-2xl px-4 pb-28">
+      <h1 className="mt-6 text-2xl font-semibold">Онлайн-запись</h1>
+      <h2 className="mt-2 text-lg text-muted-foreground">Оплата</h2>
 
-      <div className="rounded-2xl ring-1 ring-black/10 p-4 bg-white/70 dark:bg-neutral-800/60 space-y-3">
-        <div className="text-sm text-white/70">
-          Черновик: <b>{draftId || "—"}</b>
-        </div>
+      <div className="mt-6 rounded-xl border border-border bg-card p-6 space-y-4">
 
-        <div className="space-y-2">
-          <label className="flex items-center gap-2">
+        <div className="space-y-3">
+          <label className="flex items-center gap-3 rounded-xl border border-border px-4 py-3 cursor-pointer transition hover:border-indigo-300">
             <input
               type="radio"
               name="pay"
               checked={method === "cash"}
               onChange={() => setMethod("cash")}
+              className="size-5"
             />
-            Наличные в салоне
+            <div className="flex-1">
+              <div className="font-medium">Наличные в салоне</div>
+              <div className="text-sm text-muted-foreground">Оплата при посещении</div>
+            </div>
           </label>
 
-          <label className="flex items-center gap-2 opacity-60">
+          <label className="flex items-center gap-3 rounded-xl border border-border px-4 py-3 cursor-pointer transition hover:border-indigo-300">
             <input
               type="radio"
               name="pay"
-              disabled
               checked={method === "card"}
               onChange={() => setMethod("card")}
+              className="size-5"
             />
-            Банковская карта (скоро)
+            <div className="flex-1">
+              <div className="font-medium">Банковская карта</div>
+              <div className="text-sm text-muted-foreground">Оплата через Stripe (в разработке)</div>
+            </div>
           </label>
 
-          <label className="flex items-center gap-2 opacity-60">
+          <label className="flex items-center gap-3 rounded-xl border border-border px-4 py-3 cursor-pointer transition hover:border-indigo-300">
             <input
               type="radio"
               name="pay"
-              disabled
               checked={method === "paypal"}
               onChange={() => setMethod("paypal")}
+              className="size-5"
             />
-            PayPal (скоро)
+            <div className="flex-1">
+              <div className="font-medium">PayPal</div>
+              <div className="text-sm text-muted-foreground">Оплата через PayPal (в разработке)</div>
+            </div>
           </label>
         </div>
 
-        {msg && <div className="text-sm text-red-600">{msg}</div>}
+        {msg && (
+          <div className="rounded-lg border border-amber-500 bg-amber-50 dark:bg-amber-500/10 p-4 text-amber-700 dark:text-amber-300 text-sm">
+            ℹ️ {msg}
+          </div>
+        )}
 
-        <div className="flex justify-end">
+        <button
+          onClick={onPay}
+          disabled={!draftId || busy}
+          className="w-full rounded-xl bg-indigo-600 px-5 py-3 font-semibold text-white transition hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {busy ? "Обрабатываем…" : "Подтвердить оплату"}
+        </button>
+      </div>
+
+      {/* Нижняя панель навигации */}
+      <div className="fixed inset-x-0 bottom-0 z-20 border-t border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="mx-auto flex max-w-2xl items-center justify-between gap-4 px-4 py-3">
           <button
-            onClick={onPay}
-            disabled={!draftId || busy}
-            className="rounded-full bg-black text-white px-5 py-2 disabled:opacity-50"
+            type="button"
+            onClick={() => router.back()}
+            className="rounded-xl px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground"
           >
-            {busy ? "Обрабатываем…" : "Подтвердить"}
+            Назад
           </button>
+
+          <div className="text-sm text-muted-foreground">
+            Шаг 6 из 6
+          </div>
         </div>
       </div>
     </div>
