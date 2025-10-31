@@ -35,12 +35,20 @@ async function masterCoversAll(masterId: string, serviceIds: string[]): Promise<
   return cnt === serviceIds.length;
 }
 
+/** Добавить дни к дате ISO */
+function addDaysISO(iso: string, days: number): string {
+  const [y, m, d] = iso.split('-').map(Number);
+  const dt = new Date(y, m - 1, d);
+  dt.setDate(dt.getDate() + days);
+  return dt.toISOString().slice(0, 10);
+}
+
 export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
 
     // входные параметры
-    const dateISO = searchParams.get("dateISO");                   // обязательный день в формате YYYY-MM-DD
+    const dateISO = searchParams.get("dateISO");                   // опциональный день в формате YYYY-MM-DD
     const masterId = searchParams.get("masterId");                 // обязательный для персонального графика
     const serviceIdsParam = parseCsv(searchParams.get("serviceIds"));
     const singleService = searchParams.get("serviceId");
@@ -55,9 +63,6 @@ export async function GET(req: Request) {
         : [];
 
     // валидация обязательных полей
-    if (!dateISO || dateISO.length !== 10) {
-      return NextResponse.json({ error: "dateISO is required (YYYY-MM-DD)" }, { status: 400 });
-    }
     if (!masterId) {
       // Клиент должен сначала выбрать мастера, чтобы слоты считались по его персональному графику
       return NextResponse.json({ error: "masterId is required" }, { status: 400 });
@@ -80,8 +85,48 @@ export async function GET(req: Request) {
     if (serviceIds.length > 0) {
       const ok = await masterCoversAll(masterId, serviceIds);
       if (!ok) {
-        return NextResponse.json({ slots: [], splitRequired: true });
+        return NextResponse.json({ slots: [], splitRequired: true, firstDateISO: null });
       }
+    }
+
+    // Если dateISO не передан, ищем первую доступную дату в пределах 9 недель
+    if (!dateISO) {
+      const today = new Date().toISOString().slice(0, 10);
+      const maxDate = addDaysISO(today, 9 * 7 - 1);
+
+      let currentDate = today;
+      while (currentDate <= maxDate) {
+        try {
+          const slots = await getFreeSlots({
+            dateISO: currentDate,
+            masterId,
+            durationMin: totalDurationMin,
+          });
+
+          if (slots.length > 0) {
+            return NextResponse.json({
+              slots,
+              splitRequired: false,
+              firstDateISO: currentDate
+            });
+          }
+        } catch {
+          // Игнорируем ошибки для отдельных дат и продолжаем поиск
+        }
+        currentDate = addDaysISO(currentDate, 1);
+      }
+
+      // Не найдено доступных дат в пределах 9 недель
+      return NextResponse.json({
+        slots: [],
+        splitRequired: false,
+        firstDateISO: null
+      });
+    }
+
+    // Валидация формата dateISO
+    if (dateISO.length !== 10 || !/^\d{4}-\d{2}-\d{2}$/.test(dateISO)) {
+      return NextResponse.json({ error: "invalid dateISO format (expected YYYY-MM-DD)" }, { status: 400 });
     }
 
     // свободные слоты на указанный день
@@ -91,7 +136,7 @@ export async function GET(req: Request) {
       durationMin: totalDurationMin,
     });
 
-    return NextResponse.json({ slots, splitRequired: false });
+    return NextResponse.json({ slots, splitRequired: false, firstDateISO: dateISO });
   } catch (e) {
     // eslint-disable-next-line no-console
     console.error(e);
