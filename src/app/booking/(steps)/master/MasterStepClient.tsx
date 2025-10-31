@@ -4,7 +4,7 @@ import * as React from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 
-type Master = { id: string; name: string; nextAvailableDate?: string | null };
+type Master = { id: string; name: string };
 type MastersPayload = { masters: Master[]; defaultMasterId: string | null };
 
 function useSelectedServiceIds(): string[] {
@@ -53,45 +53,7 @@ export default function MasterStepClient(): React.JSX.Element {
 
         const baseMasters = Array.isArray(data.masters) ? data.masters : [];
 
-        // Загружаем ближайшие доступные даты для каждого мастера
-        const mastersWithDates = await Promise.all(
-          baseMasters.map(async (master) => {
-            try {
-              // Получаем суммарную длительность выбранных услуг
-              const servicesRes = await fetch('/api/booking/services', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-              });
-              const servicesData = await servicesRes.json();
-              const allServices = servicesData.groups?.flatMap((g: { services: Array<{ id: string; durationMin: number }> }) => g.services) || [];
-              const totalDuration = serviceIds.reduce((sum, sid) => {
-                const svc = allServices.find((s: { id: string }) => s.id === sid);
-                return sum + (svc?.durationMin || 0);
-              }, 0);
-
-              // Запрашиваем ближайшую доступную дату
-              const availRes = await fetch(
-                `/api/availability?masterId=${encodeURIComponent(master.id)}&durationMin=${totalDuration}`,
-                { cache: 'no-store' }
-              );
-
-              if (availRes.ok) {
-                const availData = await availRes.json();
-                if (availData.ok && availData.firstDateISO) {
-                  // Форматируем дату: "DD MMM"
-                  const date = new Date(availData.firstDateISO);
-                  const formatted = date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' });
-                  return { ...master, nextAvailableDate: formatted };
-                }
-              }
-            } catch (err) {
-              console.error(`Failed to load availability for master ${master.id}:`, err);
-            }
-            return { ...master, nextAvailableDate: null };
-          })
-        );
-
-        setMasters(mastersWithDates);
+        setMasters(baseMasters);
         setSelectedId(data.defaultMasterId ?? null);
       } catch (e: unknown) {
         if (!mounted || isAbortError(e)) return;
@@ -148,11 +110,6 @@ export default function MasterStepClient(): React.JSX.Element {
                   aria-pressed={active}
                 >
                   <div className="font-medium">{m.name}</div>
-                  <div className="mt-1 text-sm text-muted-foreground">
-                    {m.nextAvailableDate
-                      ? `Свободен ближайше: ${m.nextAvailableDate}`
-                      : 'Доступен для выбранных услуг'}
-                  </div>
                 </button>
               </li>
             );
