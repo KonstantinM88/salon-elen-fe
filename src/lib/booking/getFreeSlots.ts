@@ -222,6 +222,10 @@ export async function getFreeSlots(args: GetFreeSlotsArgs): Promise<SlotDTO[]> {
   if (cursor < workEnd) free.push({ a: cursor, b: workEnd });
 
   // 9) Генерация стартов слотов по сетке SLOT_STEP_MIN так, чтобы весь блок помещался
+  // Минимальное время бронирования: текущее время + 60 минут
+  const MIN_LEAD_TIME_MS = 60 * 60 * 1000; // 60 минут в миллисекундах
+  const minBookingTime = new Date(Date.now() + MIN_LEAD_TIME_MS);
+
   const out: SlotDTO[] = [];
   for (const f of free) {
     let start = ceilToStep(f.a, SLOT_STEP_MIN);
@@ -229,12 +233,17 @@ export async function getFreeSlots(args: GetFreeSlotsArgs): Promise<SlotDTO[]> {
       const end = start + totalDuration;
       const startAtUTC = addMinutesFromZonedMidnight(dateISO, start);
       const endAtUTC = addMinutesFromZonedMidnight(dateISO, end);
-      out.push({
-        startAt: startAtUTC.toISOString(),
-        endAt: endAtUTC.toISOString(),
-        startMinutes: start,
-        endMinutes: end,
-      });
+
+      // Фильтруем слоты: не показываем слоты ранее чем текущее время + 60 минут
+      if (startAtUTC >= minBookingTime) {
+        out.push({
+          startAt: startAtUTC.toISOString(),
+          endAt: endAtUTC.toISOString(),
+          startMinutes: start,
+          endMinutes: end,
+        });
+      }
+
       start += SLOT_STEP_MIN;
     }
   }
