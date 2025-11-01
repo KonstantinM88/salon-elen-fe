@@ -13,7 +13,6 @@ type EmailCheck =
   | { state: 'unavailable' };
 
 type ReferralKind = 'google' | 'facebook' | 'instagram' | 'friends' | 'other';
-type PaymentKind = 'card' | 'paypal' | 'cash';
 
 function isValidEmailSyntax(email: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
@@ -36,23 +35,26 @@ function ClientForm(): React.JSX.Element {
   const params = useSearchParams();
   const router = useRouter();
 
-  const serviceIds = React.useMemo(() => params.getAll('s').filter(Boolean), [params]);
+  const serviceIds = React.useMemo<string[]>(
+    () => params.getAll('s').filter(Boolean),
+    [params],
+  );
   const masterId = params.get('m') ?? '';
   const startISO = params.get('start') ?? '';
   const endISO = params.get('end') ?? '';
 
-  const [name, setName] = React.useState('');
-  const [phone, setPhone] = React.useState('');
-  const [email, setEmail] = React.useState('');
+  const [name, setName] = React.useState<string>('');
+  const [phone, setPhone] = React.useState<string>('');
+  const [email, setEmail] = React.useState<string>('');
   const [emailCheck, setEmailCheck] = React.useState<EmailCheck>({ state: 'idle' });
 
   const [birth, setBirth] = React.useState<string>('');
   const [referral, setReferral] = React.useState<ReferralKind | ''>('');
-  const [referralOther, setReferralOther] = React.useState('');
-  const [payment, setPayment] = React.useState<PaymentKind | ''>('');
+  const [referralOther, setReferralOther] = React.useState<string>('');
+  const [comment, setComment] = React.useState<string>('');
 
   const [submitErr, setSubmitErr] = React.useState<string | null>(null);
-  const [submitting, setSubmitting] = React.useState(false);
+  const [submitting, setSubmitting] = React.useState<boolean>(false);
 
   const maxBirth = formatYMD(new Date());
   const minBirth = formatYMD(yearsAgo(120));
@@ -74,11 +76,11 @@ function ClientForm(): React.JSX.Element {
   }
 
   const referralErr =
-    referral === '' ? 'Выберите вариант' : referral === 'other' && !referralOther.trim()
+    referral === ''
+      ? 'Выберите вариант'
+      : referral === 'other' && !referralOther.trim()
       ? 'Уточните источник'
       : null;
-
-  const paymentErr = payment === '' ? 'Выберите способ оплаты' : null;
 
   const baseDisabled = !serviceIds.length || !masterId || !startISO || !endISO;
 
@@ -87,294 +89,272 @@ function ClientForm(): React.JSX.Element {
     !nameErr &&
     !phoneErr &&
     !birthErr &&
+    !emailErr &&
     !referralErr &&
-    !paymentErr &&
-    (!email ||
-      (isValidEmailSyntax(email) &&
-        (emailCheck.state === 'ok' ||
-          emailCheck.state === 'idle' ||
-          emailCheck.state === 'unavailable')));
+    emailCheck.state !== 'checking';
 
-  const checking = emailCheck.state === 'checking';
-
-  async function handleEmailCheck(): Promise<void> {
-    setSubmitErr(null);
-    if (!email) {
+  // Проверка email с задержкой
+  React.useEffect(() => {
+    if (!email || !isValidEmailSyntax(email)) {
       setEmailCheck({ state: 'idle' });
       return;
     }
-    if (!isValidEmailSyntax(email)) {
-      setEmailCheck({ state: 'fail', reason: 'Некорректный e-mail' });
-      return;
-    }
-    setEmailCheck({ state: 'checking' });
-    try {
-      const res = await fetch(`/api/email/verify?email=${encodeURIComponent(email)}`, {
-        method: 'GET',
-        cache: 'no-store',
-      });
-      if (!res.ok) {
-        setEmailCheck({ state: 'unavailable' });
-        return;
-      }
-      const data = (await res.json()) as { ok?: boolean; reason?: string };
-      if (data?.ok) setEmailCheck({ state: 'ok' });
-      else setEmailCheck({ state: 'fail', reason: data?.reason ?? 'Проверка не пройдена' });
-    } catch {
-      setEmailCheck({ state: 'unavailable' });
-    }
-  }
 
-  async function onSubmit(e: React.FormEvent): Promise<void> {
+    setEmailCheck({ state: 'checking' });
+    const timer = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/email-check?email=${encodeURIComponent(email)}`);
+        if (!res.ok) {
+          setEmailCheck({ state: 'unavailable' });
+          return;
+        }
+        const data = await res.json();
+        if (data.ok) {
+          setEmailCheck({ state: 'ok' });
+        } else {
+          setEmailCheck({ state: 'fail', reason: data.reason });
+        }
+      } catch {
+        setEmailCheck({ state: 'unavailable' });
+      }
+    }, 800);
+
+    return () => clearTimeout(timer);
+  }, [email]);
+
+  const handleSubmit = async (e: React.FormEvent): Promise<void> => {
     e.preventDefault();
-    if (!formValid || checking) return;
+    if (!formValid || submitting) return;
+
     setSubmitting(true);
     setSubmitErr(null);
-    try {
-      // Импортируем checkout action
-      const { checkout } = await import('../../actions');
 
-      // Создаём черновик (PENDING appointment)
-      const result = await checkout({
-        masterId,
-        serviceIds,
-        startAt: startISO,
-        client: {
-          name: name.trim(),
-          email: email.trim() || '',
+    try {
+      // Формируем query string с параметрами
+      const qs = new URLSearchParams();
+      serviceIds.forEach(id => qs.append('s', id));
+      qs.set('m', masterId);
+      qs.set('start', startISO);
+      qs.set('end', endISO);
+
+      // Отправляем POST запрос на API endpoint
+      const res = await fetch(`/api/booking/client?${qs.toString()}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          customerName: name.trim(),
           phone: phone.trim(),
-        },
+          email: email.trim(),
+          birthDateISO: birth || undefined,
+          referral: referral === 'other' ? 'other' : referral || undefined,
+          notes: comment.trim() || undefined,
+        }),
       });
 
-      if (!result.ok) {
-        throw new Error(result.error || 'Не удалось создать запись');
+      // Если статус НЕ 2xx - это ошибка
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || `HTTP ${res.status}`);
       }
 
-      // Переход к верификации
-      const { draftId } = result.data;
-      router.push(`/booking/verify?draft=${encodeURIComponent(draftId)}&email=${encodeURIComponent(email.trim())}`);
+      // Если статус 2xx - парсим успешный ответ
+      const result = await res.json();
+      
+      // API возвращает { draftId: string } при успехе
+      if (result.draftId) {
+        // Успешно создана запись
+        // Переходим на страницу подтверждения
+        const confirmUrl = `/booking/confirmation?id=${result.draftId}`;
+        router.push(confirmUrl);
+      } else {
+        throw new Error('Некорректный ответ от сервера');
+      }
     } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Не удалось перейти к подтверждению. Попробуйте еще раз.';
+      const msg = err instanceof Error ? err.message : 'Не удалось создать запись';
       setSubmitErr(msg);
     } finally {
       setSubmitting(false);
     }
+  };
+
+  if (baseDisabled) {
+    return (
+      <div className="mx-auto max-w-2xl px-4 py-8">
+        <div className="rounded-lg border border-destructive bg-destructive/10 p-4">
+          <p className="text-destructive">Некорректные параметры. Пожалуйста, начните запись заново.</p>
+          <Link href="/booking" className="mt-4 inline-block text-sm underline">
+            Вернуться к выбору услуг
+          </Link>
+        </div>
+      </div>
+    );
   }
 
   return (
-    <div className="mx-auto max-w-3xl px-4 pb-28">
+    <div className="mx-auto max-w-2xl px-4 pb-28">
       <h1 className="mt-6 text-2xl font-semibold">Онлайн-запись</h1>
-      <h2 className="mt-2 text-lg text-muted-foreground">Данные клиента</h2>
+      <h2 className="mt-2 text-lg text-muted-foreground">Ваши данные</h2>
 
-      <div className="mt-6 rounded-xl border border-border bg-card p-4 text-sm text-muted-foreground">
-        <div className="flex flex-wrap gap-2">
-          <span className="rounded-lg bg-muted px-2 py-1">Услуг: {serviceIds.length}</span>
-          <span className="rounded-lg bg-muted px-2 py-1">Мастер: {masterId.slice(0, 8)}…</span>
-          <span className="rounded-lg bg-muted px-2 py-1">Начало: {new Date(startISO).toLocaleString()}</span>
-          <span className="rounded-lg bg-muted px-2 py-1">Окончание: {new Date(endISO).toLocaleString()}</span>
-        </div>
-      </div>
-
-      <form className="mt-6 space-y-6" onSubmit={onSubmit} noValidate>
+      <form onSubmit={handleSubmit} className="mt-6 space-y-6">
+        {/* Имя */}
         <div>
-          <label className="block text-sm font-medium">Имя и фамилия<span className="text-destructive">*</span></label>
+          <label htmlFor="name" className="block text-sm font-medium">
+            Имя <span className="text-destructive">*</span>
+          </label>
           <input
+            id="name"
             type="text"
-            autoComplete="name"
-            className="mt-2 w-full rounded-xl border border-border bg-background px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-300"
             value={name}
             onChange={(e) => setName(e.target.value)}
+            className="mt-1 w-full rounded-md border bg-background px-3 py-2"
+            placeholder="Ваше полное имя"
             required
-            aria-invalid={!!nameErr}
           />
-          {nameErr && <p className="mt-1 text-xs text-destructive">{nameErr}</p>}
+          {nameErr && <p className="mt-1 text-sm text-destructive">{nameErr}</p>}
         </div>
 
+        {/* Телефон */}
         <div>
-          <label className="block text-sm font-medium">Телефон<span className="text-destructive">*</span></label>
+          <label htmlFor="phone" className="block text-sm font-medium">
+            Телефон <span className="text-destructive">*</span>
+          </label>
           <input
+            id="phone"
             type="tel"
-            inputMode="tel"
-            autoComplete="tel"
-            className="mt-2 w-full rounded-xl border border-border bg-background px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-300"
-            placeholder="+49 151 23456789"
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
+            className="mt-1 w-full rounded-md border bg-background px-3 py-2"
+            placeholder="+7 (xxx) xxx-xx-xx"
             required
-            aria-invalid={!!phoneErr}
           />
-          {phoneErr && <p className="mt-1 text-xs text-destructive">{phoneErr}</p>}
+          {phoneErr && <p className="mt-1 text-sm text-destructive">{phoneErr}</p>}
         </div>
 
+        {/* Email */}
         <div>
-          <label className="block text-sm font-medium">E-mail</label>
-          <div className="mt-2 flex gap-2">
-            <input
-              type="email"
-              autoComplete="email"
-              className="w-full rounded-xl border border-border bg-background px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-300"
-              placeholder="name@example.com"
-              value={email}
-              onChange={(e) => {
-                setEmail(e.target.value);
-                setEmailCheck({ state: 'idle' });
-              }}
-              aria-invalid={!!emailErr}
-            />
-            <button
-              type="button"
-              onClick={handleEmailCheck}
-              disabled={!email || !isValidEmailSyntax(email) || checking}
-              className={`shrink-0 rounded-xl px-3 py-2 text-sm font-medium border transition
-                ${!email || !isValidEmailSyntax(email) || checking
-                  ? 'pointer-events-none border-muted text-muted-foreground'
-                  : 'border-indigo-200 text-indigo-600 hover:bg-indigo-50'}`}
-            >
-              {checking ? 'Проверяем…' : 'Проверить'}
-            </button>
-          </div>
-          {emailErr && <p className="mt-1 text-xs text-destructive">{emailErr}</p>}
-          {!emailErr && email && emailCheck.state === 'ok' && (
-            <p className="mt-1 text-xs text-emerald-500">E-mail подтвержден.</p>
-          )}
-          {!emailErr && email && emailCheck.state === 'unavailable' && (
-            <p className="mt-1 text-xs text-muted-foreground">
-              Песочница недоступна. Синтаксис корректен, можно продолжать.
-            </p>
-          )}
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium">Дата рождения<span className="text-destructive">*</span></label>
+          <label htmlFor="email" className="block text-sm font-medium">
+            E-mail <span className="text-muted-foreground">(необязательно)</span>
+          </label>
           <input
+            id="email"
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className="mt-1 w-full rounded-md border bg-background px-3 py-2"
+            placeholder="your@email.com"
+          />
+          {emailCheck.state === 'checking' && (
+            <p className="mt-1 text-sm text-muted-foreground">Проверка...</p>
+          )}
+          {emailCheck.state === 'ok' && (
+            <p className="mt-1 text-sm text-green-600">✓ E-mail подтвержден</p>
+          )}
+          {emailErr && <p className="mt-1 text-sm text-destructive">{emailErr}</p>}
+        </div>
+
+        {/* Дата рождения */}
+        <div>
+          <label htmlFor="birth" className="block text-sm font-medium">
+            Дата рождения <span className="text-destructive">*</span>
+          </label>
+          <input
+            id="birth"
             type="date"
-            className="mt-2 w-full rounded-xl border border-border bg-background px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-300"
             value={birth}
             onChange={(e) => setBirth(e.target.value)}
-            required
             min={minBirth}
             max={maxBirth}
-            aria-invalid={!!birthErr}
+            className="mt-1 w-full rounded-md border bg-background px-3 py-2"
+            required
           />
-          {birthErr && <p className="mt-1 text-xs text-destructive">{birthErr}</p>}
-          <p className="mt-1 text-xs text-muted-foreground">Минимальный возраст для онлайн-записи: 16 лет.</p>
+          {birthErr && <p className="mt-1 text-sm text-destructive">{birthErr}</p>}
+          <p className="mt-1 text-xs text-muted-foreground">
+            Для онлайн-записи требуется возраст 16+
+          </p>
         </div>
 
-        <fieldset className="space-y-3">
-          <legend className="text-sm font-medium">Как вы о нас узнали?<span className="text-destructive">*</span></legend>
-          <div className="mt-2 grid gap-2 sm:grid-cols-2">
-            {[
-              { key: 'google', label: 'Google' },
-              { key: 'facebook', label: 'Facebook' },
-              { key: 'instagram', label: 'Instagram' },
-              { key: 'friends', label: 'Знакомые' },
-              { key: 'other', label: 'Другое' },
-            ].map((opt) => (
-              <label
-                key={opt.key}
-                className={`flex cursor-pointer items-center gap-3 rounded-xl border px-4 py-2
-                  ${referral === (opt.key as ReferralKind)
-                    ? 'border-indigo-500 ring-2 ring-indigo-200'
-                    : 'border-border hover:border-indigo-300'}`}
-              >
-                <input
-                  type="radio"
-                  name="referral"
-                  value={opt.key}
-                  checked={referral === (opt.key as ReferralKind)}
-                  onChange={() => setReferral(opt.key as ReferralKind)}
-                  className="size-4 accent-indigo-600"
-                />
-                <span>{opt.label}</span>
-              </label>
-            ))}
-          </div>
+        {/* Как узнали о нас */}
+        <div>
+          <label htmlFor="referral" className="block text-sm font-medium">
+            Как вы узнали о нас? <span className="text-destructive">*</span>
+          </label>
+          <select
+            id="referral"
+            value={referral}
+            onChange={(e) => setReferral(e.target.value as ReferralKind | '')}
+            className="mt-1 w-full rounded-md border bg-background px-3 py-2"
+            required
+          >
+            <option value="">Выберите вариант</option>
+            <option value="google">Google</option>
+            <option value="facebook">Facebook</option>
+            <option value="instagram">Instagram</option>
+            <option value="friends">Рекомендация друзей</option>
+            <option value="other">Другое</option>
+          </select>
           {referral === 'other' && (
-            <div className="mt-2">
-              <input
-                type="text"
-                placeholder="Уточните источник"
-                className="w-full rounded-xl border border-border bg-background px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-300"
-                value={referralOther}
-                onChange={(e) => setReferralOther(e.target.value)}
-              />
-            </div>
+            <input
+              type="text"
+              value={referralOther}
+              onChange={(e) => setReferralOther(e.target.value)}
+              placeholder="Уточните источник"
+              className="mt-2 w-full rounded-md border bg-background px-3 py-2"
+            />
           )}
-          {referralErr && <p className="text-xs text-destructive">{referralErr}</p>}
-        </fieldset>
+          {referralErr && <p className="mt-1 text-sm text-destructive">{referralErr}</p>}
+        </div>
 
-        <fieldset className="space-y-3">
-          <legend className="text-sm font-medium">Способ оплаты<span className="text-destructive">*</span></legend>
-          <div className="mt-2 grid gap-2 sm:grid-cols-3">
-            {[
-              { key: 'card', label: 'Карта' },
-              { key: 'paypal', label: 'PayPal' },
-              { key: 'cash', label: 'Наличные' },
-            ].map((opt) => (
-              <label
-                key={opt.key}
-                className={`flex cursor-pointer items-center gap-3 rounded-xl border px-4 py-2
-                  ${payment === (opt.key as PaymentKind)
-                    ? 'border-indigo-500 ring-2 ring-indigo-200'
-                    : 'border-border hover:border-indigo-300'}`}
-              >
-                <input
-                  type="radio"
-                  name="payment"
-                  value={opt.key}
-                  checked={payment === (opt.key as PaymentKind)}
-                  onChange={() => setPayment(opt.key as PaymentKind)}
-                  className="size-4 accent-indigo-600"
-                />
-                <span>{opt.label}</span>
-              </label>
-            ))}
-          </div>
-          {paymentErr && <p className="text-xs text-destructive">{paymentErr}</p>}
-        </fieldset>
+        {/* Комментарий */}
+        <div>
+          <label htmlFor="comment" className="block text-sm font-medium">
+            Комментарий <span className="text-muted-foreground">(необязательно)</span>
+          </label>
+          <textarea
+            id="comment"
+            value={comment}
+            onChange={(e) => setComment(e.target.value)}
+            rows={3}
+            className="mt-1 w-full rounded-md border bg-background px-3 py-2"
+            placeholder="Дополнительная информация или пожелания"
+          />
+        </div>
 
+        {/* Ошибка отправки */}
         {submitErr && (
-          <div className="rounded-lg border border-destructive bg-destructive/10 p-3 text-sm text-destructive">
-            {submitErr}
+          <div className="rounded-lg border border-destructive bg-destructive/10 p-4">
+            <p className="text-sm text-destructive">{submitErr}</p>
           </div>
         )}
 
-        <div className="sticky bottom-0 z-10 -mx-4 mt-4 border-t border-border bg-background/95 px-4 py-3 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-          <div className="mx-auto flex max-w-3xl items-center justify-between gap-4">
-            <Link
-              href={{
-                pathname: '/booking/calendar',
-                query: { ...Object.fromEntries(params.entries()) },
-              }}
-              className="rounded-xl px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground"
-            >
-              Назад
-            </Link>
-            <button
-              type="submit"
-              disabled={!formValid || submitting || checking}
-              className={`rounded-xl px-5 py-2 text-sm font-semibold transition
-                ${!formValid || submitting || checking
-                  ? 'pointer-events-none bg-muted text-muted-foreground'
-                  : 'bg-indigo-600 text-white hover:bg-indigo-500'}`}
-            >
-              {submitting ? 'Продолжаем…' : 'Продолжить'}
-            </button>
-          </div>
+        {/* Кнопки */}
+        <div className="flex gap-3">
+          <button
+            type="button"
+            onClick={() => router.back()}
+            className="rounded-md border px-6 py-2 hover:bg-muted"
+            disabled={submitting}
+          >
+            Назад
+          </button>
+          <button
+            type="submit"
+            disabled={!formValid || submitting}
+            className="flex-1 rounded-md bg-primary px-6 py-2 text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+          >
+            {submitting ? 'Создание записи...' : 'Забронировать'}
+          </button>
         </div>
       </form>
     </div>
   );
 }
 
-export default function Page(): React.JSX.Element {
+export default function ClientPage(): React.JSX.Element {
   return (
     <Suspense
       fallback={
-        <div className="mx-auto max-w-3xl px-4">
-          <div className="mt-6 rounded-lg border border-border bg-card p-4">
-            Загрузка формы клиента…
-          </div>
+        <div className="mx-auto mt-6 max-w-2xl rounded-lg border p-4">
+          Загрузка формы...
         </div>
       }
     >
@@ -382,2258 +362,3 @@ export default function Page(): React.JSX.Element {
     </Suspense>
   );
 }
-
-
-
-
-
-
-//---------------сырая версия но рабочая
-// 'use client';
-
-// import * as React from 'react';
-// import { Suspense } from 'react';
-// import { useRouter, useSearchParams } from 'next/navigation';
-// import Link from 'next/link';
-
-// type EmailCheck =
-//   | { state: 'idle' }
-//   | { state: 'checking' }
-//   | { state: 'ok' }
-//   | { state: 'fail'; reason?: string }
-//   | { state: 'unavailable' };
-
-// type ReferralKind = 'google' | 'facebook' | 'instagram' | 'friends' | 'other';
-// type PaymentKind = 'card' | 'paypal' | 'cash';
-
-// function isValidEmailSyntax(email: string): boolean {
-//   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-// }
-
-// function formatYMD(d: Date): string {
-//   const y = d.getFullYear();
-//   const m = String(d.getMonth() + 1).padStart(2, '0');
-//   const day = String(d.getDate()).padStart(2, '0');
-//   return `${y}-${m}-${day}`;
-// }
-
-// function yearsAgo(n: number): Date {
-//   const d = new Date();
-//   d.setFullYear(d.getFullYear() - n);
-//   return d;
-// }
-
-// function ClientForm(): React.JSX.Element {
-//   const params = useSearchParams();
-//   const router = useRouter();
-
-//   // из URL: выбранные услуги, мастер, время
-//   const serviceIds = React.useMemo(
-//     () => params.getAll('s').filter(Boolean),
-//     [params]
-//   );
-//   const masterId = params.get('m') ?? '';
-//   const startISO = params.get('start') ?? '';
-//   const endISO = params.get('end') ?? '';
-
-//   // Поля формы
-//   const [name, setName] = React.useState('');
-//   const [phone, setPhone] = React.useState('');
-//   const [email, setEmail] = React.useState('');
-//   const [emailCheck, setEmailCheck] = React.useState<EmailCheck>({ state: 'idle' });
-
-//   const [birth, setBirth] = React.useState<string>('');
-//   const [referral, setReferral] = React.useState<ReferralKind | ''>('');
-//   const [referralOther, setReferralOther] = React.useState('');
-//   const [payment, setPayment] = React.useState<PaymentKind | ''>('');
-
-//   const [submitErr, setSubmitErr] = React.useState<string | null>(null);
-//   const [submitting, setSubmitting] = React.useState(false);
-
-//   // Ограничения для даты рождения
-//   const maxBirth = formatYMD(new Date());
-//   const minBirth = formatYMD(yearsAgo(120));
-//   const minAdult = formatYMD(yearsAgo(16));
-
-//   // Локальные валидации
-//   const nameErr = name.trim().length < 2 ? 'Укажите имя полностью' : null;
-//   const phoneErr =
-//     phone.trim().length < 6 ? 'Укажите корректный номер телефона' : null;
-
-//   const birthDate = birth ? new Date(birth + 'T00:00:00') : null;
-//   let birthErr: string | null = null;
-//   if (!birth) birthErr = 'Дата рождения обязательна';
-//   else if (birthDate && birthDate > new Date()) birthErr = 'Дата в будущем недопустима';
-//   else if (birth && birth > minAdult) birthErr = 'Для онлайн-записи требуется возраст 16+';
-
-//   let emailErr: string | null = null;
-//   if (email) {
-//     if (!isValidEmailSyntax(email)) emailErr = 'Некорректный e-mail';
-//     else if (emailCheck.state === 'fail') emailErr = emailCheck.reason ?? 'E-mail не подтвержден';
-//   }
-
-//   const referralErr =
-//     referral === '' ? 'Выберите вариант' : referral === 'other' && !referralOther.trim()
-//       ? 'Уточните источник'
-//       : null;
-
-//   const paymentErr = payment === '' ? 'Выберите способ оплаты' : null;
-
-//   const baseDisabled =
-//     !serviceIds.length || !masterId || !startISO || !endISO;
-
-//   const formValid =
-//     !baseDisabled &&
-//     !nameErr &&
-//     !phoneErr &&
-//     !birthErr &&
-//     !referralErr &&
-//     !paymentErr &&
-//     (!email ||
-//       (isValidEmailSyntax(email) &&
-//         (emailCheck.state === 'ok' ||
-//           emailCheck.state === 'idle' ||
-//           emailCheck.state === 'unavailable')));
-
-//   const checking = emailCheck.state === 'checking';
-
-//   async function handleEmailCheck(): Promise<void> {
-//     setSubmitErr(null);
-//     if (!email) {
-//       setEmailCheck({ state: 'idle' });
-//       return;
-//     }
-//     if (!isValidEmailSyntax(email)) {
-//       setEmailCheck({ state: 'fail', reason: 'Некорректный e-mail' });
-//       return;
-//     }
-//     setEmailCheck({ state: 'checking' });
-//     try {
-//       const res = await fetch(`/api/email/verify?email=${encodeURIComponent(email)}`, {
-//         method: 'GET',
-//         cache: 'no-store',
-//       });
-//       if (!res.ok) {
-//         setEmailCheck({ state: 'unavailable' });
-//         return;
-//       }
-//       const data = (await res.json()) as { ok?: boolean; reason?: string };
-//       if (data?.ok) setEmailCheck({ state: 'ok' });
-//       else setEmailCheck({ state: 'fail', reason: data?.reason ?? 'Проверка не пройдена' });
-//     } catch {
-//       setEmailCheck({ state: 'unavailable' });
-//     }
-//   }
-
-//   async function onSubmit(e: React.FormEvent): Promise<void> {
-//     e.preventDefault();
-//     if (!formValid || checking) return;
-//     setSubmitting(true);
-//     setSubmitErr(null);
-
-//     try {
-//       // Передаем на страницу подтверждения/оплаты все данные запроса как query.
-//       const q = new URLSearchParams();
-//       for (const s of serviceIds) q.append('s', s);
-//       q.set('m', masterId);
-//       q.set('start', startISO);
-//       q.set('end', endISO);
-
-//       q.set('name', name.trim());
-//       q.set('phone', phone.trim());
-//       if (email) q.set('email', email.trim());
-
-//       q.set('birth', birth); // YYYY-MM-DD
-//       q.set('ref', referral);
-//       if (referral === 'other' && referralOther.trim()) q.set('refOther', referralOther.trim());
-//       q.set('pay', payment);
-
-//       router.push(`/booking/confirm?${q.toString()}`);
-//     } catch {
-//       setSubmitErr('Не удалось перейти к подтверждению. Попробуйте еще раз.');
-//     } finally {
-//       setSubmitting(false);
-//     }
-//   }
-
-//   return (
-//     <div className="mx-auto max-w-3xl px-4 pb-28">
-//       <h1 className="mt-6 text-2xl font-semibold">Онлайн-запись</h1>
-//       <h2 className="mt-2 text-lg text-muted-foreground">Данные клиента</h2>
-
-//       {/* Резюме выбора наверху */}
-//       <div className="mt-6 rounded-xl border border-border bg-card p-4 text-sm text-muted-foreground">
-//         <div className="flex flex-wrap gap-2">
-//           <span className="rounded-lg bg-muted px-2 py-1">Услуг: {serviceIds.length}</span>
-//           <span className="rounded-lg bg-muted px-2 py-1">Мастер: {masterId.slice(0, 8)}…</span>
-//           <span className="rounded-lg bg-muted px-2 py-1">Начало: {new Date(startISO).toLocaleString()}</span>
-//           <span className="rounded-lg bg-muted px-2 py-1">Окончание: {new Date(endISO).toLocaleString()}</span>
-//         </div>
-//       </div>
-
-//       <form className="mt-6 space-y-6" onSubmit={onSubmit} noValidate>
-//         {/* Имя */}
-//         <div>
-//           <label className="block text-sm font-medium">
-//             Имя и фамилия<span className="text-destructive">*</span>
-//           </label>
-//           <input
-//             type="text"
-//             autoComplete="name"
-//             className="mt-2 w-full rounded-xl border border-border bg-background px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-300"
-//             value={name}
-//             onChange={(e) => setName(e.target.value)}
-//             required
-//             aria-invalid={!!nameErr}
-//           />
-//           {nameErr && <p className="mt-1 text-xs text-destructive">{nameErr}</p>}
-//         </div>
-
-//         {/* Телефон */}
-//         <div>
-//           <label className="block text-sm font-medium">
-//             Телефон<span className="text-destructive">*</span>
-//           </label>
-//           <input
-//             type="tel"
-//             inputMode="tel"
-//             autoComplete="tel"
-//             className="mt-2 w-full rounded-xl border border-border bg-background px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-300"
-//             placeholder="+49 151 23456789"
-//             value={phone}
-//             onChange={(e) => setPhone(e.target.value)}
-//             required
-//             aria-invalid={!!phoneErr}
-//           />
-//           {phoneErr && <p className="mt-1 text-xs text-destructive">{phoneErr}</p>}
-//         </div>
-
-//         {/* E-mail + проверка */}
-//         <div>
-//           <label className="block text-sm font-medium">E-mail</label>
-//           <div className="mt-2 flex gap-2">
-//             <input
-//               type="email"
-//               autoComplete="email"
-//               className="w-full rounded-xl border border-border bg-background px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-300"
-//               placeholder="name@example.com"
-//               value={email}
-//               onChange={(e) => {
-//                 setEmail(e.target.value);
-//                 setEmailCheck({ state: 'idle' });
-//               }}
-//               aria-invalid={!!emailErr}
-//             />
-//             <button
-//               type="button"
-//               onClick={handleEmailCheck}
-//               disabled={!email || !isValidEmailSyntax(email) || checking}
-//               className={`shrink-0 rounded-xl px-3 py-2 text-sm font-medium border transition
-//                 ${!email || !isValidEmailSyntax(email) || checking
-//                   ? 'pointer-events-none border-muted text-muted-foreground'
-//                   : 'border-indigo-200 text-indigo-600 hover:bg-indigo-50'}`}
-//             >
-//               {checking ? 'Проверяем…' : 'Проверить'}
-//             </button>
-//           </div>
-//           {emailErr && <p className="mt-1 text-xs text-destructive">{emailErr}</p>}
-//           {!emailErr && email && emailCheck.state === 'ok' && (
-//             <p className="mt-1 text-xs text-emerald-500">E-mail подтвержден.</p>
-//           )}
-//           {!emailErr && email && emailCheck.state === 'unavailable' && (
-//             <p className="mt-1 text-xs text-muted-foreground">
-//               Песочница недоступна. Синтаксис корректен, можно продолжать.
-//             </p>
-//           )}
-//         </div>
-
-//         {/* Дата рождения */}
-//         <div>
-//           <label className="block text-sm font-medium">
-//             Дата рождения<span className="text-destructive">*</span>
-//           </label>
-//           <input
-//             type="date"
-//             className="mt-2 w-full rounded-xl border border-border bg-background px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-300"
-//             value={birth}
-//             onChange={(e) => setBirth(e.target.value)}
-//             required
-//             min={minBirth}
-//             max={maxBirth}
-//             aria-invalid={!!birthErr}
-//           />
-//           {birthErr && <p className="mt-1 text-xs text-destructive">{birthErr}</p>}
-//           <p className="mt-1 text-xs text-muted-foreground">Минимальный возраст для онлайн-записи: 16 лет.</p>
-//         </div>
-
-//         {/* Как узнали о нас */}
-//         <fieldset className="space-y-3">
-//           <legend className="text-sm font-medium">
-//             Как вы о нас узнали?<span className="text-destructive">*</span>
-//           </legend>
-//           <div className="mt-2 grid gap-2 sm:grid-cols-2">
-//             {[
-//               { key: 'google', label: 'Google' },
-//               { key: 'facebook', label: 'Facebook' },
-//               { key: 'instagram', label: 'Instagram' },
-//               { key: 'friends', label: 'Знакомые' },
-//               { key: 'other', label: 'Другое' },
-//             ].map((opt) => (
-//               <label
-//                 key={opt.key}
-//                 className={`flex cursor-pointer items-center gap-3 rounded-xl border px-4 py-2
-//                   ${referral === (opt.key as ReferralKind)
-//                     ? 'border-indigo-500 ring-2 ring-indigo-200'
-//                     : 'border-border hover:border-indigo-300'}`}
-//               >
-//                 <input
-//                   type="radio"
-//                   name="referral"
-//                   value={opt.key}
-//                   checked={referral === (opt.key as ReferralKind)}
-//                   onChange={() => setReferral(opt.key as ReferralKind)}
-//                   className="size-4 accent-indigo-600"
-//                 />
-//                 <span>{opt.label}</span>
-//               </label>
-//             ))}
-//           </div>
-//           {referral === 'other' && (
-//             <div className="mt-2">
-//               <input
-//                 type="text"
-//                 placeholder="Уточните источник"
-//                 className="w-full rounded-xl border border-border bg-background px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-300"
-//                 value={referralOther}
-//                 onChange={(e) => setReferralOther(e.target.value)}
-//               />
-//             </div>
-//           )}
-//           {referralErr && <p className="text-xs text-destructive">{referralErr}</p>}
-//         </fieldset>
-
-//         {/* Способ оплаты */}
-//         <fieldset className="space-y-3">
-//           <legend className="text-sm font-medium">
-//             Способ оплаты<span className="text-destructive">*</span>
-//           </legend>
-//           <div className="mt-2 grid gap-2 sm:grid-cols-3">
-//             {[
-//               { key: 'card', label: 'Карта' },
-//               { key: 'paypal', label: 'PayPal' },
-//               { key: 'cash', label: 'Наличные' },
-//             ].map((opt) => (
-//               <label
-//                 key={opt.key}
-//                 className={`flex cursor-pointer items-center gap-3 rounded-xl border px-4 py-2
-//                   ${payment === (opt.key as PaymentKind)
-//                     ? 'border-indigo-500 ring-2 ring-indigo-200'
-//                     : 'border-border hover:border-indigo-300'}`}
-//               >
-//                 <input
-//                   type="radio"
-//                   name="payment"
-//                   value={opt.key}
-//                   checked={payment === (opt.key as PaymentKind)}
-//                   onChange={() => setPayment(opt.key as PaymentKind)}
-//                   className="size-4 accent-indigo-600"
-//                 />
-//                 <span>{opt.label}</span>
-//               </label>
-//             ))}
-//           </div>
-//           {paymentErr && <p className="text-xs text-destructive">{paymentErr}</p>}
-//         </fieldset>
-
-//         {submitErr && (
-//           <div className="rounded-lg border border-destructive bg-destructive/10 p-3 text-sm text-destructive">
-//             {submitErr}
-//           </div>
-//         )}
-
-//         {/* Нижняя панель действий */}
-//         <div className="sticky bottom-0 z-10 -mx-4 mt-4 border-t border-border bg-background/95 px-4 py-3 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-//           <div className="mx-auto flex max-w-3xl items-center justify-between gap-4">
-//             <Link
-//               href={{
-//                 pathname: '/booking/calendar',
-//                 query: { ...Object.fromEntries(params.entries()) },
-//               }}
-//               className="rounded-xl px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground"
-//             >
-//               Назад
-//             </Link>
-
-//             <button
-//               type="submit"
-//               disabled={!formValid || submitting || checking}
-//               className={`rounded-xl px-5 py-2 text-sm font-semibold transition
-//                 ${!formValid || submitting || checking
-//                   ? 'pointer-events-none bg-muted text-muted-foreground'
-//                   : 'bg-indigo-600 text-white hover:bg-indigo-500'}`}
-//             >
-//               {submitting ? 'Продолжаем…' : 'Продолжить'}
-//             </button>
-//           </div>
-//         </div>
-//       </form>
-//     </div>
-//   );
-// }
-
-// export default function Page(): React.JSX.Element {
-//   return (
-//     <Suspense
-//       fallback={
-//         <div className="mx-auto max-w-3xl px-4">
-//           <div className="mt-6 rounded-lg border border-border bg-card p-4">
-//             Загрузка формы клиента…
-//           </div>
-//         </div>
-//       }
-//     >
-//       <ClientForm />
-//     </Suspense>
-//   );
-// }
-
-
-
-
-
-//------------работал до 30.10
-// // src/app/booking/(steps)/client/page.tsx
-// 'use client';
-
-// import * as React from 'react';
-// import { Suspense } from 'react';
-// import { useRouter, useSearchParams } from 'next/navigation';
-// import Link from 'next/link';
-
-// /* =========================
-//    Типы и утилиты
-// ========================= */
-
-// type EmailCheck =
-//   | { state: 'idle' }
-//   | { state: 'checking' }
-//   | { state: 'ok' }
-//   | { state: 'fail'; reason?: string }
-//   | { state: 'unavailable' };
-
-// type ReferralKind = 'google' | 'facebook' | 'instagram' | 'friends' | 'other';
-// type PaymentKind  = 'card' | 'paypal' | 'cash';
-
-// function isValidEmailSyntax(email: string): boolean {
-//   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-// }
-
-// function formatYMD(d: Date): string {
-//   const y = d.getFullYear();
-//   const m = String(d.getMonth() + 1).padStart(2, '0');
-//   const day = String(d.getDate()).padStart(2, '0');
-//   return `${y}-${m}-${day}`;
-// }
-
-// function yearsAgo(n: number): Date {
-//   const d = new Date();
-//   d.setFullYear(d.getFullYear() - n);
-//   return d;
-// }
-
-// /* =========================
-//    Форма клиента
-// ========================= */
-
-// function ClientForm(): React.JSX.Element {
-//   const params = useSearchParams();
-//   const router = useRouter();
-
-//   // Из URL: выбранные услуги, мастер, время, дата
-//   const serviceIds = React.useMemo(() => params.getAll('s').filter(Boolean), [params]);
-//   const masterId   = params.get('m') ?? '';
-//   const startISO   = params.get('start') ?? '';
-//   const endISO     = params.get('end') ?? '';
-//   const dateISO    = params.get('d') ?? '';
-
-//   // Поля формы
-//   const [name, setName]           = React.useState('');
-//   const [phone, setPhone]         = React.useState('');
-//   const [email, setEmail]         = React.useState('');
-//   const [emailCheck, setEmailCheck] = React.useState<EmailCheck>({ state: 'idle' });
-
-//   const [birth, setBirth]         = React.useState<string>('');
-//   const [referral, setReferral]   = React.useState<ReferralKind | ''>('');
-//   const [referralOther, setReferralOther] = React.useState('');
-//   const [payment, setPayment]     = React.useState<PaymentKind | ''>('');
-
-//   const [submitErr, setSubmitErr] = React.useState<string | null>(null);
-//   const [submitting, setSubmitting] = React.useState(false);
-
-//   // Ограничения по дате рождения
-//   const maxBirth = formatYMD(new Date());
-//   const minBirth = formatYMD(yearsAgo(120));
-//   const minAdult = formatYMD(yearsAgo(16));
-
-//   // Валидации
-//   const nameErr  = name.trim().length < 2 ? 'Укажите имя полностью' : null;
-//   const phoneErr = phone.trim().length < 6 ? 'Укажите корректный номер телефона' : null;
-
-//   const birthDate = birth ? new Date(birth + 'T00:00:00') : null;
-//   let birthErr: string | null = null;
-//   if (!birth) birthErr = 'Дата рождения обязательна';
-//   else if (birthDate && birthDate > new Date()) birthErr = 'Дата в будущем недопустима';
-//   else if (birth && birth > minAdult) birthErr = 'Для онлайн-записи требуется возраст 16+';
-
-//   let emailErr: string | null = null;
-//   if (email) {
-//     if (!isValidEmailSyntax(email)) emailErr = 'Некорректный e-mail';
-//     else if (emailCheck.state === 'fail') emailErr = emailCheck.reason ?? 'E-mail не подтвержден';
-//   }
-
-//   const referralErr =
-//     referral === '' ? 'Выберите вариант' :
-//     referral === 'other' && !referralOther.trim() ? 'Уточните источник' : null;
-
-//   const paymentErr = payment === '' ? 'Выберите способ оплаты' : null;
-
-//   const baseDisabled = !serviceIds.length || !masterId || !startISO || !endISO;
-
-//   const checking = emailCheck.state === 'checking';
-
-//   const formValid =
-//     !baseDisabled &&
-//     !nameErr && !phoneErr && !birthErr && !referralErr && !paymentErr &&
-//     (!email ||
-//       (isValidEmailSyntax(email) &&
-//         (emailCheck.state === 'ok' ||
-//          emailCheck.state === 'idle' ||
-//          emailCheck.state === 'unavailable')));
-
-//   async function handleEmailCheck(): Promise<void> {
-//     setSubmitErr(null);
-//     if (!email) {
-//       setEmailCheck({ state: 'idle' });
-//       return;
-//     }
-//     if (!isValidEmailSyntax(email)) {
-//       setEmailCheck({ state: 'fail', reason: 'Некорректный e-mail' });
-//       return;
-//     }
-//     setEmailCheck({ state: 'checking' });
-//     try {
-//       const res = await fetch(`/api/email/verify?email=${encodeURIComponent(email)}`, {
-//         method: 'GET',
-//         cache: 'no-store',
-//       });
-//       if (!res.ok) {
-//         setEmailCheck({ state: 'unavailable' });
-//         return;
-//       }
-//       const data = (await res.json()) as { ok?: boolean; reason?: string };
-//       if (data?.ok) setEmailCheck({ state: 'ok' });
-//       else setEmailCheck({ state: 'fail', reason: data?.reason ?? 'Проверка не пройдена' });
-//     } catch {
-//       setEmailCheck({ state: 'unavailable' });
-//     }
-//   }
-
-//   // Сабмит: переход строго на /booking/success
-//   async function onSubmit(e: React.FormEvent): Promise<void> {
-//     e.preventDefault();
-//     if (!formValid || checking) return;
-//     setSubmitting(true);
-//     setSubmitErr(null);
-
-//     try {
-//       const q = new URLSearchParams();
-//       for (const s of serviceIds) q.append('s', s);
-//       q.set('m', masterId);
-//       q.set('start', startISO);
-//       q.set('end', endISO);
-//       if (dateISO) q.set('d', dateISO);
-
-//       q.set('name', name.trim());
-//       q.set('phone', phone.trim());
-//       if (email) q.set('email', email.trim());
-
-//       q.set('birth', birth);
-//       q.set('ref', referral);
-//       if (referral === 'other' && referralOther.trim()) q.set('refOther', referralOther.trim());
-//       q.set('pay', payment);
-
-//       router.push(`/booking/success?${q.toString()}`);
-//     } catch {
-//       setSubmitErr('Не удалось продолжить. Попробуйте еще раз.');
-//     } finally {
-//       setSubmitting(false);
-//     }
-//   }
-
-//   return (
-//     <div className="mx-auto max-w-3xl px-4 pb-28">
-//       <h1 className="mt-6 text-2xl font-semibold">Онлайн-запись</h1>
-//       <h2 className="mt-2 text-lg text-muted-foreground">Данные клиента</h2>
-
-//       {/* Резюме выбора */}
-//       <div className="mt-6 rounded-xl border border-border bg-card p-4 text-sm text-muted-foreground">
-//         <div className="flex flex-wrap gap-2">
-//           <span className="rounded-lg bg-muted px-2 py-1">Услуг: {serviceIds.length}</span>
-//           <span className="rounded-lg bg-muted px-2 py-1">Мастер: {masterId.slice(0, 8)}…</span>
-//           <span className="rounded-lg bg-muted px-2 py-1">Начало: {new Date(startISO).toLocaleString()}</span>
-//           <span className="rounded-lg bg-muted px-2 py-1">Окончание: {new Date(endISO).toLocaleString()}</span>
-//         </div>
-//       </div>
-
-//       <form className="mt-6 space-y-6" onSubmit={onSubmit} noValidate>
-//         {/* Имя */}
-//         <div>
-//           <label className="block text-sm font-medium">
-//             Имя и фамилия<span className="text-destructive">*</span>
-//           </label>
-//           <input
-//             type="text"
-//             autoComplete="name"
-//             className="mt-2 w-full rounded-xl border border-border bg-background px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-300"
-//             value={name}
-//             onChange={(e) => setName(e.target.value)}
-//             required
-//             aria-invalid={!!nameErr}
-//           />
-//           {nameErr && <p className="mt-1 text-xs text-destructive">{nameErr}</p>}
-//         </div>
-
-//         {/* Телефон */}
-//         <div>
-//           <label className="block text-sm font-medium">
-//             Телефон<span className="text-destructive">*</span>
-//           </label>
-//           <input
-//             type="tel"
-//             inputMode="tel"
-//             autoComplete="tel"
-//             className="mt-2 w-full rounded-xl border border-border bg-background px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-300"
-//             placeholder="+49 151 23456789"
-//             value={phone}
-//             onChange={(e) => setPhone(e.target.value)}
-//             required
-//             aria-invalid={!!phoneErr}
-//           />
-//           {phoneErr && <p className="mt-1 text-xs text-destructive">{phoneErr}</p>}
-//         </div>
-
-//         {/* E-mail + проверка */}
-//         <div>
-//           <label className="block text-sm font-medium">E-mail</label>
-//           <div className="mt-2 flex gap-2">
-//             <input
-//               type="email"
-//               autoComplete="email"
-//               className="w-full rounded-xl border border-border bg-background px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-300"
-//               placeholder="name@example.com"
-//               value={email}
-//               onChange={(e) => {
-//                 setEmail(e.target.value);
-//                 setEmailCheck({ state: 'idle' });
-//               }}
-//               aria-invalid={!!emailErr}
-//             />
-//             <button
-//               type="button"
-//               onClick={handleEmailCheck}
-//               disabled={!email || !isValidEmailSyntax(email) || checking}
-//               className={`shrink-0 rounded-xl px-3 py-2 text-sm font-medium border transition
-//                 ${!email || !isValidEmailSyntax(email) || checking
-//                   ? 'pointer-events-none border-muted text-muted-foreground'
-//                   : 'border-indigo-200 text-indigo-600 hover:bg-indigo-50'}`}
-//             >
-//               {checking ? 'Проверяем…' : 'Проверить'}
-//             </button>
-//           </div>
-//           {emailErr && <p className="mt-1 text-xs text-destructive">{emailErr}</p>}
-//           {!emailErr && email && emailCheck.state === 'ok' && (
-//             <p className="mt-1 text-xs text-emerald-500">E-mail подтвержден.</p>
-//           )}
-//           {!emailErr && email && emailCheck.state === 'unavailable' && (
-//             <p className="mt-1 text-xs text-muted-foreground">Песочница недоступна. Можно продолжать.</p>
-//           )}
-//         </div>
-
-//         {/* Дата рождения */}
-//         <div>
-//           <label className="block text-sm font-medium">
-//             Дата рождения<span className="text-destructive">*</span>
-//           </label>
-//           <input
-//             type="date"
-//             className="mt-2 w-full rounded-xl border border-border bg-background px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-300"
-//             value={birth}
-//             onChange={(e) => setBirth(e.target.value)}
-//             required
-//             min={minBirth}
-//             max={maxBirth}
-//             aria-invalid={!!birthErr}
-//           />
-//           {birthErr && <p className="mt-1 text-xs text-destructive">{birthErr}</p>}
-//           <p className="mt-1 text-xs text-muted-foreground">Минимальный возраст для онлайн-записи: 16 лет.</p>
-//         </div>
-
-//         {/* Как узнали о нас */}
-//         <fieldset className="space-y-3">
-//           <legend className="text-sm font-medium">
-//             Как вы о нас узнали?<span className="text-destructive">*</span>
-//           </legend>
-//           <div className="mt-2 grid gap-2 sm:grid-cols-2">
-//             {[
-//               { key: 'google', label: 'Google' },
-//               { key: 'facebook', label: 'Facebook' },
-//               { key: 'instagram', label: 'Instagram' },
-//               { key: 'friends', label: 'Знакомые' },
-//               { key: 'other', label: 'Другое' },
-//             ].map(opt => (
-//               <label
-//                 key={opt.key}
-//                 className={`flex cursor-pointer items-center gap-3 rounded-xl border px-4 py-2
-//                   ${referral === (opt.key as ReferralKind)
-//                     ? 'border-indigo-500 ring-2 ring-indigo-200'
-//                     : 'border-border hover:border-indigo-300'}`}
-//               >
-//                 <input
-//                   type="radio"
-//                   name="referral"
-//                   value={opt.key}
-//                   checked={referral === (opt.key as ReferralKind)}
-//                   onChange={() => setReferral(opt.key as ReferralKind)}
-//                   className="size-4 accent-indigo-600"
-//                 />
-//                 <span>{opt.label}</span>
-//               </label>
-//             ))}
-//           </div>
-//           {referral === 'other' && (
-//             <div className="mt-2">
-//               <input
-//                 type="text"
-//                 placeholder="Уточните источник"
-//                 className="w-full rounded-xl border border-border bg-background px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-300"
-//                 value={referralOther}
-//                 onChange={(e) => setReferralOther(e.target.value)}
-//               />
-//             </div>
-//           )}
-//           {referralErr && <p className="text-xs text-destructive">{referralErr}</p>}
-//         </fieldset>
-
-//         {/* Способ оплаты */}
-//         <fieldset className="space-y-3">
-//           <legend className="text-sm font-medium">
-//             Способ оплаты<span className="text-destructive">*</span>
-//           </legend>
-//           <div className="mt-2 grid gap-2 sm:grid-cols-3">
-//             {[
-//               { key: 'card', label: 'Карта' },
-//               { key: 'paypal', label: 'PayPal' },
-//               { key: 'cash', label: 'Наличные' },
-//             ].map(opt => (
-//               <label
-//                 key={opt.key}
-//                 className={`flex cursor-pointer items-center gap-3 rounded-xl border px-4 py-2
-//                   ${payment === (opt.key as PaymentKind)
-//                     ? 'border-indigo-500 ring-2 ring-indigo-200'
-//                     : 'border-border hover:border-indigo-300'}`}
-//               >
-//                 <input
-//                   type="radio"
-//                   name="payment"
-//                   value={opt.key}
-//                   checked={payment === (opt.key as PaymentKind)}
-//                   onChange={() => setPayment(opt.key as PaymentKind)}
-//                   className="size-4 accent-indigo-600"
-//                 />
-//                 <span>{opt.label}</span>
-//               </label>
-//             ))}
-//           </div>
-//           {paymentErr && <p className="text-xs text-destructive">{paymentErr}</p>}
-//         </fieldset>
-
-//         {submitErr && (
-//           <div className="rounded-lg border border-destructive bg-destructive/10 p-3 text-sm text-destructive">
-//             {submitErr}
-//           </div>
-//         )}
-
-//         {/* Нижняя панель действий */}
-//         <div className="sticky bottom-0 z-10 -mx-4 mt-4 border-t border-border bg-background/95 px-4 py-3 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-//           <div className="mx-auto flex max-w-3xl items-center justify-between gap-4">
-//             <Link
-//               href={{
-//                 pathname: '/booking/calendar',
-//                 query: { ...Object.fromEntries(params.entries()) },
-//               }}
-//               className="rounded-xl px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground"
-//             >
-//               Назад
-//             </Link>
-
-//             <button
-//               type="submit"
-//               disabled={!formValid || submitting || checking}
-//               className={`rounded-xl px-5 py-2 text-sm font-semibold transition
-//                 ${!formValid || submitting || checking
-//                   ? 'pointer-events-none bg-muted text-muted-foreground'
-//                   : 'bg-indigo-600 text-white hover:bg-indigo-500'}`}
-//             >
-//               {submitting ? 'Продолжаем…' : 'Продолжить'}
-//             </button>
-//           </div>
-//         </div>
-//       </form>
-//     </div>
-//   );
-// }
-
-// /* =========================
-//    Страница с Suspense-обёрткой
-// ========================= */
-
-// export default function Page(): React.JSX.Element {
-//   return (
-//     <Suspense
-//       fallback={
-//         <div className="mx-auto max-w-3xl px-4">
-//           <div className="mt-6 rounded-lg border border-border bg-card p-4">
-//             Загрузка формы клиента…
-//           </div>
-//         </div>
-//       }
-//     >
-//       <ClientForm />
-//     </Suspense>
-//   );
-// }
-
-
-
-
-//-------------почти работал но ретендил на комфирм
-// // src/app/booking/(steps)/client/page.tsx
-// 'use client';
-
-// import * as React from 'react';
-// import { Suspense } from 'react';
-// import { useRouter, useSearchParams } from 'next/navigation';
-// import Link from 'next/link';
-
-// type EmailCheck =
-//   | { state: 'idle' }
-//   | { state: 'checking' }
-//   | { state: 'ok' }
-//   | { state: 'fail'; reason?: string }
-//   | { state: 'unavailable' };
-
-// type ReferralKind = 'google' | 'facebook' | 'instagram' | 'friends' | 'other';
-// type PaymentKind = 'card' | 'paypal' | 'cash';
-
-// function isValidEmailSyntax(email: string): boolean {
-//   // Умеренно строгая проверка синтаксиса
-//   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-// }
-
-// function formatYMD(d: Date): string {
-//   const y = d.getFullYear();
-//   const m = String(d.getMonth() + 1).padStart(2, '0');
-//   const day = String(d.getDate()).padStart(2, '0');
-//   return `${y}-${m}-${day}`;
-// }
-
-// function yearsAgo(n: number): Date {
-//   const d = new Date();
-//   d.setFullYear(d.getFullYear() - n);
-//   return d;
-// }
-
-// function ClientForm(): React.JSX.Element {
-//   const params = useSearchParams();
-//   const router = useRouter();
-
-//   // из URL: выбранные услуги, мастер, время
-//   const serviceIds = React.useMemo(
-//     () => params.getAll('s').filter(Boolean),
-//     [params]
-//   );
-//   const masterId = params.get('m') ?? '';
-//   const startISO = params.get('start') ?? '';
-//   const endISO = params.get('end') ?? '';
-
-//   // Поля формы
-//   const [name, setName] = React.useState('');
-//   const [phone, setPhone] = React.useState('');
-//   const [email, setEmail] = React.useState('');
-//   const [emailCheck, setEmailCheck] = React.useState<EmailCheck>({ state: 'idle' });
-
-//   const [birth, setBirth] = React.useState<string>('');
-//   const [referral, setReferral] = React.useState<ReferralKind | ''>('');
-//   const [referralOther, setReferralOther] = React.useState('');
-//   const [payment, setPayment] = React.useState<PaymentKind | ''>('');
-
-//   const [submitErr, setSubmitErr] = React.useState<string | null>(null);
-//   const [submitting, setSubmitting] = React.useState(false);
-
-//   // Ограничения для даты рождения
-//   const maxBirth = formatYMD(new Date());           // не позднее сегодня
-//   const minBirth = formatYMD(yearsAgo(120));        // здравый предел: 120 лет назад
-//   const minAdult = formatYMD(yearsAgo(16));         // можно добавить требование 16+
-
-//   // Локальные валидации
-//   const nameErr = name.trim().length < 2 ? 'Укажите имя полностью' : null;
-//   const phoneErr =
-//     phone.trim().length < 6 ? 'Укажите корректный номер телефона' : null;
-
-//   const birthDate = birth ? new Date(birth + 'T00:00:00') : null;
-//   let birthErr: string | null = null;
-//   if (!birth) birthErr = 'Дата рождения обязательна';
-//   else if (birthDate && birthDate > new Date()) birthErr = 'Дата в будущем недопустима';
-//   else if (birth && birth > minAdult) birthErr = 'Для онлайн-записи требуется возраст 16+';
-
-//   let emailErr: string | null = null;
-//   if (email) {
-//     if (!isValidEmailSyntax(email)) emailErr = 'Некорректный e-mail';
-//     else if (emailCheck.state === 'fail') emailErr = emailCheck.reason ?? 'E-mail не подтвержден';
-//   }
-
-//   const referralErr =
-//     referral === '' ? 'Выберите вариант' : referral === 'other' && !referralOther.trim()
-//       ? 'Уточните источник'
-//       : null;
-
-//   const paymentErr = payment === '' ? 'Выберите способ оплаты' : null;
-
-//   const baseDisabled =
-//     !serviceIds.length || !masterId || !startISO || !endISO;
-
-//   const formValid =
-//     !baseDisabled &&
-//     !nameErr &&
-//     !phoneErr &&
-//     !birthErr &&
-//     !referralErr &&
-//     !paymentErr &&
-//     // если введен email, допускаем переход когда синтаксис ок, а проверка либо ok, либо недоступна
-//     (!email ||
-//       (isValidEmailSyntax(email) &&
-//         (emailCheck.state === 'ok' ||
-//           emailCheck.state === 'idle' ||
-//           emailCheck.state === 'unavailable')));
-
-//   const checking = emailCheck.state === 'checking';
-
-//   async function handleEmailCheck(): Promise<void> {
-//     setSubmitErr(null);
-//     if (!email) {
-//       setEmailCheck({ state: 'idle' });
-//       return;
-//     }
-//     if (!isValidEmailSyntax(email)) {
-//       setEmailCheck({ state: 'fail', reason: 'Некорректный e-mail' });
-//       return;
-//     }
-//     setEmailCheck({ state: 'checking' });
-//     try {
-//       // Попытка дернуть «песочницу»; если её нет, помечаем как unavailable,
-//       // но не блокируем пользователя при корректном синтаксисе.
-//       const res = await fetch(`/api/email/verify?email=${encodeURIComponent(email)}`, {
-//         method: 'GET',
-//         cache: 'no-store',
-//       });
-//       if (!res.ok) {
-//         setEmailCheck({ state: 'unavailable' });
-//         return;
-//       }
-//       const data = (await res.json()) as { ok?: boolean; reason?: string };
-//       if (data?.ok) setEmailCheck({ state: 'ok' });
-//       else setEmailCheck({ state: 'fail', reason: data?.reason ?? 'Проверка не пройдена' });
-//     } catch {
-//       setEmailCheck({ state: 'unavailable' });
-//     }
-//   }
-
-//   async function onSubmit(e: React.FormEvent): Promise<void> {
-//     e.preventDefault();
-//     if (!formValid || checking) return;
-//     setSubmitting(true);
-//     setSubmitErr(null);
-
-//     try {
-//       // Передаем на страницу подтверждения все данные запроса как query,
-//       // чтобы сохранить существующий поток (POST выполняется на confirm).
-//       const q = new URLSearchParams();
-//       for (const s of serviceIds) q.append('s', s);
-//       q.set('m', masterId);
-//       q.set('start', startISO);
-//       q.set('end', endISO);
-
-//       q.set('name', name.trim());
-//       q.set('phone', phone.trim());
-//       if (email) q.set('email', email.trim());
-
-//       q.set('birth', birth); // YYYY-MM-DD
-//       q.set('ref', referral);
-//       if (referral === 'other' && referralOther.trim()) q.set('refOther', referralOther.trim());
-//       q.set('pay', payment);
-
-//       router.push(`/booking/success?${q.toString()}`);
-//     } catch (err) {
-//       setSubmitErr('Не удалось перейти к подтверждению. Попробуйте еще раз.');
-//     } finally {
-//       setSubmitting(false);
-//     }
-//   }
-
-//   return (
-//     <div className="mx-auto max-w-3xl px-4 pb-28">
-//       <h1 className="mt-6 text-2xl font-semibold">Онлайн-запись</h1>
-//       <h2 className="mt-2 text-lg text-muted-foreground">Данные клиента</h2>
-
-//       {/* Резюме выбора наверху */}
-//       <div className="mt-6 rounded-xl border border-border bg-card p-4 text-sm text-muted-foreground">
-//         <div className="flex flex-wrap gap-2">
-//           <span className="rounded-lg bg-muted px-2 py-1">Услуг: {serviceIds.length}</span>
-//           <span className="rounded-lg bg-muted px-2 py-1">Мастер: {masterId.slice(0, 8)}…</span>
-//           <span className="rounded-lg bg-muted px-2 py-1">Начало: {new Date(startISO).toLocaleString()}</span>
-//           <span className="rounded-lg bg-muted px-2 py-1">Окончание: {new Date(endISO).toLocaleString()}</span>
-//         </div>
-//       </div>
-
-//       <form className="mt-6 space-y-6" onSubmit={onSubmit} noValidate>
-//         {/* Имя */}
-//         <div>
-//           <label className="block text-sm font-medium">Имя и фамилия<span className="text-destructive">*</span></label>
-//           <input
-//             type="text"
-//             autoComplete="name"
-//             className="mt-2 w-full rounded-xl border border-border bg-background px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-300"
-//             value={name}
-//             onChange={(e) => setName(e.target.value)}
-//             required
-//             aria-invalid={!!nameErr}
-//           />
-//           {nameErr && <p className="mt-1 text-xs text-destructive">{nameErr}</p>}
-//         </div>
-
-//         {/* Телефон */}
-//         <div>
-//           <label className="block text-sm font-medium">Телефон<span className="text-destructive">*</span></label>
-//           <input
-//             type="tel"
-//             inputMode="tel"
-//             autoComplete="tel"
-//             className="mt-2 w-full rounded-xl border border-border bg-background px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-300"
-//             placeholder="+49 151 23456789"
-//             value={phone}
-//             onChange={(e) => setPhone(e.target.value)}
-//             required
-//             aria-invalid={!!phoneErr}
-//           />
-//           {phoneErr && <p className="mt-1 text-xs text-destructive">{phoneErr}</p>}
-//         </div>
-
-//         {/* E-mail + проверка */}
-//         <div>
-//           <label className="block text-sm font-medium">E-mail</label>
-//           <div className="mt-2 flex gap-2">
-//             <input
-//               type="email"
-//               autoComplete="email"
-//               className="w-full rounded-xl border border-border bg-background px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-300"
-//               placeholder="name@example.com"
-//               value={email}
-//               onChange={(e) => {
-//                 setEmail(e.target.value);
-//                 // сбрасываем состояние проверки, чтобы не вводить в заблуждение
-//                 setEmailCheck({ state: 'idle' });
-//               }}
-//               aria-invalid={!!emailErr}
-//             />
-//             <button
-//               type="button"
-//               onClick={handleEmailCheck}
-//               disabled={!email || !isValidEmailSyntax(email) || checking}
-//               className={`shrink-0 rounded-xl px-3 py-2 text-sm font-medium border transition
-//                 ${!email || !isValidEmailSyntax(email) || checking
-//                   ? 'pointer-events-none border-muted text-muted-foreground'
-//                   : 'border-indigo-200 text-indigo-600 hover:bg-indigo-50'}`}
-//             >
-//               {checking ? 'Проверяем…' : 'Проверить'}
-//             </button>
-//           </div>
-//           {emailErr && <p className="mt-1 text-xs text-destructive">{emailErr}</p>}
-//           {!emailErr && email && emailCheck.state === 'ok' && (
-//             <p className="mt-1 text-xs text-emerald-500">E-mail подтвержден.</p>
-//           )}
-//           {!emailErr && email && emailCheck.state === 'unavailable' && (
-//             <p className="mt-1 text-xs text-muted-foreground">
-//               Песочница недоступна. Синтаксис корректен, можно продолжать.
-//             </p>
-//           )}
-//         </div>
-
-//         {/* Дата рождения */}
-//         <div>
-//           <label className="block text-sm font-medium">Дата рождения<span className="text-destructive">*</span></label>
-//           <input
-//             type="date"
-//             className="mt-2 w-full rounded-xl border border-border bg-background px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-300"
-//             value={birth}
-//             onChange={(e) => setBirth(e.target.value)}
-//             required
-//             min={minBirth}
-//             max={maxBirth}
-//             aria-invalid={!!birthErr}
-//           />
-//           {birthErr && <p className="mt-1 text-xs text-destructive">{birthErr}</p>}
-//           <p className="mt-1 text-xs text-muted-foreground">Минимальный возраст для онлайн-записи: 16 лет.</p>
-//         </div>
-
-//         {/* Как узнали о нас */}
-//         <fieldset className="space-y-3">
-//           <legend className="text-sm font-medium">Как вы о нас узнали?<span className="text-destructive">*</span></legend>
-//           <div className="mt-2 grid gap-2 sm:grid-cols-2">
-//             {[
-//               { key: 'google', label: 'Google' },
-//               { key: 'facebook', label: 'Facebook' },
-//               { key: 'instagram', label: 'Instagram' },
-//               { key: 'friends', label: 'Знакомые' },
-//               { key: 'other', label: 'Другое' },
-//             ].map((opt) => (
-//               <label
-//                 key={opt.key}
-//                 className={`flex cursor-pointer items-center gap-3 rounded-xl border px-4 py-2
-//                   ${referral === (opt.key as ReferralKind)
-//                     ? 'border-indigo-500 ring-2 ring-indigo-200'
-//                     : 'border-border hover:border-indigo-300'}`}
-//               >
-//                 <input
-//                   type="radio"
-//                   name="referral"
-//                   value={opt.key}
-//                   checked={referral === (opt.key as ReferralKind)}
-//                   onChange={() => setReferral(opt.key as ReferralKind)}
-//                   className="size-4 accent-indigo-600"
-//                 />
-//                 <span>{opt.label}</span>
-//               </label>
-//             ))}
-//           </div>
-//           {referral === 'other' && (
-//             <div className="mt-2">
-//               <input
-//                 type="text"
-//                 placeholder="Уточните источник"
-//                 className="w-full rounded-xl border border-border bg-background px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-300"
-//                 value={referralOther}
-//                 onChange={(e) => setReferralOther(e.target.value)}
-//               />
-//             </div>
-//           )}
-//           {referralErr && <p className="text-xs text-destructive">{referralErr}</p>}
-//         </fieldset>
-
-//         {/* Способ оплаты */}
-//         <fieldset className="space-y-3">
-//           <legend className="text-sm font-medium">Способ оплаты<span className="text-destructive">*</span></legend>
-//           <div className="mt-2 grid gap-2 sm:grid-cols-3">
-//             {[
-//               { key: 'card', label: 'Карта' },
-//               { key: 'paypal', label: 'PayPal' },
-//               { key: 'cash', label: 'Наличные' },
-//             ].map((opt) => (
-//               <label
-//                 key={opt.key}
-//                 className={`flex cursor-pointer items-center gap-3 rounded-xl border px-4 py-2
-//                   ${payment === (opt.key as PaymentKind)
-//                     ? 'border-indigo-500 ring-2 ring-indigo-200'
-//                     : 'border-border hover:border-indigo-300'}`}
-//               >
-//                 <input
-//                   type="radio"
-//                   name="payment"
-//                   value={opt.key}
-//                   checked={payment === (opt.key as PaymentKind)}
-//                   onChange={() => setPayment(opt.key as PaymentKind)}
-//                   className="size-4 accent-indigo-600"
-//                 />
-//                 <span>{opt.label}</span>
-//               </label>
-//             ))}
-//           </div>
-//           {paymentErr && <p className="text-xs text-destructive">{paymentErr}</p>}
-//         </fieldset>
-
-//         {submitErr && (
-//           <div className="rounded-lg border border-destructive bg-destructive/10 p-3 text-sm text-destructive">
-//             {submitErr}
-//           </div>
-//         )}
-
-//         {/* Нижняя панель действий */}
-//         <div className="sticky bottom-0 z-10 -mx-4 mt-4 border-t border-border bg-background/95 px-4 py-3 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-//           <div className="mx-auto flex max-w-3xl items-center justify-between gap-4">
-//             <Link
-//               href={{
-//                 pathname: '/booking/calendar',
-//                 query: { ...Object.fromEntries(params.entries()) },
-//               }}
-//               className="rounded-xl px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground"
-//             >
-//               Назад
-//             </Link>
-
-//             <button
-//               type="submit"
-//               disabled={!formValid || submitting || checking}
-//               className={`rounded-xl px-5 py-2 text-sm font-semibold transition
-//                 ${!formValid || submitting || checking
-//                   ? 'pointer-events-none bg-muted text-muted-foreground'
-//                   : 'bg-indigo-600 text-white hover:bg-indigo-500'}`}
-//             >
-//               {submitting ? 'Продолжаем…' : 'Продолжить'}
-//             </button>
-//           </div>
-//         </div>
-//       </form>
-//     </div>
-//   );
-// }
-
-// export default function Page(): React.JSX.Element {
-//   // Оборачиваем использование useSearchParams в Suspense для корректной сборки
-//   return (
-//     <Suspense
-//       fallback={
-//         <div className="mx-auto max-w-3xl px-4">
-//           <div className="mt-6 rounded-lg border border-border bg-card p-4">
-//             Загрузка формы клиента…
-//           </div>
-//         </div>
-//       }
-//     >
-//       <ClientForm />
-//     </Suspense>
-//   );
-// }
-
-
-
-
-
-// // src/app/booking/(steps)/client/page.tsx
-// "use client";
-
-// import { useCallback, useEffect, useMemo, useState } from "react";
-// import { useRouter, useSearchParams } from "next/navigation";
-// import Link from "next/link";
-// import { fmtVisitDate, fmtVisitTime } from "@/lib/datetime";
-
-// type Service = {
-//   id: string;
-//   title: string;
-//   durationMin: number;
-//   priceCents?: number | null;
-//   parentId?: string | null;
-// };
-
-// type Promo = { id: string; title: string; percent: number; isGlobal: boolean };
-
-// function parseParams(sp: URLSearchParams) {
-//   const masterId = sp.get("masterId") || undefined;
-//   const startAt = sp.get("startAt") || undefined; // ISO UTC
-//   const durationMin = sp.get("m") ? Number(sp.get("m")) : undefined;
-
-//   const csv = sp.get("serviceIds")?.trim();
-//   let serviceIds = csv ? csv.split(",").map(s => s.trim()).filter(Boolean) : [];
-
-//   const legacyOne = sp.get("s") || sp.get("serviceId") || sp.get("serviceSlug") || sp.get("serviceSlugOrId");
-//   if (!serviceIds.length && legacyOne) serviceIds = [legacyOne];
-
-//   return { masterId, startAt, durationMin, serviceIds };
-// }
-
-// export default function ClientStepPage() {
-//   const router = useRouter();
-//   const sp = useSearchParams();
-//   const { masterId, startAt, durationMin: paramDuration, serviceIds } = useMemo(() => parseParams(sp), [sp]);
-
-//   const [services, setServices] = useState<Service[]>([]);
-//   const [promos, setPromos] = useState<Promo[]>([]);
-//   const [loading, setLoading] = useState(true);
-
-//   const [name, setName] = useState("");
-//   const [phone, setPhone] = useState("");
-//   const [email, setEmail] = useState("");
-//   const [emailVerified, setEmailVerified] = useState(false);
-//   const [code, setCode] = useState("");
-//   const [notes, setNotes] = useState("");
-//   const [agree, setAgree] = useState(false);
-//   const [submitting, setSubmitting] = useState(false);
-//   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-
-//   // Загружаем карточки услуг и активные акции из существующего API
-//   const loadServices = useCallback(async () => {
-//     try {
-//       setLoading(true);
-//       // В проекте есть POST /booking/services, который возвращает { groups, services, promotions }
-//       const res = await fetch("/booking/services", { method: "POST" });
-//       const data = await res.json();
-
-//       const all: Service[] = Array.isArray(data?.services) ? data.services : [];
-//       const selected = serviceIds.length ? all.filter(s => serviceIds.includes(s.id)) : [];
-
-//       setServices(selected);
-//       setPromos(Array.isArray(data?.promotions) ? data.promotions : []);
-//     } catch {
-//       setServices([]);
-//       setPromos([]);
-//     } finally {
-//       setLoading(false);
-//     }
-//   }, [serviceIds]);
-
-//   useEffect(() => {
-//     loadServices();
-//   }, [loadServices]);
-
-//   // Подсчеты: продолжительность и сумма
-//   const totalDuration = useMemo(() => {
-//     if (serviceIds.length && services.length) {
-//       return services.reduce((acc, s) => acc + (s.durationMin || 0), 0);
-//     }
-//     return paramDuration || 0;
-//   }, [serviceIds, services, paramDuration]);
-
-//   const baseSumCents = useMemo(() => {
-//     if (serviceIds.length && services.length) {
-//       return services.reduce((acc, s) => acc + (s.priceCents || 0), 0);
-//     }
-//     return 0;
-//   }, [serviceIds, services]);
-
-//   // Применяем максимально возможную промо-скидку
-//   const bestPromoPercent = useMemo(() => {
-//     if (!promos.length) return 0;
-//     // приоритет — глобальные и максимальный процент
-//     const max = promos.reduce((m, p) => Math.max(m, p.percent || 0), 0);
-//     return max;
-//   }, [promos]);
-
-//   const discountCents = Math.floor((baseSumCents * bestPromoPercent) / 100);
-//   const totalAfterDiscountCents = Math.max(0, baseSumCents - discountCents);
-
-//   // Валидации
-//   const canSubmit =
-//     !loading &&
-//     !!startAt &&
-//     (serviceIds.length > 0 || paramDuration) &&
-//     !!masterId &&
-//     name.trim().length >= 2 &&
-//     phone.trim().length >= 6 &&
-//     email.trim().length > 0 &&
-//     emailVerified &&
-//     agree &&
-//     !submitting;
-
-//   async function requestCode() {
-//     setErrorMsg(null);
-//     if (!email || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
-//       setErrorMsg("Введите корректный e-mail для отправки кода.");
-//       return;
-//     }
-//     const r = await fetch("/api/email/verify/request", {
-//       method: "POST",
-//       headers: { "Content-Type": "application/json" },
-//       body: JSON.stringify({ email }),
-//     });
-//     if (!r.ok) {
-//       const j = await r.json().catch(() => ({}));
-//       setErrorMsg(j?.error || "Не удалось отправить код подтверждения.");
-//       return;
-//     }
-//     // Подсказка пользователю
-//     alert("Код подтверждения отправлен на e-mail. Проверьте почту.");
-//   }
-
-//   async function confirmCode() {
-//     setErrorMsg(null);
-//     if (!email || !code) {
-//       setErrorMsg("Укажите e-mail и код подтверждения.");
-//       return;
-//     }
-//     const r = await fetch("/api/email/verify/confirm", {
-//       method: "POST",
-//       headers: { "Content-Type": "application/json" },
-//       body: JSON.stringify({ email, code }),
-//     });
-//     const j = await r.json().catch(() => ({}));
-//     if (!r.ok || !j?.ok) {
-//       setEmailVerified(false);
-//       setErrorMsg(j?.error === "code_expired" ? "Срок действия кода истек, запросите новый." : "Неверный код.");
-//       return;
-//     }
-//     setEmailVerified(true);
-//   }
-
-//   async function submit() {
-//     if (!canSubmit) return;
-//     setSubmitting(true);
-//     setErrorMsg(null);
-//     try {
-//       // endAt = startAt + totalDuration минут
-//       const start = new Date(startAt!);
-//       const end = new Date(start.getTime() + totalDuration * 60 * 1000);
-
-//       // Используем первую услугу как primary для совместимости со схемой
-//       const primaryServiceId = serviceIds[0] || undefined;
-
-//       const payload = {
-//         serviceId: primaryServiceId,
-//         serviceIds, // для трассировки и админки
-//         masterId,
-//         startAt: start.toISOString(),
-//         endAt: end.toISOString(),
-//         customerName: name.trim(),
-//         phone: phone.trim(),
-//         email: email.trim(),
-//         notes:
-//           notes?.trim()
-//             ? notes.trim()
-//             : serviceIds.length > 1
-//             ? `Комплексная запись по услугам: ${serviceIds.join(", ")}`
-//             : undefined,
-//       };
-
-//       const r = await fetch("/api/appointments", {
-//         method: "POST",
-//         headers: { "Content-Type": "application/json" },
-//         body: JSON.stringify(payload),
-//       });
-
-//       if (!r.ok) {
-//         const j = await r.json().catch(() => ({}));
-//         setErrorMsg(j?.error || "Не удалось создать запись.");
-//         setSubmitting(false);
-//         return;
-//       }
-
-//       router.push("/booking?ok=1");
-//     } catch {
-//       setErrorMsg("Ошибка сети при создании записи.");
-//       setSubmitting(false);
-//     }
-//   }
-
-//   // Отображение
-//   const startAtDate = startAt ? new Date(startAt) : null;
-
-//   return (
-//     <div className="mx-auto max-w-3xl px-4 py-6 space-y-6">
-//       <h1 className="text-2xl font-semibold">Контакты и подтверждение</h1>
-
-//       {/* Сводка визита */}
-//       <div className="rounded-xl border p-4">
-//         <div className="flex flex-wrap items-center justify-between gap-2">
-//           <div>
-//             <div className="text-sm text-gray-500">Дата</div>
-//             <div className="font-medium">
-//               {startAtDate ? `${fmtVisitDate(startAtDate)} в ${fmtVisitTime(startAtDate)}` : "—"}
-//             </div>
-//           </div>
-//           <div>
-//             <div className="text-sm text-gray-500">Длительность</div>
-//             <div className="font-medium">{totalDuration} мин</div>
-//           </div>
-//           <div>
-//             <div className="text-sm text-gray-500">Мастер</div>
-//             <div className="font-medium">{masterId || "—"}</div>
-//           </div>
-//         </div>
-
-//         {/* Услуги */}
-//         {loading ? (
-//           <div className="mt-3 text-gray-500">Загрузка услуг…</div>
-//         ) : serviceIds.length ? (
-//           <div className="mt-3 space-y-1">
-//             {services.map(s => (
-//               <div key={s.id} className="flex items-center justify-between text-sm">
-//                 <div className="truncate">{s.title}</div>
-//                 <div className="whitespace-nowrap">
-//                   {s.priceCents ? `${(s.priceCents / 100).toFixed(2)} €` : "—"}
-//                 </div>
-//               </div>
-//             ))}
-//             <div className="mt-2 h-px bg-gray-200" />
-//             <div className="flex items-center justify-between font-medium">
-//               <div>Итого</div>
-//               <div className="whitespace-nowrap">
-//                 {discountCents > 0 ? (
-//                   <>
-//                     <span className="line-through mr-2 text-gray-400">{(baseSumCents / 100).toFixed(2)} €</span>
-//                     <span>{(totalAfterDiscountCents / 100).toFixed(2)} €</span>
-//                     <span className="ml-2 text-xs text-green-700">−{bestPromoPercent}%</span>
-//                   </>
-//                 ) : (
-//                   <span>{(baseSumCents / 100).toFixed(2)} €</span>
-//                 )}
-//               </div>
-//             </div>
-//           </div>
-//         ) : (
-//           <div className="mt-3 text-sm text-gray-500">Услуги не выбраны. Возврат к предыдущему шагу.</div>
-//         )}
-//       </div>
-
-//       {/* Форма клиента */}
-//       <div className="grid gap-4 sm:grid-cols-2">
-//         <div className="sm:col-span-2">
-//           <label className="mb-1 block text-sm">Ваше имя</label>
-//           <input
-//             className="w-full rounded border px-3 py-2"
-//             value={name}
-//             onChange={e => setName(e.target.value)}
-//             placeholder="Иван Иванов"
-//           />
-//         </div>
-
-//         <div>
-//           <label className="mb-1 block text-sm">Телефон</label>
-//           <input
-//             className="w-full rounded border px-3 py-2"
-//             value={phone}
-//             onChange={e => setPhone(e.target.value)}
-//             placeholder="+49 123 456789"
-//           />
-//         </div>
-
-//         <div>
-//           <label className="mb-1 block text-sm">E-mail</label>
-//           <div className="flex gap-2">
-//             <input
-//               className="w-full rounded border px-3 py-2"
-//               value={email}
-//               onChange={e => {
-//                 setEmail(e.target.value);
-//                 setEmailVerified(false);
-//               }}
-//               placeholder="name@example.com"
-//             />
-//             <button
-//               type="button"
-//               className="whitespace-nowrap rounded border px-3 py-2 hover:bg-gray-50"
-//               onClick={requestCode}
-//             >
-//               Получить код
-//             </button>
-//           </div>
-//           {emailVerified ? (
-//             <div className="mt-1 text-xs text-green-700">E-mail подтвержден.</div>
-//           ) : (
-//             <div className="mt-2 flex gap-2">
-//               <input
-//                 className="w-full rounded border px-3 py-2"
-//                 value={code}
-//                 onChange={e => setCode(e.target.value)}
-//                 placeholder="Код из письма"
-//               />
-//               <button
-//                 type="button"
-//                 className="whitespace-nowrap rounded border px-3 py-2 hover:bg-gray-50"
-//                 onClick={confirmCode}
-//               >
-//                 Подтвердить
-//               </button>
-//             </div>
-//           )}
-//         </div>
-
-//         <div className="sm:col-span-2">
-//           <label className="mb-1 block text-sm">Комментарий</label>
-//           <textarea
-//             className="w-full rounded border px-3 py-2"
-//             rows={3}
-//             value={notes}
-//             onChange={e => setNotes(e.target.value)}
-//             placeholder="Пожелания к визиту"
-//           />
-//         </div>
-
-//         <div className="sm:col-span-2 flex items-start gap-2">
-//           <input type="checkbox" checked={agree} onChange={e => setAgree(e.target.checked)} />
-//           <div className="text-sm text-gray-700">
-//             Согласен с условиями обработки персональных данных и правилами онлайн-записи.
-//           </div>
-//         </div>
-//       </div>
-
-//       {errorMsg && <div className="rounded-xl border border-red-300 bg-red-50 p-3 text-sm text-red-800">{errorMsg}</div>}
-
-//       <div className="flex items-center justify-between">
-//         <Link href="/booking/calendar?serviceIds=%2C" className="text-sm text-gray-600 hover:underline">
-//           ← Назад к времени
-//         </Link>
-//         <button
-//           className={`rounded px-5 py-2 text-white ${
-//             canSubmit ? "bg-black hover:opacity-90" : "bg-gray-400 cursor-not-allowed"
-//           }`}
-//           disabled={!canSubmit}
-//           onClick={submit}
-//         >
-//           Подтвердить запись
-//         </button>
-//       </div>
-//     </div>
-//   );
-// }
-
-
-
-
-
-//-----------------27/10
-// // src/app/booking/(steps)/client/page.tsx
-// "use client";
-
-// import { useState } from "react";
-// import { useRouter, useSearchParams } from "next/navigation";
-
-// /* ---------- типы ответа ---------- */
-// type AppointmentBooking = {
-//   id: string;
-//   startAt: string;
-//   endAt: string;
-//   status: "PENDING" | "CONFIRMED" | "CANCELED";
-//   masterId: string;
-//   serviceId: string;
-// };
-// type JsonOk = {
-//   ok: true;
-//   booking: AppointmentBooking;
-//   label?: string;
-//   timeZone?: string;
-// };
-// type JsonErr = { error?: string };
-
-// /* ---------- утилиты ---------- */
-// function isIso(s: string): boolean {
-//   const d = new Date(s);
-//   return Number.isFinite(d.getTime());
-// }
-// function isYmd(s: string): boolean {
-//   return /^\d{4}-\d{2}-\d{2}$/.test(s);
-// }
-
-// export default function ClientStep() {
-//   const sp = useSearchParams();
-//   const router = useRouter();
-
-//   // из URL; поддерживаем и start, и startAt
-//   const serviceSlug = sp.get("s") ?? "";
-//   const durationMin = Number(sp.get("m") ?? "0");
-//   const masterId = sp.get("masterId") ?? "";
-//   const startAt = sp.get("start") ?? sp.get("startAt") ?? "";
-
-//   // форма
-//   const [name, setName] = useState("");
-//   const [birthDate, setBirthDate] = useState(""); // YYYY-MM-DD
-//   const [email, setEmail] = useState("");
-//   const [phone, setPhone] = useState("");
-//   const [notes, setNotes] = useState("");
-//   const [agree, setAgree] = useState(true);
-
-//   const [busy, setBusy] = useState(false);
-//   const [err, setErr] = useState<string | null>(null);
-//   const [ok, setOk] = useState<string | null>(null);
-
-//   // готовность URL-части и формы
-//   const urlReady = Boolean(serviceSlug) && Boolean(startAt) && isIso(startAt);
-//   const formReady = name.trim().length > 0 && isYmd(birthDate) && agree;
-//   const canSubmit = urlReady && formReady && durationMin > 0 && !busy;
-
-//   async function onSubmit() {
-//     if (!canSubmit) return;
-
-//     setBusy(true);
-//     setErr(null);
-//     setOk(null);
-
-//     try {
-//       const res = await fetch("/api/appointments", {
-//         method: "POST",
-//         headers: { "content-type": "application/json" },
-//         body: JSON.stringify({
-//           serviceSlug,
-//           masterId: masterId || undefined,
-//           startAt,                 // ISO UTC строки из календаря
-//           durationMin,             // из параметра m
-//           name: name.trim(),       // ВАЖНО: поле называется name
-//           birthDate,               // YYYY-MM-DD
-//           phone: phone.trim() || undefined,
-//           email: email.trim() || undefined,
-//           notes: notes.trim() || undefined,
-//         }),
-//         cache: "no-store",
-//       });
-
-//       if (res.ok) {
-//         const j = (await res.json()) as JsonOk;
-//         setOk("Заявка создана. Мы свяжемся с вами для подтверждения.");
-//         // редирект на первую страницу бронирования
-//         setTimeout(() => router.push("/booking"), 1000);
-//         return;
-//       }
-
-//       if (res.status === 409) {
-//         setErr("Этот слот уже занят. Выберите другое время.");
-//         return;
-//       }
-
-//       // пробуем разобрать тело ошибки
-//       let msg = `Ошибка (${res.status})`;
-//       try {
-//         const j = (await res.json()) as JsonErr;
-//         if (j.error) msg = j.error;
-//         if (res.status === 400 && !j.error) msg = "Проверьте обязательные поля.";
-//         if (res.status === 404 && !j.error) msg = "Услуга или мастер не найдены.";
-//       } catch {
-//         /* игнорируем, оставляем msg по статусу */
-//       }
-//       setErr(msg);
-//     } catch {
-//       setErr("Сеть недоступна. Попробуйте ещё раз.");
-//     } finally {
-//       setBusy(false);
-//     }
-//   }
-
-//   return (
-//     <div className="container mx-auto max-w-3xl p-4 text-white">
-//       <h1 className="text-2xl font-semibold mb-6">Онлайн-запись</h1>
-
-//       {/* Резюме выбранного слота */}
-//       <div className="mb-6 rounded-2xl bg-neutral-800/60 ring-1 ring-white/10 p-4 text-sm">
-//         <div className="opacity-80">
-//           Услуга: <b className="opacity-100 break-all">{serviceSlug || "—"}</b>
-//         </div>
-//         <div className="opacity-80">
-//           Длительность: <b className="opacity-100">{durationMin || "—"} мин</b>
-//         </div>
-//         <div className="opacity-80">
-//           Мастер: <b className="opacity-100 break-all">{masterId || "—"}</b>
-//         </div>
-//         <div className="opacity-80">
-//           Время:{" "}
-//           <b className="opacity-100">
-//             {startAt
-//               ? new Date(startAt).toLocaleString("de-DE", {
-//                   hour12: false,
-//                   timeZone: "Europe/Berlin",
-//                 })
-//               : "—"}
-//           </b>
-//         </div>
-//       </div>
-
-//       {/* Форма клиента */}
-//       <div className="rounded-2xl bg-neutral-800/60 ring-1 ring-white/10 p-4">
-//         <div className="grid gap-3">
-//           <input
-//             className="rounded-xl bg-neutral-900/60 ring-1 ring-white/10 px-3 py-2"
-//             placeholder="Имя и фамилия *"
-//             value={name}
-//             onChange={(e) => setName(e.target.value)}
-//           />
-//           <input
-//             className="rounded-xl bg-neutral-900/60 ring-1 ring-white/10 px-3 py-2"
-//             placeholder="E-mail"
-//             value={email}
-//             onChange={(e) => setEmail(e.target.value)}
-//             type="email"
-//           />
-//           <input
-//             className="rounded-xl bg-neutral-900/60 ring-1 ring-white/10 px-3 py-2"
-//             placeholder="Телефон"
-//             value={phone}
-//             onChange={(e) => setPhone(e.target.value)}
-//             inputMode="tel"
-//           />
-//           <input
-//             className="rounded-xl bg-neutral-900/60 ring-1 ring-white/10 px-3 py-2"
-//             placeholder="Дата рождения (ГГГГ-ММ-ДД) *"
-//             value={birthDate}
-//             onChange={(e) => setBirthDate(e.target.value)}
-//             type="date"
-//           />
-//           <textarea
-//             className="rounded-xl bg-neutral-900/60 ring-1 ring-white/10 px-3 py-2 min-h-[90px]"
-//             placeholder="Комментарий"
-//             value={notes}
-//             onChange={(e) => setNotes(e.target.value)}
-//           />
-//           <label className="flex items-center gap-2 text-sm text-white/80">
-//             <input
-//               type="checkbox"
-//               checked={agree}
-//               onChange={(e) => setAgree(e.target.checked)}
-//             />
-//             Согласие на обработку персональных данных
-//           </label>
-
-//           {err && <div className="text-red-300 text-sm">{err}</div>}
-//           {ok && <div className="text-emerald-300 text-sm">{ok}</div>}
-
-//           <div className="pt-2">
-//             <button
-//               type="button"
-//               disabled={!canSubmit}
-//               onClick={onSubmit}
-//               className="rounded-full bg-white/10 text-white px-5 py-2 disabled:opacity-50 hover:bg-white/20 transition"
-//             >
-//               {busy ? "Отправка…" : "Записаться"}
-//             </button>
-//           </div>
-//         </div>
-//       </div>
-//     </div>
-//   );
-// }
-
-
-
-
-
-
-
-
-
-// // src/app/booking/(steps)/client/page.tsx
-// "use client";
-
-// import { useMemo, useState } from "react";
-// import { useRouter, useSearchParams } from "next/navigation";
-
-// /* ───────── API types ───────── */
-
-// type BookingStatus = "PENDING" | "CONFIRMED" | "CANCELED";
-
-// type PostOk = {
-//   ok: true;
-//   booking: {
-//     id: string;
-//     startAt: string;
-//     endAt: string;
-//     status: BookingStatus;
-//     masterId: string;
-//     serviceId: string;
-//   };
-//   label: string;
-//   timeZone: string;
-// };
-
-// type PostErr = { error: string; details?: unknown };
-
-// type NewPayload = {
-//   serviceSlug: string; // отправляем slug (или id — сервер поддерживает оба в этом поле)
-//   masterId: string;
-//   startAt: string; // ISO 8601
-//   durationMin?: number;
-//   name: string;
-//   phone?: string;
-//   email?: string;
-//   notes?: string;
-//   birthDate?: string; // YYYY-MM-DD (опционально для автосоздания клиента)
-// };
-
-// /* ───────── utils ───────── */
-
-// function isIsoDate(s: string): boolean {
-//   const d = new Date(s);
-//   return Number.isFinite(d.getTime());
-// }
-// function isYmd(s: string): boolean {
-//   // мягкая проверка YYYY-MM-DD
-//   return /^\d{4}-\d{2}-\d{2}$/.test(s);
-// }
-
-// /* ───────── component ───────── */
-
-// export default function ClientPage() {
-//   const router = useRouter();
-//   const sp = useSearchParams();
-
-//   // из URL:
-//   // s — slug/ID услуги, m — длительность (мин), masterId — мастер, startAt — ISO
-//   const serviceSlug = useMemo(() => (sp.get("s") ?? "").trim(), [sp]);
-//   const durationMin = useMemo(() => {
-//     const n = Number(sp.get("m") ?? "0");
-//     return Number.isFinite(n) && n > 0 ? n : undefined;
-//   }, [sp]);
-//   const masterId = useMemo(() => (sp.get("masterId") ?? "").trim(), [sp]);
-//   const startAt = useMemo(() => (sp.get("startAt") ?? "").trim(), [sp]);
-
-//   // поля формы
-//   const [name, setName] = useState<string>("");
-//   const [phone, setPhone] = useState<string>("");
-//   const [email, setEmail] = useState<string>("");
-//   const [birthDate, setBirthDate] = useState<string>(""); // YYYY-MM-DD
-//   const [notes, setNotes] = useState<string>("");
-
-//   const [busy, setBusy] = useState(false);
-//   const [err, setErr] = useState<string | null>(null);
-//   const [okLabel, setOkLabel] = useState<string | null>(null);
-
-//   // валидация обязательных значений из URL и формы
-//   const urlReady =
-//     serviceSlug.length > 0 &&
-//     masterId.length > 0 &&
-//     startAt.length > 0 &&
-//     isIsoDate(startAt);
-
-//   const formReady = name.trim().length > 0;
-
-//   const canSubmit = urlReady && formReady && !busy;
-
-//   async function submit() {
-//     if (!canSubmit) return;
-
-//     setBusy(true);
-//     setErr(null);
-//     setOkLabel(null);
-
-//     // формируем новый контракт без any/unknown
-//     const payload: NewPayload = {
-//       serviceSlug,
-//       masterId,
-//       startAt,
-//       name: name.trim(),
-//       ...(durationMin ? { durationMin } : {}),
-//       ...(phone.trim() ? { phone: phone.trim() } : {}),
-//       ...(email.trim() ? { email: email.trim() } : {}),
-//       ...(notes.trim() ? { notes: notes.trim() } : {}),
-//       ...(birthDate && isYmd(birthDate) ? { birthDate } : {}),
-//     };
-
-//     try {
-//       const res = await fetch("/api/appointments", {
-//         method: "POST",
-//         headers: { "content-type": "application/json" },
-//         body: JSON.stringify(payload),
-//         cache: "no-store",
-//       });
-
-//       if (!res.ok) {
-//         // читаем тело строго по типу ошибки
-//         const j: PostErr = await res.json();
-//         if (res.status === 409) {
-//           setErr("Увы, этот слот уже занят. Выберите другое время.");
-//         } else if (res.status === 404 && j.error === "Service not found or inactive") {
-//           setErr("Услуга не найдена или отключена.");
-//         } else if (res.status === 400 && j.error === "Invalid body") {
-//           setErr("Заполните обязательные поля (услуга, мастер, время, имя).");
-//         } else if (res.status === 400 && j.error === "This master does not provide the selected service") {
-//           setErr("Выбранный мастер не оказывает эту услугу.");
-//         } else {
-//           setErr(j.error || "Ошибка создания записи");
-//         }
-//         return;
-//       }
-
-//       const j: PostOk = await res.json();
-//       setOkLabel(j.label);
-
-//       // при желании — редирект на страницу успеха
-//       // router.replace(`/booking/success?id=${j.booking.id}`);
-//     } catch (e) {
-//       setErr(e instanceof Error ? e.message : "Сбой сети");
-//     } finally {
-//       setBusy(false);
-//     }
-//   }
-
-//   return (
-//     <div className="max-w-xl space-y-6">
-//       <h1 className="text-xl font-semibold">Онлайн-запись</h1>
-
-//       {!urlReady && (
-//         <div className="text-sm text-red-600">
-//           В ссылке не хватает данных. Вернитесь и выберите услугу, мастера и время.
-//         </div>
-//       )}
-
-//       {err && <div className="text-sm text-red-600">{err}</div>}
-
-//       {okLabel && (
-//         <div className="text-sm rounded-lg bg-green-600/10 text-green-700 p-3">
-//           Запись создана: {okLabel}.
-//         </div>
-//       )}
-
-//       <div className="grid grid-cols-1 gap-3">
-//         <input
-//           className="rounded-xl px-3 py-2 ring-1 ring-black/10 bg-white/90 text-black"
-//           placeholder="Как вас зовут *"
-//           value={name}
-//           onChange={(e) => setName(e.target.value)}
-//         />
-
-//         <input
-//           className="rounded-xl px-3 py-2 ring-1 ring-black/10 bg-white/90 text-black"
-//           placeholder="Телефон"
-//           value={phone}
-//           onChange={(e) => setPhone(e.target.value)}
-//         />
-
-//         <input
-//           type="email"
-//           className="rounded-xl px-3 py-2 ring-1 ring-black/10 bg-white/90 text-black"
-//           placeholder="Email"
-//           value={email}
-//           onChange={(e) => setEmail(e.target.value)}
-//         />
-
-//         <input
-//           type="date"
-//           className="rounded-xl px-3 py-2 ring-1 ring-black/10 bg-white/90 text-black"
-//           placeholder="Дата рождения (YYYY-MM-DD)"
-//           value={birthDate}
-//           onChange={(e) => setBirthDate(e.target.value)}
-//         />
-
-//         <textarea
-//           className="rounded-xl px-3 py-2 ring-1 ring-black/10 bg-white/90 text-black"
-//           placeholder="Комментарий"
-//           rows={3}
-//           value={notes}
-//           onChange={(e) => setNotes(e.target.value)}
-//         />
-//       </div>
-
-//       <button
-//         disabled={!canSubmit}
-//         onClick={submit}
-//         className="rounded-full bg-black text-white px-5 py-2 disabled:opacity-50"
-//       >
-//         {busy ? "Отправка…" : "Подтвердить запись"}
-//       </button>
-//     </div>
-//   );
-// }
-
-
-
-
-
-
-
-
-// // src/app/booking/(steps)/client/page.tsx
-// "use client";
-
-// import { useState, Suspense } from "react";
-// import { useSearchParams } from "next/navigation";
-// import { checkout } from "../../actions";
-
-// // страница не будет пререндериться статически (устраняет build-ошибку)
-// export const dynamic = "force-dynamic";
-
-// // строгая типизация ответа fetch
-// type JsonOk = { ok: true; sentTo?: string | null; draftId?: string | null };
-// type JsonErr = { ok: false; error: string };
-
-// export default function ClientPage() {
-//   return (
-//     <Suspense fallback={<div className="px-4 py-6 text-sm text-white/60">Загрузка шага клиента…</div>}>
-//       <ClientStepInner />
-//     </Suspense>
-//   );
-// }
-
-// function ClientStepInner() {
-//   const sp = useSearchParams();
-//   const payload = {
-//     masterId: sp.get("mid") ?? "",
-//     serviceIds: (sp.get("s") ?? "").split(",").filter(Boolean),
-//     startAt: sp.get("start") ?? "",
-//   };
-
-//   const [name, setName] = useState("");
-//   const [email, setEmail] = useState("");
-//   const [phone, setPhone] = useState("");
-//   const [agree, setAgree] = useState(false);
-
-//   // OTP UI
-//   const [otpPhase, setOtpPhase] = useState<"idle" | "sent">("idle");
-//   const [otp, setOtp] = useState("");
-//   const [draftId, setDraftId] = useState<string>("");
-
-//   const [msg, setMsg] = useState<string | null>(null);
-//   const [busy, setBusy] = useState(false);
-
-//   async function sendOtp(emailVal: string, draft: string) {
-//     const res = await fetch("/api/booking/verify/email", {
-//       method: "POST",
-//       headers: { "Content-Type": "application/json" },
-//       body: JSON.stringify({ email: emailVal, draftId: draft }),
-//     });
-//     const data = (await res.json()) as JsonOk | JsonErr;
-//     if (!data.ok) throw new Error(data.error);
-//     return data;
-//   }
-
-//   async function confirmOtp(emailVal: string, code: string, draft: string) {
-//     const res = await fetch("/api/booking/verify/email/confirm", {
-//       method: "POST",
-//       headers: { "Content-Type": "application/json" },
-//       body: JSON.stringify({ email: emailVal, code, draftId: draft }),
-//     });
-//     const data = (await res.json()) as JsonOk | JsonErr;
-//     if (!data.ok) throw new Error(data.error);
-//     return data;
-//   }
-
-//   const onSubmit = async () => {
-//     setMsg(null);
-//     setBusy(true);
-//     try {
-//       // 1) создаём черновик (PENDING) и возвращаем draftId
-//       const r = await checkout({
-//         ...payload,
-//         client: { name, email, phone },
-//       });
-//       if (!r.ok) throw new Error(r.error);
-
-//       const draft = r.data.draftId;
-//       setDraftId(draft);
-
-//       // 2) отправляем OTP на email
-//       await sendOtp(email, draft);
-
-//       // 3) показываем поле ввода кода
-//       setOtpPhase("sent");
-//     } catch (e) {
-//       const text = e instanceof Error ? e.message : "Ошибка отправки";
-//       setMsg(text);
-//     } finally {
-//       setBusy(false);
-//     }
-//   };
-
-//   const onConfirm = async () => {
-//     setMsg(null);
-//     setBusy(true);
-//     try {
-//       await confirmOtp(email, otp, draftId);
-//       // успех — переходим к оплате
-//       const qp = new URLSearchParams(Array.from(sp.entries()));
-//       qp.set("draft", draftId);
-//       window.location.assign(`/booking/payment?${qp.toString()}`);
-//     } catch (e) {
-//       const text = e instanceof Error ? e.message : "Ошибка подтверждения";
-//       setMsg(text);
-//     } finally {
-//       setBusy(false);
-//     }
-//   };
-
-//   return (
-//     <div className="space-y-4">
-//       {/* Форма клиента */}
-//       <div className="grid gap-3">
-//         <input
-//           className="w-full rounded-xl ring-1 ring-black/10 px-3 py-2"
-//           placeholder="Имя"
-//           value={name}
-//           onChange={(e) => setName(e.target.value)}
-//         />
-//         <input
-//           className="w-full rounded-xl ring-1 ring-black/10 px-3 py-2"
-//           placeholder="Email"
-//           value={email}
-//           onChange={(e) => setEmail(e.target.value)}
-//           type="email"
-//         />
-//         <input
-//           className="w-full rounded-xl ring-1 ring-black/10 px-3 py-2"
-//           placeholder="Телефон"
-//           value={phone}
-//           onChange={(e) => setPhone(e.target.value)}
-//         />
-//         <label className="flex items-center gap-2 text-sm">
-//           <input
-//             type="checkbox"
-//             checked={agree}
-//             onChange={(e) => setAgree(e.target.checked)}
-//           />{" "}
-//           Согласие на обработку данных
-//         </label>
-//       </div>
-
-//       {/* Сообщение/ошибка */}
-//       {msg && <p className="text-sm text-red-600">{msg}</p>}
-
-//       {/* Кнопки */}
-//       {otpPhase === "idle" && (
-//         <div className="flex justify-end">
-//           <button
-//             disabled={!agree || busy}
-//             onClick={onSubmit}
-//             className="rounded-full bg-black text-white px-5 py-2 disabled:opacity-50"
-//           >
-//             {busy ? "Отправка…" : "Записаться"}
-//           </button>
-//         </div>
-//       )}
-
-//       {otpPhase === "sent" && (
-//         <div className="rounded-2xl ring-1 ring-black/10 p-4 bg-white/70 dark:bg-neutral-800/60">
-//           <div className="text-sm mb-2">
-//             Мы отправили код подтверждения на <b>{email}</b>. Введите его ниже.
-//           </div>
-//           <div className="flex items-center gap-2">
-//             <input
-//               className="w-40 rounded-xl ring-1 ring-black/10 px-3 py-2 text-center tracking-widest"
-//               placeholder="Код (6 цифр)"
-//               value={otp}
-//               maxLength={6}
-//               onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))}
-//             />
-//             <button
-//               disabled={busy || otp.length !== 6}
-//               onClick={onConfirm}
-//               className="rounded-full bg-black text-white px-5 py-2 disabled:opacity-50"
-//             >
-//               {busy ? "Проверяем…" : "Подтвердить"}
-//             </button>
-//           </div>
-//           <div className="mt-3 text-xs text-neutral-600 dark:text-neutral-300">
-//             Код действует 10 минут.{" "}
-//             <button
-//               className="underline"
-//               onClick={async () => {
-//                 try {
-//                   setBusy(true);
-//                   await sendOtp(email, draftId);
-//                   setMsg("Код повторно отправлен.");
-//                 } catch (e) {
-//                   const text = e instanceof Error ? e.message : "Не удалось отправить код";
-//                   setMsg(text);
-//                 } finally {
-//                   setBusy(false);
-//                 }
-//               }}
-//             >
-//               Отправить ещё раз
-//             </button>
-//           </div>
-//         </div>
-//       )}
-//     </div>
-//   );
-// }

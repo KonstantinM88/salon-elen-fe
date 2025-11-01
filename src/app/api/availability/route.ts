@@ -1,30 +1,43 @@
 // src/app/api/availability/route.ts
-import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
-import { getFreeSlots } from "@/lib/booking/getFreeSlots";
+import { NextResponse, NextRequest } from 'next/server';
+import { prisma } from '@/lib/prisma';
+import { getFreeSlots } from '@/lib/booking/getFreeSlots';
 
-/** Парсер CSV: "a,b , c" -> ["a","b","c"] */
+const ORG_TZ = process.env.NEXT_PUBLIC_ORG_TZ || 'Europe/Berlin';
+
+type Slot = {
+  startAt: string;
+  endAt: string;
+  startMinutes: number;
+  endMinutes: number;
+};
+
+type ApiResponse = {
+  slots: Slot[];
+  splitRequired: boolean;
+  firstDateISO: string | null;
+  error?: string;
+};
+
 function parseCsv(input: string | null): string[] {
   if (!input) return [];
-  return input
-    .split(",")
-    .map(s => s.trim())
-    .filter(s => s.length > 0);
+  return input.split(',').map(s => s.trim()).filter(Boolean);
 }
 
-/** Суммарная длительность активных услуг, игнорируя неактивные/несуществующие */
 async function calcTotalDurationMin(serviceIds: string[]): Promise<number> {
   if (serviceIds.length === 0) return 0;
+  
   const rows = await prisma.service.findMany({
     where: { id: { in: serviceIds }, isActive: true },
     select: { durationMin: true },
   });
+  
   return rows.reduce((acc, r) => acc + (r.durationMin ?? 0), 0);
 }
 
-/** Проверка, что мастер выполняет все указанные услуги */
 async function masterCoversAll(masterId: string, serviceIds: string[]): Promise<boolean> {
   if (serviceIds.length === 0) return true;
+  
   const cnt = await prisma.service.count({
     where: {
       id: { in: serviceIds },
@@ -32,117 +45,613 @@ async function masterCoversAll(masterId: string, serviceIds: string[]): Promise<
       masters: { some: { id: masterId } },
     },
   });
+  
   return cnt === serviceIds.length;
 }
 
-/** Добавить дни к дате ISO */
-function addDaysISO(iso: string, days: number): string {
-  const [y, m, d] = iso.split('-').map(Number);
-  const dt = new Date(y, m - 1, d);
-  dt.setDate(dt.getDate() + days);
-  return dt.toISOString().slice(0, 10);
+function todayISO(tz: string = ORG_TZ): string {
+  const s = new Date().toLocaleString('sv-SE', { timeZone: tz, hour12: false });
+  return s.split(' ')[0];
 }
 
-export async function GET(req: Request) {
+function nowInTZ(tz: string = ORG_TZ): Date {
+  const s = new Date().toLocaleString('sv-SE', { timeZone: tz, hour12: false });
+  const [d, t] = s.split(' ');
+  const [y, m, day] = d.split('-').map(Number);
+  const [hh, mm, ss] = t.split(':').map(Number);
+  return new Date(y, m - 1, day, hh, mm, ss, 0);
+}
+
+function filterByCutoff(slots: Slot[], dateISO: string): Slot[] {
+  const today = todayISO();
+  if (dateISO !== today) return slots;
+  
+  const cutoff = new Date(nowInTZ().getTime() + 60 * 60_000);
+  return slots.filter(s => new Date(s.startAt) >= cutoff);
+}
+
+export async function GET(req: NextRequest): Promise<Response> {
   try {
     const { searchParams } = new URL(req.url);
 
-    // входные параметры
-    const dateISO = searchParams.get("dateISO");                   // опциональный день в формате YYYY-MM-DD
-    const masterId = searchParams.get("masterId");                 // обязательный для персонального графика
-    const serviceIdsParam = parseCsv(searchParams.get("serviceIds"));
-    const singleService = searchParams.get("serviceId");
-    const durationFromQuery = searchParams.get("durationMin");     // опционально, перегружает расчёт по услугам
+    const dateISO = searchParams.get('dateISO');
+    const masterId = searchParams.get('masterId');
+    const serviceIdsParam = parseCsv(searchParams.get('serviceIds'));
+    const singleService = searchParams.get('serviceId');
+    const durationFromQuery = searchParams.get('durationMin');
 
-    // формируем список услуг: serviceIds приоритетнее, затем serviceId
-    const serviceIds: string[] =
+    const serviceIds =
       serviceIdsParam.length > 0
         ? serviceIdsParam
         : singleService
         ? [singleService]
         : [];
 
-    // валидация обязательных полей
+    // Валидация обязательных параметров
     if (!masterId) {
-      // Клиент должен сначала выбрать мастера, чтобы слоты считались по его персональному графику
-      return NextResponse.json({ error: "masterId is required" }, { status: 400 });
-    }
-    if (serviceIds.length === 0 && !durationFromQuery) {
-      // либо услуги, либо явная длительность
-      return NextResponse.json({ error: "serviceIds or durationMin is required" }, { status: 400 });
+      return NextResponse.json(
+        { error: 'masterId is required', slots: [], splitRequired: false, firstDateISO: null } as ApiResponse,
+        { status: 400 }
+      );
     }
 
-    // длительность
+    if (!dateISO || dateISO.length !== 10 || !/^\d{4}-\d{2}-\d{2}$/.test(dateISO)) {
+      return NextResponse.json(
+        { error: 'dateISO (YYYY-MM-DD) is required', slots: [], splitRequired: false, firstDateISO: null } as ApiResponse,
+        { status: 400 }
+      );
+    }
+
+    if (serviceIds.length === 0 && !durationFromQuery) {
+      return NextResponse.json(
+        { error: 'serviceIds or durationMin is required', slots: [], splitRequired: false, firstDateISO: null } as ApiResponse,
+        { status: 400 }
+      );
+    }
+
+    // Вычисляем длительность
     const totalDurationMin = durationFromQuery
       ? Math.max(0, Number(durationFromQuery))
       : await calcTotalDurationMin(serviceIds);
 
     if (!Number.isFinite(totalDurationMin) || totalDurationMin <= 0) {
-      return NextResponse.json({ error: "invalid duration" }, { status: 400 });
+      return NextResponse.json(
+        { error: 'invalid duration', slots: [], splitRequired: false, firstDateISO: null } as ApiResponse,
+        { status: 400 }
+      );
     }
 
-    // мастер должен уметь выполнять все услуги, иначе предлагаем разделить запись
+    // Проверяем, что мастер выполняет все услуги
     if (serviceIds.length > 0) {
       const ok = await masterCoversAll(masterId, serviceIds);
       if (!ok) {
-        return NextResponse.json({ slots: [], splitRequired: true, firstDateISO: null });
+        return NextResponse.json(
+          { slots: [], splitRequired: true, firstDateISO: null } as ApiResponse,
+          { status: 200 }
+        );
       }
     }
 
-    // Если dateISO не передан, ищем первую доступную дату в пределах 9 недель
-    if (!dateISO) {
-      const today = new Date().toISOString().slice(0, 10);
-      const maxDate = addDaysISO(today, 9 * 7 - 1);
-
-      let currentDate = today;
-      while (currentDate <= maxDate) {
-        try {
-          const slots = await getFreeSlots({
-            dateISO: currentDate,
-            masterId,
-            durationMin: totalDurationMin,
-          });
-
-          if (slots.length > 0) {
-            return NextResponse.json({
-              slots,
-              splitRequired: false,
-              firstDateISO: currentDate
-            });
-          }
-        } catch {
-          // Игнорируем ошибки для отдельных дат и продолжаем поиск
-        }
-        currentDate = addDaysISO(currentDate, 1);
-      }
-
-      // Не найдено доступных дат в пределах 9 недель
-      return NextResponse.json({
-        slots: [],
-        splitRequired: false,
-        firstDateISO: null
-      });
+    // Если дата в прошлом — ничего не отдаём
+    const today = todayISO();
+    if (dateISO < today) {
+      return NextResponse.json(
+        { slots: [], splitRequired: false, firstDateISO: dateISO } as ApiResponse,
+        { status: 200 }
+      );
     }
 
-    // Валидация формата dateISO
-    if (dateISO.length !== 10 || !/^\d{4}-\d{2}-\d{2}$/.test(dateISO)) {
-      return NextResponse.json({ error: "invalid dateISO format (expected YYYY-MM-DD)" }, { status: 400 });
-    }
-
-    // свободные слоты на указанный день
-    const slots = await getFreeSlots({
+    // Получаем слоты за один день
+    const raw = await getFreeSlots({
       dateISO,
       masterId,
       durationMin: totalDurationMin,
     });
 
-    return NextResponse.json({ slots, splitRequired: false, firstDateISO: dateISO });
+    // Для сегодняшней даты фильтруем слоты, начинающиеся раньше чем now+60 мин
+    const slots = filterByCutoff(raw, dateISO);
+
+    // Добавляем заголовки для кэширования на короткое время
+    const response = NextResponse.json(
+      { slots, splitRequired: false, firstDateISO: dateISO } as ApiResponse,
+      { status: 200 }
+    );
+
+    response.headers.set('Cache-Control', 'public, max-age=30, stale-while-revalidate=60');
+    
+    return response;
   } catch (e) {
-    // eslint-disable-next-line no-console
-    console.error(e);
-    return NextResponse.json({ error: "internal_error" }, { status: 500 });
+    console.error('[availability/route] Error:', e);
+    
+    const errorMessage = e instanceof Error ? e.message : 'internal_error';
+    
+    return NextResponse.json(
+      { error: errorMessage, slots: [], splitRequired: false, firstDateISO: null } as ApiResponse,
+      { status: 500 }
+    );
   }
 }
+
+
+
+
+// // src/app/api/availability/route.ts
+// import { NextResponse } from 'next/server';
+// import { prisma } from '@/lib/prisma';
+// import { getFreeSlots } from '@/lib/booking/getFreeSlots';
+
+// const ORG_TZ = process.env.NEXT_PUBLIC_ORG_TZ || 'Europe/Berlin';
+
+// type Slot = {
+//   startAt: string;
+//   endAt: string;
+//   startMinutes: number;
+//   endMinutes: number;
+// };
+
+// function parseCsv(input: string | null): string[] {
+//   if (!input) return [];
+//   return input.split(',').map(s => s.trim()).filter(Boolean);
+// }
+
+// async function calcTotalDurationMin(serviceIds: string[]): Promise<number> {
+//   if (serviceIds.length === 0) return 0;
+//   const rows = await prisma.service.findMany({
+//     where: { id: { in: serviceIds }, isActive: true },
+//     select: { durationMin: true },
+//   });
+//   return rows.reduce((acc, r) => acc + (r.durationMin ?? 0), 0);
+// }
+
+// async function masterCoversAll(masterId: string, serviceIds: string[]): Promise<boolean> {
+//   if (serviceIds.length === 0) return true;
+//   const cnt = await prisma.service.count({
+//     where: {
+//       id: { in: serviceIds },
+//       isActive: true,
+//       masters: { some: { id: masterId } },
+//     },
+//   });
+//   return cnt === serviceIds.length;
+// }
+
+// function todayISO(tz: string = ORG_TZ): string {
+//   const s = new Date().toLocaleString('sv-SE', { timeZone: tz, hour12: false });
+//   return s.split(' ')[0];
+// }
+
+// function nowInTZ(tz: string = ORG_TZ): Date {
+//   const s = new Date().toLocaleString('sv-SE', { timeZone: tz, hour12: false });
+//   const [d, t] = s.split(' ');
+//   const [y, m, day] = d.split('-').map(Number);
+//   const [hh, mm, ss] = t.split(':').map(Number);
+//   return new Date(y, m - 1, day, hh, mm, ss, 0);
+// }
+
+// export async function GET(req: Request) {
+//   try {
+//     const { searchParams } = new URL(req.url);
+
+//     const dateISO = searchParams.get('dateISO');          // ТЕПЕРЬ ОБЯЗАТЕЛЕН
+//     const masterId = searchParams.get('masterId');
+//     const serviceIdsParam = parseCsv(searchParams.get('serviceIds'));
+//     const singleService = searchParams.get('serviceId');
+//     const durationFromQuery = searchParams.get('durationMin');
+
+//     const serviceIds =
+//       serviceIdsParam.length > 0
+//         ? serviceIdsParam
+//         : singleService
+//         ? [singleService]
+//         : [];
+
+//     if (!masterId) {
+//       return NextResponse.json({ error: 'masterId is required' }, { status: 400 });
+//     }
+//     if (!dateISO || dateISO.length !== 10 || !/^\d{4}-\d{2}-\d{2}$/.test(dateISO)) {
+//       return NextResponse.json({ error: 'dateISO (YYYY-MM-DD) is required' }, { status: 400 });
+//     }
+//     if (serviceIds.length === 0 && !durationFromQuery) {
+//       return NextResponse.json({ error: 'serviceIds or durationMin is required' }, { status: 400 });
+//     }
+
+//     const totalDurationMin = durationFromQuery
+//       ? Math.max(0, Number(durationFromQuery))
+//       : await calcTotalDurationMin(serviceIds);
+
+//     if (!Number.isFinite(totalDurationMin) || totalDurationMin <= 0) {
+//       return NextResponse.json({ error: 'invalid duration' }, { status: 400 });
+//     }
+
+//     if (serviceIds.length > 0) {
+//       const ok = await masterCoversAll(masterId, serviceIds);
+//       if (!ok) {
+//         return NextResponse.json({ slots: [], splitRequired: true, firstDateISO: null });
+//       }
+//     }
+
+//     // Если дата в прошлом — ничего не отдаём
+//     const today = todayISO();
+//     if (dateISO < today) {
+//       return NextResponse.json({ slots: [], splitRequired: false, firstDateISO: dateISO });
+//     }
+
+//     // Слоты за один день
+//     const raw = await getFreeSlots({
+//       dateISO,
+//       masterId,
+//       durationMin: totalDurationMin,
+//     });
+
+//     // На «сегодня» отфильтруем слоты, начинающиеся раньше чем now+60 мин
+//     const slots = filterByCutoff(raw, dateISO);
+//     return NextResponse.json({ slots, splitRequired: false, firstDateISO: dateISO });
+//   } catch (e) {
+//     // eslint-disable-next-line no-console
+//     console.error(e);
+//     return NextResponse.json({ error: 'internal_error' }, { status: 500 });
+//   }
+// }
+
+// function filterByCutoff(slots: Slot[], dateISO: string): Slot[] {
+//   const today = todayISO();
+//   if (dateISO !== today) return slots;
+//   const cutoff = new Date(nowInTZ().getTime() + 60 * 60_000);
+//   return slots.filter(s => new Date(s.startAt) >= cutoff);
+// }
+
+
+
+
+// // src/app/api/availability/route.ts
+// import { NextResponse } from "next/server";
+// import { prisma } from "@/lib/prisma";
+// import { getFreeSlots } from "@/lib/booking/getFreeSlots";
+
+// /* =========================
+//    Константы времени
+// ========================= */
+
+// const ORG_TZ = process.env.NEXT_PUBLIC_ORG_TZ || "Europe/Berlin";
+
+// /** YYYY-MM-DD «сегодня» в заданной TZ */
+// function todayISO(tz: string = ORG_TZ): string {
+//   const s = new Date().toLocaleString("sv-SE", { timeZone: tz, hour12: false });
+//   return s.split(" ")[0];
+// }
+
+// /** Добавить дни к дате ISO */
+// function addDaysISO(iso: string, days: number): string {
+//   const [y, m, d] = iso.split("-").map(Number);
+//   const dt = new Date(y, m - 1, d);
+//   dt.setDate(dt.getDate() + days);
+//   return dt.toISOString().slice(0, 10);
+// }
+
+// /** Порог «через N минут» от текущего UTC-времени */
+// function thresholdUtcMinutesFromNow(minutes: number): Date {
+//   return new Date(Date.now() + minutes * 60_000);
+// }
+
+// /* =========================
+//    Типы
+// ========================= */
+
+// type Slot = {
+//   startAt: string;      // ISO
+//   endAt: string;        // ISO
+//   startMinutes: number; // минут с 00:00 локального дня мастера
+//   endMinutes: number;   // минут с 00:00 локального дня мастера
+// };
+
+// /* =========================
+//    Утилиты
+// ========================= */
+
+// /** Парсер CSV: "a,b , c" -> ["a","b","c"] */
+// function parseCsv(input: string | null): string[] {
+//   if (!input) return [];
+//   return input
+//     .split(",")
+//     .map(s => s.trim())
+//     .filter(s => s.length > 0);
+// }
+
+// /** Суммарная длительность активных услуг, игнорируя неактивные/несуществующие */
+// async function calcTotalDurationMin(serviceIds: string[]): Promise<number> {
+//   if (serviceIds.length === 0) return 0;
+//   const rows = await prisma.service.findMany({
+//     where: { id: { in: serviceIds }, isActive: true },
+//     select: { durationMin: true },
+//   });
+//   return rows.reduce((acc, r) => acc + (r.durationMin ?? 0), 0);
+// }
+
+// /** Проверка, что мастер выполняет все указанные услуги */
+// async function masterCoversAll(masterId: string, serviceIds: string[]): Promise<boolean> {
+//   if (serviceIds.length === 0) return true;
+//   const cnt = await prisma.service.count({
+//     where: {
+//       id: { in: serviceIds },
+//       isActive: true,
+//       masters: { some: { id: masterId } },
+//     },
+//   });
+//   return cnt === serviceIds.length;
+// }
+
+// /* =========================
+//    Handler
+// ========================= */
+
+// export async function GET(req: Request) {
+//   try {
+//     const { searchParams } = new URL(req.url);
+
+//     // Входные параметры
+//     const dateISOParam = searchParams.get("dateISO");              // опционально: YYYY-MM-DD
+//     const masterId = searchParams.get("masterId");                 // обязательно
+//     const serviceIdsParam = parseCsv(searchParams.get("serviceIds"));
+//     const singleService = searchParams.get("serviceId");
+//     const durationFromQuery = searchParams.get("durationMin");     // опционально
+
+//     // Нормализация списка услуг
+//     const serviceIds: string[] =
+//       serviceIdsParam.length > 0
+//         ? serviceIdsParam
+//         : singleService
+//         ? [singleService]
+//         : [];
+
+//     // Валидация обязательных полей
+//     if (!masterId) {
+//       return NextResponse.json({ error: "masterId is required" }, { status: 400 });
+//     }
+//     if (serviceIds.length === 0 && !durationFromQuery) {
+//       return NextResponse.json({ error: "serviceIds or durationMin is required" }, { status: 400 });
+//     }
+
+//     // Длительность услуги/набора услуг
+//     const totalDurationMin = durationFromQuery
+//       ? Math.max(0, Number(durationFromQuery))
+//       : await calcTotalDurationMin(serviceIds);
+
+//     if (!Number.isFinite(totalDurationMin) || totalDurationMin <= 0) {
+//       return NextResponse.json({ error: "invalid duration" }, { status: 400 });
+//     }
+
+//     // Проверка покрытия услуг мастером
+//     if (serviceIds.length > 0) {
+//       const ok = await masterCoversAll(masterId, serviceIds);
+//       if (!ok) {
+//         return NextResponse.json({ slots: [], splitRequired: true, firstDateISO: null });
+//       }
+//     }
+
+//     // Текущая дата в TZ организации
+//     const orgToday = todayISO(ORG_TZ);
+
+//     // Если дата не задана, ищем первую доступную, начиная с «сегодня» в TZ организации, в пределах 9 недель
+//     if (!dateISOParam) {
+//       const maxDate = addDaysISO(orgToday, 9 * 7 - 1);
+
+//       let currentDate = orgToday;
+//       while (currentDate <= maxDate) {
+//         try {
+//           let daySlots: Slot[] = await getFreeSlots({
+//             dateISO: currentDate,
+//             masterId,
+//             durationMin: totalDurationMin,
+//           });
+
+//           // На «сегодня» применяем порог 60 минут
+//           if (currentDate === orgToday && daySlots.length > 0) {
+//             const threshold = thresholdUtcMinutesFromNow(60);
+//             daySlots = daySlots.filter(s => new Date(s.startAt) >= threshold);
+//           }
+
+//           if (daySlots.length > 0) {
+//             return NextResponse.json({
+//               slots: daySlots,
+//               splitRequired: false,
+//               firstDateISO: currentDate,
+//             });
+//           }
+//         } catch {
+//           // Игнорируем ошибки отдельного дня и продолжаем
+//         }
+//         currentDate = addDaysISO(currentDate, 1);
+//       }
+
+//       // Ничего не найдено в пределах 9 недель
+//       return NextResponse.json({
+//         slots: [],
+//         splitRequired: false,
+//         firstDateISO: null,
+//       });
+//     }
+
+//     // Валидация формата dateISO
+//     const dateISO = dateISOParam;
+//     if (dateISO.length !== 10 || !/^\d{4}-\d{2}-\d{2}$/.test(dateISO)) {
+//       return NextResponse.json({ error: "invalid dateISO format (expected YYYY-MM-DD)" }, { status: 400 });
+//     }
+
+//     // Блокируем прошедшие даты и «вчерашнее число» в TZ организации
+//     if (dateISO < orgToday) {
+//       return NextResponse.json({ slots: [], splitRequired: false, firstDateISO: dateISO });
+//     }
+
+//     // Слоты на запрошенный день
+//     let slots: Slot[] = await getFreeSlots({
+//       dateISO,
+//       masterId,
+//       durationMin: totalDurationMin,
+//     });
+
+//     // Для «сегодня» отсекаем слоты с началом раньше чем через 60 минут
+//     if (dateISO === orgToday && slots.length > 0) {
+//       const threshold = thresholdUtcMinutesFromNow(60);
+//       slots = slots.filter(s => new Date(s.startAt) >= threshold);
+//     }
+
+//     return NextResponse.json({ slots, splitRequired: false, firstDateISO: dateISO });
+//   } catch (e) {
+//     // eslint-disable-next-line no-console
+//     console.error(e);
+//     return NextResponse.json({ error: "internal_error" }, { status: 500 });
+//   }
+// }
+
+
+
+
+
+// // src/app/api/availability/route.ts
+// import { NextResponse } from "next/server";
+// import { prisma } from "@/lib/prisma";
+// import { getFreeSlots } from "@/lib/booking/getFreeSlots";
+
+// /** Парсер CSV: "a,b , c" -> ["a","b","c"] */
+// function parseCsv(input: string | null): string[] {
+//   if (!input) return [];
+//   return input
+//     .split(",")
+//     .map(s => s.trim())
+//     .filter(s => s.length > 0);
+// }
+
+// /** Суммарная длительность активных услуг, игнорируя неактивные/несуществующие */
+// async function calcTotalDurationMin(serviceIds: string[]): Promise<number> {
+//   if (serviceIds.length === 0) return 0;
+//   const rows = await prisma.service.findMany({
+//     where: { id: { in: serviceIds }, isActive: true },
+//     select: { durationMin: true },
+//   });
+//   return rows.reduce((acc, r) => acc + (r.durationMin ?? 0), 0);
+// }
+
+// /** Проверка, что мастер выполняет все указанные услуги */
+// async function masterCoversAll(masterId: string, serviceIds: string[]): Promise<boolean> {
+//   if (serviceIds.length === 0) return true;
+//   const cnt = await prisma.service.count({
+//     where: {
+//       id: { in: serviceIds },
+//       isActive: true,
+//       masters: { some: { id: masterId } },
+//     },
+//   });
+//   return cnt === serviceIds.length;
+// }
+
+// /** Добавить дни к дате ISO */
+// function addDaysISO(iso: string, days: number): string {
+//   const [y, m, d] = iso.split('-').map(Number);
+//   const dt = new Date(y, m - 1, d);
+//   dt.setDate(dt.getDate() + days);
+//   return dt.toISOString().slice(0, 10);
+// }
+
+// export async function GET(req: Request) {
+//   try {
+//     const { searchParams } = new URL(req.url);
+
+//     // входные параметры
+//     const dateISO = searchParams.get("dateISO");                   // опциональный день в формате YYYY-MM-DD
+//     const masterId = searchParams.get("masterId");                 // обязательный для персонального графика
+//     const serviceIdsParam = parseCsv(searchParams.get("serviceIds"));
+//     const singleService = searchParams.get("serviceId");
+//     const durationFromQuery = searchParams.get("durationMin");     // опционально, перегружает расчёт по услугам
+
+//     // формируем список услуг: serviceIds приоритетнее, затем serviceId
+//     const serviceIds: string[] =
+//       serviceIdsParam.length > 0
+//         ? serviceIdsParam
+//         : singleService
+//         ? [singleService]
+//         : [];
+
+//     // валидация обязательных полей
+//     if (!masterId) {
+//       // Клиент должен сначала выбрать мастера, чтобы слоты считались по его персональному графику
+//       return NextResponse.json({ error: "masterId is required" }, { status: 400 });
+//     }
+//     if (serviceIds.length === 0 && !durationFromQuery) {
+//       // либо услуги, либо явная длительность
+//       return NextResponse.json({ error: "serviceIds or durationMin is required" }, { status: 400 });
+//     }
+
+//     // длительность
+//     const totalDurationMin = durationFromQuery
+//       ? Math.max(0, Number(durationFromQuery))
+//       : await calcTotalDurationMin(serviceIds);
+
+//     if (!Number.isFinite(totalDurationMin) || totalDurationMin <= 0) {
+//       return NextResponse.json({ error: "invalid duration" }, { status: 400 });
+//     }
+
+//     // мастер должен уметь выполнять все услуги, иначе предлагаем разделить запись
+//     if (serviceIds.length > 0) {
+//       const ok = await masterCoversAll(masterId, serviceIds);
+//       if (!ok) {
+//         return NextResponse.json({ slots: [], splitRequired: true, firstDateISO: null });
+//       }
+//     }
+
+//     // Если dateISO не передан, ищем первую доступную дату в пределах 9 недель
+//     if (!dateISO) {
+//       const today = new Date().toISOString().slice(0, 10);
+//       const maxDate = addDaysISO(today, 9 * 7 - 1);
+
+//       let currentDate = today;
+//       while (currentDate <= maxDate) {
+//         try {
+//           const slots = await getFreeSlots({
+//             dateISO: currentDate,
+//             masterId,
+//             durationMin: totalDurationMin,
+//           });
+
+//           if (slots.length > 0) {
+//             return NextResponse.json({
+//               slots,
+//               splitRequired: false,
+//               firstDateISO: currentDate
+//             });
+//           }
+//         } catch {
+//           // Игнорируем ошибки для отдельных дат и продолжаем поиск
+//         }
+//         currentDate = addDaysISO(currentDate, 1);
+//       }
+
+//       // Не найдено доступных дат в пределах 9 недель
+//       return NextResponse.json({
+//         slots: [],
+//         splitRequired: false,
+//         firstDateISO: null
+//       });
+//     }
+
+//     // Валидация формата dateISO
+//     if (dateISO.length !== 10 || !/^\d{4}-\d{2}-\d{2}$/.test(dateISO)) {
+//       return NextResponse.json({ error: "invalid dateISO format (expected YYYY-MM-DD)" }, { status: 400 });
+//     }
+
+//     // свободные слоты на указанный день
+//     const slots = await getFreeSlots({
+//       dateISO,
+//       masterId,
+//       durationMin: totalDurationMin,
+//     });
+
+//     return NextResponse.json({ slots, splitRequired: false, firstDateISO: dateISO });
+//   } catch (e) {
+//     // eslint-disable-next-line no-console
+//     console.error(e);
+//     return NextResponse.json({ error: "internal_error" }, { status: 500 });
+//   }
+// }
 
 
 

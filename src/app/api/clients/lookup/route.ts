@@ -1,3 +1,4 @@
+// src/app/api/clients/lookup/route.ts
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 
