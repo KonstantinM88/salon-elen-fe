@@ -1,5 +1,6 @@
 /* src/app/globals.css — Tailwind v4 совместимая версия */
 @import "tailwindcss";
+@tailwind utilities;
 /* @plugin "tailwindcss-animate"; */
 
 /* ============== VARIANTS ============== */
@@ -227,6 +228,9 @@ img { image-rendering: auto; }
 @layer base {
   *   { @apply border-border outline-ring/50; }
   body{ @apply bg-background text-foreground; }
+  body {
+    @apply bg-black text-white antialiased;
+  }
 }
 
 html { scroll-behavior: smooth; }

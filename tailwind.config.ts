@@ -19,6 +19,48 @@ const config = {
       boxShadow: { soft: "0 6px 24px rgba(0,0,0,0.06)" },
       borderRadius: { "2xl": "1rem" },
 
+      // Цвета
+      colors: {
+        gold: {
+          50:  "#FFFBEB",
+          100: "#FFF3C4",
+          200: "#FFE380",
+          300: "#FFD54F",
+          400: "#FFC107",
+          500: "#FFB300",
+          600: "#FFA000",
+          700: "#FF8F00",
+          800: "#FF6F00",
+          900: "#E65100",
+        },
+      },
+
+      // Анимации
+      animation: {
+        fadeIn: "fadeIn 0.6s ease-out",
+        slideUp: "slideUp 0.6s ease-out",
+        scaleIn: "scaleIn 0.4s ease-out",
+        shimmer: "shimmer 2s linear infinite",
+      },
+      keyframes: {
+        fadeIn: {
+          "0%": { opacity: "0" },
+          "100%": { opacity: "1" },
+        },
+        slideUp: {
+          "0%": { opacity: "0", transform: "translateY(30px)" },
+          "100%": { opacity: "1", transform: "translateY(0)" },
+        },
+        scaleIn: {
+          "0%": { opacity: "0", transform: "scale(0.9)" },
+          "100%": { opacity: "1", transform: "scale(1)" },
+        },
+        shimmer: {
+          "0%": { backgroundPosition: "-1000px 0" },
+          "100%": { backgroundPosition: "1000px 0" },
+        },
+      },
+
       // Кастомная типографика для статей
       typography: ({ theme }) => ({
         elen: {
