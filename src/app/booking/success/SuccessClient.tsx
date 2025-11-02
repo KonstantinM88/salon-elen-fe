@@ -1,63 +1,35 @@
 'use client';
 
-import * as React from 'react';
-import { useSearchParams } from 'next/navigation';
-import Link from 'next/link';
-import { JSX } from 'react';
+import { useEffect, useState } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
 
-function formatDT(iso: string | null): string | null {
-  if (!iso) return null;
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return null;
-  return new Intl.DateTimeFormat('ru-RU', {
-    dateStyle: 'long',
-    timeStyle: 'short',
-  }).format(d);
+interface AppointmentDetails {
+  id: string;
+  customerName: string;
+  email: string;
+  phone: string;
+  startAt: string;
+  endAt: string;
+  status: string;
+  notes?: string | null;
 }
 
-function formatDate(iso: string | null): string | null {
-  if (!iso) return null;
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return null;
-  return new Intl.DateTimeFormat('ru-RU', {
-    dateStyle: 'long',
-  }).format(d);
-}
+export default function SuccessClient() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const [loading, setLoading] = useState(true);
+  const [appointment, setAppointment] = useState<AppointmentDetails | null>(null);
 
-function formatTime(iso: string | null): string | null {
-  if (!iso) return null;
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return null;
-  return new Intl.DateTimeFormat('ru-RU', {
-    timeStyle: 'short',
-  }).format(d);
-}
+  const draftId = searchParams.get('id');
 
-export default function SuccessClient(): JSX.Element {
-  const params = useSearchParams();
-
-  const draftId = params.get('draft');
-  const [appointment, setAppointment] = React.useState<{
-    id: string;
-    startAt: string;
-    endAt: string;
-    status: string;
-    customerName: string;
-    email: string;
-    phone: string;
-    service?: { name: string };
-    master?: { name: string };
-  } | null>(null);
-  const [loading, setLoading] = React.useState(true);
-  const [error, setError] = React.useState<string | null>(null);
-
-  React.useEffect(() => {
-    if (!draftId) {
-      setLoading(false);
-      return;
-    }
-
+  useEffect(() => {
     async function loadAppointment() {
+      // ✅ ИСПРАВЛЕНО: проверка draftId внутри async функции
+      if (!draftId) {
+        setLoading(false);
+        return;
+      }
+
       try {
         const res = await fetch(`/api/appointments/${encodeURIComponent(draftId)}`, {
           cache: 'no-store',
@@ -69,116 +41,122 @@ export default function SuccessClient(): JSX.Element {
 
         const data = await res.json();
         setAppointment(data);
-      } catch (e) {
-        console.error('Failed to load appointment:', e);
-        setError('Не удалось загрузить данные записи');
+      } catch (error) {
+        console.error('[Success] Error loading appointment:', error);
       } finally {
         setLoading(false);
       }
     }
 
-    void loadAppointment();
+    loadAppointment();
   }, [draftId]);
 
   if (loading) {
     return (
-      <div className="mt-6 rounded-xl border border-border bg-card p-4 text-center">
-        <div className="text-muted-foreground">Загрузка...</div>
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-pink-500 mx-auto mb-4"></div>
+          <p className="text-gray-600">Загрузка...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!draftId) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-red-600 mb-4">Ошибка</h1>
+          <p className="text-gray-600 mb-6">ID записи не найден</p>
+          <button
+            onClick={() => router.push('/booking')}
+            className="px-6 py-2 bg-pink-500 text-white rounded-lg hover:bg-pink-600"
+          >
+            Вернуться к бронированию
+          </button>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="mt-6 space-y-6">
-      {/* Success Icon and Message */}
-      <div className="flex flex-col items-center justify-center rounded-xl border border-emerald-500 bg-emerald-50 dark:bg-emerald-500/10 p-8">
-        <div className="mb-4 flex size-16 items-center justify-center rounded-full bg-emerald-500 text-3xl text-white">
-          ✓
+    <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-8 text-center">
+        {/* Иконка успеха */}
+        <div className="mb-6">
+          <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
+            <svg
+              className="w-10 h-10 text-green-500"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M5 13l4 4L19 7"
+              />
+            </svg>
+          </div>
         </div>
-        <h2 className="text-2xl font-semibold text-emerald-700 dark:text-emerald-300">
-          Запись успешно создана!
-        </h2>
-        <p className="mt-2 text-center text-emerald-600 dark:text-emerald-400">
-          Спасибо за запись. Мы ждём вас!
+
+        <h1 className="text-3xl font-bold text-gray-900 mb-4">
+          Запись подтверждена!
+        </h1>
+        
+        <p className="text-gray-600 mb-8">
+          Ваша запись успешно создана. Мы отправили подтверждение на вашу почту.
         </p>
-      </div>
 
-      {/* Appointment Details */}
-      {appointment && (
-        <div className="rounded-xl border border-border bg-card p-6 space-y-4">
-          <h3 className="font-semibold text-lg">Детали записи</h3>
-
-          <div className="space-y-3 text-sm">
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Номер записи:</span>
-              <span className="font-mono font-medium">{appointment.id.slice(0, 8)}</span>
-            </div>
-
-            {appointment.service && (
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Услуга:</span>
-                <span className="font-medium">{appointment.service.name}</span>
+        {appointment && (
+          <div className="bg-gray-50 rounded-lg p-6 mb-6 text-left">
+            <h2 className="font-semibold text-gray-900 mb-4">Детали записи:</h2>
+            
+            <div className="space-y-3">
+              <div>
+                <p className="text-sm text-gray-500">Имя</p>
+                <p className="font-medium">{appointment.customerName}</p>
               </div>
-            )}
-
-            {appointment.master && (
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Мастер:</span>
-                <span className="font-medium">{appointment.master.name}</span>
+              
+              <div>
+                <p className="text-sm text-gray-500">Email</p>
+                <p className="font-medium">{appointment.email}</p>
               </div>
-            )}
-
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Дата:</span>
-              <span className="font-medium">{formatDate(appointment.startAt)}</span>
-            </div>
-
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Время:</span>
-              <span className="font-medium">
-                {formatTime(appointment.startAt)} - {formatTime(appointment.endAt)}
-              </span>
-            </div>
-
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Статус:</span>
-              <span className="inline-flex rounded-full bg-emerald-100 dark:bg-emerald-500/20 px-2 py-1 text-xs font-medium text-emerald-700 dark:text-emerald-300">
-                {appointment.status === 'CONFIRMED' ? 'Подтверждено' : 'Ожидает подтверждения'}
-              </span>
+              
+              <div>
+                <p className="text-sm text-gray-500">Телефон</p>
+                <p className="font-medium">{appointment.phone}</p>
+              </div>
+              
+              <div>
+                <p className="text-sm text-gray-500">Дата и время</p>
+                <p className="font-medium">
+                  {new Date(appointment.startAt).toLocaleString('ru-RU', {
+                    dateStyle: 'long',
+                    timeStyle: 'short',
+                  })}
+                </p>
+              </div>
             </div>
           </div>
+        )}
 
-          <div className="mt-4 rounded-lg border border-border bg-muted p-4 text-sm">
-            <p className="text-muted-foreground">
-              Подтверждение отправлено на <span className="font-medium text-foreground">{appointment.email}</span>
-            </p>
-          </div>
+        <div className="space-y-3">
+          <button
+            onClick={() => router.push('/booking')}
+            className="w-full px-6 py-3 bg-pink-500 text-white rounded-lg hover:bg-pink-600 transition-colors"
+          >
+            Создать новую запись
+          </button>
+          
+          <button
+            onClick={() => router.push('/')}
+            className="w-full px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+          >
+            На главную
+          </button>
         </div>
-      )}
-
-      {error && (
-        <div className="rounded-xl border border-border bg-card p-6">
-          <div className="text-base font-semibold">Запись создана успешно!</div>
-          <div className="mt-2 text-sm text-muted-foreground">
-            Проверьте вашу почту для получения деталей записи.
-          </div>
-        </div>
-      )}
-
-      {/* CTA Buttons */}
-      <div className="flex flex-col gap-3 sm:flex-row">
-        <Link
-          href="/"
-          className="flex-1 rounded-xl bg-indigo-600 px-5 py-3 text-center text-sm font-semibold text-white transition hover:bg-indigo-500"
-        >
-          На главную
-        </Link>
-        <Link
-          href="/booking/services"
-          className="flex-1 rounded-xl border border-border px-5 py-3 text-center text-sm font-semibold transition hover:bg-muted"
-        >
-          Новая запись
-        </Link>
       </div>
     </div>
   );
