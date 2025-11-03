@@ -1,15 +1,13 @@
 //src/app/booking/(steps)/calendar/page.tsx
 'use client';
 
-import * as React from 'react';
-import { JSX, Suspense } from 'react';
+import React, { useState, useEffect, useCallback, useRef, Suspense } from 'react';
+import { motion } from 'framer-motion';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { ChevronLeft, ChevronRight, Calendar as CalendarIcon } from 'lucide-react';
+import PremiumProgressBar from '@/components/PremiumProgressBar';
+import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Clock, Sparkles } from 'lucide-react';
 
-/* =========================
-   Типы
-========================= */
-
+// Типы (как в рабочей версии)
 type Slot = {
   startAt: string;
   endAt: string;
@@ -30,9 +28,14 @@ type LoadState = {
   slots: Slot[];
 };
 
-/* =========================
-   Время/формат
-========================= */
+const BOOKING_STEPS = [
+  { id: 'services', label: 'Услуга', icon: '✨' },
+  { id: 'master', label: 'Мастер', icon: '👤' },
+  { id: 'calendar', label: 'Дата', icon: '📅' },
+  { id: 'client', label: 'Данные', icon: '📝' },
+  { id: 'verify', label: 'Проверка', icon: '✓' },
+  { id: 'payment', label: 'Оплата', icon: '💳' },
+];
 
 const ORG_TZ = process.env.NEXT_PUBLIC_ORG_TZ || 'Europe/Berlin';
 
@@ -65,13 +68,9 @@ const formatHM = (minutes: number): string => {
   return `${pad(hh)}:${pad(mm)}`;
 };
 
-/* =========================
-   Кэш для запросов
-========================= */
-
 class RequestCache {
   private cache: Map<string, { data: ApiPayload; timestamp: number }>;
-  private readonly TTL = 3000; // 3 секунды
+  private readonly TTL = 3000;
 
   constructor() {
     this.cache = new Map();
@@ -101,10 +100,6 @@ class RequestCache {
 
 const requestCache = new RequestCache();
 
-/* =========================
-   Debounce хук
-========================= */
-
 function useDebounce<T>(value: T, delay: number): T {
   const [debouncedValue, setDebouncedValue] = React.useState<T>(value);
 
@@ -121,10 +116,6 @@ function useDebounce<T>(value: T, delay: number): T {
   return debouncedValue;
 }
 
-/* =========================
-   Календарные функции
-========================= */
-
 const monthNames = [
   'Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь',
   'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'
@@ -132,8 +123,6 @@ const monthNames = [
 
 const dayNames = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
 
-// Получение дней месяца для отображения в календаре
-// ВАЖНО: принимает год и месяц отдельно!
 const getDaysInMonth = (year: number, month: number) => {
   const firstDay = new Date(year, month - 1, 1);
   const lastDay = new Date(year, month, 0);
@@ -142,12 +131,10 @@ const getDaysInMonth = (year: number, month: number) => {
 
   const days: (Date | null)[] = [];
 
-  // Добавляем пустые ячейки для дней предыдущего месяца
   for (let i = 0; i < startingDayOfWeek; i++) {
     days.push(null);
   }
 
-  // Добавляем дни текущего месяца
   for (let day = 1; day <= daysInMonth; day++) {
     days.push(new Date(year, month - 1, day));
   }
@@ -173,11 +160,7 @@ const isToday = (date: Date): boolean => {
   );
 };
 
-/* =========================
-   Основной компонент
-========================= */
-
-function CalendarInner(): JSX.Element {
+function CalendarInner() {
   const router = useRouter();
   const params = useSearchParams();
 
@@ -191,52 +174,44 @@ function CalendarInner(): JSX.Element {
   const minISO = todayISO();
   const maxISO = max9WeeksISO();
 
-  // КРИТИЧНО: dateISO - это выбранная пользователем дата
-  const [dateISO, setDateISO] = React.useState<string>(() => {
+  const [dateISO, setDateISO] = useState<string>(() => {
     const initial = urlDate ?? minISO;
     return clampISO(initial, minISO, maxISO);
   });
 
-  // НОВОЕ: отдельный state для отображаемого месяца календаря
-  const [viewMonth, setViewMonth] = React.useState<{ year: number; month: number }>(() => {
+  const [viewMonth, setViewMonth] = useState<{ year: number; month: number }>(() => {
     const [y, m] = dateISO.split('-').map(Number);
     return { year: y, month: m };
   });
 
-  const [masters, setMasters] = React.useState<Master[]>([]);
-  const [masterId, setMasterId] = React.useState<string>(masterIdFromUrl);
+  const [masters, setMasters] = useState<Master[]>([]);
+  const [masterId, setMasterId] = useState<string>(masterIdFromUrl);
 
-  const [state, setState] = React.useState<LoadState>({
+  const [state, setState] = useState<LoadState>({
     loading: false,
     error: null,
     slots: [],
   });
 
-  const hasDateParam = React.useMemo<boolean>(() => params.has('d'), [params]);
-
-  // Debounce для dateISO и masterId
   const debouncedDate = useDebounce(dateISO, 300);
   const debouncedMasterId = useDebounce(masterId, 300);
 
-  // Синхронизируем viewMonth когда меняется dateISO
-  React.useEffect(() => {
+  useEffect(() => {
     const [y, m] = dateISO.split('-').map(Number);
     setViewMonth({ year: y, month: m });
   }, [dateISO]);
 
-  // Фильтр слотов < now+60m для сегодняшней даты
-  const filterTodayCutoff = React.useCallback((list: Slot[], forDateISO: string): Slot[] => {
+  const filterTodayCutoff = useCallback((list: Slot[], forDateISO: string): Slot[] => {
     const isToday = forDateISO === todayISO();
     if (!isToday) return list;
     const cutoffISO = new Date(Date.now() + 60 * 60_000).toISOString();
     return list.filter(s => s.startAt >= cutoffISO);
   }, []);
 
-  // Загрузка доступных мастеров для выбранных услуг
-  React.useEffect(() => {
+  useEffect(() => {
     let alive = true;
     
-    async function loadMasters(): Promise<void> {
+    async function loadMasters() {
       if (serviceIds.length === 0) {
         setMasters([]);
         setMasterId('');
@@ -250,18 +225,16 @@ function CalendarInner(): JSX.Element {
         
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         
-        const data = (await res.json()) as { masters: Master[] };
+        const data = await res.json() as { masters: Master[] };
         
         if (!alive) return;
         
         setMasters(data.masters ?? []);
         
-        // Если мастер не выбран или не входит в список, выбираем первого
         if (!masterId || !data.masters.find(m => m.id === masterId)) {
           const first = data.masters[0]?.id ?? '';
           setMasterId(first);
           
-          // Синхронизируем URL
           if (first) {
             const q = new URLSearchParams();
             serviceIds.forEach(s => q.append('s', s));
@@ -282,21 +255,18 @@ function CalendarInner(): JSX.Element {
     };
   }, [serviceIds, router, dateISO]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Загрузка слотов с кэшированием
-  React.useEffect(() => {
+  useEffect(() => {
     let alive = true;
     const abortController = new AbortController();
 
-    async function load(): Promise<void> {
+    async function load() {
       if (serviceIds.length === 0 || !debouncedMasterId) {
         setState({ loading: false, error: null, slots: [] });
         return;
       }
 
-      // Генерируем ключ кэша
       const cacheKey = `${debouncedMasterId}_${debouncedDate}_${serviceIds.join(',')}`;
       
-      // Проверяем кэш
       const cached = requestCache.get(cacheKey);
       if (cached) {
         if (!alive) return;
@@ -328,7 +298,6 @@ function CalendarInner(): JSX.Element {
         
         if (!alive) return;
 
-        // Сохраняем в кэш
         requestCache.set(cacheKey, data);
 
         const prepared = Array.isArray(data.slots) ? data.slots : [];
@@ -354,80 +323,7 @@ function CalendarInner(): JSX.Element {
     };
   }, [debouncedDate, debouncedMasterId, serviceIds, filterTodayCutoff]);
 
-  // Оптимизированное сканирование ближайшей даты
-  const scanningRef = React.useRef(false);
-  const lastScanRef = React.useRef<string>('');
-
-  const scanForwardForFirstDayWithSlots = React.useCallback(async (): Promise<void> => {
-    if (scanningRef.current) return;
-    if (!debouncedMasterId || serviceIds.length === 0) return;
-    
-    const scanKey = `${debouncedMasterId}_${debouncedDate}_${serviceIds.join(',')}`;
-    if (lastScanRef.current === scanKey) return;
-
-    scanningRef.current = true;
-    lastScanRef.current = scanKey;
-
-    try {
-      let d = debouncedDate;
-      let attempts = 0;
-      const maxAttempts = 14;
-
-      while (d <= maxISO && attempts < maxAttempts) {
-        attempts++;
-
-        const cacheKey = `${debouncedMasterId}_${d}_${serviceIds.join(',')}`;
-        let data = requestCache.get(cacheKey);
-
-        if (!data) {
-          const qs = new URLSearchParams();
-          qs.set('masterId', debouncedMasterId);
-          qs.set('dateISO', d);
-          qs.set('serviceIds', serviceIds.join(','));
-
-          try {
-            const res = await fetch(`/api/availability?${qs.toString()}`, {
-              cache: 'no-store',
-            });
-
-            if (!res.ok) break;
-
-            data = await res.json() as ApiPayload;
-            requestCache.set(cacheKey, data);
-          } catch {
-            break;
-          }
-        }
-
-        const filtered = filterTodayCutoff(Array.isArray(data.slots) ? data.slots : [], d);
-        
-        if (filtered.length > 0) {
-          setDateISO(d);
-          setState({ loading: false, error: null, slots: filtered });
-
-          const urlQS = new URLSearchParams();
-          serviceIds.forEach(id => urlQS.append('s', id));
-          if (debouncedMasterId) urlQS.set('m', debouncedMasterId);
-          urlQS.set('d', d);
-          router.replace(`/booking/calendar?${urlQS.toString()}`);
-          break;
-        }
-
-        d = addDaysISO(d, 1);
-      }
-    } finally {
-      scanningRef.current = false;
-    }
-  }, [debouncedDate, debouncedMasterId, serviceIds, maxISO, router, filterTodayCutoff]);
-
-  React.useEffect(() => {
-    if (!hasDateParam && !state.loading && !state.error && state.slots.length === 0) {
-      void scanForwardForFirstDayWithSlots();
-    }
-  }, [hasDateParam, state.loading, state.error, state.slots.length, scanForwardForFirstDayWithSlots]);
-
-  // Навигация календаря по месяцам (только меняет отображение, не дату!)
-  const handlePreviousMonth = (): void => {
+  const handlePreviousMonth = () => {
     setViewMonth(prev => {
       const newMonth = prev.month === 1 ? 12 : prev.month - 1;
       const newYear = prev.month === 1 ? prev.year - 1 : prev.year;
@@ -435,7 +331,7 @@ function CalendarInner(): JSX.Element {
     });
   };
 
-  const handleNextMonth = (): void => {
+  const handleNextMonth = () => {
     setViewMonth(prev => {
       const newMonth = prev.month === 12 ? 1 : prev.month + 1;
       const newYear = prev.month === 12 ? prev.year + 1 : prev.year;
@@ -443,7 +339,7 @@ function CalendarInner(): JSX.Element {
     });
   };
 
-  const handleDateSelect = (date: Date): void => {
+  const handleDateSelect = (date: Date) => {
     const newISO = toISODate(date);
     const safe = clampISO(newISO, minISO, maxISO);
     setDateISO(safe);
@@ -457,7 +353,7 @@ function CalendarInner(): JSX.Element {
     requestCache.clear();
   };
 
-  const syncUrl = (d: string, m: string): void => {
+  const syncUrl = (d: string, m: string) => {
     const qs = new URLSearchParams();
     serviceIds.forEach(id => qs.append('s', id));
     if (m) qs.set('m', m);
@@ -465,8 +361,7 @@ function CalendarInner(): JSX.Element {
     router.replace(`/booking/calendar?${qs.toString()}`);
   };
 
-  // Переход к форме клиента
-  const goClient = (slot: Slot): void => {
+  const goClient = (slot: Slot) => {
     const qs = new URLSearchParams();
     serviceIds.forEach(id => qs.append('s', id));
     if (masterId) qs.set('m', masterId);
@@ -476,27 +371,57 @@ function CalendarInner(): JSX.Element {
     router.push(`/booking/client?${qs.toString()}`);
   };
 
-  // Генерация дней для ОТОБРАЖАЕМОГО месяца
   const days = getDaysInMonth(viewMonth.year, viewMonth.month);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4 md:p-8">
-      <div className="max-w-6xl mx-auto">
-        <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
-          <div className="bg-gradient-to-r from-blue-600 to-indigo-600 p-6 md:p-8">
-            <h1 className="text-3xl md:text-4xl font-bold text-white flex items-center gap-3">
-              <CalendarIcon className="w-8 h-8" />
-              Онлайн запись
-            </h1>
-            <p className="text-blue-100 mt-2">Выберите удобные дату и время</p>
-          </div>
+    <div className="min-h-screen bg-black text-white pb-20">
+      <PremiumProgressBar currentStep={2} steps={BOOKING_STEPS} />
 
-          {/* Выбор мастера */}
-          <div className="p-6 border-b border-gray-200">
-            <label className="flex items-center gap-3">
-              <span className="text-sm font-medium text-gray-700">Мастер:</span>
+      {/* Фоновые эффекты */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-0 left-1/4 w-96 h-96 bg-yellow-500/10 rounded-full blur-[120px] animate-pulse"></div>
+        <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-cyan-500/10 rounded-full blur-[120px] animate-pulse" style={{ animationDelay: '1s' }}></div>
+      </div>
+
+      <div className="relative pt-32 pb-20 px-4">
+        <div className="container mx-auto max-w-6xl">
+          {/* Заголовок */}
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="text-center mb-12"
+          >
+            <motion.div
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ delay: 0.2, type: 'spring' }}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-yellow-400/10 border border-yellow-400/20 mb-6"
+            >
+              <CalendarIcon className="w-4 h-4 text-yellow-400" />
+              <span className="text-yellow-400 text-sm font-medium">Шаг 3</span>
+            </motion.div>
+            
+            <h1 className="text-5xl md:text-6xl font-bold mb-4">
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 via-amber-500 to-yellow-600">
+                Онлайн запись
+              </span>
+            </h1>
+            <p className="text-xl text-white/60">
+              Выберите удобные дату и время
+            </p>
+          </motion.div>
+
+          {/* Master Selector */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+            className="mb-8 bg-white/5 rounded-2xl p-6 border border-white/10"
+          >
+            <label className="flex items-center gap-4">
+              <span className="text-white/60 font-medium">Мастер:</span>
               <select
-                className="flex-1 max-w-xs rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                className="flex-1 max-w-xs bg-black/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-yellow-400 focus:outline-none transition-colors"
                 value={masterId}
                 onChange={onPickMaster}
                 disabled={masters.length === 0}
@@ -507,123 +432,141 @@ function CalendarInner(): JSX.Element {
                 ))}
               </select>
             </label>
-          </div>
+          </motion.div>
 
-          <div className="grid md:grid-cols-2 gap-6 p-6 md:p-8">
-            {/* Календарь */}
-            <div>
-              <div className="bg-gray-50 rounded-xl p-4 md:p-6">
-                <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-xl font-semibold text-gray-800">
-                    {monthNames[viewMonth.month - 1]} {viewMonth.year}
-                  </h2>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={handlePreviousMonth}
-                      className="p-2 hover:bg-white rounded-lg transition-colors"
-                      aria-label="Предыдущий месяц"
-                    >
-                      <ChevronLeft className="w-5 h-5 text-gray-600" />
-                    </button>
-                    <button
-                      onClick={handleNextMonth}
-                      className="p-2 hover:bg-white rounded-lg transition-colors"
-                      aria-label="Следующий месяц"
-                    >
-                      <ChevronRight className="w-5 h-5 text-gray-600" />
-                    </button>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-7 gap-2">
-                  {dayNames.map((day) => (
-                    <div
-                      key={day}
-                      className="text-center text-sm font-medium text-gray-500 py-2"
-                    >
-                      {day}
-                    </div>
-                  ))}
-                  {days.map((day, index) => (
-                    <button
-                      key={index}
-                      onClick={() => day && handleDateSelect(day)}
-                      disabled={!day}
-                      className={`
-                        aspect-square p-2 rounded-lg text-sm font-medium transition-all
-                        ${!day ? 'invisible' : ''}
-                        ${day && isToday(day) ? 'bg-blue-100 text-blue-600' : ''}
-                        ${day && isSameDay(day, dateISO) ? 'bg-blue-600 text-white shadow-lg scale-105' : ''}
-                        ${day && !isSameDay(day, dateISO) && !isToday(day) ? 'hover:bg-gray-200 text-gray-700' : ''}
-                      `}
-                    >
-                      {day ? day.getDate() : ''}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div className="mt-4 p-4 bg-blue-50 rounded-xl">
-                <p className="text-sm text-gray-600">
-                  <span className="font-semibold">Выбрана дата:</span>{' '}
-                  {new Date(dateISO + 'T00:00:00').toLocaleDateString('ru-RU', {
-                    weekday: 'long',
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric',
-                  })}
-                </p>
-              </div>
-            </div>
-
-            {/* Слоты времени */}
-            <div>
-              <div className="bg-gray-50 rounded-xl p-4 md:p-6">
-                <h2 className="text-xl font-semibold text-gray-800 mb-4">
-                  Доступное время
+          <div className="grid lg:grid-cols-2 gap-8">
+            {/* Calendar */}
+            <motion.div
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.4 }}
+              className="bg-white/5 rounded-3xl p-6 border border-white/10"
+            >
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-amber-600">
+                  {monthNames[viewMonth.month - 1]} {viewMonth.year}
                 </h2>
+                <div className="flex gap-2">
+                  <button
+                    onClick={handlePreviousMonth}
+                    className="p-2 rounded-xl bg-white/5 border border-white/10 hover:border-yellow-400/50 hover:bg-white/10 transition-all"
+                  >
+                    <ChevronLeft className="w-5 h-5 text-white/60" />
+                  </button>
+                  <button
+                    onClick={handleNextMonth}
+                    className="p-2 rounded-xl bg-white/5 border border-white/10 hover:border-yellow-400/50 hover:bg-white/10 transition-all"
+                  >
+                    <ChevronRight className="w-5 h-5 text-white/60" />
+                  </button>
+                </div>
+              </div>
 
-                {state.loading && (
-                  <div className="text-center py-8">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-                    <p className="mt-4 text-gray-600">Загрузка свободных окон…</p>
+              <div className="grid grid-cols-7 gap-2">
+                {dayNames.map((day) => (
+                  <div
+                    key={day}
+                    className="text-center text-sm font-medium text-white/50 py-2"
+                  >
+                    {day}
                   </div>
-                )}
+                ))}
+                {days.map((day, index) => (
+                  <motion.button
+                    key={index}
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ delay: index * 0.01 }}
+                    onClick={() => day && handleDateSelect(day)}
+                    disabled={!day}
+                    className={`
+                      aspect-square p-2 rounded-xl text-sm font-medium transition-all
+                      ${!day ? 'invisible' : ''}
+                      ${day && isToday(day) ? 'bg-yellow-400/20 text-yellow-400 border border-yellow-400/30' : ''}
+                      ${day && isSameDay(day, dateISO) ? 'bg-gradient-to-br from-yellow-400 to-amber-600 text-black shadow-[0_0_20px_rgba(255,215,0,0.5)] scale-110' : ''}
+                      ${day && !isSameDay(day, dateISO) && !isToday(day) ? 'text-white/60 hover:bg-white/10 border border-transparent hover:border-yellow-400/30 hover:text-white' : ''}
+                    `}
+                  >
+                    {day ? day.getDate() : ''}
+                  </motion.button>
+                ))}
+              </div>
 
-                {state.error && (
-                  <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-700">
-                    Ошибка: {state.error}
-                  </div>
-                )}
+              <div className="mt-6 p-4 bg-black/30 rounded-xl border border-white/10">
+                <div className="flex items-center gap-2 text-white/60 text-sm">
+                  <Clock className="w-4 h-4 text-yellow-400" />
+                  <span className="font-medium">Выбрана дата:</span>
+                  <span className="text-white">
+                    {new Date(dateISO + 'T00:00:00').toLocaleDateString('ru-RU', {
+                      day: 'numeric',
+                      month: 'long',
+                      year: 'numeric',
+                    })}
+                  </span>
+                </div>
+              </div>
+            </motion.div>
 
-                {!state.loading && !state.error && state.slots.length === 0 && (
-                  <div className="text-center py-8">
-                    <div className="text-6xl mb-4">😔</div>
-                    <p className="text-gray-600">
-                      На эту дату нет свободных слотов
-                    </p>
-                  </div>
-                )}
+            {/* Time Slots */}
+            <motion.div
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.5 }}
+              className="bg-white/5 rounded-3xl p-6 border border-white/10"
+            >
+              <h2 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-amber-600 mb-6">
+                Доступное время
+              </h2>
 
-                {!state.loading && !state.error && state.slots.length > 0 && (
-                  <div className="grid grid-cols-3 gap-2 max-h-[500px] overflow-y-auto pr-2">
-                    {state.slots.map((slot) => (
-                      <button
-                        key={slot.startAt}
-                        onClick={() => goClient(slot)}
-                        className="p-3 rounded-lg text-sm font-medium bg-white text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 border border-gray-200 transition-all"
-                      >
+              {state.loading && (
+                <div className="text-center py-12">
+                  <div className="w-12 h-12 border-4 border-yellow-400/30 border-t-yellow-400 rounded-full animate-spin mx-auto mb-4"></div>
+                  <p className="text-white/60 text-sm">Загрузка...</p>
+                </div>
+              )}
+
+              {state.error && (
+                <div className="rounded-xl border border-red-400/20 bg-red-400/10 p-4">
+                  <p className="text-red-400 text-sm">Ошибка: {state.error}</p>
+                </div>
+              )}
+
+              {!state.loading && !state.error && state.slots.length === 0 && (
+                <div className="text-center py-12">
+                  <div className="text-4xl mb-4">😔</div>
+                  <p className="text-white/60 text-sm">
+                    На эту дату нет свободных слотов
+                  </p>
+                </div>
+              )}
+
+              {!state.loading && !state.error && state.slots.length > 0 && (
+                <div className="grid grid-cols-3 gap-3 max-h-[500px] overflow-y-auto pr-2">
+                  {state.slots.map((slot, index) => (
+                    <motion.button
+                      key={slot.startAt}
+                      initial={{ opacity: 0, scale: 0.8 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ delay: index * 0.02 }}
+                      onClick={() => goClient(slot)}
+                      className="group relative p-3 rounded-xl bg-white/5 border border-white/10 hover:border-yellow-400/50 hover:bg-gradient-to-br hover:from-yellow-400/10 hover:to-amber-600/10 transition-all text-center"
+                    >
+                      <div className="text-sm font-bold text-white group-hover:text-yellow-400 transition-colors">
                         {formatHM(slot.startMinutes)}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
+                      </div>
+                      <Sparkles className="w-3 h-3 text-yellow-400 mx-auto mt-1 opacity-0 group-hover:opacity-100 transition-opacity" />
+                    </motion.button>
+                  ))}
+                </div>
+              )}
 
-              <div className="mt-4 text-sm text-gray-600">
-                Доступно слотов: <span className="font-semibold">{state.slots.length}</span>
+              <div className="mt-6 flex items-center justify-between text-sm">
+                <span className="text-white/60">Доступно слотов:</span>
+                <span className="font-bold text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-amber-600">
+                  {state.slots.length}
+                </span>
               </div>
-            </div>
+            </motion.div>
           </div>
         </div>
       </div>
@@ -631,19 +574,12 @@ function CalendarInner(): JSX.Element {
   );
 }
 
-/* =========================
-   Обёртка
-========================= */
-
-export default function CalendarPage(): JSX.Element {
+export default function CalendarPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
-          <div className="bg-white rounded-lg p-8 shadow-xl">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-            <p className="mt-4 text-gray-600">Инициализация календаря…</p>
-          </div>
+        <div className="min-h-screen bg-black flex items-center justify-center">
+          <div className="w-16 h-16 border-4 border-yellow-400/30 border-t-yellow-400 rounded-full animate-spin"></div>
         </div>
       }
     >
