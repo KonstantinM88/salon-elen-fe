@@ -365,7 +365,7 @@ function BackgroundVideo(): JSX.Element {
         className="
           bg-video absolute inset-0 h-full w-full
           object-contain 2xl:object-cover
-          object-[50%_70%] lg:object-[50%_98%] xl:object-[50%_88%] 2xl:object-[50%_86%]
+          object-[50%_90%] lg:object-[50%_98%] xl:object-[50%_88%] 2xl:object-[50%_86%]
           transition-transform duration-500
         "
         autoPlay
