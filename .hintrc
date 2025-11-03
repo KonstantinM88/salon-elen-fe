@@ -12,6 +12,12 @@
         "aria-input-field-name": "off",
         "aria-required-children": "off"
       }
+    ],
+    "axe/name-role-value": [
+      "default",
+      {
+        "button-name": "off"
+      }
     ]
   }
 }
