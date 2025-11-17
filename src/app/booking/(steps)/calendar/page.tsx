@@ -1,11 +1,23 @@
 //src/app/booking/(steps)/calendar/page.tsx
-'use client';
+"use client";
 
-import React, { useState, useEffect, useCallback, useRef, Suspense } from 'react';
-import { motion } from 'framer-motion';
-import { useRouter, useSearchParams } from 'next/navigation';
-import PremiumProgressBar from '@/components/PremiumProgressBar';
-import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Clock, Sparkles } from 'lucide-react';
+import React, {
+  useState,
+  useEffect,
+  useCallback,
+  useRef,
+  Suspense,
+} from "react";
+import { motion } from "framer-motion";
+import { useRouter, useSearchParams } from "next/navigation";
+import PremiumProgressBar from "@/components/PremiumProgressBar";
+import {
+  Calendar as CalendarIcon,
+  ChevronLeft,
+  ChevronRight,
+  Clock,
+  Sparkles,
+} from "lucide-react";
 
 // Типы (как в рабочей версии)
 type Slot = {
@@ -29,25 +41,31 @@ type LoadState = {
 };
 
 const BOOKING_STEPS = [
-  { id: 'services', label: 'Услуга', icon: '✨' },
-  { id: 'master', label: 'Мастер', icon: '👤' },
-  { id: 'calendar', label: 'Дата', icon: '📅' },
-  { id: 'client', label: 'Данные', icon: '📝' },
-  { id: 'verify', label: 'Проверка', icon: '✓' },
-  { id: 'payment', label: 'Оплата', icon: '💳' },
+  { id: "services", label: "Услуга", icon: "✨" },
+  { id: "master", label: "Мастер", icon: "👤" },
+  { id: "calendar", label: "Дата", icon: "📅" },
+  { id: "client", label: "Данные", icon: "📝" },
+  { id: "verify", label: "Проверка", icon: "✓" },
+  { id: "payment", label: "Оплата", icon: "💳" },
 ];
 
-const ORG_TZ = process.env.NEXT_PUBLIC_ORG_TZ || 'Europe/Berlin';
+const ORG_TZ = process.env.NEXT_PUBLIC_ORG_TZ || "Europe/Berlin";
 
 const todayISO = (tz: string = ORG_TZ): string => {
-  const s = new Date().toLocaleString('sv-SE', { timeZone: tz, hour12: false });
-  return s.split(' ')[0];
+  const s = new Date().toLocaleString("sv-SE", { timeZone: tz, hour12: false });
+  return s.split(" ")[0];
 };
 
-const toISODate = (d: Date): string => d.toISOString().slice(0, 10);
+// === фикс UTC-сдвига: локальная дата YYYY-MM-DD ===
+const toISODate = (d: Date): string => {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+};
 
 const addDaysISO = (iso: string, days: number): string => {
-  const [y, m, d] = iso.split('-').map(Number);
+  const [y, m, d] = iso.split("-").map(Number);
   const dt = new Date(y, m - 1, d);
   dt.setDate(dt.getDate() + days);
   return toISODate(dt);
@@ -64,7 +82,7 @@ const clampISO = (iso: string, minISO: string, maxISO: string): string => {
 const formatHM = (minutes: number): string => {
   const hh = Math.floor(minutes / 60);
   const mm = minutes % 60;
-  const pad = (n: number): string => String(n).padStart(2, '0');
+  const pad = (n: number): string => String(n).padStart(2, "0");
   return `${pad(hh)}:${pad(mm)}`;
 };
 
@@ -79,13 +97,13 @@ class RequestCache {
   get(key: string): ApiPayload | null {
     const entry = this.cache.get(key);
     if (!entry) return null;
-    
+
     const age = Date.now() - entry.timestamp;
     if (age > this.TTL) {
       this.cache.delete(key);
       return null;
     }
-    
+
     return entry.data;
   }
 
@@ -117,11 +135,21 @@ function useDebounce<T>(value: T, delay: number): T {
 }
 
 const monthNames = [
-  'Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь',
-  'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'
+  "Январь",
+  "Февраль",
+  "Март",
+  "Апрель",
+  "Май",
+  "Июнь",
+  "Июль",
+  "Август",
+  "Сентябрь",
+  "Октябрь",
+  "Ноябрь",
+  "Декабрь",
 ];
 
-const dayNames = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
+const dayNames = ["Вс", "Пн", "Вт", "Ср", "Чт", "Пт", "Сб"];
 
 const getDaysInMonth = (year: number, month: number) => {
   const firstDay = new Date(year, month - 1, 1);
@@ -143,7 +171,7 @@ const getDaysInMonth = (year: number, month: number) => {
 };
 
 const isSameDay = (date1: Date, date2ISO: string): boolean => {
-  const [y, m, d] = date2ISO.split('-').map(Number);
+  const [y, m, d] = date2ISO.split("-").map(Number);
   return (
     date1.getDate() === d &&
     date1.getMonth() === m - 1 &&
@@ -165,11 +193,11 @@ function CalendarInner() {
   const params = useSearchParams();
 
   const serviceIds = React.useMemo<string[]>(
-    () => params.getAll('s').filter(Boolean),
-    [params],
+    () => params.getAll("s").filter(Boolean),
+    [params]
   );
-  const masterIdFromUrl = params.get('m') ?? '';
-  const urlDate = params.get('d') ?? undefined;
+  const masterIdFromUrl = params.get("m") ?? "";
+  const urlDate = params.get("d") ?? undefined;
 
   const minISO = todayISO();
   const maxISO = max9WeeksISO();
@@ -179,10 +207,12 @@ function CalendarInner() {
     return clampISO(initial, minISO, maxISO);
   });
 
-  const [viewMonth, setViewMonth] = useState<{ year: number; month: number }>(() => {
-    const [y, m] = dateISO.split('-').map(Number);
-    return { year: y, month: m };
-  });
+  const [viewMonth, setViewMonth] = useState<{ year: number; month: number }>(
+    () => {
+      const [y, m] = dateISO.split("-").map(Number);
+      return { year: y, month: m };
+    }
+  );
 
   const [masters, setMasters] = useState<Master[]>([]);
   const [masterId, setMasterId] = useState<string>(masterIdFromUrl);
@@ -196,60 +226,68 @@ function CalendarInner() {
   const debouncedDate = useDebounce(dateISO, 300);
   const debouncedMasterId = useDebounce(masterId, 300);
 
+  // флаг, чтобы автопрыжок выполнялся один раз
+  const autoJumpDoneRef = useRef(false);
+
   useEffect(() => {
-    const [y, m] = dateISO.split('-').map(Number);
+    const [y, m] = dateISO.split("-").map(Number);
     setViewMonth({ year: y, month: m });
   }, [dateISO]);
 
-  const filterTodayCutoff = useCallback((list: Slot[], forDateISO: string): Slot[] => {
-    const isToday = forDateISO === todayISO();
-    if (!isToday) return list;
-    const cutoffISO = new Date(Date.now() + 60 * 60_000).toISOString();
-    return list.filter(s => s.startAt >= cutoffISO);
-  }, []);
+  const filterTodayCutoff = useCallback(
+    (list: Slot[], forDateISO: string): Slot[] => {
+      const isTodayFlag = forDateISO === todayISO();
+      if (!isTodayFlag) return list;
+      const cutoffISO = new Date(Date.now() + 60 * 60_000).toISOString();
+      return list.filter((s) => s.startAt >= cutoffISO);
+    },
+    []
+  );
 
   useEffect(() => {
     let alive = true;
-    
+
     async function loadMasters() {
       if (serviceIds.length === 0) {
         setMasters([]);
-        setMasterId('');
+        setMasterId("");
         return;
       }
-      
+
       try {
         const qs = new URLSearchParams();
-        qs.set('serviceIds', serviceIds.join(','));
-        const res = await fetch(`/api/masters?${qs.toString()}`, { cache: 'no-store' });
-        
+        qs.set("serviceIds", serviceIds.join(","));
+        const res = await fetch(`/api/masters?${qs.toString()}`, {
+          cache: "no-store",
+        });
+
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        
-        const data = await res.json() as { masters: Master[] };
-        
+
+        const data = (await res.json()) as { masters: Master[] };
+
         if (!alive) return;
-        
+
         setMasters(data.masters ?? []);
-        
-        if (!masterId || !data.masters.find(m => m.id === masterId)) {
-          const first = data.masters[0]?.id ?? '';
+
+        if (!masterId || !data.masters.find((m) => m.id === masterId)) {
+          const first = data.masters[0]?.id ?? "";
           setMasterId(first);
-          
+
           if (first) {
             const q = new URLSearchParams();
-            serviceIds.forEach(s => q.append('s', s));
-            q.set('m', first);
-            q.set('d', dateISO);
+            serviceIds.forEach((s) => q.append("s", s));
+            q.set("m", first);
+            q.set("d", dateISO);
             router.replace(`/booking/calendar?${q.toString()}`);
           }
         }
       } catch (err) {
-        console.error('Failed to load masters:', err);
+        console.error("Failed to load masters:", err);
       }
     }
-    
+
     void loadMasters();
-    
+
     return () => {
       alive = false;
     };
@@ -265,8 +303,10 @@ function CalendarInner() {
         return;
       }
 
-      const cacheKey = `${debouncedMasterId}_${debouncedDate}_${serviceIds.join(',')}`;
-      
+      const cacheKey = `${debouncedMasterId}_${debouncedDate}_${serviceIds.join(
+        ","
+      )}`;
+
       const cached = requestCache.get(cacheKey);
       if (cached) {
         if (!alive) return;
@@ -279,23 +319,23 @@ function CalendarInner() {
         return;
       }
 
-      setState(prev => ({ ...prev, loading: true, error: null }));
+      setState((prev) => ({ ...prev, loading: true, error: null }));
 
       try {
         const qs = new URLSearchParams();
-        qs.set('masterId', debouncedMasterId);
-        qs.set('dateISO', debouncedDate);
-        qs.set('serviceIds', serviceIds.join(','));
+        qs.set("masterId", debouncedMasterId);
+        qs.set("dateISO", debouncedDate);
+        qs.set("serviceIds", serviceIds.join(","));
 
         const res = await fetch(`/api/availability?${qs.toString()}`, {
-          cache: 'no-store',
+          cache: "no-store",
           signal: abortController.signal,
         });
 
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
         const data: ApiPayload = await res.json();
-        
+
         if (!alive) return;
 
         requestCache.set(cacheKey, data);
@@ -308,9 +348,10 @@ function CalendarInner() {
         });
       } catch (err: unknown) {
         if (!alive) return;
-        if (err instanceof Error && err.name === 'AbortError') return;
-        
-        const msg = err instanceof Error ? err.message : 'Не удалось загрузить слоты';
+        if (err instanceof Error && err.name === "AbortError") return;
+
+        const msg =
+          err instanceof Error ? err.message : "Не удалось загрузить слоты";
         setState({ loading: false, error: msg, slots: [] });
       }
     }
@@ -323,8 +364,90 @@ function CalendarInner() {
     };
   }, [debouncedDate, debouncedMasterId, serviceIds, filterTodayCutoff]);
 
+  // === поиск ближайшей доступной даты ===
+  const findNearestAvailableDate = useCallback(
+    async (startISO: string): Promise<string | null> => {
+      if (!masterId || serviceIds.length === 0) return null;
+      const horizonDays = 60;
+      for (let i = 0; i < horizonDays; i++) {
+        const d = addDaysISO(startISO, i);
+        const qs = new URLSearchParams({
+          masterId,
+          dateISO: d,
+          serviceIds: serviceIds.join(","),
+        });
+        try {
+          const res = await fetch(`/api/availability?${qs.toString()}`, {
+            cache: "no-store",
+          });
+          if (!res.ok) continue;
+          const data: ApiPayload = await res.json();
+          const count = Array.isArray(data.slots) ? data.slots.length : 0;
+          if (count > 0) return d;
+        } catch {
+          /* ignore */
+        }
+      }
+      return null;
+    },
+    [masterId, serviceIds]
+  );
+
+  // 1) Первый заход без параметра d — сразу прыжок на ближайший день со слотами
+  useEffect(() => {
+    if (autoJumpDoneRef.current) return;
+    if (!masterId || serviceIds.length === 0) return;
+    if (urlDate) return; // пользователь явно выбрал дату — не вмешиваемся
+
+    (async () => {
+      const nearest = await findNearestAvailableDate(dateISO);
+      if (nearest && nearest !== dateISO) {
+        autoJumpDoneRef.current = true;
+        setDateISO(nearest);
+        const q = new URLSearchParams();
+        serviceIds.forEach((id) => q.append("s", id));
+        q.set("m", masterId);
+        q.set("d", nearest);
+        router.replace(`/booking/calendar?${q.toString()}`);
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [masterId, serviceIds, urlDate]);
+
+  // 2) Если выбранная дата без слотов — мягко переведём на ближайшую
+  useEffect(() => {
+    if (autoJumpDoneRef.current) return;
+    if (!masterId || serviceIds.length === 0) return;
+    if (state.loading) return;
+    if (state.error) return;
+
+    if (state.slots.length === 0) {
+      (async () => {
+        const nearest = await findNearestAvailableDate(dateISO);
+        if (nearest && nearest !== dateISO) {
+          autoJumpDoneRef.current = true;
+          setDateISO(nearest);
+          const q = new URLSearchParams();
+          serviceIds.forEach((id) => q.append("s", id));
+          q.set("m", masterId);
+          q.set("d", nearest);
+          router.replace(`/booking/calendar?${q.toString()}`);
+        }
+      })();
+    }
+  }, [
+    state.loading,
+    state.error,
+    state.slots.length,
+    findNearestAvailableDate,
+    dateISO,
+    masterId,
+    serviceIds,
+    router,
+  ]);
+
   const handlePreviousMonth = () => {
-    setViewMonth(prev => {
+    setViewMonth((prev) => {
       const newMonth = prev.month === 1 ? 12 : prev.month - 1;
       const newYear = prev.month === 1 ? prev.year - 1 : prev.year;
       return { year: newYear, month: newMonth };
@@ -332,7 +455,7 @@ function CalendarInner() {
   };
 
   const handleNextMonth = () => {
-    setViewMonth(prev => {
+    setViewMonth((prev) => {
       const newMonth = prev.month === 12 ? 1 : prev.month + 1;
       const newYear = prev.month === 12 ? prev.year + 1 : prev.year;
       return { year: newYear, month: newMonth };
@@ -340,13 +463,13 @@ function CalendarInner() {
   };
 
   const handleDateSelect = (date: Date) => {
-    const newISO = toISODate(date);
+    const newISO = toISODate(date); // локально, без UTC-сдвига
     const safe = clampISO(newISO, minISO, maxISO);
     setDateISO(safe);
     syncUrl(safe, masterId);
   };
 
-  const onPickMaster: React.ChangeEventHandler<HTMLSelectElement> = e => {
+  const onPickMaster: React.ChangeEventHandler<HTMLSelectElement> = (e) => {
     const id = e.target.value;
     setMasterId(id);
     syncUrl(dateISO, id);
@@ -355,19 +478,19 @@ function CalendarInner() {
 
   const syncUrl = (d: string, m: string) => {
     const qs = new URLSearchParams();
-    serviceIds.forEach(id => qs.append('s', id));
-    if (m) qs.set('m', m);
-    qs.set('d', d);
+    serviceIds.forEach((id) => qs.append("s", id));
+    if (m) qs.set("m", m);
+    qs.set("d", d);
     router.replace(`/booking/calendar?${qs.toString()}`);
   };
 
   const goClient = (slot: Slot) => {
     const qs = new URLSearchParams();
-    serviceIds.forEach(id => qs.append('s', id));
-    if (masterId) qs.set('m', masterId);
-    qs.set('start', slot.startAt);
-    qs.set('end', slot.endAt);
-    qs.set('d', dateISO);
+    serviceIds.forEach((id) => qs.append("s", id));
+    if (masterId) qs.set("m", masterId);
+    qs.set("start", slot.startAt);
+    qs.set("end", slot.endAt);
+    qs.set("d", dateISO);
     router.push(`/booking/client?${qs.toString()}`);
   };
 
@@ -380,7 +503,10 @@ function CalendarInner() {
       {/* Фоновые эффекты */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-0 left-1/4 w-96 h-96 bg-yellow-500/10 rounded-full blur-[120px] animate-pulse"></div>
-        <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-cyan-500/10 rounded-full blur-[120px] animate-pulse" style={{ animationDelay: '1s' }}></div>
+        <div
+          className="absolute bottom-0 right-1/4 w-96 h-96 bg-cyan-500/10 rounded-full blur-[120px] animate-pulse"
+          style={{ animationDelay: "1s" }}
+        ></div>
       </div>
 
       <div className="relative pt-32 pb-20 px-4">
@@ -394,13 +520,13 @@ function CalendarInner() {
             <motion.div
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
-              transition={{ delay: 0.2, type: 'spring' }}
+              transition={{ delay: 0.2, type: "spring" }}
               className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-yellow-400/10 border border-yellow-400/20 mb-6"
             >
               <CalendarIcon className="w-4 h-4 text-yellow-400" />
               <span className="text-yellow-400 text-sm font-medium">Шаг 3</span>
             </motion.div>
-            
+
             <h1 className="text-5xl md:text-6xl font-bold mb-4">
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 via-amber-500 to-yellow-600">
                 Онлайн запись
@@ -427,8 +553,10 @@ function CalendarInner() {
                 disabled={masters.length === 0}
               >
                 {masters.length === 0 && <option value="">Загрузка...</option>}
-                {masters.map(m => (
-                  <option key={m.id} value={m.id}>{m.name}</option>
+                {masters.map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.name}
+                  </option>
                 ))}
               </select>
             </label>
@@ -471,25 +599,40 @@ function CalendarInner() {
                     {day}
                   </div>
                 ))}
-                {days.map((day, index) => (
-                  <motion.button
-                    key={index}
-                    initial={{ opacity: 0, scale: 0.8 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ delay: index * 0.01 }}
-                    onClick={() => day && handleDateSelect(day)}
-                    disabled={!day}
-                    className={`
-                      aspect-square p-2 rounded-xl text-sm font-medium transition-all
-                      ${!day ? 'invisible' : ''}
-                      ${day && isToday(day) ? 'bg-yellow-400/20 text-yellow-400 border border-yellow-400/30' : ''}
-                      ${day && isSameDay(day, dateISO) ? 'bg-gradient-to-br from-yellow-400 to-amber-600 text-black shadow-[0_0_20px_rgba(255,215,0,0.5)] scale-110' : ''}
-                      ${day && !isSameDay(day, dateISO) && !isToday(day) ? 'text-white/60 hover:bg-white/10 border border-transparent hover:border-yellow-400/30 hover:text-white' : ''}
-                    `}
-                  >
-                    {day ? day.getDate() : ''}
-                  </motion.button>
-                ))}
+
+                {getDaysInMonth(viewMonth.year, viewMonth.month).map(
+                  (day, index) => (
+                    <motion.button
+                      key={index}
+                      initial={{ opacity: 0, scale: 0.8 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ delay: index * 0.01 }}
+                      onClick={() => day && handleDateSelect(day)}
+                      disabled={!day}
+                      className={`
+        aspect-square p-2 rounded-xl text-sm font-medium transition-all
+        ${!day ? "invisible" : ""}
+        ${
+          day && isToday(day)
+            ? "bg-yellow-400/20 text-yellow-400 border border-yellow-400/30"
+            : ""
+        }
+        ${
+          day && isSameDay(day, dateISO)
+            ? "bg-gradient-to-br from-yellow-400 to-amber-600 text-black shadow-[0_0_20px_rgba(255,215,0,0.5)] scale-110"
+            : ""
+        }
+        ${
+          day && !isSameDay(day, dateISO) && !isToday(day)
+            ? "text-white/60 hover:bg-white/10 border border-transparent hover:border-yellow-400/30 hover:text-white"
+            : ""
+        }
+      `}
+                    >
+                      {day ? day.getDate() : ""}
+                    </motion.button>
+                  )
+                )}
               </div>
 
               <div className="mt-6 p-4 bg-black/30 rounded-xl border border-white/10">
@@ -497,11 +640,14 @@ function CalendarInner() {
                   <Clock className="w-4 h-4 text-yellow-400" />
                   <span className="font-medium">Выбрана дата:</span>
                   <span className="text-white">
-                    {new Date(dateISO + 'T00:00:00').toLocaleDateString('ru-RU', {
-                      day: 'numeric',
-                      month: 'long',
-                      year: 'numeric',
-                    })}
+                    {new Date(dateISO + "T00:00:00").toLocaleDateString(
+                      "ru-RU",
+                      {
+                        day: "numeric",
+                        month: "long",
+                        year: "numeric",
+                      }
+                    )}
                   </span>
                 </div>
               </div>
@@ -588,6 +734,596 @@ export default function CalendarPage() {
   );
 }
 
+//---------------поиск на ближайшую дату 17/11
+// //src/app/booking/(steps)/calendar/page.tsx
+// 'use client';
+
+// import React, { useState, useEffect, useCallback, useRef, Suspense } from 'react';
+// import { motion } from 'framer-motion';
+// import { useRouter, useSearchParams } from 'next/navigation';
+// import PremiumProgressBar from '@/components/PremiumProgressBar';
+// import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Clock, Sparkles } from 'lucide-react';
+
+// // Типы (как в рабочей версии)
+// type Slot = {
+//   startAt: string;
+//   endAt: string;
+//   startMinutes: number;
+//   endMinutes: number;
+// };
+
+// type ApiPayload = {
+//   slots: Slot[];
+//   splitRequired: boolean;
+// };
+
+// type Master = { id: string; name: string };
+
+// type LoadState = {
+//   loading: boolean;
+//   error: string | null;
+//   slots: Slot[];
+// };
+
+// const BOOKING_STEPS = [
+//   { id: 'services', label: 'Услуга', icon: '✨' },
+//   { id: 'master', label: 'Мастер', icon: '👤' },
+//   { id: 'calendar', label: 'Дата', icon: '📅' },
+//   { id: 'client', label: 'Данные', icon: '📝' },
+//   { id: 'verify', label: 'Проверка', icon: '✓' },
+//   { id: 'payment', label: 'Оплата', icon: '💳' },
+// ];
+
+// const ORG_TZ = process.env.NEXT_PUBLIC_ORG_TZ || 'Europe/Berlin';
+
+// const todayISO = (tz: string = ORG_TZ): string => {
+//   const s = new Date().toLocaleString('sv-SE', { timeZone: tz, hour12: false });
+//   return s.split(' ')[0];
+// };
+
+// const toISODate = (d: Date): string => d.toISOString().slice(0, 10);
+
+// const addDaysISO = (iso: string, days: number): string => {
+//   const [y, m, d] = iso.split('-').map(Number);
+//   const dt = new Date(y, m - 1, d);
+//   dt.setDate(dt.getDate() + days);
+//   return toISODate(dt);
+// };
+
+// const max9WeeksISO = (): string => addDaysISO(todayISO(), 9 * 7 - 1);
+
+// const clampISO = (iso: string, minISO: string, maxISO: string): string => {
+//   if (iso < minISO) return minISO;
+//   if (iso > maxISO) return maxISO;
+//   return iso;
+// };
+
+// const formatHM = (minutes: number): string => {
+//   const hh = Math.floor(minutes / 60);
+//   const mm = minutes % 60;
+//   const pad = (n: number): string => String(n).padStart(2, '0');
+//   return `${pad(hh)}:${pad(mm)}`;
+// };
+
+// class RequestCache {
+//   private cache: Map<string, { data: ApiPayload; timestamp: number }>;
+//   private readonly TTL = 3000;
+
+//   constructor() {
+//     this.cache = new Map();
+//   }
+
+//   get(key: string): ApiPayload | null {
+//     const entry = this.cache.get(key);
+//     if (!entry) return null;
+
+//     const age = Date.now() - entry.timestamp;
+//     if (age > this.TTL) {
+//       this.cache.delete(key);
+//       return null;
+//     }
+
+//     return entry.data;
+//   }
+
+//   set(key: string, data: ApiPayload): void {
+//     this.cache.set(key, { data, timestamp: Date.now() });
+//   }
+
+//   clear(): void {
+//     this.cache.clear();
+//   }
+// }
+
+// const requestCache = new RequestCache();
+
+// function useDebounce<T>(value: T, delay: number): T {
+//   const [debouncedValue, setDebouncedValue] = React.useState<T>(value);
+
+//   React.useEffect(() => {
+//     const handler = setTimeout(() => {
+//       setDebouncedValue(value);
+//     }, delay);
+
+//     return () => {
+//       clearTimeout(handler);
+//     };
+//   }, [value, delay]);
+
+//   return debouncedValue;
+// }
+
+// const monthNames = [
+//   'Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь',
+//   'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'
+// ];
+
+// const dayNames = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
+
+// const getDaysInMonth = (year: number, month: number) => {
+//   const firstDay = new Date(year, month - 1, 1);
+//   const lastDay = new Date(year, month, 0);
+//   const daysInMonth = lastDay.getDate();
+//   const startingDayOfWeek = firstDay.getDay();
+
+//   const days: (Date | null)[] = [];
+
+//   for (let i = 0; i < startingDayOfWeek; i++) {
+//     days.push(null);
+//   }
+
+//   for (let day = 1; day <= daysInMonth; day++) {
+//     days.push(new Date(year, month - 1, day));
+//   }
+
+//   return days;
+// };
+
+// const isSameDay = (date1: Date, date2ISO: string): boolean => {
+//   const [y, m, d] = date2ISO.split('-').map(Number);
+//   return (
+//     date1.getDate() === d &&
+//     date1.getMonth() === m - 1 &&
+//     date1.getFullYear() === y
+//   );
+// };
+
+// const isToday = (date: Date): boolean => {
+//   const today = new Date();
+//   return (
+//     date.getDate() === today.getDate() &&
+//     date.getMonth() === today.getMonth() &&
+//     date.getFullYear() === today.getFullYear()
+//   );
+// };
+
+// function CalendarInner() {
+//   const router = useRouter();
+//   const params = useSearchParams();
+
+//   const serviceIds = React.useMemo<string[]>(
+//     () => params.getAll('s').filter(Boolean),
+//     [params],
+//   );
+//   const masterIdFromUrl = params.get('m') ?? '';
+//   const urlDate = params.get('d') ?? undefined;
+
+//   const minISO = todayISO();
+//   const maxISO = max9WeeksISO();
+
+//   const [dateISO, setDateISO] = useState<string>(() => {
+//     const initial = urlDate ?? minISO;
+//     return clampISO(initial, minISO, maxISO);
+//   });
+
+//   const [viewMonth, setViewMonth] = useState<{ year: number; month: number }>(() => {
+//     const [y, m] = dateISO.split('-').map(Number);
+//     return { year: y, month: m };
+//   });
+
+//   const [masters, setMasters] = useState<Master[]>([]);
+//   const [masterId, setMasterId] = useState<string>(masterIdFromUrl);
+
+//   const [state, setState] = useState<LoadState>({
+//     loading: false,
+//     error: null,
+//     slots: [],
+//   });
+
+//   const debouncedDate = useDebounce(dateISO, 300);
+//   const debouncedMasterId = useDebounce(masterId, 300);
+
+//   useEffect(() => {
+//     const [y, m] = dateISO.split('-').map(Number);
+//     setViewMonth({ year: y, month: m });
+//   }, [dateISO]);
+
+//   const filterTodayCutoff = useCallback((list: Slot[], forDateISO: string): Slot[] => {
+//     const isToday = forDateISO === todayISO();
+//     if (!isToday) return list;
+//     const cutoffISO = new Date(Date.now() + 60 * 60_000).toISOString();
+//     return list.filter(s => s.startAt >= cutoffISO);
+//   }, []);
+
+//   useEffect(() => {
+//     let alive = true;
+
+//     async function loadMasters() {
+//       if (serviceIds.length === 0) {
+//         setMasters([]);
+//         setMasterId('');
+//         return;
+//       }
+
+//       try {
+//         const qs = new URLSearchParams();
+//         qs.set('serviceIds', serviceIds.join(','));
+//         const res = await fetch(`/api/masters?${qs.toString()}`, { cache: 'no-store' });
+
+//         if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+//         const data = await res.json() as { masters: Master[] };
+
+//         if (!alive) return;
+
+//         setMasters(data.masters ?? []);
+
+//         if (!masterId || !data.masters.find(m => m.id === masterId)) {
+//           const first = data.masters[0]?.id ?? '';
+//           setMasterId(first);
+
+//           if (first) {
+//             const q = new URLSearchParams();
+//             serviceIds.forEach(s => q.append('s', s));
+//             q.set('m', first);
+//             q.set('d', dateISO);
+//             router.replace(`/booking/calendar?${q.toString()}`);
+//           }
+//         }
+//       } catch (err) {
+//         console.error('Failed to load masters:', err);
+//       }
+//     }
+
+//     void loadMasters();
+
+//     return () => {
+//       alive = false;
+//     };
+//   }, [serviceIds, router, dateISO]); // eslint-disable-line react-hooks/exhaustive-deps
+
+//   useEffect(() => {
+//     let alive = true;
+//     const abortController = new AbortController();
+
+//     async function load() {
+//       if (serviceIds.length === 0 || !debouncedMasterId) {
+//         setState({ loading: false, error: null, slots: [] });
+//         return;
+//       }
+
+//       const cacheKey = `${debouncedMasterId}_${debouncedDate}_${serviceIds.join(',')}`;
+
+//       const cached = requestCache.get(cacheKey);
+//       if (cached) {
+//         if (!alive) return;
+//         const prepared = Array.isArray(cached.slots) ? cached.slots : [];
+//         setState({
+//           loading: false,
+//           error: null,
+//           slots: filterTodayCutoff(prepared, debouncedDate),
+//         });
+//         return;
+//       }
+
+//       setState(prev => ({ ...prev, loading: true, error: null }));
+
+//       try {
+//         const qs = new URLSearchParams();
+//         qs.set('masterId', debouncedMasterId);
+//         qs.set('dateISO', debouncedDate);
+//         qs.set('serviceIds', serviceIds.join(','));
+
+//         const res = await fetch(`/api/availability?${qs.toString()}`, {
+//           cache: 'no-store',
+//           signal: abortController.signal,
+//         });
+
+//         if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+//         const data: ApiPayload = await res.json();
+
+//         if (!alive) return;
+
+//         requestCache.set(cacheKey, data);
+
+//         const prepared = Array.isArray(data.slots) ? data.slots : [];
+//         setState({
+//           loading: false,
+//           error: null,
+//           slots: filterTodayCutoff(prepared, debouncedDate),
+//         });
+//       } catch (err: unknown) {
+//         if (!alive) return;
+//         if (err instanceof Error && err.name === 'AbortError') return;
+
+//         const msg = err instanceof Error ? err.message : 'Не удалось загрузить слоты';
+//         setState({ loading: false, error: msg, slots: [] });
+//       }
+//     }
+
+//     void load();
+
+//     return () => {
+//       alive = false;
+//       abortController.abort();
+//     };
+//   }, [debouncedDate, debouncedMasterId, serviceIds, filterTodayCutoff]);
+
+//   const handlePreviousMonth = () => {
+//     setViewMonth(prev => {
+//       const newMonth = prev.month === 1 ? 12 : prev.month - 1;
+//       const newYear = prev.month === 1 ? prev.year - 1 : prev.year;
+//       return { year: newYear, month: newMonth };
+//     });
+//   };
+
+//   const handleNextMonth = () => {
+//     setViewMonth(prev => {
+//       const newMonth = prev.month === 12 ? 1 : prev.month + 1;
+//       const newYear = prev.month === 12 ? prev.year + 1 : prev.year;
+//       return { year: newYear, month: newMonth };
+//     });
+//   };
+
+//   const handleDateSelect = (date: Date) => {
+//     const newISO = toISODate(date);
+//     const safe = clampISO(newISO, minISO, maxISO);
+//     setDateISO(safe);
+//     syncUrl(safe, masterId);
+//   };
+
+//   const onPickMaster: React.ChangeEventHandler<HTMLSelectElement> = e => {
+//     const id = e.target.value;
+//     setMasterId(id);
+//     syncUrl(dateISO, id);
+//     requestCache.clear();
+//   };
+
+//   const syncUrl = (d: string, m: string) => {
+//     const qs = new URLSearchParams();
+//     serviceIds.forEach(id => qs.append('s', id));
+//     if (m) qs.set('m', m);
+//     qs.set('d', d);
+//     router.replace(`/booking/calendar?${qs.toString()}`);
+//   };
+
+//   const goClient = (slot: Slot) => {
+//     const qs = new URLSearchParams();
+//     serviceIds.forEach(id => qs.append('s', id));
+//     if (masterId) qs.set('m', masterId);
+//     qs.set('start', slot.startAt);
+//     qs.set('end', slot.endAt);
+//     qs.set('d', dateISO);
+//     router.push(`/booking/client?${qs.toString()}`);
+//   };
+
+//   const days = getDaysInMonth(viewMonth.year, viewMonth.month);
+
+//   return (
+//     <div className="min-h-screen bg-black text-white pb-20">
+//       <PremiumProgressBar currentStep={2} steps={BOOKING_STEPS} />
+
+//       {/* Фоновые эффекты */}
+//       <div className="fixed inset-0 overflow-hidden pointer-events-none">
+//         <div className="absolute top-0 left-1/4 w-96 h-96 bg-yellow-500/10 rounded-full blur-[120px] animate-pulse"></div>
+//         <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-cyan-500/10 rounded-full blur-[120px] animate-pulse" style={{ animationDelay: '1s' }}></div>
+//       </div>
+
+//       <div className="relative pt-32 pb-20 px-4">
+//         <div className="container mx-auto max-w-6xl">
+//           {/* Заголовок */}
+//           <motion.div
+//             initial={{ opacity: 0, y: 30 }}
+//             animate={{ opacity: 1, y: 0 }}
+//             className="text-center mb-12"
+//           >
+//             <motion.div
+//               initial={{ scale: 0 }}
+//               animate={{ scale: 1 }}
+//               transition={{ delay: 0.2, type: 'spring' }}
+//               className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-yellow-400/10 border border-yellow-400/20 mb-6"
+//             >
+//               <CalendarIcon className="w-4 h-4 text-yellow-400" />
+//               <span className="text-yellow-400 text-sm font-medium">Шаг 3</span>
+//             </motion.div>
+
+//             <h1 className="text-5xl md:text-6xl font-bold mb-4">
+//               <span className="text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 via-amber-500 to-yellow-600">
+//                 Онлайн запись
+//               </span>
+//             </h1>
+//             <p className="text-xl text-white/60">
+//               Выберите удобные дату и время
+//             </p>
+//           </motion.div>
+
+//           {/* Master Selector */}
+//           <motion.div
+//             initial={{ opacity: 0, y: 20 }}
+//             animate={{ opacity: 1, y: 0 }}
+//             transition={{ delay: 0.3 }}
+//             className="mb-8 bg-white/5 rounded-2xl p-6 border border-white/10"
+//           >
+//             <label className="flex items-center gap-4">
+//               <span className="text-white/60 font-medium">Мастер:</span>
+//               <select
+//                 className="flex-1 max-w-xs bg-black/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-yellow-400 focus:outline-none transition-colors"
+//                 value={masterId}
+//                 onChange={onPickMaster}
+//                 disabled={masters.length === 0}
+//               >
+//                 {masters.length === 0 && <option value="">Загрузка...</option>}
+//                 {masters.map(m => (
+//                   <option key={m.id} value={m.id}>{m.name}</option>
+//                 ))}
+//               </select>
+//             </label>
+//           </motion.div>
+
+//           <div className="grid lg:grid-cols-2 gap-8">
+//             {/* Calendar */}
+//             <motion.div
+//               initial={{ opacity: 0, x: -20 }}
+//               animate={{ opacity: 1, x: 0 }}
+//               transition={{ delay: 0.4 }}
+//               className="bg-white/5 rounded-3xl p-6 border border-white/10"
+//             >
+//               <div className="flex items-center justify-between mb-6">
+//                 <h2 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-amber-600">
+//                   {monthNames[viewMonth.month - 1]} {viewMonth.year}
+//                 </h2>
+//                 <div className="flex gap-2">
+//                   <button
+//                     onClick={handlePreviousMonth}
+//                     className="p-2 rounded-xl bg-white/5 border border-white/10 hover:border-yellow-400/50 hover:bg-white/10 transition-all"
+//                   >
+//                     <ChevronLeft className="w-5 h-5 text-white/60" />
+//                   </button>
+//                   <button
+//                     onClick={handleNextMonth}
+//                     className="p-2 rounded-xl bg-white/5 border border-white/10 hover:border-yellow-400/50 hover:bg-white/10 transition-all"
+//                   >
+//                     <ChevronRight className="w-5 h-5 text-white/60" />
+//                   </button>
+//                 </div>
+//               </div>
+
+//               <div className="grid grid-cols-7 gap-2">
+//                 {dayNames.map((day) => (
+//                   <div
+//                     key={day}
+//                     className="text-center text-sm font-medium text-white/50 py-2"
+//                   >
+//                     {day}
+//                   </div>
+//                 ))}
+//                 {days.map((day, index) => (
+//                   <motion.button
+//                     key={index}
+//                     initial={{ opacity: 0, scale: 0.8 }}
+//                     animate={{ opacity: 1, scale: 1 }}
+//                     transition={{ delay: index * 0.01 }}
+//                     onClick={() => day && handleDateSelect(day)}
+//                     disabled={!day}
+//                     className={`
+//                       aspect-square p-2 rounded-xl text-sm font-medium transition-all
+//                       ${!day ? 'invisible' : ''}
+//                       ${day && isToday(day) ? 'bg-yellow-400/20 text-yellow-400 border border-yellow-400/30' : ''}
+//                       ${day && isSameDay(day, dateISO) ? 'bg-gradient-to-br from-yellow-400 to-amber-600 text-black shadow-[0_0_20px_rgba(255,215,0,0.5)] scale-110' : ''}
+//                       ${day && !isSameDay(day, dateISO) && !isToday(day) ? 'text-white/60 hover:bg-white/10 border border-transparent hover:border-yellow-400/30 hover:text-white' : ''}
+//                     `}
+//                   >
+//                     {day ? day.getDate() : ''}
+//                   </motion.button>
+//                 ))}
+//               </div>
+
+//               <div className="mt-6 p-4 bg-black/30 rounded-xl border border-white/10">
+//                 <div className="flex items-center gap-2 text-white/60 text-sm">
+//                   <Clock className="w-4 h-4 text-yellow-400" />
+//                   <span className="font-medium">Выбрана дата:</span>
+//                   <span className="text-white">
+//                     {new Date(dateISO + 'T00:00:00').toLocaleDateString('ru-RU', {
+//                       day: 'numeric',
+//                       month: 'long',
+//                       year: 'numeric',
+//                     })}
+//                   </span>
+//                 </div>
+//               </div>
+//             </motion.div>
+
+//             {/* Time Slots */}
+//             <motion.div
+//               initial={{ opacity: 0, x: 20 }}
+//               animate={{ opacity: 1, x: 0 }}
+//               transition={{ delay: 0.5 }}
+//               className="bg-white/5 rounded-3xl p-6 border border-white/10"
+//             >
+//               <h2 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-amber-600 mb-6">
+//                 Доступное время
+//               </h2>
+
+//               {state.loading && (
+//                 <div className="text-center py-12">
+//                   <div className="w-12 h-12 border-4 border-yellow-400/30 border-t-yellow-400 rounded-full animate-spin mx-auto mb-4"></div>
+//                   <p className="text-white/60 text-sm">Загрузка...</p>
+//                 </div>
+//               )}
+
+//               {state.error && (
+//                 <div className="rounded-xl border border-red-400/20 bg-red-400/10 p-4">
+//                   <p className="text-red-400 text-sm">Ошибка: {state.error}</p>
+//                 </div>
+//               )}
+
+//               {!state.loading && !state.error && state.slots.length === 0 && (
+//                 <div className="text-center py-12">
+//                   <div className="text-4xl mb-4">😔</div>
+//                   <p className="text-white/60 text-sm">
+//                     На эту дату нет свободных слотов
+//                   </p>
+//                 </div>
+//               )}
+
+//               {!state.loading && !state.error && state.slots.length > 0 && (
+//                 <div className="grid grid-cols-3 gap-3 max-h-[500px] overflow-y-auto pr-2">
+//                   {state.slots.map((slot, index) => (
+//                     <motion.button
+//                       key={slot.startAt}
+//                       initial={{ opacity: 0, scale: 0.8 }}
+//                       animate={{ opacity: 1, scale: 1 }}
+//                       transition={{ delay: index * 0.02 }}
+//                       onClick={() => goClient(slot)}
+//                       className="group relative p-3 rounded-xl bg-white/5 border border-white/10 hover:border-yellow-400/50 hover:bg-gradient-to-br hover:from-yellow-400/10 hover:to-amber-600/10 transition-all text-center"
+//                     >
+//                       <div className="text-sm font-bold text-white group-hover:text-yellow-400 transition-colors">
+//                         {formatHM(slot.startMinutes)}
+//                       </div>
+//                       <Sparkles className="w-3 h-3 text-yellow-400 mx-auto mt-1 opacity-0 group-hover:opacity-100 transition-opacity" />
+//                     </motion.button>
+//                   ))}
+//                 </div>
+//               )}
+
+//               <div className="mt-6 flex items-center justify-between text-sm">
+//                 <span className="text-white/60">Доступно слотов:</span>
+//                 <span className="font-bold text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-amber-600">
+//                   {state.slots.length}
+//                 </span>
+//               </div>
+//             </motion.div>
+//           </div>
+//         </div>
+//       </div>
+//     </div>
+//   );
+// }
+
+// export default function CalendarPage() {
+//   return (
+//     <Suspense
+//       fallback={
+//         <div className="min-h-screen bg-black flex items-center justify-center">
+//           <div className="w-16 h-16 border-4 border-yellow-400/30 border-t-yellow-400 rounded-full animate-spin"></div>
+//         </div>
+//       }
+//     >
+//       <CalendarInner />
+//     </Suspense>
+//   );
+// }
 
 //-----------------работал с мастером 03/11
 // //src/app/booking/(steps)/calendar/page.tsx
@@ -672,13 +1408,13 @@ export default function CalendarPage() {
 //   get(key: string): ApiPayload | null {
 //     const entry = this.cache.get(key);
 //     if (!entry) return null;
-    
+
 //     const age = Date.now() - entry.timestamp;
 //     if (age > this.TTL) {
 //       this.cache.delete(key);
 //       return null;
 //     }
-    
+
 //     return entry.data;
 //   }
 
@@ -827,32 +1563,32 @@ export default function CalendarPage() {
 //   // Загрузка доступных мастеров для выбранных услуг
 //   React.useEffect(() => {
 //     let alive = true;
-    
+
 //     async function loadMasters(): Promise<void> {
 //       if (serviceIds.length === 0) {
 //         setMasters([]);
 //         setMasterId('');
 //         return;
 //       }
-      
+
 //       try {
 //         const qs = new URLSearchParams();
 //         qs.set('serviceIds', serviceIds.join(','));
 //         const res = await fetch(`/api/masters?${qs.toString()}`, { cache: 'no-store' });
-        
+
 //         if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        
+
 //         const data = (await res.json()) as { masters: Master[] };
-        
+
 //         if (!alive) return;
-        
+
 //         setMasters(data.masters ?? []);
-        
+
 //         // Если мастер не выбран или не входит в список, выбираем первого
 //         if (!masterId || !data.masters.find(m => m.id === masterId)) {
 //           const first = data.masters[0]?.id ?? '';
 //           setMasterId(first);
-          
+
 //           // Синхронизируем URL
 //           if (first) {
 //             const q = new URLSearchParams();
@@ -866,9 +1602,9 @@ export default function CalendarPage() {
 //         console.error('Failed to load masters:', err);
 //       }
 //     }
-    
+
 //     void loadMasters();
-    
+
 //     return () => {
 //       alive = false;
 //     };
@@ -887,7 +1623,7 @@ export default function CalendarPage() {
 
 //       // Генерируем ключ кэша
 //       const cacheKey = `${debouncedMasterId}_${debouncedDate}_${serviceIds.join(',')}`;
-      
+
 //       // Проверяем кэш
 //       const cached = requestCache.get(cacheKey);
 //       if (cached) {
@@ -917,7 +1653,7 @@ export default function CalendarPage() {
 //         if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
 //         const data: ApiPayload = await res.json();
-        
+
 //         if (!alive) return;
 
 //         // Сохраняем в кэш
@@ -932,7 +1668,7 @@ export default function CalendarPage() {
 //       } catch (err: unknown) {
 //         if (!alive) return;
 //         if (err instanceof Error && err.name === 'AbortError') return;
-        
+
 //         const msg = err instanceof Error ? err.message : 'Не удалось загрузить слоты';
 //         setState({ loading: false, error: msg, slots: [] });
 //       }
@@ -953,7 +1689,7 @@ export default function CalendarPage() {
 //   const scanForwardForFirstDayWithSlots = React.useCallback(async (): Promise<void> => {
 //     if (scanningRef.current) return;
 //     if (!debouncedMasterId || serviceIds.length === 0) return;
-    
+
 //     const scanKey = `${debouncedMasterId}_${debouncedDate}_${serviceIds.join(',')}`;
 //     if (lastScanRef.current === scanKey) return;
 
@@ -992,7 +1728,7 @@ export default function CalendarPage() {
 //         }
 
 //         const filtered = filterTodayCutoff(Array.isArray(data.slots) ? data.slots : [], d);
-        
+
 //         if (filtered.length > 0) {
 //           setDateISO(d);
 //           setState({ loading: false, error: null, slots: filtered });
@@ -1326,13 +2062,13 @@ export default function CalendarPage() {
 //   get(key: string): ApiPayload | null {
 //     const entry = this.cache.get(key);
 //     if (!entry) return null;
-    
+
 //     const age = Date.now() - entry.timestamp;
 //     if (age > this.TTL) {
 //       this.cache.delete(key);
 //       return null;
 //     }
-    
+
 //     return entry.data;
 //   }
 
@@ -1416,32 +2152,32 @@ export default function CalendarPage() {
 //   // Загрузка доступных мастеров для выбранных услуг
 //   React.useEffect(() => {
 //     let alive = true;
-    
+
 //     async function loadMasters(): Promise<void> {
 //       if (serviceIds.length === 0) {
 //         setMasters([]);
 //         setMasterId('');
 //         return;
 //       }
-      
+
 //       try {
 //         const qs = new URLSearchParams();
 //         qs.set('serviceIds', serviceIds.join(','));
 //         const res = await fetch(`/api/masters?${qs.toString()}`, { cache: 'no-store' });
-        
+
 //         if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        
+
 //         const data = (await res.json()) as { masters: Master[] };
-        
+
 //         if (!alive) return;
-        
+
 //         setMasters(data.masters ?? []);
-        
+
 //         // Если мастер не выбран или не входит в список, выбираем первого
 //         if (!masterId || !data.masters.find(m => m.id === masterId)) {
 //           const first = data.masters[0]?.id ?? '';
 //           setMasterId(first);
-          
+
 //           // Синхронизируем URL
 //           if (first) {
 //             const q = new URLSearchParams();
@@ -1455,9 +2191,9 @@ export default function CalendarPage() {
 //         console.error('Failed to load masters:', err);
 //       }
 //     }
-    
+
 //     void loadMasters();
-    
+
 //     return () => {
 //       alive = false;
 //     };
@@ -1476,7 +2212,7 @@ export default function CalendarPage() {
 
 //       // Генерируем ключ кэша
 //       const cacheKey = `${debouncedMasterId}_${debouncedDate}_${serviceIds.join(',')}`;
-      
+
 //       // Проверяем кэш
 //       const cached = requestCache.get(cacheKey);
 //       if (cached) {
@@ -1506,7 +2242,7 @@ export default function CalendarPage() {
 //         if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
 //         const data: ApiPayload = await res.json();
-        
+
 //         if (!alive) return;
 
 //         // Сохраняем в кэш
@@ -1521,7 +2257,7 @@ export default function CalendarPage() {
 //       } catch (err: unknown) {
 //         if (!alive) return;
 //         if (err instanceof Error && err.name === 'AbortError') return;
-        
+
 //         const msg = err instanceof Error ? err.message : 'Не удалось загрузить слоты';
 //         setState({ loading: false, error: msg, slots: [] });
 //       }
@@ -1544,7 +2280,7 @@ export default function CalendarPage() {
 //     // Предотвращаем повторный запуск
 //     if (scanningRef.current) return;
 //     if (!debouncedMasterId || serviceIds.length === 0) return;
-    
+
 //     // Не сканируем повторно для той же даты
 //     const scanKey = `${debouncedMasterId}_${debouncedDate}_${serviceIds.join(',')}`;
 //     if (lastScanRef.current === scanKey) return;
@@ -1586,7 +2322,7 @@ export default function CalendarPage() {
 //         }
 
 //         const filtered = filterTodayCutoff(Array.isArray(data.slots) ? data.slots : [], d);
-        
+
 //         if (filtered.length > 0) {
 //           setDateISO(d);
 //           setState({ loading: false, error: null, slots: filtered });
@@ -1784,9 +2520,6 @@ export default function CalendarPage() {
 //     </Suspense>
 //   );
 // }
-
-
-
 
 // //see src/app/booking/(steps)/calendar/page.tsx
 // 'use client';
@@ -2164,10 +2897,6 @@ export default function CalendarPage() {
 //     </Suspense>
 //   );
 // }
-
-
-
-
 
 //------работал до 01.11 но можно было взять запись в нерабочее время
 // 'use client';
