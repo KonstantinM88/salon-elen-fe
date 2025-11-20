@@ -209,8 +209,7 @@ function ClientForm(): React.JSX.Element {
       ? "Уточните источник"
       : null;
 
-  const baseDisabled =
-    !serviceIds.length || !masterId || !startISO || !endISO;
+  const baseDisabled = !serviceIds.length || !masterId || !startISO || !endISO;
 
   const formValid =
     !baseDisabled &&
@@ -254,9 +253,9 @@ function ClientForm(): React.JSX.Element {
 
   /**
    * Сабмит на этом шаге:
-   *  - только проверяет введённые данные,
+   *  - проверяет данные и создаёт черновик,
    *  - затем переводит на /booking/verify,
-   *  где уже будет происходить окончательная валидация/создание записи.
+   *  где уже идёт окончательная валидация и подтверждение.
    */
   const handleSubmit = async (e: React.FormEvent): Promise<void> => {
     e.preventDefault();
@@ -266,27 +265,52 @@ function ClientForm(): React.JSX.Element {
     setSubmitErr(null);
 
     try {
+      // формируем базовые параметры выбора услуги/мастера/времени
       const qs = new URLSearchParams();
       serviceIds.forEach((id) => qs.append("s", id));
       qs.set("m", masterId);
       qs.set("start", startISO);
       qs.set("end", endISO);
 
-      // передаём введённые данные дальше
-      qs.set("name", name.trim());
-      qs.set("phone", phone.trim());
-      qs.set("email", email.trim());
-      if (birth) qs.set("birth", birth);
-      if (referral) qs.set("referral", referral);
-      if (referral === "other" && referralOther.trim()) {
-        qs.set("referralOther", referralOther.trim());
-      }
-      if (comment.trim()) qs.set("comment", comment.trim());
+      // создаём черновик брони на сервере
+      const res = await fetch(`/api/booking/client?${qs.toString()}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          customerName: name.trim(),
+          phone: phone.trim(),
+          email: email.trim(),
+          birthDateISO: birth || undefined,
+          referral: referral === "other" ? "other" : referral || undefined,
+          notes: comment.trim() || undefined,
+        }),
+      });
 
-      // просто переходим на следующий шаг, без создания черновика/записи
-      router.push(`/booking/verify?${qs.toString()}`);
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || `HTTP ${res.status}`);
+      }
+
+      const result = await res.json();
+
+      // API должно вернуть { draftId }
+      if (result.draftId) {
+        const verifyQs = new URLSearchParams(qs);
+        const verifyUrl = `/booking/verify?draft=${
+          result.draftId
+        }&email=${encodeURIComponent(email.trim())}&${verifyQs.toString()}`;
+
+        // переходим на страницу окончательной проверки
+        router.push(verifyUrl);
+      } else {
+        throw new Error("Некорректный ответ от сервера");
+      }
     } catch (err) {
-      setSubmitErr("Не удалось перейти к проверке данных");
+      const msg =
+        err instanceof Error
+          ? err.message
+          : "Не удалось перейти к проверке данных";
+      setSubmitErr(msg);
     } finally {
       setSubmitting(false);
     }
@@ -382,8 +406,8 @@ function ClientForm(): React.JSX.Element {
                 uppercase
               "
             >
-              УКАЖИТЕ ВАШИ ДАННЫЕ, ЧТОБЫ МЫ ПОДТВЕРДИЛИ БРОНЬ И ОТПРАВИЛИ
-              ДЕТАЛИ ЗАПИСИ.
+              УКАЖИТЕ ВАШИ ДАННЫЕ, ЧТОБЫ МЫ ПОДТВЕРДИЛИ БРОНЬ И ОТПРАВИЛИ ДЕТАЛИ
+              ЗАПИСИ.
             </p>
             <Mail className="w-5 h-5 text-fuchsia-200/90 drop-shadow-[0_0_12px_rgba(244,114,182,0.9)]" />
           </motion.div>
@@ -675,9 +699,7 @@ function ClientForm(): React.JSX.Element {
             {/* Ошибка отправки / перехода */}
             {submitErr && (
               <div className="rounded-2xl border border-red-500/40 bg-red-500/10 p-4">
-                <p className="text-sm md:text-base text-red-200">
-                  {submitErr}
-                </p>
+                <p className="text-sm md:text-base text-red-200">{submitErr}</p>
               </div>
             )}
 
@@ -757,8 +779,8 @@ function ClientForm(): React.JSX.Element {
                   e-mail только для обслуживания вашей записи.
                 </li>
                 <li className="text-white/70 text-xs md:text-sm pt-1 border-t border-white/10 mt-3">
-                  Если вы допустите ошибку в адресе, вы всё равно сможете
-                  прийти на приём, но не получите напоминания и подтверждения.
+                  Если вы допустите ошибку в адресе, вы всё равно сможете прийти
+                  на приём, но не получите напоминания и подтверждения.
                 </li>
               </ul>
             </div>
@@ -786,8 +808,6 @@ export default function ClientPage(): React.JSX.Element {
     </Suspense>
   );
 }
-
-
 
 //----------убираем бронь стили пока оставляем
 // // File: src/app/booking/(steps)/client/page.tsx
@@ -971,8 +991,6 @@ export default function ClientPage(): React.JSX.Element {
 //   const maxBirth = formatYMD(new Date());
 //   const minBirth = formatYMD(yearsAgo(120));
 //   const minAdult = formatYMD(yearsAgo(16));
-  
-
 
 //   const nameErr = name.trim().length < 2 ? "Укажите имя полностью" : null;
 //   const phoneErr =
@@ -1598,8 +1616,6 @@ export default function ClientPage(): React.JSX.Element {
 //     </Suspense>
 //   );
 // }
-
-
 
 //--------работа с выбором как узнали о нас
 // // File: src/app/booking/(steps)/client/page.tsx
@@ -2320,8 +2336,6 @@ export default function ClientPage(): React.JSX.Element {
 //   );
 // }
 
-
-
 //----------улучшаем
 // // File: src/app/booking/(steps)/client/page.tsx
 // "use client";
@@ -3035,8 +3049,6 @@ export default function ClientPage(): React.JSX.Element {
 //   );
 // }
 
-
-
 //-----------улучшаем
 // // File: src/app/booking/(steps)/client/page.tsx
 // "use client";
@@ -3726,7 +3738,6 @@ export default function ClientPage(): React.JSX.Element {
 //   );
 // }
 
-
 //--------почти но нужно улучшать
 // // File: src/app/booking/(steps)/client/page.tsx
 // "use client";
@@ -4400,8 +4411,6 @@ export default function ClientPage(): React.JSX.Element {
 //   );
 // }
 
-
-
 //------------нет хедера и бронирует раньше времени
 // // File: src/app/booking/(steps)/client/page.tsx
 // 'use client';
@@ -4998,8 +5007,6 @@ export default function ClientPage(): React.JSX.Element {
 //   );
 // }
 
-
-
 // // File: src/app/booking/(steps)/client/page.tsx
 // 'use client';
 
@@ -5519,8 +5526,6 @@ export default function ClientPage(): React.JSX.Element {
 //     </Suspense>
 //   );
 // }
-
-
 
 // // File: src/app/booking/(steps)/client/page.tsx
 // "use client";
@@ -6193,7 +6198,6 @@ export default function ClientPage(): React.JSX.Element {
 //     </Suspense>
 //   );
 // }
-
 
 //---------работает но обновляем стиль-----------
 // // File: src/app/booking/(steps)/client/page.tsx

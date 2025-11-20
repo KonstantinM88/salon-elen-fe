@@ -358,3 +358,24 @@ model EmailVerification {
   @@index([expiresAt])
   @@index([used])
 }
+
+model BookingDraft {
+  id           String   @id @default(cuid())
+  serviceId    String
+  masterId     String
+  startAt      DateTime
+  endAt        DateTime
+  customerName String
+  phone        String
+  email        String
+  birthDate    DateTime?
+  referral     String?
+  notes        String?
+  createdAt    DateTime @default(now())
+
+  @@index([serviceId])
+  @@index([masterId])
+  @@index([startAt, endAt])
+}
+
+

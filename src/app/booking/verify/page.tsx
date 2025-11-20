@@ -1,3 +1,4 @@
+// src/app/booking/verify/page.tsx
 import { JSX, Suspense } from 'react';
 import VerifyPageClient from './VerifyPageClient';
 
