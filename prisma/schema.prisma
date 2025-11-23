@@ -191,6 +191,8 @@ model Appointment {
   phone        String
   email        String?
   notes        String?
+  birthDate     DateTime?
+  referral      String?
 
   status AppointmentStatus @default(PENDING)
 
@@ -205,6 +207,7 @@ model Appointment {
   @@index([startAt, endAt])
   @@index([masterId, startAt])
   @@map("Appointment")
+  @@index([birthDate])
 }
 
 // ───────── Глобальный график салона ───────── 
@@ -376,6 +379,20 @@ model BookingDraft {
   @@index([serviceId])
   @@index([masterId])
   @@index([startAt, endAt])
+}
+
+model TelegramUser {
+  id              String   @id @default(cuid())
+  email           String   @unique
+  telegramUserId  BigInt   @unique
+  telegramChatId  BigInt
+  firstName       String?
+  lastName        String?
+  username        String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([telegramChatId])
 }
 
 

@@ -1,148 +1,160 @@
 // src/app/api/booking/verify/email/confirm/route.ts
+
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { AppointmentStatus } from '@prisma/client';
 import {
   verifyOTP,
   deleteOTP,
-  VerificationMethod,
+  OTPMethod,
 } from '@/lib/otp-store';
 
 // ---------- Типы ----------
-type ConfirmBody = {
+
+type ConfirmCodeRequest = {
   email?: string;
   code?: string;
   draftId?: string;
 };
 
-type SuccessResponse = {
-  ok: true;
-  message: string;
-  appointmentId: string;
-};
+type VerifyResponse =
+  | {
+      ok: true;
+      message: string;
+      appointmentId: string;
+    }
+  | {
+      ok: false;
+      error: string;
+    };
 
-type ErrorResponse = {
-  error: string;
-};
+// ---------- Вспомогательные функции ----------
 
-type ApiResponse = SuccessResponse | ErrorResponse;
+/**
+ * Проверяет что слот всё ещё свободен
+ */
+async function checkSlotConflict(
+  masterId: string,
+  startAt: Date,
+  endAt: Date
+): Promise<boolean> {
+  const conflict = await prisma.appointment.findFirst({
+    where: {
+      masterId,
+      status: { in: ['PENDING', 'CONFIRMED'] },
+      OR: [
+        {
+          startAt: { lt: endAt },
+          endAt: { gt: startAt },
+        },
+      ],
+    },
+  });
+
+  return !!conflict;
+}
+
+/**
+ * Создаёт Appointment из BookingDraft
+ */
+async function createAppointmentFromDraft(draftId: string) {
+  const draft = await prisma.bookingDraft.findUnique({
+    where: { id: draftId },
+  });
+
+  if (!draft) {
+    throw new Error('Черновик не найден');
+  }
+
+  // Проверяем конфликт слота
+  const hasConflict = await checkSlotConflict(
+    draft.masterId,
+    draft.startAt,
+    draft.endAt
+  );
+
+  if (hasConflict) {
+    throw new Error('Выбранное время уже занято. Пожалуйста, выберите другое время.');
+  }
+
+  // Создаём Appointment с правильной обработкой nullable полей
+  const appointment = await prisma.appointment.create({
+    data: {
+      serviceId: draft.serviceId,
+      masterId: draft.masterId,
+      startAt: draft.startAt,
+      endAt: draft.endAt,
+      customerName: draft.customerName,
+      phone: draft.phone,
+      email: draft.email,
+      birthDate: draft.birthDate || null,  // ✅ Правильная обработка nullable
+      referral: draft.referral || null,     // ✅ Правильная обработка nullable
+      notes: draft.notes || null,           // ✅ Правильная обработка nullable
+      status: 'PENDING',
+    },
+  });
+
+  // Удаляем черновик
+  await prisma.bookingDraft.delete({
+    where: { id: draftId },
+  });
+
+  return appointment;
+}
+
+// ---------- API Handler ----------
 
 export async function POST(
-  req: NextRequest,
-): Promise<NextResponse<ApiResponse>> {
+  req: NextRequest
+): Promise<NextResponse<VerifyResponse>> {
   try {
-    const body = (await req.json()) as ConfirmBody;
+    const body = (await req.json()) as ConfirmCodeRequest;
     const { email, code, draftId } = body;
 
+    // Валидация
     if (!email || !code || !draftId) {
       return NextResponse.json(
-        { error: 'Email, код и draftId обязательны' },
-        { status: 400 },
+        { ok: false, error: 'Все поля обязательны' },
+        { status: 400 }
       );
     }
 
     console.log(`[OTP Verify] Проверка кода для ${email}:${draftId}`);
 
     // Проверяем OTP код через централизованную функцию
-    const verification = verifyOTP(
-      'email' as VerificationMethod,
-      email,
-      draftId,
-      code
-    );
+    const isValid = verifyOTP('email' as OTPMethod, email, draftId, code);
 
-    if (!verification.valid) {
+    if (!isValid) {
       console.log(`[OTP Verify] Неверный код для ${email}:${draftId}`);
       return NextResponse.json(
-        { error: verification.error || 'Неверный код' },
-        { status: 400 },
+        { ok: false, error: 'Неверный код или email' },
+        { status: 400 }
       );
     }
 
     console.log(`[OTP Verify] Код подтверждён для ${email}:${draftId}`);
 
-    // Код верный! Удаляем из хранилища
-    deleteOTP('email' as VerificationMethod, email, draftId);
+    // Создаём Appointment
+    const appointment = await createAppointmentFromDraft(draftId);
 
-    // Достаём ЧЕРНОВИК
-    const draft = await prisma.bookingDraft.findUnique({
-      where: { id: draftId },
-    });
+    // Удаляем OTP код из хранилища
+    deleteOTP('email' as OTPMethod, email, draftId);
 
-    if (!draft) {
-      return NextResponse.json(
-        { error: 'Черновик записи не найден' },
-        { status: 404 },
-      );
-    }
-
-    // Проверяем, что email совпадает
-    if (draft.email !== email) {
-      return NextResponse.json(
-        { error: 'E-mail не совпадает с данными черновика' },
-        { status: 400 },
-      );
-    }
-
-    // Проверяем, что слот всё ещё свободен
-    const overlapping = await prisma.appointment.findFirst({
-      where: {
-        masterId: draft.masterId,
-        status: {
-          in: [AppointmentStatus.PENDING, AppointmentStatus.CONFIRMED],
-        },
-        startAt: { lt: draft.endAt },
-        endAt: { gt: draft.startAt },
-      },
-      select: { id: true },
-    });
-
-    if (overlapping) {
-      return NextResponse.json(
-        { error: 'Выбранный слот уже занят' },
-        { status: 409 },
-      );
-    }
-
-    // ✅ Создаём реальную запись из черновика
-    const appointment = await prisma.appointment.create({
-      data: {
-        serviceId: draft.serviceId,
-        masterId: draft.masterId,
-        startAt: draft.startAt,
-        endAt: draft.endAt,
-        customerName: draft.customerName,
-        phone: draft.phone,
-        email: draft.email,
-        notes: draft.notes,
-        status: AppointmentStatus.PENDING,
-      },
-      select: { id: true },
-    });
-
-    // Удаляем черновик
-    try {
-      await prisma.bookingDraft.delete({ where: { id: draftId } });
-    } catch (cleanupErr) {
-      console.warn('[OTP Verify] Не удалось удалить черновик', cleanupErr);
-    }
-
-    console.log(
-      `[OTP] Email ${email} подтверждён, создана запись ${appointment.id} из черновика ${draftId}`,
-    );
+    console.log(`[OTP Verify] Appointment создан: ${appointment.id}`);
 
     return NextResponse.json({
       ok: true,
-      message: 'Email подтверждён, запись создана',
+      message: 'Запись подтверждена',
       appointmentId: appointment.id,
     });
   } catch (error) {
     console.error('[OTP Verify Error]:', error);
+
+    const errorMessage =
+      error instanceof Error ? error.message : 'Ошибка подтверждения кода';
+
     return NextResponse.json(
-      { error: 'Ошибка проверки кода' },
-      { status: 500 },
+      { ok: false, error: errorMessage },
+      { status: 500 }
     );
   }
 }
-
-// тестовая строка

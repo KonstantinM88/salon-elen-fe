@@ -1,12 +1,21 @@
 // src/app/api/booking/verify/email/route.ts
+
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { generateOTP, saveOTP, OTPMethod } from '@/lib/otp-store';
 import nodemailer from 'nodemailer';
-import {
-  generateOTP,
-  saveOTP,
-  VerificationMethod,
-} from '@/lib/otp-store';
+
+type SendCodeRequest = {
+  email?: string;
+  draftId?: string;
+};
+
+type SendCodeResponse = {
+  ok: boolean;
+  message?: string;
+  error?: string;
+  devCode?: string;
+};
 
 async function sendOTPEmail(email: string, code: string): Promise<void> {
   const transporter = nodemailer.createTransport({
@@ -19,39 +28,41 @@ async function sendOTPEmail(email: string, code: string): Promise<void> {
   });
 
   await transporter.sendMail({
-    from: process.env.SMTP_FROM,
+    from: process.env.SMTP_FROM || process.env.SMTP_USER,
     to: email,
-    subject: 'Код подтверждения - Salon Elen',
+    subject: 'Код подтверждения записи - Salon Elen',
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h1 style="color: #333;">Код подтверждения</h1>
-        <p>Ваш код для подтверждения записи в Salon Elen:</p>
-        <div style="background: #f5f5f5; padding: 20px; border-radius: 8px; text-align: center; margin: 20px 0;">
-          <h2 style="font-size: 36px; font-family: monospace; letter-spacing: 8px; margin: 0;">${code}</h2>
+        <h2 style="color: #d4af37;">Подтверждение записи</h2>
+        <p>Ваш код подтверждения:</p>
+        <div style="background: #f5f5f5; padding: 20px; text-align: center; font-size: 32px; font-weight: bold; letter-spacing: 8px; margin: 20px 0;">
+          ${code}
         </div>
-        <p style="color: #666;">Код действует 10 минут.</p>
-        <p style="color: #999; font-size: 12px; margin-top: 30px;">Если вы не запрашивали этот код, проигнорируйте это письмо.</p>
+        <p style="color: #666;">Код действителен в течение 10 минут.</p>
+        <p style="color: #666;">Если вы не оформляли запись, просто проигнорируйте это письмо.</p>
+        <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
+        <p style="color: #999; font-size: 12px;">Salon Elen - Салон красоты</p>
       </div>
     `,
   });
 }
 
-export async function POST(req: NextRequest) {
+export async function POST(
+  req: NextRequest
+): Promise<NextResponse<SendCodeResponse>> {
   try {
-    const body = await req.json();
-    const { email, draftId } = body as {
-      email?: string;
-      draftId?: string;
-    };
+    const body = (await req.json()) as SendCodeRequest;
+    const { email, draftId } = body;
 
+    // Валидация
     if (!email || !draftId) {
       return NextResponse.json(
-        { error: 'Email и draftId обязательны' },
+        { ok: false, error: 'Email и draftId обязательны' },
         { status: 400 }
       );
     }
 
-    // Проверяем ЧЕРНОВИК
+    // Проверяем что черновик существует
     const draft = await prisma.bookingDraft.findUnique({
       where: { id: draftId },
       select: { id: true, email: true },
@@ -59,38 +70,34 @@ export async function POST(req: NextRequest) {
 
     if (!draft) {
       return NextResponse.json(
-        { error: 'Черновик записи не найден' },
+        { ok: false, error: 'Черновик записи не найден' },
         { status: 404 }
       );
     }
 
-    // Проверяем, что email совпадает с черновиком
+    // Проверяем что email совпадает
     if (draft.email !== email) {
       return NextResponse.json(
-        { error: 'E-mail не совпадает с данными черновика' },
+        { ok: false, error: 'E-mail не совпадает с данными черновика' },
         { status: 400 }
       );
     }
 
-    // Генерируем 6-значный код
+    // Генерируем 6-значный OTP код
     const code = generateOTP();
 
-    // Сохраняем в хранилище (10 минут)
-    saveOTP('email' as VerificationMethod, email, draftId, code, {
+    // Сохраняем в хранилище
+    saveOTP('email' as OTPMethod, email, draftId, code, {
       ttlMinutes: 10,
     });
 
-    console.log(`[OTP Store] Сохранён код для ${email}:${draftId}: ${code}`);
+    console.log(`[Email OTP] Создан код для ${email}`);
+    console.log(`[Email OTP] Код: ${code}`);
 
-    // Отправляем email через SMTP
-    try {
-      await sendOTPEmail(email, code);
-      console.log(`[OTP] Код для ${email}: ${code} (отправлен через SMTP)`);
-    } catch (emailError) {
-      console.error('[OTP] Ошибка отправки email:', emailError);
-      // В dev режиме продолжаем работу даже при ошибке SMTP
-      console.log(`[OTP] Dev код для ${email}: ${code}`);
-    }
+    // Отправляем email
+    await sendOTPEmail(email, code);
+
+    console.log(`[Email OTP] Код отправлен на ${email}`);
 
     // В режиме разработки отправляем код в ответе
     if (process.env.NODE_ENV === 'development') {
@@ -106,9 +113,9 @@ export async function POST(req: NextRequest) {
       message: 'Код отправлен на email',
     });
   } catch (error) {
-    console.error('[OTP Send Error]:', error);
+    console.error('[Email OTP Error]:', error);
     return NextResponse.json(
-      { error: 'Ошибка отправки кода' },
+      { ok: false, error: 'Ошибка отправки кода' },
       { status: 500 }
     );
   }
