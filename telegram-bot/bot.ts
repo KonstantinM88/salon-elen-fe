@@ -55,6 +55,7 @@ interface TelegramError extends Error {
 
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const API_URL = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+const API_TIMEOUT_MS = parseInt(process.env.API_TIMEOUT_MS || '20000', 10);
 const TELEGRAM_SECRET = process.env.TELEGRAM_SECRET || '';
 const BOT_PORT = parseInt(process.env.BOT_PORT || '3001', 10);
 const BOT_SECRET = process.env.BOT_SECRET || 'your-bot-secret-key';
@@ -213,7 +214,7 @@ app.post('/register-user', authMiddleware, async (req: Request, res: Response) =
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${BOT_SECRET}`,
         },
-        timeout: 10000,
+        timeout: API_TIMEOUT_MS,
       }
     );
 
@@ -292,12 +293,9 @@ bot.onText(/\/start (.+)/, async (msg, match) => {
     console.log(`📧 [/start+payload] DraftID: ${draftId}`);
 
     // Получаем email из БД по draftId
-    const draft = await axios.get(
-      `${API_URL}/api/booking/draft/${draftId}`,
-      {
-        timeout: 10000,
-      }
-    );
+    const draft = await axios.get(`${API_URL}/api/booking/draft/${draftId}`, {
+      timeout: API_TIMEOUT_MS,
+    });
 
     const email = draft.data.email;
     
@@ -351,7 +349,7 @@ bot.onText(/\/start (.+)/, async (msg, match) => {
         headers: {
           'Content-Type': 'application/json',
         },
-        timeout: 10000,
+        timeout: API_TIMEOUT_MS,
       }
     );
 
@@ -415,6 +413,21 @@ bot.on('callback_query', async (query) => {
   if (data.startsWith('confirm_')) {
     const payload = data.replace('confirm_', '');
 
+    // Отвечаем один раз, чтобы Telegram не посчитал callback устаревшим
+    let answered = false;
+    const safeAnswerOnce = async (text: string, showAlert = false) => {
+      if (answered) return;
+      answered = true;
+      try {
+        await bot.answerCallbackQuery(query.id, { text, show_alert: showAlert });
+      } catch (answerError) {
+        console.error('❌ [callback_query] Не удалось отправить answerCallbackQuery:', answerError);
+      }
+    };
+
+    // Мгновенный ответ на клик
+    void safeAnswerOnce('⚙️ Обрабатываем подтверждение...');
+
     try {
       console.log(`📩 [callback_query] Payload: ${payload}`);
       console.log(`📩 [callback_query] Payload длина: ${payload.length} символов`);
@@ -438,7 +451,7 @@ bot.on('callback_query', async (query) => {
         
         const draftResponse = await axios.get(
           `${API_URL}/api/booking/draft/${draftId}`,
-          { timeout: 10000 }
+          { timeout: API_TIMEOUT_MS }
         );
         
         email = draftResponse.data.email;
@@ -456,7 +469,7 @@ bot.on('callback_query', async (query) => {
           headers: {
             'Content-Type': 'application/json',
           },
-          timeout: 10000,
+          timeout: API_TIMEOUT_MS,
         }
       );
 
@@ -475,30 +488,16 @@ bot.on('callback_query', async (query) => {
           }
         );
 
-        await bot.answerCallbackQuery(query.id, {
-          text: '✅ Запись подтверждена!',
-        });
-        
         console.log(`✅ [callback_query] Запись подтверждена для ${result.email || email}`);
       } else {
-        await bot.answerCallbackQuery(query.id, {
-          text: result.message || '❌ Ошибка подтверждения',
-          show_alert: true,
-        });
+        await safeAnswerOnce(result.message || '❌ Ошибка подтверждения', true);
         
         console.log(`⚠️ [callback_query] Ошибка: ${result.message}`);
       }
     } catch (error) {
       console.error('❌ [callback_query] Ошибка при подтверждении:', error);
 
-      try {
-        await bot.answerCallbackQuery(query.id, {
-          text: '❌ Ошибка связи с сервером. Попробуйте позже.',
-          show_alert: true,
-        });
-      } catch (answerError) {
-        console.error('❌ [callback_query] Не удалось ответить на callback:', answerError);
-      }
+      await safeAnswerOnce('❌ Ошибка связи с сервером. Попробуйте позже.', true);
     }
   }
 });

@@ -25,6 +25,33 @@ type SendCodeResponse = {
   devCode?: string;
 };
 
+type TelegramStatusResponse =
+  | {
+      ok: true;
+      method: "telegram";
+      confirmed: true;
+      appointmentId?: string;
+      message: string;
+    }
+  | {
+      ok: true;
+      method: "telegram";
+      confirmed: false;
+      pending: true;
+      message: string;
+    }
+  | {
+      ok: false;
+      method: "telegram";
+      expired: true;
+      message: string;
+    }
+  | {
+      ok: false;
+      method: "telegram";
+      error: string;
+    };
+
 interface TelegramVerificationProps {
   email: string;
   draftId: string;
@@ -80,6 +107,14 @@ export function TelegramVerification({
   React.useEffect(() => {
     if (!isPolling) return;
 
+    const stopPolling = () => {
+      setIsPolling(false);
+      if (pollingRef.current) {
+        clearInterval(pollingRef.current);
+        pollingRef.current = null;
+      }
+    };
+
     const checkStatus = async () => {
       try {
         const res = await fetch(
@@ -88,27 +123,48 @@ export function TelegramVerification({
           )}&draftId=${encodeURIComponent(draftId)}`
         );
 
-        const data = await res.json();
+        const data = (await res.json()) as TelegramStatusResponse;
 
-        // ✅ Проверяем правильное поле!
-        if (data.verified === true) {
-          setIsPolling(false);
-          if (pollingRef.current) {
-            clearInterval(pollingRef.current);
-            pollingRef.current = null;
-          }
+        if (!res.ok) {
+          throw new Error("Ошибка проверки статуса");
+        }
 
-          setSuccess("✅ Подтверждено через Telegram! Переход к оплате...");
+        if (data.ok && data.confirmed) {
+          stopPolling();
 
-          if (data.appointmentId) {
+          setError(null);
+          setSuccess(
+            data.message ||
+              "✅ Подтверждено через Telegram! Переход к оплате..."
+          );
+
+          const appointmentId = data.appointmentId;
+          if (appointmentId) {
             setTimeout(() => {
-              onVerifySuccess(data.appointmentId);
+              onVerifySuccess(appointmentId);
             }, 1000);
           } else {
-            setTimeout(() => {
-              window.location.href = "/booking/payment";
-            }, 1000);
+            // Без appointmentId не уходим на оплату, чтобы не попасть на пустую страницу
+            setSuccess(null);
+            setError(
+              "Не удалось получить идентификатор записи. Попробуйте подтвердить ещё раз или выберите email."
+            );
           }
+          return;
+        }
+
+        if (!data.ok) {
+          stopPolling();
+
+          const isExpired = "expired" in data && data.expired === true;
+          const message = isExpired
+            ? (("message" in data && data.message) ||
+                "Код истёк. Запросите новый.")
+            : (("error" in data && data.error) ||
+                "Ошибка проверки статуса");
+
+          setError(message);
+          return;
         }
       } catch (err) {
         console.error("[Polling] Ошибка:", err);
@@ -337,6 +393,7 @@ export function TelegramVerification({
       <AnimatePresence mode="wait">
         {error && (
           <motion.div
+            key="telegram-error"
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
@@ -348,6 +405,7 @@ export function TelegramVerification({
         )}
         {success && (
           <motion.div
+            key="telegram-success"
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
