@@ -395,4 +395,33 @@ model TelegramUser {
   @@index([telegramChatId])
 }
 
+model GoogleUser {
+  id            String   @id @default(cuid())
+  email         String   @unique
+  googleId      String   @unique
+  firstName     String?
+  lastName      String?
+  picture       String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([googleId])
+  @@index([email])
+}
+
+model GoogleVerificationRequest {
+  id          String   @id @default(cuid())
+  email       String
+  draftId     String
+  state       String   @unique
+  expiresAt   DateTime
+  verified    Boolean  @default(false)
+  appointmentId String?
+  createdAt   DateTime @default(now())
+
+  @@index([email, draftId])
+  @@index([state])
+  @@index([expiresAt])
+  @@index([verified])
+}
 
