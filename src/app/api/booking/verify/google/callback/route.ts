@@ -111,7 +111,7 @@ export async function GET(req: NextRequest) {
       where: { email: userInfo.email.toLowerCase() },
       create: {
         email: userInfo.email.toLowerCase(),
-        googleId: userInfo.id,
+        googleId: userInfo.sub,
         firstName: userInfo.given_name || null,
         lastName: userInfo.family_name || null,
         picture: userInfo.picture || null,

@@ -197,7 +197,7 @@ model Appointment {
   status AppointmentStatus @default(PENDING)
 
   createdAt  DateTime                  @default(now())
-  appt_range Unsupported("tstzrange")? @map("appt_range")
+  // appt_range Unsupported("tstzrange")? @map("appt_range")
 
   // Индексы для быстрого поиска и проверок пересечений:
   @@index([masterId])
@@ -423,5 +423,22 @@ model GoogleVerificationRequest {
   @@index([state])
   @@index([expiresAt])
   @@index([verified])
+}
+
+model GoogleQuickRegistration {
+  id            String   @id @default(cuid())
+  state         String   @unique
+  serviceId     String
+  masterId      String
+  startAt       DateTime
+  endAt         DateTime
+  email         String?
+  expiresAt     DateTime
+  verified      Boolean  @default(false)
+  appointmentId String?
+  createdAt     DateTime @default(now())
+  @@index([state])
+  @@index([verified])
+  @@index([expiresAt])
 }
 

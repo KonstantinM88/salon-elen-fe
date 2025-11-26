@@ -42,7 +42,7 @@
     ".next/types/**/*.ts",
     "prisma.config.js",
     "prisma.config.ts.bak"
-  ],
+, "src/app/booking/(steps)/client/page.tsx.backup"  ],
   "exclude": [
     "node_modules",
     ".next",
