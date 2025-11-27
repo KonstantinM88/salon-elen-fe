@@ -237,6 +237,25 @@ html { scroll-behavior: smooth; }
 /* показывать одиночные \n внутри параграфов */
 .prose-elen p { white-space: pre-line; text-indent: 0; }
 
+/* ========= Booking background animations (Google / booking pages) ========= */
+@keyframes booking-orbit {
+  0% {
+    transform: rotate(0deg) translate3d(0, 0, 0);
+  }
+  100% {
+    transform: rotate(360deg) translate3d(0, 0, 0);
+  }
+}
+
+@keyframes booking-orbit-reverse {
+  0% {
+    transform: rotate(360deg) translate3d(0, 0, 0);
+  }
+  100% {
+    transform: rotate(0deg) translate3d(0, 0, 0);
+  }
+}
+
 /* =================================================================== */
 /* ===================== HERO CTA (как было) ========================= */
 @keyframes btn-breathe {
