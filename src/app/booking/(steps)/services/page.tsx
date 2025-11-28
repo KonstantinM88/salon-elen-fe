@@ -1,10 +1,12 @@
-'use client';
+// src/app/booking/services/page.tsx
+"use client";
 
-import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { useRouter } from 'next/navigation';
-import PremiumProgressBar from '@/components/PremiumProgressBar';
-import { Sparkles, Star, Zap, Award } from 'lucide-react';
+import React, { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { useRouter } from "next/navigation";
+import { BookingAnimatedBackground } from "@/components/layout/BookingAnimatedBackground";
+import PremiumProgressBar from "@/components/PremiumProgressBar";
+import { Sparkles, Star, Zap, Award } from "lucide-react";
 
 interface ServiceDto {
   id: string;
@@ -34,19 +36,18 @@ interface ApiResponse {
 }
 
 const BOOKING_STEPS = [
-  { id: 'services', label: 'Услуга', icon: '✨' },
-  { id: 'master', label: 'Мастер', icon: '👤' },
-  { id: 'calendar', label: 'Дата', icon: '📅' },
-  { id: 'client', label: 'Данные', icon: '📝' },
-  { id: 'verify', label: 'Проверка', icon: '✓' },
-  { id: 'payment', label: 'Оплата', icon: '💳' },
+  { id: "services", label: "Услуга", icon: "✨" },
+  { id: "master", label: "Мастер", icon: "👤" },
+  { id: "calendar", label: "Дата", icon: "📅" },
+  { id: "client", label: "Данные", icon: "📝" },
+  { id: "verify", label: "Проверка", icon: "✓" },
+  { id: "payment", label: "Оплата", icon: "💳" },
 ];
 
-// без any
 const categoryIcons: Record<string, string> = {
-  Маникюр: '💅',
-  Стрижка: '✂️',
-  Все: '✨',
+  Маникюр: "💅",
+  Стрижка: "✂️",
+  Все: "✨",
 };
 
 export default function ServicesPage(): React.JSX.Element {
@@ -54,7 +55,7 @@ export default function ServicesPage(): React.JSX.Element {
   const [groups, setGroups] = useState<GroupDto[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedCategory, setSelectedCategory] = useState<string>('Все');
+  const [selectedCategory, setSelectedCategory] = useState<string>("Все");
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
   const [hoveredCard, setHoveredCard] = useState<string | null>(null);
 
@@ -62,14 +63,14 @@ export default function ServicesPage(): React.JSX.Element {
     const fetchServices = async (): Promise<void> => {
       try {
         setLoading(true);
-        const response = await fetch('/api/booking/services', { method: 'POST' });
-        if (!response.ok) throw new Error('Ошибка загрузки услуг');
+        const response = await fetch("/api/booking/services", { method: "POST" });
+        if (!response.ok) throw new Error("Ошибка загрузки услуг");
         const data: ApiResponse = await response.json();
         setGroups(data.groups);
         setError(null);
       } catch (err) {
-        console.error('Error fetching services:', err);
-        setError('Не удалось загрузить услуги');
+        console.error("Error fetching services:", err);
+        setError("Не удалось загрузить услуги");
       } finally {
         setLoading(false);
       }
@@ -79,10 +80,10 @@ export default function ServicesPage(): React.JSX.Element {
   }, []);
 
   const allServices = groups.flatMap((g) => g.services);
-  const categories = ['Все', ...groups.map((g) => g.title)];
+  const categories = ["Все", ...groups.map((g) => g.title)];
 
   const filteredGroups =
-    selectedCategory === 'Все' ? groups : groups.filter((g) => g.title === selectedCategory);
+    selectedCategory === "Все" ? groups : groups.filter((g) => g.title === selectedCategory);
 
   const toggleService = (serviceId: string): void => {
     setSelectedServices((prev) =>
@@ -100,129 +101,138 @@ export default function ServicesPage(): React.JSX.Element {
 
   const handleContinue = (): void => {
     const params = new URLSearchParams();
-    selectedServices.forEach((id) => params.append('s', id));
+    selectedServices.forEach((id) => params.append("s", id));
     router.push(`/booking/master?${params.toString()}`);
   };
 
-  const formatPrice = (cents: number): string => (cents / 100).toLocaleString('ru-RU');
+  const formatPrice = (cents: number): string => (cents / 100).toLocaleString("ru-RU");
+
+  /* ================= LOADING ================= */
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-950 via-black to-gray-950">
-        <div className="booking-progress-wrap">
+      <div className="relative min-h-screen overflow-hidden bg-black">
+        <div className="fixed inset-x-0 top-0 z-50">
           <PremiumProgressBar currentStep={0} steps={BOOKING_STEPS} />
         </div>
 
-        <div className="flex items-center justify-center min-h-screen">
-          <motion.div initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} className="relative">
-            <div className="w-24 h-24 relative">
+        <BookingAnimatedBackground />
+
+        <div className="relative z-10 flex min-h-screen items-center justify-center px-4 pt-28">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.85 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="relative text-center"
+          >
+            <div className="relative mx-auto h-24 w-24">
               <div className="absolute inset-0 rounded-full bg-gradient-to-r from-amber-500 via-yellow-500 to-amber-500 opacity-20 blur-xl animate-pulse" />
               <div className="absolute inset-0 rounded-full border-4 border-transparent border-t-amber-500 animate-spin" />
-              <Sparkles className="absolute inset-0 m-auto w-12 h-12 text-amber-500 animate-pulse" />
+              <Sparkles className="absolute inset-0 m-auto h-10 w-10 text-amber-400 animate-pulse" />
             </div>
-            <p className="text-white/60 text-center mt-8 font-medium">Загрузка премиум услуг...</p>
+            <p className="mt-6 text-base font-medium text-white/70">Загружаем премиальные услуги…</p>
           </motion.div>
         </div>
       </div>
     );
   }
 
+  /* ================= ERROR ================= */
+
   if (error) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-950 via-black to-gray-950 flex items-center justify-center">
-        <div className="booking-progress-wrap">
+      <div className="relative min-h-screen overflow-hidden bg-black">
+        <div className="fixed inset-x-0 top-0 z-50">
           <PremiumProgressBar currentStep={0} steps={BOOKING_STEPS} />
         </div>
 
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-center px-4">
-          <div className="text-6xl mb-4">⚠️</div>
-          <h2 className="text-2xl font-bold text-red-400 mb-4">{error}</h2>
-          <button
-            onClick={() => window.location.reload()}
-            className="px-8 py-4 bg-gradient-to-r from-amber-500 to-yellow-500 text-black rounded-2xl font-bold hover:scale-105 transition-transform shadow-lg shadow-amber-500/50"
+        <BookingAnimatedBackground />
+
+        <div className="relative z-10 flex min-h-screen items-center justify-center px-4 pt-28">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="max-w-md text-center"
           >
-            Попробовать снова
-          </button>
-        </motion.div>
+            <div className="mb-4 text-6xl">⚠️</div>
+            <h2 className="mb-4 text-2xl font-bold text-red-400">{error}</h2>
+            <button
+              onClick={() => window.location.reload()}
+              className="rounded-2xl bg-gradient-to-r from-amber-500 to-yellow-500 px-8 py-4 font-bold text-black shadow-lg shadow-amber-500/50 transition-transform hover:scale-105"
+            >
+              Попробовать снова
+            </button>
+          </motion.div>
+        </div>
       </div>
     );
   }
 
+  /* ================= MAIN ================= */
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-950 via-black to-gray-950 relative overflow-hidden">
-      {/* Закреплённый прогресс-бар с золотой линией (см. booking/layout.tsx) */}
-      <div className="booking-progress-wrap">
+    <div className="relative min-h-screen overflow-hidden bg-black">
+      <div className="fixed inset-x-0 top-0 z-50">
         <PremiumProgressBar currentStep={0} steps={BOOKING_STEPS} />
       </div>
 
-      {/* Animated background */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <motion.div
-          animate={{ scale: [1, 1.2, 1], opacity: [0.3, 0.5, 0.3] }}
-          transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut' }}
-          className="absolute -top-1/2 -left-1/2 w-full h-full bg-gradient-to-br from-amber-500/20 via-transparent to-transparent rounded-full blur-3xl"
-        />
-        <motion.div
-          animate={{ scale: [1, 1.3, 1], opacity: [0.2, 0.4, 0.2] }}
-          transition={{ duration: 10, repeat: Infinity, ease: 'easeInOut', delay: 1 }}
-          className="absolute -bottom-1/2 -right-1/2 w-full h-full bg-gradient-to-tl from-yellow-500/20 via-transparent to-transparent rounded-full blur-3xl"
-        />
-      </div>
+      <BookingAnimatedBackground />
 
-      {/* Контент с базовым отступом от прогресс-бара (см. booking/layout.tsx) */}
-      <div className="booking-content relative pt-28 md:pt-32 pb-28 md:pb-32 px-4">
-        <div className="mx-auto w-full max-w-screen-2xl">
-          {/* Hero */}
-          <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} className="text-center mb-12 md:mb-16">
-            <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ delay: 0.2, type: 'spring', stiffness: 200 }} className="inline-block mb-6">
+      <div className="booking-content relative z-10 px-4 pt-28 pb-40 md:pt-32 md:pb-48">
+        <div className="mx-auto w-full max-w-6xl xl:max-w-7xl">
+          {/* HERO */}
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-12 text-center md:mb-16"
+          >
+            <motion.div
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ delay: 0.2, type: "spring", stiffness: 220, damping: 18 }}
+              className="mb-5 inline-block md:mb-6"
+            >
               <div className="relative">
-                <div className="absolute inset-0 bg-gradient-to-r from-amber-500 to-yellow-500 rounded-full blur-xl opacity-50 animate-pulse" />
-                <div className="relative bg-gradient-to-r from-amber-500 to-yellow-500 text-black px-6 md:px-8 py-2.5 md:py-3 rounded-full font-bold flex items-center gap-2 shadow-xl">
-                  <Star className="w-4 h-4 md:w-5 md:h-5" />
-                  <span>Premium Selection</span>
-                  <Star className="w-4 h-4 md:w-5 md:h-5" />
+                <div className="absolute inset-0 animate-pulse rounded-full bg-gradient-to-r from-amber-500 to-yellow-500 blur-xl opacity-60" />
+                <div className="relative flex items-center gap-2 rounded-full bg-gradient-to-r from-amber-500 via-yellow-500 to-amber-500 px-6 py-2.5 text-xs font-semibold uppercase text-black shadow-[0_10px_40px_rgba(245,197,24,0.55)] md:px-8 md:py-3 md:text-sm">
+                  <Star className="h-4 w-4 md:h-5 md:h-5" />
+                  <span>Premium Beauty Menu</span>
+                  <Star className="h-4 w-4 md:h-5 md:h-5" />
                 </div>
               </div>
             </motion.div>
 
-            {/* Заголовок — как в мастере */}
             <motion.h1
               initial={{ opacity: 0, y: 18 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.28 }}
               className="
-                text-4xl md:text-5xl lg:text-5xl xl:text-6xl 2xl:text-7xl
-                font-serif italic leading-tight
-                text-transparent bg-clip-text
-                bg-gradient-to-r from-[#F5C518]/90 via-[#FFD166]/90 to-[#F5C518]/90
-                drop-shadow-[0_0_18px_rgba(245,197,24,0.35)]
-                lg:bg-gradient-to-r lg:from-[#7CFFFB] lg:via-[#22D3EE] lg:to-[#7CFFFB]
-                lg:drop-shadow-[0_0_22px_rgba(34,211,238,0.6)]
-                xl:bg-gradient-to-r xl:from-[#F5C518]/90 xl:via-[#FFD166]/90 xl:to-[#F5C518]/90
-                xl:drop-shadow-[0_0_18px_rgba(245,197,24,0.35)]
-                mb-3 md:mb-4
+                mb-3
+                text-4xl font-serif italic leading-tight text-transparent
+                bg-gradient-to-r from-[#F5C518]/90 via-[#FFD166]/90 to-[#F5C518]/90 bg-clip-text
+                drop-shadow-[0_0_22px_rgba(245,197,24,0.45)]
+                md:mb-4 md:text-5xl
+                lg:text-5xl xl:text-6xl 2xl:text-7xl
               "
             >
               Выберите услугу
             </motion.h1>
 
-            {/* === ТОЛЬКО ЭТО ИЗМЕНЕНО: добавлен шрифт brand-script (под «прописной») === */}
             <motion.p
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.45 }}
-              className="mx-auto max-w-2xl brand-script tracking-wide text-base md:text-lg brand-subtitle"
+              className="brand-script brand-subtitle mx-auto max-w-2xl text-base md:text-lg"
             >
-              Создайте свой уникальный образ с нашими эксклюзивными премиум услугами
+              Создайте свой уникальный образ с нашими эксклюзивными премиум-услугами
             </motion.p>
           </motion.div>
 
-          {/* Категории */}
+          {/* КАТЕГОРИИ */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.55 }}
-            className="flex flex-wrap gap-3 md:gap-4 justify-center mb-12 md:mb-16"
+            className="mb-10 flex flex-wrap justify-center gap-3 md:mb-14 md:gap-4"
           >
             {categories.map((category, index) => {
               const isActive = selectedCategory === category;
@@ -235,19 +245,19 @@ export default function ServicesPage(): React.JSX.Element {
                   whileHover={{ scale: 1.05, y: -2 }}
                   whileTap={{ scale: 0.96 }}
                   onClick={() => setSelectedCategory(category)}
-                  className={`group relative px-6 md:px-8 py-3 rounded-2xl font-semibold transition-all duration-300 ${
-                    isActive ? 'text-black' : 'text-gray-300 hover:text-white'
+                  className={`group relative rounded-2xl px-6 py-2.5 text-sm font-semibold transition-all duration-300 md:px-8 md:py-3 md:text-base ${
+                    isActive ? "text-black" : "text-gray-200 hover:text-white"
                   }`}
                 >
                   <div
                     className={`absolute inset-0 rounded-2xl transition-all duration-300 ${
                       isActive
-                        ? 'bg-gradient-to-r from-amber-500 to-yellow-500 shadow-2xl shadow-amber-500/50'
-                        : 'bg-white/5 backdrop-blur-sm border border-white/10 group-hover:bg-white/10'
+                        ? "bg-gradient-to-r from-amber-500 to-yellow-500 shadow-xl shadow-amber-500/50"
+                        : "border border-white/12 bg-black/40 backdrop-blur-xl group-hover:border-amber-400/40 group-hover:bg-black/55"
                     }`}
                   />
                   <span className="relative flex items-center gap-2">
-                    <span className="text-xl">{categoryIcons[category] || '✨'}</span>
+                    <span className="text-xl">{categoryIcons[category] || "✨"}</span>
                     {category}
                   </span>
                 </motion.button>
@@ -255,189 +265,226 @@ export default function ServicesPage(): React.JSX.Element {
             })}
           </motion.div>
 
-          {/* Группы и услуги */}
-          {filteredGroups.map((group, groupIndex) => (
-            <motion.div
-              key={group.id}
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: groupIndex * 0.08 + 0.6 }}
-              className="mb-16 md:mb-20"
-            >
-              {/* Заголовок группы */}
-              <div className="flex items-center gap-4 mb-6 md:mb-8">
-                <div className="h-1 flex-1 bg-gradient-to-r from-transparent via-amber-500/40 to-transparent" />
-                <h2 className="text-2xl md:text-3xl font-bold bg-gradient-to-r from-amber-400 to-yellow-400 bg-clip-text text-transparent">
-                  {group.title}
-                </h2>
-                <div className="h-1 flex-1 bg-gradient-to-r from-transparent via-amber-500/40 to-transparent" />
-              </div>
+          {/* ГРУППЫ И УСЛУГИ */}
+          <div className="space-y-14 md:space-y-16">
+            {filteredGroups.map((group, groupIndex) => (
+              <motion.section
+                key={group.id}
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: groupIndex * 0.08 + 0.6 }}
+                className="relative"
+              >
+                <div className="pointer-events-none absolute -inset-x-8 -top-4 -bottom-10 opacity-70">
+                  <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-amber-500/40 to-transparent" />
+                  <div className="absolute inset-x-10 bottom-0 h-32 rounded-[999px] bg-gradient-to-r from-black/0 via-black/75 to-black/0 blur-3xl" />
+                </div>
 
-              {/* Сетка карточек */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-5 md:gap-6">
-                <AnimatePresence mode="popLayout">
-                  {group.services.map((service, index) => {
-                    const isSelected = selectedServices.includes(service.id);
-                    const isHovered = hoveredCard === service.id;
-                    const price = service.priceCents ? formatPrice(service.priceCents) : 'По запросу';
+                <div className="relative">
+                  <div className="mb-6 flex items-center justify-center gap-4 md:mb-8">
+                    <div className="h-px flex-1 bg-gradient-to-r from-transparent via-amber-500/30 to-transparent" />
+                    <div className="inline-flex items-center gap-2 rounded-full border border-amber-500/40 bg-black/70 px-4 py-1.5 shadow-[0_0_22px_rgba(245,197,24,0.35)] backdrop-blur-xl">
+                      <div className="relative flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-amber-500 to-yellow-500">
+                        <Sparkles className="h-4 w-4 text-black" />
+                      </div>
+                      <h2 className="text-lg font-semibold tracking-wide text-amber-100 md:text-xl">
+                        {group.title}
+                      </h2>
+                    </div>
+                    <div className="h-px flex-1 bg-gradient-to-r from-transparent via-amber-500/30 to-transparent" />
+                  </div>
 
-                    return (
-                      <motion.div
-                        key={service.id}
-                        layout
-                        initial={{ opacity: 0, scale: 0.9, y: 16 }}
-                        animate={{ opacity: 1, scale: 1, y: 0 }}
-                        exit={{ opacity: 0, scale: 0.92 }}
-                        transition={{ delay: index * 0.04, type: 'spring', stiffness: 300, damping: 26 }}
-                        whileHover={{ y: -6, scale: 1.015 }}
-                        onHoverStart={() => setHoveredCard(service.id)}
-                        onHoverEnd={() => setHoveredCard(null)}
-                        onClick={() => toggleService(service.id)}
-                        className="group relative cursor-pointer"
-                      >
-                        {/* Подсветка */}
-                        <div
-                          className={`absolute -inset-3 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 blur-lg ${
-                            isSelected
-                              ? 'bg-gradient-to-r from-amber-500/45 to-yellow-500/45'
-                              : 'bg-gradient-to-r from-amber-500/18 to-yellow-500/18'
-                          }`}
-                        />
+                  <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 md:gap-6">
+                    <AnimatePresence mode="popLayout">
+                      {group.services.map((service, index) => {
+                        const isSelected = selectedServices.includes(service.id);
+                        const isHovered = hoveredCard === service.id;
+                        const price = service.priceCents
+                          ? formatPrice(service.priceCents)
+                          : "По запросу";
 
-                        {/* Карточка */}
-                        <div
-                          className={`relative rounded-2xl overflow-hidden transition-all duration-500 ${
-                            isSelected
-                              ? 'bg-gradient-to-br from-amber-500/18 via-yellow-500/10 to-amber-500/18 border border-amber-500/40'
-                              : 'bg-white/5 backdrop-blur-xl border border-white/10'
-                          }`}
-                        >
-                          {/* Фон-акцент */}
-                          <div className="absolute inset-0 opacity-25">
-                            <div className="absolute inset-0 bg-gradient-to-br from-amber-500/10 to-transparent" />
-                            <motion.div
-                              animate={{ backgroundPosition: ['0% 0%', '100% 100%'] }}
-                              transition={{ duration: 18, repeat: Infinity, repeatType: 'reverse' }}
-                              className="absolute inset-0"
-                              style={{
-                                backgroundImage:
-                                  'radial-gradient(circle at 20% 50%, rgba(251, 191, 36, 0.12) 0%, transparent 50%)',
-                                backgroundSize: '200% 200%',
-                              }}
+                        return (
+                          <motion.div
+                            key={service.id}
+                            layout
+                            initial={{ opacity: 0, scale: 0.9, y: 16 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.92 }}
+                            transition={{
+                              delay: index * 0.04,
+                              type: "spring",
+                              stiffness: 260,
+                              damping: 24,
+                            }}
+                            whileHover={{ y: -6, scale: 1.018 }}
+                            onHoverStart={() => setHoveredCard(service.id)}
+                            onHoverEnd={() => setHoveredCard(null)}
+                            onClick={() => toggleService(service.id)}
+                            className="group relative cursor-pointer"
+                          >
+                            <div
+                              className={`absolute -inset-3 rounded-2xl blur-xl opacity-0 transition-opacity duration-500 group-hover:opacity-100 ${
+                                isSelected
+                                  ? "bg-gradient-to-r from-amber-500/60 via-yellow-400/50 to-amber-500/60"
+                                  : "bg-gradient-to-r from-cyan-500/25 via-emerald-400/15 to-amber-400/25"
+                              }`}
                             />
-                          </div>
 
-                          {/* Контент */}
-                          <div className="relative p-5 md:p-6">
-                            {/* Верхняя строка */}
-                            <div className="flex items-start justify-between mb-4">
-                              {/* Чекбокс */}
-                              <motion.div
-                                initial={false}
-                                animate={{ scale: isSelected ? 1.08 : 1, rotate: isSelected ? 360 : 0 }}
-                                transition={{ type: 'spring', stiffness: 300 }}
-                                className={`w-7 h-7 rounded-full border-2 flex items-center justify-center ${
-                                  isSelected
-                                    ? 'bg-gradient-to-br from-amber-500 to-yellow-500 border-amber-500 shadow-lg shadow-amber-500/40'
-                                    : 'border-white/30 backdrop-blur-sm'
-                                }`}
-                              >
-                                {isSelected && (
-                                  <motion.svg
-                                    initial={{ scale: 0, rotate: -180 }}
-                                    animate={{ scale: 1, rotate: 0 }}
-                                    className="w-4 h-4 text-black"
-                                    fill="none"
-                                    viewBox="0 0 24 24"
-                                    stroke="currentColor"
-                                  >
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                                  </motion.svg>
-                                )}
-                              </motion.div>
-
-                              {/* Бейдж */}
-                              <motion.div
-                                animate={{ rotate: [0, 4, -4, 0] }}
-                                transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }}
-                                className="relative"
-                              >
-                                <div className="absolute inset-0 bg-gradient-to-r from-amber-500 to-yellow-500 rounded-full blur-md opacity-50" />
-                                <div className="relative w-12 h-12 rounded-full bg-gradient-to-br from-amber-500 to-yellow-500 flex items-center justify-center shadow-xl">
-                                  <Sparkles className="w-6 h-6 text-black" />
-                                </div>
-                              </motion.div>
-                            </div>
-
-                            {/* Заголовок услуги */}
-                            <h3
-                              className={`text-lg md:text-xl font-bold mb-2 transition-all ${
-                                isSelected || isHovered
-                                  ? 'text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-yellow-400'
-                                  : 'text-white'
+                            <div
+                              className={`relative overflow-hidden rounded-2xl border backdrop-blur-xl transition-all duration-500 ${
+                                isSelected
+                                  ? "border-amber-400/80 bg-gradient-to-br from-black/70 via-amber-900/25 to-black/80 shadow-[0_20px_60px_rgba(0,0,0,0.9)]"
+                                  : "border-white/14 bg-gradient-to-br from-black/65 via-slate-950/85 to-black/90 shadow-[0_20px_55px_rgba(0,0,0,0.85)]"
                               }`}
                             >
-                              {service.title}
-                            </h3>
-
-                            {/* Описание */}
-                            {service.description && (
-                              <p className="text-gray-400 text-xs md:text-sm mb-5 line-clamp-2 font-light">
-                                {service.description}
-                              </p>
-                            )}
-
-                            {/* Низ карточки */}
-                            <div className="flex items-end justify-between">
-                              {/* Цена и длительность */}
-                              <div>
-                                <div className="flex items-baseline gap-1.5 mb-0.5">
-                                  <span className="text-2xl md:text-3xl font-extrabold bg-gradient-to-r from-amber-400 to-yellow-400 bg-clip-text text-transparent">
-                                    {price}
-                                  </span>
-                                  <span className="text-lg md:text-xl font-bold text-amber-400">€</span>
-                                </div>
-                                <div className="flex items-center gap-2 text-gray-500 text-xs md:text-sm">
-                                  <Zap className="w-4 h-4" />
-                                  <span>{service.durationMin} минут</span>
-                                </div>
+                              <div className="pointer-events-none absolute inset-0 opacity-40">
+                                <motion.div
+                                  animate={{
+                                    backgroundPosition: ["0% 0%", "100% 100%", "0% 0%"],
+                                  }}
+                                  transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+                                  className="absolute inset-0"
+                                  style={{
+                                    backgroundImage:
+                                      "radial-gradient(circle at 0% 0%, rgba(56,189,248,0.18) 0, transparent 55%), radial-gradient(circle at 100% 100%, rgba(251,191,36,0.22) 0, transparent 55%)",
+                                    backgroundSize: "200% 200%",
+                                  }}
+                                />
                               </div>
 
-                              {/* Иконка справа */}
-                              <motion.div
-                                animate={{ scale: isHovered ? 1 : 0.85, opacity: isHovered ? 1 : 0.6 }}
-                                className={`w-12 h-12 md:w-14 md:h-14 rounded-xl flex items-center justify-center ${
-                                  isSelected
-                                    ? 'bg-gradient-to-br from-amber-500 to-yellow-500 shadow-lg shadow-amber-500/40'
-                                    : 'bg-white/5'
-                                }`}
-                              >
-                                <Award className={`w-7 h-7 ${isSelected ? 'text-black' : 'text-amber-500'}`} />
-                              </motion.div>
+                              <div className="relative p-5 md:p-6">
+                                <div className="mb-4 flex items-start justify-between">
+                                  <motion.div
+                                    initial={false}
+                                    animate={{
+                                      scale: isSelected ? 1.08 : 1,
+                                      rotate: isSelected ? 360 : 0,
+                                    }}
+                                    transition={{
+                                      type: "spring",
+                                      stiffness: 260,
+                                      damping: 18,
+                                    }}
+                                    className={`flex h-7 w-7 items-center justify-center rounded-full border-2 ${
+                                      isSelected
+                                        ? "border-amber-400 bg-gradient-to-br from-amber-500 to-yellow-500 shadow-lg shadow-amber-500/50"
+                                        : "border-white/40 bg-black/40"
+                                    }`}
+                                  >
+                                    {isSelected && (
+                                      <motion.svg
+                                        initial={{ scale: 0, rotate: -180 }}
+                                        animate={{ scale: 1, rotate: 0 }}
+                                        className="h-4 w-4 text-black"
+                                        fill="none"
+                                        viewBox="0 0 24 24"
+                                        stroke="currentColor"
+                                      >
+                                        <path
+                                          strokeLinecap="round"
+                                          strokeLinejoin="round"
+                                          strokeWidth={3}
+                                          d="M5 13l4 4L19 7"
+                                        />
+                                      </motion.svg>
+                                    )}
+                                  </motion.div>
+
+                                  <motion.div
+                                    animate={{ rotate: [0, 3, -3, 0] }}
+                                    transition={{
+                                      duration: 2,
+                                      repeat: Infinity,
+                                      repeatDelay: 3,
+                                    }}
+                                    className="relative"
+                                  >
+                                    <div className="absolute inset-0 rounded-full bg-gradient-to-r from-amber-500 to-yellow-500 blur-md opacity-50" />
+                                    <div className="relative inline-flex items-center gap-1 rounded-full border border-amber-500/60 bg-black/80 px-2.5 py-1">
+                                      <Sparkles className="h-3 w-3 text-amber-300" />
+                                      <span className="text-[10px] font-semibold uppercase tracking-wide text-amber-100">
+                                        premium
+                                      </span>
+                                    </div>
+                                  </motion.div>
+                                </div>
+
+                                <h3
+                                  className={`mb-2 text-lg font-semibold transition-all md:text-xl ${
+                                    isSelected || isHovered
+                                      ? "bg-gradient-to-r from-amber-300 via-yellow-200 to-amber-400 bg-clip-text text-transparent"
+                                      : "text-white"
+                                  }`}
+                                >
+                                  {service.title}
+                                </h3>
+
+                                {service.description && (
+                                  <p className="mb-5 line-clamp-2 text-xs font-light text-gray-300/80 md:text-sm">
+                                    {service.description}
+                                  </p>
+                                )}
+
+                                <div className="flex items-end justify-between gap-3">
+                                  <div>
+                                    <div className="mb-0.5 flex items-baseline gap-1.5">
+                                      <span className="bg-gradient-to-r from-amber-300 to-yellow-400 bg-clip-text text-2xl font-extrabold text-transparent md:text-3xl">
+                                        {price}
+                                      </span>
+                                      <span className="text-lg font-bold text-amber-300 md:text-xl">
+                                        €
+                                      </span>
+                                    </div>
+                                    <div className="flex items-center gap-2 text-xs text-gray-400 md:text-sm">
+                                      <Zap className="h-4 w-4 text-amber-300" />
+                                      <span>{service.durationMin} минут</span>
+                                    </div>
+                                  </div>
+
+                                  <motion.div
+                                    animate={{
+                                      scale: isHovered ? 1 : 0.9,
+                                      rotate: isHovered ? -2 : 0,
+                                      opacity: isHovered ? 1 : 0.8,
+                                    }}
+                                    className={`flex h-12 w-12 items-center justify-center rounded-xl md:h-14 md:w-14 ${
+                                      isSelected
+                                        ? "bg-gradient-to-br from-amber-500 to-yellow-500 shadow-lg shadow-amber-500/50"
+                                        : "border border-cyan-400/30 bg-gradient-to-br from-slate-900 to-black"
+                                    }`}
+                                  >
+                                    <Award
+                                      className={`h-7 w-7 ${
+                                        isSelected ? "text-black" : "text-cyan-300"
+                                      }`}
+                                    />
+                                  </motion.div>
+                                </div>
+                              </div>
                             </div>
-                          </div>
-                        </div>
-                      </motion.div>
-                    );
-                  })}
-                </AnimatePresence>
-              </div>
-            </motion.div>
-          ))}
+                          </motion.div>
+                        );
+                      })}
+                    </AnimatePresence>
+                  </div>
+                </div>
+              </motion.section>
+            ))}
+          </div>
         </div>
       </div>
 
-      {/* Floating Footer: мобилка — sticky, tablet/desktop — fixed */}
+      {/* ✅ РАБОЧАЯ ЛОГИКА: MOBILE = sticky, DESKTOP = fixed */}
       <AnimatePresence>
         {selectedServices.length > 0 && (
           <>
-            {/* MOBILE sticky + safe area */}
+            {/* MOBILE - sticky */}
             <motion.div
               initial={{ y: 50, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               exit={{ y: 50, opacity: 0 }}
               className="md:hidden sticky bottom-0 z-50 p-4"
-              style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 0.25rem)' }}
+              style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 0.25rem)" }}
             >
               <div className="mx-auto w-full max-w-screen-2xl">
                 <div className="relative">
@@ -446,7 +493,7 @@ export default function ServicesPage(): React.JSX.Element {
                     <div className="flex items-center justify-between gap-4">
                       <div>
                         <div className="text-sm text-gray-400 mb-1 font-medium">
-                          Выбрано услуг:{' '}
+                          Выбрано услуг:{" "}
                           <span className="text-amber-400 font-bold">{selectedServices.length}</span>
                         </div>
                         <div className="flex items-baseline gap-3">
@@ -478,13 +525,13 @@ export default function ServicesPage(): React.JSX.Element {
               </div>
             </motion.div>
 
-            {/* TABLET/DESKTOP fixed */}
+            {/* DESKTOP/TABLET - fixed */}
             <motion.div
               initial={{ y: 100, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               exit={{ y: 100, opacity: 0 }}
               className="hidden md:block fixed bottom-0 left-0 right-0 z-50 p-6"
-              style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
+              style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
             >
               <div className="mx-auto w-full max-w-screen-2xl">
                 <div className="relative">
@@ -493,7 +540,7 @@ export default function ServicesPage(): React.JSX.Element {
                     <div className="flex items-center justify-between flex-wrap gap-6">
                       <div>
                         <div className="text-sm text-gray-400 mb-2 font-medium">
-                          Выбрано услуг:{' '}
+                          Выбрано услуг:{" "}
                           <span className="text-amber-400 font-bold">{selectedServices.length}</span>
                         </div>
                         <div className="flex items-baseline gap-4">
@@ -546,9 +593,8 @@ export default function ServicesPage(): React.JSX.Element {
           background-size: 300% 300%;
         }
 
-        /* === добавлено ранее: фирменная подсветка для подзаголовков === */
-        .brand-subtitle{
-          background: linear-gradient(90deg, #8B5CF6 0%, #3B82F6 50%, #06B6D4 100%);
+        .brand-subtitle {
+          background: linear-gradient(90deg, #8b5cf6 0%, #3b82f6 50%, #06b6d4 100%);
           -webkit-background-clip: text;
           background-clip: text;
           color: transparent;
@@ -559,19 +605,22 @@ export default function ServicesPage(): React.JSX.Element {
           filter: drop-shadow(0 0 14px rgba(59, 130, 246, 0.15));
         }
         .brand-subtitle:hover,
-        .brand-subtitle:active{
+        .brand-subtitle:active {
           text-shadow:
             0 0 12px rgba(139, 92, 246, 0.45),
             0 0 22px rgba(59, 130, 246, 0.35),
             0 0 32px rgba(6, 182, 212, 0.28);
         }
-
-        /* === ДОБАВЛЕНО СЕЙЧАС: фирменный «прописной» шрифт === */
-        .brand-script{
-          font-family: var(--brand-script, 'YourBrandScript', 'Cormorant Infant', 'Playfair Display', serif);
+        .brand-script {
+          font-family: var(
+            --brand-script,
+            "Cormorant Infant",
+            "Playfair Display",
+            serif
+          );
           font-style: italic;
           font-weight: 600;
-          letter-spacing: .02em;
+          letter-spacing: 0.02em;
           -webkit-font-smoothing: antialiased;
           -moz-osx-font-smoothing: grayscale;
         }
@@ -579,6 +628,3149 @@ export default function ServicesPage(): React.JSX.Element {
     </div>
   );
 }
+
+
+
+
+// // src/app/booking/services/page.tsx
+// "use client";
+
+// import React, { useState, useEffect } from "react";
+// import { motion, AnimatePresence } from "framer-motion";
+// import { useRouter } from "next/navigation";
+// import { BookingAnimatedBackground } from "@/components/layout/BookingAnimatedBackground";
+// import PremiumProgressBar from "@/components/PremiumProgressBar";
+// import { Sparkles, Star, Zap, Award } from "lucide-react";
+
+// interface ServiceDto {
+//   id: string;
+//   title: string;
+//   description: string | null;
+//   durationMin: number;
+//   priceCents: number | null;
+//   parentId: string;
+// }
+
+// interface GroupDto {
+//   id: string;
+//   title: string;
+//   services: ServiceDto[];
+// }
+
+// interface PromotionDto {
+//   id: string;
+//   title: string;
+//   percent: number;
+//   isGlobal: boolean;
+// }
+
+// interface ApiResponse {
+//   groups: GroupDto[];
+//   promotions: PromotionDto[];
+// }
+
+// const BOOKING_STEPS = [
+//   { id: "services", label: "Услуга", icon: "✨" },
+//   { id: "master", label: "Мастер", icon: "👤" },
+//   { id: "calendar", label: "Дата", icon: "📅" },
+//   { id: "client", label: "Данные", icon: "📝" },
+//   { id: "verify", label: "Проверка", icon: "✓" },
+//   { id: "payment", label: "Оплата", icon: "💳" },
+// ];
+
+// const categoryIcons: Record<string, string> = {
+//   Маникюр: "💅",
+//   Стрижка: "✂️",
+//   Все: "✨",
+// };
+
+// export default function ServicesPage(): React.JSX.Element {
+//   const router = useRouter();
+//   const [groups, setGroups] = useState<GroupDto[]>([]);
+//   const [loading, setLoading] = useState<boolean>(true);
+//   const [error, setError] = useState<string | null>(null);
+//   const [selectedCategory, setSelectedCategory] = useState<string>("Все");
+//   const [selectedServices, setSelectedServices] = useState<string[]>([]);
+//   const [hoveredCard, setHoveredCard] = useState<string | null>(null);
+
+//   useEffect(() => {
+//     const fetchServices = async (): Promise<void> => {
+//       try {
+//         setLoading(true);
+//         const response = await fetch("/api/booking/services", { method: "POST" });
+//         if (!response.ok) throw new Error("Ошибка загрузки услуг");
+//         const data: ApiResponse = await response.json();
+//         setGroups(data.groups);
+//         setError(null);
+//       } catch (err) {
+//         console.error("Error fetching services:", err);
+//         setError("Не удалось загрузить услуги");
+//       } finally {
+//         setLoading(false);
+//       }
+//     };
+
+//     void fetchServices();
+//   }, []);
+
+//   const allServices = groups.flatMap((g) => g.services);
+//   const categories = ["Все", ...groups.map((g) => g.title)];
+
+//   const filteredGroups =
+//     selectedCategory === "Все" ? groups : groups.filter((g) => g.title === selectedCategory);
+
+//   const toggleService = (serviceId: string): void => {
+//     setSelectedServices((prev) =>
+//       prev.includes(serviceId) ? prev.filter((id) => id !== serviceId) : [...prev, serviceId],
+//     );
+//   };
+
+//   const totalPrice = allServices
+//     .filter((s) => selectedServices.includes(s.id))
+//     .reduce((sum, s) => sum + (s.priceCents ?? 0), 0);
+
+//   const totalDuration = allServices
+//     .filter((s) => selectedServices.includes(s.id))
+//     .reduce((sum, s) => sum + s.durationMin, 0);
+
+//   const handleContinue = (): void => {
+//     const params = new URLSearchParams();
+//     selectedServices.forEach((id) => params.append("s", id));
+//     router.push(`/booking/master?${params.toString()}`);
+//   };
+
+//   const formatPrice = (cents: number): string => (cents / 100).toLocaleString("ru-RU");
+
+//   /* ================= LOADING ================= */
+
+//   if (loading) {
+//     return (
+//       <div className="relative min-h-screen overflow-hidden bg-black">
+//         {/* 🔥 FIXED ХЕДЕР - z-50 чтобы был выше всего */}
+//         <div className="fixed inset-x-0 top-0 z-50">
+//           <PremiumProgressBar currentStep={0} steps={BOOKING_STEPS} />
+//         </div>
+
+//         <BookingAnimatedBackground />
+
+//         <div className="relative z-10 flex min-h-screen items-center justify-center px-4 pt-28">
+//           <motion.div
+//             initial={{ opacity: 0, scale: 0.85 }}
+//             animate={{ opacity: 1, scale: 1 }}
+//             className="relative text-center"
+//           >
+//             <div className="relative mx-auto h-24 w-24">
+//               <div className="absolute inset-0 rounded-full bg-gradient-to-r from-amber-500 via-yellow-500 to-amber-500 opacity-20 blur-xl animate-pulse" />
+//               <div className="absolute inset-0 rounded-full border-4 border-transparent border-t-amber-500 animate-spin" />
+//               <Sparkles className="absolute inset-0 m-auto h-10 w-10 text-amber-400 animate-pulse" />
+//             </div>
+//             <p className="mt-6 text-base font-medium text-white/70">Загружаем премиальные услуги…</p>
+//           </motion.div>
+//         </div>
+//       </div>
+//     );
+//   }
+
+//   /* ================= ERROR ================= */
+
+//   if (error) {
+//     return (
+//       <div className="relative min-h-screen overflow-hidden bg-black">
+//         {/* 🔥 FIXED ХЕДЕР - z-50 чтобы был выше всего */}
+//         <div className="fixed inset-x-0 top-0 z-50">
+//           <PremiumProgressBar currentStep={0} steps={BOOKING_STEPS} />
+//         </div>
+
+//         <BookingAnimatedBackground />
+
+//         <div className="relative z-10 flex min-h-screen items-center justify-center px-4 pt-28">
+//           <motion.div
+//             initial={{ opacity: 0, y: 20 }}
+//             animate={{ opacity: 1, y: 0 }}
+//             className="max-w-md text-center"
+//           >
+//             <div className="mb-4 text-6xl">⚠️</div>
+//             <h2 className="mb-4 text-2xl font-bold text-red-400">{error}</h2>
+//             <button
+//               onClick={() => window.location.reload()}
+//               className="rounded-2xl bg-gradient-to-r from-amber-500 to-yellow-500 px-8 py-4 font-bold text-black shadow-lg shadow-amber-500/50 transition-transform hover:scale-105"
+//             >
+//               Попробовать снова
+//             </button>
+//           </motion.div>
+//         </div>
+//       </div>
+//     );
+//   }
+
+//   /* ================= MAIN ================= */
+
+//   return (
+//     <div className="relative min-h-screen overflow-hidden bg-black">
+//       {/* 🔥 FIXED ХЕДЕР ВВЕРХУ - z-50 чтобы был выше карточки */}
+//       <div className="fixed inset-x-0 top-0 z-50">
+//         <PremiumProgressBar currentStep={0} steps={BOOKING_STEPS} />
+//       </div>
+
+//       {/* Анимированный фон */}
+//       <BookingAnimatedBackground />
+
+//       {/* Контент с отступом под хедер */}
+//       <div className="booking-content relative z-10 px-4 pt-28 pb-40 md:pt-32 md:pb-48">
+//         <div className="mx-auto w-full max-w-6xl xl:max-w-7xl">
+//           {/* HERO */}
+//           <motion.div
+//             initial={{ opacity: 0, y: 30 }}
+//             animate={{ opacity: 1, y: 0 }}
+//             className="mb-12 text-center md:mb-16"
+//           >
+//             <motion.div
+//               initial={{ scale: 0 }}
+//               animate={{ scale: 1 }}
+//               transition={{ delay: 0.2, type: "spring", stiffness: 220, damping: 18 }}
+//               className="mb-5 inline-block md:mb-6"
+//             >
+//               <div className="relative">
+//                 <div className="absolute inset-0 animate-pulse rounded-full bg-gradient-to-r from-amber-500 to-yellow-500 blur-xl opacity-60" />
+//                 <div className="relative flex items-center gap-2 rounded-full bg-gradient-to-r from-amber-500 via-yellow-500 to-amber-500 px-6 py-2.5 text-xs font-semibold uppercase text-black shadow-[0_10px_40px_rgba(245,197,24,0.55)] md:px-8 md:py-3 md:text-sm">
+//                   <Star className="h-4 w-4 md:h-5 md:h-5" />
+//                   <span>Premium Beauty Menu</span>
+//                   <Star className="h-4 w-4 md:h-5 md:h-5" />
+//                 </div>
+//               </div>
+//             </motion.div>
+
+//             <motion.h1
+//               initial={{ opacity: 0, y: 18 }}
+//               animate={{ opacity: 1, y: 0 }}
+//               transition={{ delay: 0.28 }}
+//               className="
+//                 mb-3
+//                 text-4xl font-serif italic leading-tight text-transparent
+//                 bg-gradient-to-r from-[#F5C518]/90 via-[#FFD166]/90 to-[#F5C518]/90 bg-clip-text
+//                 drop-shadow-[0_0_22px_rgba(245,197,24,0.45)]
+//                 md:mb-4 md:text-5xl
+//                 lg:text-5xl xl:text-6xl 2xl:text-7xl
+//               "
+//             >
+//               Выберите услугу
+//             </motion.h1>
+
+//             <motion.p
+//               initial={{ opacity: 0 }}
+//               animate={{ opacity: 1 }}
+//               transition={{ delay: 0.45 }}
+//               className="brand-script brand-subtitle mx-auto max-w-2xl text-base md:text-lg"
+//             >
+//               Создайте свой уникальный образ с нашими эксклюзивными премиум-услугами
+//             </motion.p>
+//           </motion.div>
+
+//           {/* КАТЕГОРИИ */}
+//           <motion.div
+//             initial={{ opacity: 0, y: 20 }}
+//             animate={{ opacity: 1, y: 0 }}
+//             transition={{ delay: 0.55 }}
+//             className="mb-10 flex flex-wrap justify-center gap-3 md:mb-14 md:gap-4"
+//           >
+//             {categories.map((category, index) => {
+//               const isActive = selectedCategory === category;
+//               return (
+//                 <motion.button
+//                   key={category}
+//                   initial={{ opacity: 0, scale: 0.9 }}
+//                   animate={{ opacity: 1, scale: 1 }}
+//                   transition={{ delay: 0.05 * index }}
+//                   whileHover={{ scale: 1.05, y: -2 }}
+//                   whileTap={{ scale: 0.96 }}
+//                   onClick={() => setSelectedCategory(category)}
+//                   className={`group relative rounded-2xl px-6 py-2.5 text-sm font-semibold transition-all duration-300 md:px-8 md:py-3 md:text-base ${
+//                     isActive ? "text-black" : "text-gray-200 hover:text-white"
+//                   }`}
+//                 >
+//                   <div
+//                     className={`absolute inset-0 rounded-2xl transition-all duration-300 ${
+//                       isActive
+//                         ? "bg-gradient-to-r from-amber-500 to-yellow-500 shadow-xl shadow-amber-500/50"
+//                         : "border border-white/12 bg-black/40 backdrop-blur-xl group-hover:border-amber-400/40 group-hover:bg-black/55"
+//                     }`}
+//                   />
+//                   <span className="relative flex items-center gap-2">
+//                     <span className="text-xl">{categoryIcons[category] || "✨"}</span>
+//                     {category}
+//                   </span>
+//                 </motion.button>
+//               );
+//             })}
+//           </motion.div>
+
+//           {/* ГРУППЫ И УСЛУГИ */}
+//           <div className="space-y-14 md:space-y-16">
+//             {filteredGroups.map((group, groupIndex) => (
+//               <motion.section
+//                 key={group.id}
+//                 initial={{ opacity: 0, y: 30 }}
+//                 animate={{ opacity: 1, y: 0 }}
+//                 transition={{ delay: groupIndex * 0.08 + 0.6 }}
+//                 className="relative"
+//               >
+//                 <div className="pointer-events-none absolute -inset-x-8 -top-4 -bottom-10 opacity-70">
+//                   <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-amber-500/40 to-transparent" />
+//                   <div className="absolute inset-x-10 bottom-0 h-32 rounded-[999px] bg-gradient-to-r from-black/0 via-black/75 to-black/0 blur-3xl" />
+//                 </div>
+
+//                 <div className="relative">
+//                   {/* заголовок группы */}
+//                   <div className="mb-6 flex items-center justify-center gap-4 md:mb-8">
+//                     <div className="h-px flex-1 bg-gradient-to-r from-transparent via-amber-500/30 to-transparent" />
+//                     <div className="inline-flex items-center gap-2 rounded-full border border-amber-500/40 bg-black/70 px-4 py-1.5 shadow-[0_0_22px_rgba(245,197,24,0.35)] backdrop-blur-xl">
+//                       <div className="relative flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-amber-500 to-yellow-500">
+//                         <Sparkles className="h-4 w-4 text-black" />
+//                       </div>
+//                       <h2 className="text-lg font-semibold tracking-wide text-amber-100 md:text-xl">
+//                         {group.title}
+//                       </h2>
+//                     </div>
+//                     <div className="h-px flex-1 bg-gradient-to-r from-transparent via-amber-500/30 to-transparent" />
+//                   </div>
+
+//                   {/* карточки */}
+//                   <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 md:gap-6">
+//                     <AnimatePresence mode="popLayout">
+//                       {group.services.map((service, index) => {
+//                         const isSelected = selectedServices.includes(service.id);
+//                         const isHovered = hoveredCard === service.id;
+//                         const price = service.priceCents
+//                           ? formatPrice(service.priceCents)
+//                           : "По запросу";
+
+//                         return (
+//                           <motion.div
+//                             key={service.id}
+//                             layout
+//                             initial={{ opacity: 0, scale: 0.9, y: 16 }}
+//                             animate={{ opacity: 1, scale: 1, y: 0 }}
+//                             exit={{ opacity: 0, scale: 0.92 }}
+//                             transition={{
+//                               delay: index * 0.04,
+//                               type: "spring",
+//                               stiffness: 260,
+//                               damping: 24,
+//                             }}
+//                             whileHover={{ y: -6, scale: 1.018 }}
+//                             onHoverStart={() => setHoveredCard(service.id)}
+//                             onHoverEnd={() => setHoveredCard(null)}
+//                             onClick={() => toggleService(service.id)}
+//                             className="group relative cursor-pointer"
+//                           >
+//                             {/* внешняя подсветка */}
+//                             <div
+//                               className={`absolute -inset-3 rounded-2xl blur-xl opacity-0 transition-opacity duration-500 group-hover:opacity-100 ${
+//                                 isSelected
+//                                   ? "bg-gradient-to-r from-amber-500/60 via-yellow-400/50 to-amber-500/60"
+//                                   : "bg-gradient-to-r from-cyan-500/25 via-emerald-400/15 to-amber-400/25"
+//                               }`}
+//                             />
+
+//                             {/* карточка */}
+//                             <div
+//                               className={`relative overflow-hidden rounded-2xl border backdrop-blur-xl transition-all duration-500 ${
+//                                 isSelected
+//                                   ? "border-amber-400/80 bg-gradient-to-br from-black/70 via-amber-900/25 to-black/80 shadow-[0_20px_60px_rgba(0,0,0,0.9)]"
+//                                   : "border-white/14 bg-gradient-to-br from-black/65 via-slate-950/85 to-black/90 shadow-[0_20px_55px_rgba(0,0,0,0.85)]"
+//                               }`}
+//                             >
+//                               <div className="pointer-events-none absolute inset-0 opacity-40">
+//                                 <motion.div
+//                                   animate={{
+//                                     backgroundPosition: ["0% 0%", "100% 100%", "0% 0%"],
+//                                   }}
+//                                   transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+//                                   className="absolute inset-0"
+//                                   style={{
+//                                     backgroundImage:
+//                                       "radial-gradient(circle at 0% 0%, rgba(56,189,248,0.18) 0, transparent 55%), radial-gradient(circle at 100% 100%, rgba(251,191,36,0.22) 0, transparent 55%)",
+//                                     backgroundSize: "200% 200%",
+//                                   }}
+//                                 />
+//                               </div>
+
+//                               {/* контент карточки */}
+//                               <div className="relative p-5 md:p-6">
+//                                 <div className="mb-4 flex items-start justify-between">
+//                                   {/* чекбокс */}
+//                                   <motion.div
+//                                     initial={false}
+//                                     animate={{
+//                                       scale: isSelected ? 1.08 : 1,
+//                                       rotate: isSelected ? 360 : 0,
+//                                     }}
+//                                     transition={{
+//                                       type: "spring",
+//                                       stiffness: 260,
+//                                       damping: 18,
+//                                     }}
+//                                     className={`flex h-7 w-7 items-center justify-center rounded-full border-2 ${
+//                                       isSelected
+//                                         ? "border-amber-400 bg-gradient-to-br from-amber-500 to-yellow-500 shadow-lg shadow-amber-500/50"
+//                                         : "border-white/40 bg-black/40"
+//                                     }`}
+//                                   >
+//                                     {isSelected && (
+//                                       <motion.svg
+//                                         initial={{ scale: 0, rotate: -180 }}
+//                                         animate={{ scale: 1, rotate: 0 }}
+//                                         className="h-4 w-4 text-black"
+//                                         fill="none"
+//                                         viewBox="0 0 24 24"
+//                                         stroke="currentColor"
+//                                       >
+//                                         <path
+//                                           strokeLinecap="round"
+//                                           strokeLinejoin="round"
+//                                           strokeWidth={3}
+//                                           d="M5 13l4 4L19 7"
+//                                         />
+//                                       </motion.svg>
+//                                     )}
+//                                   </motion.div>
+
+//                                   {/* бейдж PREMIUM */}
+//                                   <motion.div
+//                                     animate={{ rotate: [0, 3, -3, 0] }}
+//                                     transition={{
+//                                       duration: 2,
+//                                       repeat: Infinity,
+//                                       repeatDelay: 3,
+//                                     }}
+//                                     className="relative"
+//                                   >
+//                                     <div className="absolute inset-0 rounded-full bg-gradient-to-r from-amber-500 to-yellow-500 blur-md opacity-50" />
+//                                     <div className="relative inline-flex items-center gap-1 rounded-full border border-amber-500/60 bg-black/80 px-2.5 py-1">
+//                                       <Sparkles className="h-3 w-3 text-amber-300" />
+//                                       <span className="text-[10px] font-semibold uppercase tracking-wide text-amber-100">
+//                                         premium
+//                                       </span>
+//                                     </div>
+//                                   </motion.div>
+//                                 </div>
+
+//                                 <h3
+//                                   className={`mb-2 text-lg font-semibold transition-all md:text-xl ${
+//                                     isSelected || isHovered
+//                                       ? "bg-gradient-to-r from-amber-300 via-yellow-200 to-amber-400 bg-clip-text text-transparent"
+//                                       : "text-white"
+//                                   }`}
+//                                 >
+//                                   {service.title}
+//                                 </h3>
+
+//                                 {service.description && (
+//                                   <p className="mb-5 line-clamp-2 text-xs font-light text-gray-300/80 md:text-sm">
+//                                     {service.description}
+//                                   </p>
+//                                 )}
+
+//                                 <div className="flex items-end justify-between gap-3">
+//                                   <div>
+//                                     <div className="mb-0.5 flex items-baseline gap-1.5">
+//                                       <span className="bg-gradient-to-r from-amber-300 to-yellow-400 bg-clip-text text-2xl font-extrabold text-transparent md:text-3xl">
+//                                         {price}
+//                                       </span>
+//                                       <span className="text-lg font-bold text-amber-300 md:text-xl">
+//                                         €
+//                                       </span>
+//                                     </div>
+//                                     <div className="flex items-center gap-2 text-xs text-gray-400 md:text-sm">
+//                                       <Zap className="h-4 w-4 text-amber-300" />
+//                                       <span>{service.durationMin} минут</span>
+//                                     </div>
+//                                   </div>
+
+//                                   <motion.div
+//                                     animate={{
+//                                       scale: isHovered ? 1 : 0.9,
+//                                       rotate: isHovered ? -2 : 0,
+//                                       opacity: isHovered ? 1 : 0.8,
+//                                     }}
+//                                     className={`flex h-12 w-12 items-center justify-center rounded-xl md:h-14 md:w-14 ${
+//                                       isSelected
+//                                         ? "bg-gradient-to-br from-amber-500 to-yellow-500 shadow-lg shadow-amber-500/50"
+//                                         : "border border-cyan-400/30 bg-gradient-to-br from-slate-900 to-black"
+//                                     }`}
+//                                   >
+//                                     <Award
+//                                       className={`h-7 w-7 ${
+//                                         isSelected ? "text-black" : "text-cyan-300"
+//                                       }`}
+//                                     />
+//                                   </motion.div>
+//                                 </div>
+//                               </div>
+//                             </div>
+//                           </motion.div>
+//                         );
+//                       })}
+//                     </AnimatePresence>
+//                   </div>
+//                 </div>
+//               </motion.section>
+//             ))}
+//           </div>
+//         </div>
+//       </div>
+
+//       {/* 🔥 FLOATING FOOTER - FIXED ВНИЗУ НА ВСЕХ УСТРОЙСТВАХ */}
+//       <AnimatePresence>
+//         {selectedServices.length > 0 && (
+//           <>
+//             {/* Dark overlay for better visibility - БЕЗ BLUR! */}
+//             <motion.div
+//               initial={{ opacity: 0 }}
+//               animate={{ opacity: 1 }}
+//               exit={{ opacity: 0 }}
+//               transition={{ duration: 0.3 }}
+//               className="fixed inset-0 bg-black/40 z-30 pointer-events-none"
+//             />
+
+//             {/* Floating Card - FIXED for all devices */}
+//             <motion.div
+//               initial={{ y: "100%", opacity: 0 }}
+//               animate={{ y: 0, opacity: 1 }}
+//               exit={{ y: "100%", opacity: 0 }}
+//               transition={{ type: "spring", stiffness: 300, damping: 30 }}
+//               className="fixed inset-x-0 bottom-0 z-40"
+//             >
+//               <div className="container mx-auto px-4 pb-6">
+//                 <div className="relative rounded-3xl overflow-hidden shadow-[0_-20px_60px_rgba(0,0,0,0.8)]">
+//                   {/* Glassmorphism Background */}
+//                   <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-gray-900/95 to-gray-800/95 backdrop-blur-2xl" />
+
+//                   {/* Animated Border Glow */}
+//                   <div className="absolute inset-0 bg-gradient-to-r from-amber-500/30 via-yellow-400/30 to-amber-500/30 opacity-50 blur-xl animate-pulse" />
+
+//                   {/* Content */}
+//                   <div className="relative z-10 p-5 md:p-7">
+//                     <div className="flex items-center justify-between gap-4">
+//                       <div className="flex-1 min-w-0">
+//                         <div className="mb-1 text-xs font-medium text-gray-300/80">
+//                           Выбрано услуг:{" "}
+//                           <span className="font-bold text-amber-300">{selectedServices.length}</span>
+//                         </div>
+//                         <div className="flex items-baseline gap-2 md:gap-3">
+//                           <span className="bg-gradient-to-r from-amber-300 to-yellow-400 bg-clip-text text-2xl md:text-4xl font-black text-transparent">
+//                             {formatPrice(totalPrice)}
+//                           </span>
+//                           <span className="text-xl md:text-2xl font-bold text-amber-300">€</span>
+//                           <span className="text-xs md:text-base text-gray-400">• {totalDuration} мин</span>
+//                         </div>
+//                       </div>
+
+//                       <motion.button
+//                         whileHover={{ scale: 1.05 }}
+//                         whileTap={{ scale: 0.95 }}
+//                         onClick={handleContinue}
+//                         className="group relative shrink-0"
+//                       >
+//                         <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-amber-500 to-yellow-500 blur-lg transition-all group-hover:blur-xl" />
+//                         <div className="relative flex items-center gap-2 rounded-2xl bg-gradient-to-r from-amber-500 to-yellow-500 px-5 md:px-10 py-3 md:py-4 text-sm md:text-base font-semibold text-black shadow-2xl">
+//                           <span>Продолжить</span>
+//                           <motion.svg
+//                             animate={{ x: [0, 3, 0] }}
+//                             transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+//                             className="h-5 w-5"
+//                             fill="none"
+//                             viewBox="0 0 24 24"
+//                             stroke="currentColor"
+//                           >
+//                             <path
+//                               strokeLinecap="round"
+//                               strokeLinejoin="round"
+//                               strokeWidth={2}
+//                               d="M13 7l5 5m0 0-5 5m5-5H6"
+//                             />
+//                           </motion.svg>
+//                         </div>
+//                       </motion.button>
+//                     </div>
+//                   </div>
+//                 </div>
+//               </div>
+//             </motion.div>
+//           </>
+//         )}
+//       </AnimatePresence>
+
+//       {/* Глобальные стили бренда */}
+//       <style jsx global>{`
+//         @keyframes gradient {
+//           0%,
+//           100% {
+//             background-position: 0% 50%;
+//           }
+//           50% {
+//             background-position: 100% 50%;
+//           }
+//         }
+//         .animate-gradient {
+//           background-size: 200% 200%;
+//           animation: gradient 3s ease infinite;
+//         }
+//         .bg-300\% {
+//           background-size: 300% 300%;
+//         }
+
+//         .brand-subtitle {
+//           background: linear-gradient(90deg, #8b5cf6 0%, #3b82f6 50%, #06b6d4 100%);
+//           -webkit-background-clip: text;
+//           background-clip: text;
+//           color: transparent;
+//           text-shadow:
+//             0 0 10px rgba(139, 92, 246, 0.35),
+//             0 0 18px rgba(59, 130, 246, 0.25),
+//             0 0 28px rgba(6, 182, 212, 0.22);
+//           filter: drop-shadow(0 0 14px rgba(59, 130, 246, 0.15));
+//         }
+//         .brand-subtitle:hover,
+//         .brand-subtitle:active {
+//           text-shadow:
+//             0 0 12px rgba(139, 92, 246, 0.45),
+//             0 0 22px rgba(59, 130, 246, 0.35),
+//             0 0 32px rgba(6, 182, 212, 0.28);
+//         }
+//         .brand-script {
+//           font-family: var(
+//             --brand-script,
+//             "Cormorant Infant",
+//             "Playfair Display",
+//             serif
+//           );
+//           font-style: italic;
+//           font-weight: 600;
+//           letter-spacing: 0.02em;
+//           -webkit-font-smoothing: antialiased;
+//           -moz-osx-font-smoothing: grayscale;
+//         }
+//       `}</style>
+//     </div>
+//   );
+// }
+
+// // src/app/booking/services/page.tsx
+// "use client";
+
+// import React, { useState, useEffect } from "react";
+// import { motion, AnimatePresence } from "framer-motion";
+// import { useRouter } from "next/navigation";
+// import { BookingAnimatedBackground } from "@/components/layout/BookingAnimatedBackground";
+// import PremiumProgressBar from "@/components/PremiumProgressBar";
+// import { Sparkles, Star, Zap, Award } from "lucide-react";
+
+// interface ServiceDto {
+//   id: string;
+//   title: string;
+//   description: string | null;
+//   durationMin: number;
+//   priceCents: number | null;
+//   parentId: string;
+// }
+
+// interface GroupDto {
+//   id: string;
+//   title: string;
+//   services: ServiceDto[];
+// }
+
+// interface PromotionDto {
+//   id: string;
+//   title: string;
+//   percent: number;
+//   isGlobal: boolean;
+// }
+
+// interface ApiResponse {
+//   groups: GroupDto[];
+//   promotions: PromotionDto[];
+// }
+
+// const BOOKING_STEPS = [
+//   { id: "services", label: "Услуга", icon: "✨" },
+//   { id: "master", label: "Мастер", icon: "👤" },
+//   { id: "calendar", label: "Дата", icon: "📅" },
+//   { id: "client", label: "Данные", icon: "📝" },
+//   { id: "verify", label: "Проверка", icon: "✓" },
+//   { id: "payment", label: "Оплата", icon: "💳" },
+// ];
+
+// const categoryIcons: Record<string, string> = {
+//   Маникюр: "💅",
+//   Стрижка: "✂️",
+//   Все: "✨",
+// };
+
+// export default function ServicesPage(): React.JSX.Element {
+//   const router = useRouter();
+//   const [groups, setGroups] = useState<GroupDto[]>([]);
+//   const [loading, setLoading] = useState<boolean>(true);
+//   const [error, setError] = useState<string | null>(null);
+//   const [selectedCategory, setSelectedCategory] = useState<string>("Все");
+//   const [selectedServices, setSelectedServices] = useState<string[]>([]);
+//   const [hoveredCard, setHoveredCard] = useState<string | null>(null);
+
+//   useEffect(() => {
+//     const fetchServices = async (): Promise<void> => {
+//       try {
+//         setLoading(true);
+//         const response = await fetch("/api/booking/services", { method: "POST" });
+//         if (!response.ok) throw new Error("Ошибка загрузки услуг");
+//         const data: ApiResponse = await response.json();
+//         setGroups(data.groups);
+//         setError(null);
+//       } catch (err) {
+//         console.error("Error fetching services:", err);
+//         setError("Не удалось загрузить услуги");
+//       } finally {
+//         setLoading(false);
+//       }
+//     };
+
+//     void fetchServices();
+//   }, []);
+
+//   const allServices = groups.flatMap((g) => g.services);
+//   const categories = ["Все", ...groups.map((g) => g.title)];
+
+//   const filteredGroups =
+//     selectedCategory === "Все" ? groups : groups.filter((g) => g.title === selectedCategory);
+
+//   const toggleService = (serviceId: string): void => {
+//     setSelectedServices((prev) =>
+//       prev.includes(serviceId) ? prev.filter((id) => id !== serviceId) : [...prev, serviceId],
+//     );
+//   };
+
+//   const totalPrice = allServices
+//     .filter((s) => selectedServices.includes(s.id))
+//     .reduce((sum, s) => sum + (s.priceCents ?? 0), 0);
+
+//   const totalDuration = allServices
+//     .filter((s) => selectedServices.includes(s.id))
+//     .reduce((sum, s) => sum + s.durationMin, 0);
+
+//   const handleContinue = (): void => {
+//     const params = new URLSearchParams();
+//     selectedServices.forEach((id) => params.append("s", id));
+//     router.push(`/booking/master?${params.toString()}`);
+//   };
+
+//   const formatPrice = (cents: number): string => (cents / 100).toLocaleString("ru-RU");
+
+//   /* ================= LOADING ================= */
+
+//   if (loading) {
+//     return (
+//       <div className="relative min-h-screen overflow-hidden bg-black">
+//         {/* 🔥 FIXED ХЕДЕР */}
+//         <div className="booking-progress-wrap fixed inset-x-0 top-0 z-40">
+//           <PremiumProgressBar currentStep={0} steps={BOOKING_STEPS} />
+//         </div>
+
+//         <BookingAnimatedBackground />
+
+//         <div className="relative z-10 flex min-h-screen items-center justify-center px-4 pt-28">
+//           <motion.div
+//             initial={{ opacity: 0, scale: 0.85 }}
+//             animate={{ opacity: 1, scale: 1 }}
+//             className="relative text-center"
+//           >
+//             <div className="relative mx-auto h-24 w-24">
+//               <div className="absolute inset-0 rounded-full bg-gradient-to-r from-amber-500 via-yellow-500 to-amber-500 opacity-20 blur-xl animate-pulse" />
+//               <div className="absolute inset-0 rounded-full border-4 border-transparent border-t-amber-500 animate-spin" />
+//               <Sparkles className="absolute inset-0 m-auto h-10 w-10 text-amber-400 animate-pulse" />
+//             </div>
+//             <p className="mt-6 text-base font-medium text-white/70">Загружаем премиальные услуги…</p>
+//           </motion.div>
+//         </div>
+//       </div>
+//     );
+//   }
+
+//   /* ================= ERROR ================= */
+
+//   if (error) {
+//     return (
+//       <div className="relative min-h-screen overflow-hidden bg-black">
+//         {/* 🔥 FIXED ХЕДЕР */}
+//         <div className="booking-progress-wrap fixed inset-x-0 top-0 z-40">
+//           <PremiumProgressBar currentStep={0} steps={BOOKING_STEPS} />
+//         </div>
+
+//         <BookingAnimatedBackground />
+
+//         <div className="relative z-10 flex min-h-screen items-center justify-center px-4 pt-28">
+//           <motion.div
+//             initial={{ opacity: 0, y: 20 }}
+//             animate={{ opacity: 1, y: 0 }}
+//             className="max-w-md text-center"
+//           >
+//             <div className="mb-4 text-6xl">⚠️</div>
+//             <h2 className="mb-4 text-2xl font-bold text-red-400">{error}</h2>
+//             <button
+//               onClick={() => window.location.reload()}
+//               className="rounded-2xl bg-gradient-to-r from-amber-500 to-yellow-500 px-8 py-4 font-bold text-black shadow-lg shadow-amber-500/50 transition-transform hover:scale-105"
+//             >
+//               Попробовать снова
+//             </button>
+//           </motion.div>
+//         </div>
+//       </div>
+//     );
+//   }
+
+//   /* ================= MAIN ================= */
+
+//   return (
+//     <div className="relative min-h-screen overflow-hidden bg-black">
+//       {/* 🔥 FIXED ХЕДЕР ВВЕРХУ */}
+//       <div className="booking-progress-wrap fixed inset-x-0 top-0 z-40">
+//         <PremiumProgressBar currentStep={0} steps={BOOKING_STEPS} />
+//       </div>
+
+//       {/* Анимированный фон */}
+//       <BookingAnimatedBackground />
+
+//       {/* Контент с отступом под хедер */}
+//       <div className="booking-content relative z-10 px-4 pt-28 pb-40 md:pt-32 md:pb-48">
+//         <div className="mx-auto w-full max-w-6xl xl:max-w-7xl">
+//           {/* HERO */}
+//           <motion.div
+//             initial={{ opacity: 0, y: 30 }}
+//             animate={{ opacity: 1, y: 0 }}
+//             className="mb-12 text-center md:mb-16"
+//           >
+//             <motion.div
+//               initial={{ scale: 0 }}
+//               animate={{ scale: 1 }}
+//               transition={{ delay: 0.2, type: "spring", stiffness: 220, damping: 18 }}
+//               className="mb-5 inline-block md:mb-6"
+//             >
+//               <div className="relative">
+//                 <div className="absolute inset-0 animate-pulse rounded-full bg-gradient-to-r from-amber-500 to-yellow-500 blur-xl opacity-60" />
+//                 <div className="relative flex items-center gap-2 rounded-full bg-gradient-to-r from-amber-500 via-yellow-500 to-amber-500 px-6 py-2.5 text-xs font-semibold uppercase text-black shadow-[0_10px_40px_rgba(245,197,24,0.55)] md:px-8 md:py-3 md:text-sm">
+//                   <Star className="h-4 w-4 md:h-5 md:h-5" />
+//                   <span>Premium Beauty Menu</span>
+//                   <Star className="h-4 w-4 md:h-5 md:h-5" />
+//                 </div>
+//               </div>
+//             </motion.div>
+
+//             <motion.h1
+//               initial={{ opacity: 0, y: 18 }}
+//               animate={{ opacity: 1, y: 0 }}
+//               transition={{ delay: 0.28 }}
+//               className="
+//                 mb-3
+//                 text-4xl font-serif italic leading-tight text-transparent
+//                 bg-gradient-to-r from-[#F5C518]/90 via-[#FFD166]/90 to-[#F5C518]/90 bg-clip-text
+//                 drop-shadow-[0_0_22px_rgba(245,197,24,0.45)]
+//                 md:mb-4 md:text-5xl
+//                 lg:text-5xl xl:text-6xl 2xl:text-7xl
+//               "
+//             >
+//               Выберите услугу
+//             </motion.h1>
+
+//             <motion.p
+//               initial={{ opacity: 0 }}
+//               animate={{ opacity: 1 }}
+//               transition={{ delay: 0.45 }}
+//               className="brand-script brand-subtitle mx-auto max-w-2xl text-base md:text-lg"
+//             >
+//               Создайте свой уникальный образ с нашими эксклюзивными премиум-услугами
+//             </motion.p>
+//           </motion.div>
+
+//           {/* КАТЕГОРИИ */}
+//           <motion.div
+//             initial={{ opacity: 0, y: 20 }}
+//             animate={{ opacity: 1, y: 0 }}
+//             transition={{ delay: 0.55 }}
+//             className="mb-10 flex flex-wrap justify-center gap-3 md:mb-14 md:gap-4"
+//           >
+//             {categories.map((category, index) => {
+//               const isActive = selectedCategory === category;
+//               return (
+//                 <motion.button
+//                   key={category}
+//                   initial={{ opacity: 0, scale: 0.9 }}
+//                   animate={{ opacity: 1, scale: 1 }}
+//                   transition={{ delay: 0.05 * index }}
+//                   whileHover={{ scale: 1.05, y: -2 }}
+//                   whileTap={{ scale: 0.96 }}
+//                   onClick={() => setSelectedCategory(category)}
+//                   className={`group relative rounded-2xl px-6 py-2.5 text-sm font-semibold transition-all duration-300 md:px-8 md:py-3 md:text-base ${
+//                     isActive ? "text-black" : "text-gray-200 hover:text-white"
+//                   }`}
+//                 >
+//                   <div
+//                     className={`absolute inset-0 rounded-2xl transition-all duration-300 ${
+//                       isActive
+//                         ? "bg-gradient-to-r from-amber-500 to-yellow-500 shadow-xl shadow-amber-500/50"
+//                         : "border border-white/12 bg-black/40 backdrop-blur-xl group-hover:border-amber-400/40 group-hover:bg-black/55"
+//                     }`}
+//                   />
+//                   <span className="relative flex items-center gap-2">
+//                     <span className="text-xl">{categoryIcons[category] || "✨"}</span>
+//                     {category}
+//                   </span>
+//                 </motion.button>
+//               );
+//             })}
+//           </motion.div>
+
+//           {/* ГРУППЫ И УСЛУГИ */}
+//           <div className="space-y-14 md:space-y-16">
+//             {filteredGroups.map((group, groupIndex) => (
+//               <motion.section
+//                 key={group.id}
+//                 initial={{ opacity: 0, y: 30 }}
+//                 animate={{ opacity: 1, y: 0 }}
+//                 transition={{ delay: groupIndex * 0.08 + 0.6 }}
+//                 className="relative"
+//               >
+//                 <div className="pointer-events-none absolute -inset-x-8 -top-4 -bottom-10 opacity-70">
+//                   <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-amber-500/40 to-transparent" />
+//                   <div className="absolute inset-x-10 bottom-0 h-32 rounded-[999px] bg-gradient-to-r from-black/0 via-black/75 to-black/0 blur-3xl" />
+//                 </div>
+
+//                 <div className="relative">
+//                   {/* заголовок группы */}
+//                   <div className="mb-6 flex items-center justify-center gap-4 md:mb-8">
+//                     <div className="h-px flex-1 bg-gradient-to-r from-transparent via-amber-500/30 to-transparent" />
+//                     <div className="inline-flex items-center gap-2 rounded-full border border-amber-500/40 bg-black/70 px-4 py-1.5 shadow-[0_0_22px_rgba(245,197,24,0.35)] backdrop-blur-xl">
+//                       <div className="relative flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-amber-500 to-yellow-500">
+//                         <Sparkles className="h-4 w-4 text-black" />
+//                       </div>
+//                       <h2 className="text-lg font-semibold tracking-wide text-amber-100 md:text-xl">
+//                         {group.title}
+//                       </h2>
+//                     </div>
+//                     <div className="h-px flex-1 bg-gradient-to-r from-transparent via-amber-500/30 to-transparent" />
+//                   </div>
+
+//                   {/* карточки */}
+//                   <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 md:gap-6">
+//                     <AnimatePresence mode="popLayout">
+//                       {group.services.map((service, index) => {
+//                         const isSelected = selectedServices.includes(service.id);
+//                         const isHovered = hoveredCard === service.id;
+//                         const price = service.priceCents
+//                           ? formatPrice(service.priceCents)
+//                           : "По запросу";
+
+//                         return (
+//                           <motion.div
+//                             key={service.id}
+//                             layout
+//                             initial={{ opacity: 0, scale: 0.9, y: 16 }}
+//                             animate={{ opacity: 1, scale: 1, y: 0 }}
+//                             exit={{ opacity: 0, scale: 0.92 }}
+//                             transition={{
+//                               delay: index * 0.04,
+//                               type: "spring",
+//                               stiffness: 260,
+//                               damping: 24,
+//                             }}
+//                             whileHover={{ y: -6, scale: 1.018 }}
+//                             onHoverStart={() => setHoveredCard(service.id)}
+//                             onHoverEnd={() => setHoveredCard(null)}
+//                             onClick={() => toggleService(service.id)}
+//                             className="group relative cursor-pointer"
+//                           >
+//                             {/* внешняя подсветка */}
+//                             <div
+//                               className={`absolute -inset-3 rounded-2xl blur-xl opacity-0 transition-opacity duration-500 group-hover:opacity-100 ${
+//                                 isSelected
+//                                   ? "bg-gradient-to-r from-amber-500/60 via-yellow-400/50 to-amber-500/60"
+//                                   : "bg-gradient-to-r from-cyan-500/25 via-emerald-400/15 to-amber-400/25"
+//                               }`}
+//                             />
+
+//                             {/* карточка */}
+//                             <div
+//                               className={`relative overflow-hidden rounded-2xl border backdrop-blur-xl transition-all duration-500 ${
+//                                 isSelected
+//                                   ? "border-amber-400/80 bg-gradient-to-br from-black/70 via-amber-900/25 to-black/80 shadow-[0_20px_60px_rgba(0,0,0,0.9)]"
+//                                   : "border-white/14 bg-gradient-to-br from-black/65 via-slate-950/85 to-black/90 shadow-[0_20px_55px_rgba(0,0,0,0.85)]"
+//                               }`}
+//                             >
+//                               <div className="pointer-events-none absolute inset-0 opacity-40">
+//                                 <motion.div
+//                                   animate={{
+//                                     backgroundPosition: ["0% 0%", "100% 100%", "0% 0%"],
+//                                   }}
+//                                   transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+//                                   className="absolute inset-0"
+//                                   style={{
+//                                     backgroundImage:
+//                                       "radial-gradient(circle at 0% 0%, rgba(56,189,248,0.18) 0, transparent 55%), radial-gradient(circle at 100% 100%, rgba(251,191,36,0.22) 0, transparent 55%)",
+//                                     backgroundSize: "200% 200%",
+//                                   }}
+//                                 />
+//                               </div>
+
+//                               {/* контент карточки */}
+//                               <div className="relative p-5 md:p-6">
+//                                 <div className="mb-4 flex items-start justify-between">
+//                                   {/* чекбокс */}
+//                                   <motion.div
+//                                     initial={false}
+//                                     animate={{
+//                                       scale: isSelected ? 1.08 : 1,
+//                                       rotate: isSelected ? 360 : 0,
+//                                     }}
+//                                     transition={{
+//                                       type: "spring",
+//                                       stiffness: 260,
+//                                       damping: 18,
+//                                     }}
+//                                     className={`flex h-7 w-7 items-center justify-center rounded-full border-2 ${
+//                                       isSelected
+//                                         ? "border-amber-400 bg-gradient-to-br from-amber-500 to-yellow-500 shadow-lg shadow-amber-500/50"
+//                                         : "border-white/40 bg-black/40"
+//                                     }`}
+//                                   >
+//                                     {isSelected && (
+//                                       <motion.svg
+//                                         initial={{ scale: 0, rotate: -180 }}
+//                                         animate={{ scale: 1, rotate: 0 }}
+//                                         className="h-4 w-4 text-black"
+//                                         fill="none"
+//                                         viewBox="0 0 24 24"
+//                                         stroke="currentColor"
+//                                       >
+//                                         <path
+//                                           strokeLinecap="round"
+//                                           strokeLinejoin="round"
+//                                           strokeWidth={3}
+//                                           d="M5 13l4 4L19 7"
+//                                         />
+//                                       </motion.svg>
+//                                     )}
+//                                   </motion.div>
+
+//                                   {/* бейдж PREMIUM */}
+//                                   <motion.div
+//                                     animate={{ rotate: [0, 3, -3, 0] }}
+//                                     transition={{
+//                                       duration: 2,
+//                                       repeat: Infinity,
+//                                       repeatDelay: 3,
+//                                     }}
+//                                     className="relative"
+//                                   >
+//                                     <div className="absolute inset-0 rounded-full bg-gradient-to-r from-amber-500 to-yellow-500 blur-md opacity-50" />
+//                                     <div className="relative inline-flex items-center gap-1 rounded-full border border-amber-500/60 bg-black/80 px-2.5 py-1">
+//                                       <Sparkles className="h-3 w-3 text-amber-300" />
+//                                       <span className="text-[10px] font-semibold uppercase tracking-wide text-amber-100">
+//                                         premium
+//                                       </span>
+//                                     </div>
+//                                   </motion.div>
+//                                 </div>
+
+//                                 <h3
+//                                   className={`mb-2 text-lg font-semibold transition-all md:text-xl ${
+//                                     isSelected || isHovered
+//                                       ? "bg-gradient-to-r from-amber-300 via-yellow-200 to-amber-400 bg-clip-text text-transparent"
+//                                       : "text-white"
+//                                   }`}
+//                                 >
+//                                   {service.title}
+//                                 </h3>
+
+//                                 {service.description && (
+//                                   <p className="mb-5 line-clamp-2 text-xs font-light text-gray-300/80 md:text-sm">
+//                                     {service.description}
+//                                   </p>
+//                                 )}
+
+//                                 <div className="flex items-end justify-between gap-3">
+//                                   <div>
+//                                     <div className="mb-0.5 flex items-baseline gap-1.5">
+//                                       <span className="bg-gradient-to-r from-amber-300 to-yellow-400 bg-clip-text text-2xl font-extrabold text-transparent md:text-3xl">
+//                                         {price}
+//                                       </span>
+//                                       <span className="text-lg font-bold text-amber-300 md:text-xl">
+//                                         €
+//                                       </span>
+//                                     </div>
+//                                     <div className="flex items-center gap-2 text-xs text-gray-400 md:text-sm">
+//                                       <Zap className="h-4 w-4 text-amber-300" />
+//                                       <span>{service.durationMin} минут</span>
+//                                     </div>
+//                                   </div>
+
+//                                   <motion.div
+//                                     animate={{
+//                                       scale: isHovered ? 1 : 0.9,
+//                                       rotate: isHovered ? -2 : 0,
+//                                       opacity: isHovered ? 1 : 0.8,
+//                                     }}
+//                                     className={`flex h-12 w-12 items-center justify-center rounded-xl md:h-14 md:w-14 ${
+//                                       isSelected
+//                                         ? "bg-gradient-to-br from-amber-500 to-yellow-500 shadow-lg shadow-amber-500/50"
+//                                         : "border border-cyan-400/30 bg-gradient-to-br from-slate-900 to-black"
+//                                     }`}
+//                                   >
+//                                     <Award
+//                                       className={`h-7 w-7 ${
+//                                         isSelected ? "text-black" : "text-cyan-300"
+//                                       }`}
+//                                     />
+//                                   </motion.div>
+//                                 </div>
+//                               </div>
+//                             </div>
+//                           </motion.div>
+//                         );
+//                       })}
+//                     </AnimatePresence>
+//                   </div>
+//                 </div>
+//               </motion.section>
+//             ))}
+//           </div>
+//         </div>
+//       </div>
+
+//       {/* 🔥 FLOATING FOOTER - FIXED ВНИЗУ */}
+//       <AnimatePresence>
+//         {selectedServices.length > 0 && (
+//           <>
+//             {/* MOBILE sticky внизу */}
+//             <motion.div
+//               initial={{ y: 100, opacity: 0 }}
+//               animate={{ y: 0, opacity: 1 }}
+//               exit={{ y: 100, opacity: 0 }}
+//               transition={{ type: "spring", stiffness: 300, damping: 30 }}
+//               className="sticky bottom-0 z-30 p-4 md:hidden"
+//               style={{
+//                 paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 1rem)",
+//               }}
+//             >
+//               <div className="mx-auto w-full max-w-screen-2xl">
+//                 <div className="relative">
+//                   <div className="absolute -inset-4 rounded-3xl bg-gradient-to-r from-amber-500 to-yellow-500 blur-xl opacity-60" />
+//                   <div className="relative rounded-3xl border border-amber-500/60 bg-black/95 p-5 backdrop-blur-2xl shadow-[0_-20px_60px_rgba(0,0,0,0.8)]">
+//                     <div className="flex items-center justify-between gap-4">
+//                       <div>
+//                         <div className="mb-1 text-xs font-medium text-gray-300/80">
+//                           Выбрано услуг:{" "}
+//                           <span className="font-bold text-amber-300">{selectedServices.length}</span>
+//                         </div>
+//                         <div className="flex items-baseline gap-3">
+//                           <span className="bg-gradient-to-r from-amber-300 to-yellow-400 bg-clip-text text-3xl font-black text-transparent">
+//                             {formatPrice(totalPrice)}
+//                           </span>
+//                           <span className="text-2xl font-bold text-amber-300">€</span>
+//                           <span className="text-sm text-gray-400">• {totalDuration} мин</span>
+//                         </div>
+//                       </div>
+
+//                       <motion.button
+//                         whileHover={{ scale: 1.04 }}
+//                         whileTap={{ scale: 0.96 }}
+//                         onClick={handleContinue}
+//                         className="group relative shrink-0"
+//                       >
+//                         <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-amber-500 to-yellow-500 blur-lg transition-all group-hover:blur-xl" />
+//                         <div className="relative flex items-center gap-2 rounded-2xl bg-gradient-to-r from-amber-500 to-yellow-500 px-6 py-3 text-sm font-semibold text-black shadow-2xl">
+//                           <span>Продолжить</span>
+//                           <svg
+//                             className="h-5 w-5"
+//                             fill="none"
+//                             viewBox="0 0 24 24"
+//                             stroke="currentColor"
+//                           >
+//                             <path
+//                               strokeLinecap="round"
+//                               strokeLinejoin="round"
+//                               strokeWidth={2}
+//                               d="M13 7l5 5m0 0-5 5m5-5H6"
+//                             />
+//                           </svg>
+//                         </div>
+//                       </motion.button>
+//                     </div>
+//                   </div>
+//                 </div>
+//               </div>
+//             </motion.div>
+
+//             {/* DESKTOP fixed внизу */}
+//             <motion.div
+//               initial={{ y: 100, opacity: 0 }}
+//               animate={{ y: 0, opacity: 1 }}
+//               exit={{ y: 100, opacity: 0 }}
+//               transition={{ type: "spring", stiffness: 300, damping: 30 }}
+//               className="fixed bottom-0 left-0 right-0 z-30 hidden p-6 md:block"
+//               style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 1.5rem)" }}
+//             >
+//               <div className="mx-auto w-full max-w-6xl xl:max-w-7xl">
+//                 <div className="relative">
+//                   <div className="absolute -inset-4 rounded-3xl bg-gradient-to-r from-amber-500 to-yellow-500 blur-2xl opacity-60" />
+//                   <div className="relative rounded-3xl border border-amber-500/60 bg-black/95 p-7 backdrop-blur-2xl shadow-[0_-20px_70px_rgba(0,0,0,0.85)] md:p-8">
+//                     <div className="flex flex-wrap items-center justify-between gap-6">
+//                       <div>
+//                         <div className="mb-2 text-sm font-medium text-gray-300/80">
+//                           Выбрано услуг:{" "}
+//                           <span className="font-bold text-amber-300">{selectedServices.length}</span>
+//                         </div>
+//                         <div className="flex items-baseline gap-4">
+//                           <span className="bg-gradient-to-r from-amber-300 to-yellow-400 bg-clip-text text-5xl font-black text-transparent">
+//                             {formatPrice(totalPrice)}
+//                           </span>
+//                           <span className="text-3xl font-bold text-amber-300">€</span>
+//                           <span className="ml-2 text-xl text-gray-400">• {totalDuration} мин</span>
+//                         </div>
+//                       </div>
+
+//                       <motion.button
+//                         whileHover={{ scale: 1.05 }}
+//                         whileTap={{ scale: 0.95 }}
+//                         onClick={handleContinue}
+//                         className="group relative"
+//                       >
+//                         <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-amber-500 to-yellow-500 blur-xl transition-all group-hover:blur-2xl" />
+//                         <div className="relative flex items-center gap-3 rounded-2xl bg-gradient-to-r from-amber-500 to-yellow-500 px-12 py-4 text-lg font-semibold text-black shadow-[0_20px_60px_rgba(0,0,0,0.85)]">
+//                           <span>Продолжить</span>
+//                           <svg
+//                             className="h-6 w-6"
+//                             fill="none"
+//                             viewBox="0 0 24 24"
+//                             stroke="currentColor"
+//                           >
+//                             <path
+//                               strokeLinecap="round"
+//                               strokeLinejoin="round"
+//                               strokeWidth={2}
+//                               d="M13 7l5 5m0 0-5 5m5-5H6"
+//                             />
+//                           </svg>
+//                         </div>
+//                       </motion.button>
+//                     </div>
+//                   </div>
+//                 </div>
+//               </div>
+//             </motion.div>
+//           </>
+//         )}
+//       </AnimatePresence>
+
+//       {/* Глобальные стили бренда */}
+//       <style jsx global>{`
+//         @keyframes gradient {
+//           0%,
+//           100% {
+//             background-position: 0% 50%;
+//           }
+//           50% {
+//             background-position: 100% 50%;
+//           }
+//         }
+//         .animate-gradient {
+//           background-size: 200% 200%;
+//           animation: gradient 3s ease infinite;
+//         }
+//         .bg-300\% {
+//           background-size: 300% 300%;
+//         }
+
+//         .brand-subtitle {
+//           background: linear-gradient(90deg, #8b5cf6 0%, #3b82f6 50%, #06b6d4 100%);
+//           -webkit-background-clip: text;
+//           background-clip: text;
+//           color: transparent;
+//           text-shadow:
+//             0 0 10px rgba(139, 92, 246, 0.35),
+//             0 0 18px rgba(59, 130, 246, 0.25),
+//             0 0 28px rgba(6, 182, 212, 0.22);
+//           filter: drop-shadow(0 0 14px rgba(59, 130, 246, 0.15));
+//         }
+//         .brand-subtitle:hover,
+//         .brand-subtitle:active {
+//           text-shadow:
+//             0 0 12px rgba(139, 92, 246, 0.45),
+//             0 0 22px rgba(59, 130, 246, 0.35),
+//             0 0 32px rgba(6, 182, 212, 0.28);
+//         }
+//         .brand-script {
+//           font-family: var(
+//             --brand-script,
+//             "Cormorant Infant",
+//             "Playfair Display",
+//             serif
+//           );
+//           font-style: italic;
+//           font-weight: 600;
+//           letter-spacing: 0.02em;
+//           -webkit-font-smoothing: antialiased;
+//           -moz-osx-font-smoothing: grayscale;
+//         }
+//       `}</style>
+//     </div>
+//   );
+// }
+
+
+
+
+//--------осталось поднять хедер
+// // src/app/booking/services/page.tsx
+// "use client";
+
+// import React, { useState, useEffect } from "react";
+// import { motion, AnimatePresence } from "framer-motion";
+// import { useRouter } from "next/navigation";
+// import { BookingAnimatedBackground } from "@/components/layout/BookingAnimatedBackground";
+// import PremiumProgressBar from "@/components/PremiumProgressBar";
+// import { Sparkles, Star, Zap, Award, SparklesIcon } from "lucide-react";
+
+// interface ServiceDto {
+//   id: string;
+//   title: string;
+//   description: string | null;
+//   durationMin: number;
+//   priceCents: number | null;
+//   parentId: string;
+// }
+
+// interface GroupDto {
+//   id: string;
+//   title: string;
+//   services: ServiceDto[];
+// }
+
+// interface PromotionDto {
+//   id: string;
+//   title: string;
+//   percent: number;
+//   isGlobal: boolean;
+// }
+
+// interface ApiResponse {
+//   groups: GroupDto[];
+//   promotions: PromotionDto[];
+// }
+
+// const BOOKING_STEPS = [
+//   { id: "services", label: "Услуга", icon: "✨" },
+//   { id: "master", label: "Мастер", icon: "👤" },
+//   { id: "calendar", label: "Дата", icon: "📅" },
+//   { id: "client", label: "Данные", icon: "📝" },
+//   { id: "verify", label: "Проверка", icon: "✓" },
+//   { id: "payment", label: "Оплата", icon: "💳" },
+// ];
+
+// // без any
+// const categoryIcons: Record<string, string> = {
+//   Маникюр: "💅",
+//   Стрижка: "✂️",
+//   Все: "✨",
+// };
+
+// export default function ServicesPage(): React.JSX.Element {
+//   const router = useRouter();
+//   const [groups, setGroups] = useState<GroupDto[]>([]);
+//   const [loading, setLoading] = useState<boolean>(true);
+//   const [error, setError] = useState<string | null>(null);
+//   const [selectedCategory, setSelectedCategory] = useState<string>("Все");
+//   const [selectedServices, setSelectedServices] = useState<string[]>([]);
+//   const [hoveredCard, setHoveredCard] = useState<string | null>(null);
+
+//   useEffect(() => {
+//     const fetchServices = async (): Promise<void> => {
+//       try {
+//         setLoading(true);
+//         const response = await fetch("/api/booking/services", { method: "POST" });
+//         if (!response.ok) throw new Error("Ошибка загрузки услуг");
+//         const data: ApiResponse = await response.json();
+//         setGroups(data.groups);
+//         setError(null);
+//       } catch (err) {
+//         console.error("Error fetching services:", err);
+//         setError("Не удалось загрузить услуги");
+//       } finally {
+//         setLoading(false);
+//       }
+//     };
+
+//     void fetchServices();
+//   }, []);
+
+//   const allServices = groups.flatMap((g) => g.services);
+//   const categories = ["Все", ...groups.map((g) => g.title)];
+
+//   const filteredGroups =
+//     selectedCategory === "Все" ? groups : groups.filter((g) => g.title === selectedCategory);
+
+//   const toggleService = (serviceId: string): void => {
+//     setSelectedServices((prev) =>
+//       prev.includes(serviceId) ? prev.filter((id) => id !== serviceId) : [...prev, serviceId],
+//     );
+//   };
+
+//   const totalPrice = allServices
+//     .filter((s) => selectedServices.includes(s.id))
+//     .reduce((sum, s) => sum + (s.priceCents ?? 0), 0);
+
+//   const totalDuration = allServices
+//     .filter((s) => selectedServices.includes(s.id))
+//     .reduce((sum, s) => sum + s.durationMin, 0);
+
+//   const handleContinue = (): void => {
+//     const params = new URLSearchParams();
+//     selectedServices.forEach((id) => params.append("s", id));
+//     router.push(`/booking/master?${params.toString()}`);
+//   };
+
+//   const formatPrice = (cents: number): string => (cents / 100).toLocaleString("ru-RU");
+
+//   /* ================= LOADING ================= */
+
+//   if (loading) {
+//     return (
+//       <div className="relative min-h-screen overflow-hidden bg-black">
+//         <BookingAnimatedBackground />
+//         <div className="relative z-10 min-h-screen flex flex-col">
+//           <div className="booking-progress-wrap">
+//             <PremiumProgressBar currentStep={0} steps={BOOKING_STEPS} />
+//           </div>
+
+//           <div className="flex flex-1 items-center justify-center px-4">
+//             <motion.div
+//               initial={{ opacity: 0, scale: 0.85 }}
+//               animate={{ opacity: 1, scale: 1 }}
+//               className="relative text-center"
+//             >
+//               <div className="relative w-24 h-24 mx-auto">
+//                 <div className="absolute inset-0 rounded-full bg-gradient-to-r from-amber-500 via-yellow-500 to-amber-500 opacity-20 blur-xl animate-pulse" />
+//                 <div className="absolute inset-0 rounded-full border-4 border-transparent border-t-amber-500 animate-spin" />
+//                 <Sparkles className="absolute inset-0 m-auto w-10 h-10 text-amber-400 animate-pulse" />
+//               </div>
+//               <p className="mt-6 text-base md:text-lg text-white/70 font-medium">
+//                 Загружаем премиальные услуги…
+//               </p>
+//             </motion.div>
+//           </div>
+//         </div>
+//       </div>
+//     );
+//   }
+
+//   /* ================= ERROR ================= */
+
+//   if (error) {
+//     return (
+//       <div className="relative min-h-screen overflow-hidden bg-black">
+//         <BookingAnimatedBackground />
+//         <div className="relative z-10 min-h-screen flex flex-col items-center justify-center px-4">
+//           <div className="booking-progress-wrap">
+//             <PremiumProgressBar currentStep={0} steps={BOOKING_STEPS} />
+//           </div>
+
+//           <motion.div
+//             initial={{ opacity: 0, y: 20 }}
+//             animate={{ opacity: 1, y: 0 }}
+//             className="text-center max-w-md"
+//           >
+//             <div className="text-6xl mb-4">⚠️</div>
+//             <h2 className="text-2xl font-bold text-red-400 mb-4">{error}</h2>
+//             <button
+//               onClick={() => window.location.reload()}
+//               className="px-8 py-4 bg-gradient-to-r from-amber-500 to-yellow-500 text-black rounded-2xl font-bold hover:scale-105 transition-transform shadow-lg shadow-amber-500/50"
+//             >
+//               Попробовать снова
+//             </button>
+//           </motion.div>
+//         </div>
+//       </div>
+//     );
+//   }
+
+//   /* ================= MAIN ================= */
+
+//   return (
+//     <div className="relative min-h-screen overflow-hidden bg-black">
+//       <BookingAnimatedBackground />
+
+//       <div className="relative z-10 flex min-h-screen flex-col">
+//         {/* Закреплённый прогресс-бар */}
+//         <div className="booking-progress-wrap">
+//           <PremiumProgressBar currentStep={0} steps={BOOKING_STEPS} />
+//         </div>
+
+//         {/* Основной контент */}
+//         <main className="booking-content relative pt-28 md:pt-32 pb-40 md:pb-48 px-4">
+//           <div className="mx-auto w-full max-w-6xl xl:max-w-7xl">
+//             {/* HERO */}
+//             <motion.div
+//               initial={{ opacity: 0, y: 30 }}
+//               animate={{ opacity: 1, y: 0 }}
+//               className="mb-12 md:mb-16 text-center"
+//             >
+//               <motion.div
+//                 initial={{ scale: 0 }}
+//                 animate={{ scale: 1 }}
+//                 transition={{ delay: 0.2, type: "spring", stiffness: 220, damping: 18 }}
+//                 className="inline-block mb-5 md:mb-6"
+//               >
+//                 <div className="relative">
+//                   <div className="absolute inset-0 rounded-full bg-gradient-to-r from-amber-500 to-yellow-500 blur-xl opacity-60 animate-pulse" />
+//                   <div className="relative flex items-center gap-2 rounded-full bg-gradient-to-r from-amber-500 via-yellow-500 to-amber-500 px-6 md:px-8 py-2.5 md:py-3 text-black font-semibold shadow-[0_10px_40px_rgba(245,197,24,0.55)]">
+//                     <Star className="w-4 h-4 md:w-5 md:h-5" />
+//                     <span className="uppercase tracking-wide text-xs md:text-sm">
+//                       Premium Beauty Menu
+//                     </span>
+//                     <Star className="w-4 h-4 md:w-5 md:h-5" />
+//                   </div>
+//                 </div>
+//               </motion.div>
+
+//               <motion.h1
+//                 initial={{ opacity: 0, y: 18 }}
+//                 animate={{ opacity: 1, y: 0 }}
+//                 transition={{ delay: 0.28 }}
+//                 className="
+//                   text-4xl md:text-5xl lg:text-5xl xl:text-6xl 2xl:text-7xl
+//                   font-serif italic leading-tight
+//                   text-transparent bg-clip-text
+//                   bg-gradient-to-r from-[#F5C518]/90 via-[#FFD166]/90 to-[#F5C518]/90
+//                   drop-shadow-[0_0_22px_rgba(245,197,24,0.45)]
+//                   mb-3 md:mb-4
+//                 "
+//               >
+//                 Выберите услугу
+//               </motion.h1>
+
+//               <motion.p
+//                 initial={{ opacity: 0 }}
+//                 animate={{ opacity: 1 }}
+//                 transition={{ delay: 0.45 }}
+//                 className="mx-auto max-w-2xl brand-script brand-subtitle text-base md:text-lg"
+//               >
+//                 Создайте свой уникальный образ с нашими эксклюзивными премиум-услугами
+//               </motion.p>
+//             </motion.div>
+
+//             {/* КАТЕГОРИИ */}
+//             <motion.div
+//               initial={{ opacity: 0, y: 20 }}
+//               animate={{ opacity: 1, y: 0 }}
+//               transition={{ delay: 0.55 }}
+//               className="mb-10 md:mb-14 flex flex-wrap justify-center gap-3 md:gap-4"
+//             >
+//               {categories.map((category, index) => {
+//                 const isActive = selectedCategory === category;
+//                 return (
+//                   <motion.button
+//                     key={category}
+//                     initial={{ opacity: 0, scale: 0.9 }}
+//                     animate={{ opacity: 1, scale: 1 }}
+//                     transition={{ delay: 0.05 * index }}
+//                     whileHover={{ scale: 1.05, y: -2 }}
+//                     whileTap={{ scale: 0.96 }}
+//                     onClick={() => setSelectedCategory(category)}
+//                     className={`group relative px-6 md:px-8 py-2.5 md:py-3 rounded-2xl font-semibold text-sm md:text-base transition-all duration-300 ${
+//                       isActive ? "text-black" : "text-gray-200 hover:text-white"
+//                     }`}
+//                   >
+//                     <div
+//                       className={`absolute inset-0 rounded-2xl transition-all duration-300 ${
+//                         isActive
+//                           ? "bg-gradient-to-r from-amber-500 to-yellow-500 shadow-xl shadow-amber-500/50"
+//                           : "bg-black/40 border border-white/12 backdrop-blur-xl group-hover:bg-black/55 group-hover:border-amber-400/40"
+//                       }`}
+//                     />
+//                     <span className="relative flex items-center gap-2">
+//                       <span className="text-xl">{categoryIcons[category] || "✨"}</span>
+//                       {category}
+//                     </span>
+//                   </motion.button>
+//                 );
+//               })}
+//             </motion.div>
+
+//             {/* ГРУППЫ И УСЛУГИ */}
+//             <div className="space-y-14 md:space-y-16">
+//               {filteredGroups.map((group, groupIndex) => (
+//                 <motion.section
+//                   key={group.id}
+//                   initial={{ opacity: 0, y: 30 }}
+//                   animate={{ opacity: 1, y: 0 }}
+//                   transition={{ delay: groupIndex * 0.08 + 0.6 }}
+//                   className="relative"
+//                 >
+//                   {/* Подиум-фон под блоком */}
+//                   <div className="pointer-events-none absolute -inset-x-8 -top-4 -bottom-10 opacity-70">
+//                     <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-amber-500/40 to-transparent" />
+//                     <div className="absolute inset-x-10 bottom-0 h-32 rounded-[999px] bg-gradient-to-r from-black/0 via-black/75 to-black/0 blur-3xl" />
+//                   </div>
+
+//                   <div className="relative">
+//                     {/* Заголовок группы */}
+//                     <div className="mb-6 md:mb-8 flex items-center justify-center gap-4">
+//                       <div className="h-px flex-1 bg-gradient-to-r from-transparent via-amber-500/30 to-transparent" />
+//                       <div className="inline-flex items-center gap-2 rounded-full bg-black/70 border border-amber-500/40 px-4 py-1.5 shadow-[0_0_22px_rgba(245,197,24,0.35)] backdrop-blur-xl">
+//                         <div className="relative w-7 h-7 rounded-full bg-gradient-to-br from-amber-500 to-yellow-500 flex items-center justify-center">
+//                           <SparklesIcon className="w-4 h-4 text-black" />
+//                         </div>
+//                         <h2 className="text-lg md:text-xl font-semibold text-amber-100 tracking-wide">
+//                           {group.title}
+//                         </h2>
+//                       </div>
+//                       <div className="h-px flex-1 bg-gradient-to-r from-transparent via-amber-500/30 to-transparent" />
+//                     </div>
+
+//                     {/* Сетка карточек */}
+//                     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-5 md:gap-6">
+//                       <AnimatePresence mode="popLayout">
+//                         {group.services.map((service, index) => {
+//                           const isSelected = selectedServices.includes(service.id);
+//                           const isHovered = hoveredCard === service.id;
+//                           const price = service.priceCents
+//                             ? formatPrice(service.priceCents)
+//                             : "По запросу";
+
+//                           return (
+//                             <motion.div
+//                               key={service.id}
+//                               layout
+//                               initial={{ opacity: 0, scale: 0.9, y: 16 }}
+//                               animate={{ opacity: 1, scale: 1, y: 0 }}
+//                               exit={{ opacity: 0, scale: 0.92 }}
+//                               transition={{
+//                                 delay: index * 0.04,
+//                                 type: "spring",
+//                                 stiffness: 260,
+//                                 damping: 24,
+//                               }}
+//                               whileHover={{ y: -6, scale: 1.018 }}
+//                               onHoverStart={() => setHoveredCard(service.id)}
+//                               onHoverEnd={() => setHoveredCard(null)}
+//                               onClick={() => toggleService(service.id)}
+//                               className="group relative cursor-pointer"
+//                             >
+//                               {/* Глобальная подсветка карточки */}
+//                               <div
+//                                 className={`absolute -inset-3 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 blur-xl ${
+//                                   isSelected
+//                                     ? "bg-gradient-to-r from-amber-500/60 via-yellow-400/50 to-amber-500/60"
+//                                     : "bg-gradient-to-r from-cyan-500/25 via-emerald-400/15 to-amber-400/25"
+//                                 }`}
+//                               />
+
+//                               {/* Карточка */}
+//                               <div
+//                                 className={`relative rounded-2xl overflow-hidden border backdrop-blur-xl transition-all duration-500 ${
+//                                   isSelected
+//                                     ? "border-amber-400/80 bg-gradient-to-br from-black/70 via-amber-900/25 to-black/80 shadow-[0_20px_60px_rgba(0,0,0,0.9)]"
+//                                     : "border-white/14 bg-gradient-to-br from-black/65 via-slate-950/85 to-black/90 shadow-[0_20px_55px_rgba(0,0,0,0.85)]"
+//                                 }`}
+//                               >
+//                                 {/* Лёгкая внутренняя анимация света */}
+//                                 <div className="pointer-events-none absolute inset-0 opacity-40">
+//                                   <motion.div
+//                                     animate={{
+//                                       backgroundPosition: ["0% 0%", "100% 100%", "0% 0%"],
+//                                     }}
+//                                     transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+//                                     className="absolute inset-0"
+//                                     style={{
+//                                       backgroundImage:
+//                                         "radial-gradient(circle at 0% 0%, rgba(56,189,248,0.18) 0, transparent 55%), radial-gradient(circle at 100% 100%, rgba(251,191,36,0.22) 0, transparent 55%)",
+//                                       backgroundSize: "200% 200%",
+//                                     }}
+//                                   />
+//                                 </div>
+
+//                                 {/* Контент карточки */}
+//                                 <div className="relative p-5 md:p-6">
+//                                   {/* Верхняя строка */}
+//                                   <div className="mb-4 flex items-start justify-between">
+//                                     {/* Чекбокс */}
+//                                     <motion.div
+//                                       initial={false}
+//                                       animate={{
+//                                         scale: isSelected ? 1.08 : 1,
+//                                         rotate: isSelected ? 360 : 0,
+//                                       }}
+//                                       transition={{ type: "spring", stiffness: 260, damping: 18 }}
+//                                       className={`flex h-7 w-7 items-center justify-center rounded-full border-2 ${
+//                                         isSelected
+//                                           ? "bg-gradient-to-br from-amber-500 to-yellow-500 border-amber-400 shadow-lg shadow-amber-500/50"
+//                                           : "border-white/40 bg-black/40"
+//                                       }`}
+//                                     >
+//                                       {isSelected && (
+//                                         <motion.svg
+//                                           initial={{ scale: 0, rotate: -180 }}
+//                                           animate={{ scale: 1, rotate: 0 }}
+//                                           className="h-4 w-4 text-black"
+//                                           fill="none"
+//                                           viewBox="0 0 24 24"
+//                                           stroke="currentColor"
+//                                         >
+//                                           <path
+//                                             strokeLinecap="round"
+//                                             strokeLinejoin="round"
+//                                             strokeWidth={3}
+//                                             d="M5 13l4 4L19 7"
+//                                           />
+//                                         </motion.svg>
+//                                       )}
+//                                     </motion.div>
+
+//                                     {/* Маленький бейдж «premium» */}
+//                                     <motion.div
+//                                       animate={{ rotate: [0, 3, -3, 0] }}
+//                                       transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }}
+//                                       className="relative"
+//                                     >
+//                                       <div className="absolute inset-0 rounded-full bg-gradient-to-r from-amber-500 to-yellow-500 blur-md opacity-50" />
+//                                       <div className="relative inline-flex items-center gap-1 rounded-full bg-black/80 px-2.5 py-1 border border-amber-500/60">
+//                                         <Sparkles className="h-3 w-3 text-amber-300" />
+//                                         <span className="text-[10px] font-semibold uppercase tracking-wide text-amber-100">
+//                                           premium
+//                                         </span>
+//                                       </div>
+//                                     </motion.div>
+//                                   </div>
+
+//                                   {/* Название */}
+//                                   <h3
+//                                     className={`mb-2 text-lg md:text-xl font-semibold transition-all ${
+//                                       isSelected || isHovered
+//                                         ? "bg-gradient-to-r from-amber-300 via-yellow-200 to-amber-400 bg-clip-text text-transparent"
+//                                         : "text-white"
+//                                     }`}
+//                                   >
+//                                     {service.title}
+//                                   </h3>
+
+//                                   {/* Описание */}
+//                                   {service.description && (
+//                                     <p className="mb-5 line-clamp-2 text-xs md:text-sm text-gray-300/80 font-light">
+//                                       {service.description}
+//                                     </p>
+//                                   )}
+
+//                                   {/* Низ карточки */}
+//                                   <div className="flex items-end justify-between gap-3">
+//                                     {/* Цена + время */}
+//                                     <div>
+//                                       <div className="mb-0.5 flex items-baseline gap-1.5">
+//                                         <span className="text-2xl md:text-3xl font-extrabold bg-gradient-to-r from-amber-300 to-yellow-400 bg-clip-text text-transparent">
+//                                           {price}
+//                                         </span>
+//                                         <span className="text-lg md:text-xl font-bold text-amber-300">
+//                                           €
+//                                         </span>
+//                                       </div>
+//                                       <div className="flex items-center gap-2 text-xs md:text-sm text-gray-400">
+//                                         <Zap className="h-4 w-4 text-amber-300" />
+//                                         <span>{service.durationMin} минут</span>
+//                                       </div>
+//                                     </div>
+
+//                                     {/* Иконка справа */}
+//                                     <motion.div
+//                                       animate={{
+//                                         scale: isHovered ? 1 : 0.9,
+//                                         rotate: isHovered ? -2 : 0,
+//                                         opacity: isHovered ? 1 : 0.8,
+//                                       }}
+//                                       className={`flex h-12 w-12 md:h-14 md:w-14 items-center justify-center rounded-xl ${
+//                                         isSelected
+//                                           ? "bg-gradient-to-br from-amber-500 to-yellow-500 shadow-lg shadow-amber-500/50"
+//                                           : "bg-gradient-to-br from-slate-900 to-black border border-cyan-400/30"
+//                                       }`}
+//                                     >
+//                                       <Award
+//                                         className={`h-7 w-7 ${
+//                                           isSelected ? "text-black" : "text-cyan-300"
+//                                         }`}
+//                                       />
+//                                     </motion.div>
+//                                   </div>
+//                                 </div>
+//                               </div>
+//                             </motion.div>
+//                           );
+//                         })}
+//                       </AnimatePresence>
+//                     </div>
+//                   </div>
+//                 </motion.section>
+//               ))}
+//             </div>
+//           </div>
+//         </main>
+
+//         {/* FLOATING FOOTER: сумма + продолжить */}
+//         <AnimatePresence>
+//           {selectedServices.length > 0 && (
+//             <>
+//               {/* MOBILE sticky */}
+//               <motion.div
+//                 initial={{ y: 50, opacity: 0 }}
+//                 animate={{ y: 0, opacity: 1 }}
+//                 exit={{ y: 50, opacity: 0 }}
+//                 className="md:hidden sticky bottom-0 z-50 p-4"
+//                 style={{
+//                   paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 0.25rem)",
+//                 }}
+//               >
+//                 <div className="mx-auto w-full max-w-screen-2xl">
+//                   <div className="relative">
+//                     <div className="absolute -inset-4 rounded-3xl bg-gradient-to-r from-amber-500 to-yellow-500 blur-xl opacity-60" />
+//                     <div className="relative rounded-3xl border border-amber-500/60 bg-black/90 p-5 backdrop-blur-2xl">
+//                       <div className="flex items-center justify-between gap-4">
+//                         <div>
+//                           <div className="mb-1 text-xs font-medium text-gray-300/80">
+//                             Выбрано услуг:{" "}
+//                             <span className="font-bold text-amber-300">
+//                               {selectedServices.length}
+//                             </span>
+//                           </div>
+//                           <div className="flex items-baseline gap-3">
+//                             <span className="text-3xl font-black bg-gradient-to-r from-amber-300 to-yellow-400 bg-clip-text text-transparent">
+//                               {formatPrice(totalPrice)}
+//                             </span>
+//                             <span className="text-2xl font-bold text-amber-300">€</span>
+//                             <span className="text-sm text-gray-400">• {totalDuration} мин</span>
+//                           </div>
+//                         </div>
+
+//                         <motion.button
+//                           whileHover={{ scale: 1.04 }}
+//                           whileTap={{ scale: 0.96 }}
+//                           onClick={handleContinue}
+//                           className="relative shrink-0 group"
+//                         >
+//                           <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-amber-500 to-yellow-500 blur-lg group-hover:blur-xl transition-all" />
+//                           <div className="relative flex items-center gap-2 rounded-2xl bg-gradient-to-r from-amber-500 to-yellow-500 px-6 py-3 text-sm font-semibold text-black shadow-2xl">
+//                             <span>Продолжить</span>
+//                             <svg
+//                               className="h-5 w-5"
+//                               fill="none"
+//                               viewBox="0 0 24 24"
+//                               stroke="currentColor"
+//                             >
+//                               <path
+//                                 strokeLinecap="round"
+//                                 strokeLinejoin="round"
+//                                 strokeWidth={2}
+//                                 d="M13 7l5 5m0 0-5 5m5-5H6"
+//                               />
+//                             </svg>
+//                           </div>
+//                         </motion.button>
+//                       </div>
+//                     </div>
+//                   </div>
+//                 </div>
+//               </motion.div>
+
+//               {/* DESKTOP fixed */}
+//               <motion.div
+//                 initial={{ y: 100, opacity: 0 }}
+//                 animate={{ y: 0, opacity: 1 }}
+//                 exit={{ y: 100, opacity: 0 }}
+//                 className="fixed bottom-0 left-0 right-0 z-40 hidden md:block p-6"
+//                 style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
+//               >
+//                 <div className="mx-auto w-full max-w-6xl xl:max-w-7xl">
+//                   <div className="relative">
+//                     <div className="absolute -inset-4 rounded-3xl bg-gradient-to-r from-amber-500 to-yellow-500 blur-2xl opacity-60" />
+//                     <div className="relative rounded-3xl border border-amber-500/60 bg-black/92 p-7 md:p-8 backdrop-blur-2xl">
+//                       <div className="flex flex-wrap items-center justify-between gap-6">
+//                         <div>
+//                           <div className="mb-2 text-sm font-medium text-gray-300/80">
+//                             Выбрано услуг:{" "}
+//                             <span className="font-bold text-amber-300">
+//                               {selectedServices.length}
+//                             </span>
+//                           </div>
+//                           <div className="flex items-baseline gap-4">
+//                             <span className="text-5xl font-black bg-gradient-to-r from-amber-300 to-yellow-400 bg-clip-text text-transparent">
+//                               {formatPrice(totalPrice)}
+//                             </span>
+//                             <span className="text-3xl font-bold text-amber-300">€</span>
+//                             <span className="ml-2 text-xl text-gray-400">
+//                               • {totalDuration} мин
+//                             </span>
+//                           </div>
+//                         </div>
+
+//                         <motion.button
+//                           whileHover={{ scale: 1.05 }}
+//                           whileTap={{ scale: 0.95 }}
+//                           onClick={handleContinue}
+//                           className="relative group"
+//                         >
+//                           <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-amber-500 to-yellow-500 blur-xl group-hover:blur-2xl transition-all" />
+//                           <div className="relative flex items-center gap-3 rounded-2xl bg-gradient-to-r from-amber-500 to-yellow-500 px-12 py-4 text-lg font-semibold text-black shadow-[0_20px_60px_rgba(0,0,0,0.85)]">
+//                             <span>Продолжить</span>
+//                             <svg
+//                               className="h-6 w-6"
+//                               fill="none"
+//                               viewBox="0 0 24 24"
+//                               stroke="currentColor"
+//                             >
+//                               <path
+//                                 strokeLinecap="round"
+//                                 strokeLinejoin="round"
+//                                 strokeWidth={2}
+//                                 d="M13 7l5 5m0 0-5 5m5-5H6"
+//                               />
+//                             </svg>
+//                           </div>
+//                         </motion.button>
+//                       </div>
+//                     </div>
+//                   </div>
+//                 </div>
+//               </motion.div>
+//             </>
+//           )}
+//         </AnimatePresence>
+
+//         {/* Глобальные стили под брендовые эффекты */}
+//         <style jsx global>{`
+//           @keyframes gradient {
+//             0%,
+//             100% {
+//               background-position: 0% 50%;
+//             }
+//             50% {
+//               background-position: 100% 50%;
+//             }
+//           }
+//           .animate-gradient {
+//             background-size: 200% 200%;
+//             animation: gradient 3s ease infinite;
+//           }
+//           .bg-300\% {
+//             background-size: 300% 300%;
+//           }
+
+//           .brand-subtitle {
+//             background: linear-gradient(90deg, #8b5cf6 0%, #3b82f6 50%, #06b6d4 100%);
+//             -webkit-background-clip: text;
+//             background-clip: text;
+//             color: transparent;
+//             text-shadow:
+//               0 0 10px rgba(139, 92, 246, 0.35),
+//               0 0 18px rgba(59, 130, 246, 0.25),
+//               0 0 28px rgba(6, 182, 212, 0.22);
+//             filter: drop-shadow(0 0 14px rgba(59, 130, 246, 0.15));
+//           }
+//           .brand-subtitle:hover,
+//           .brand-subtitle:active {
+//             text-shadow:
+//               0 0 12px rgba(139, 92, 246, 0.45),
+//               0 0 22px rgba(59, 130, 246, 0.35),
+//               0 0 32px rgba(6, 182, 212, 0.28);
+//           }
+
+//           .brand-script {
+//             font-family: var(--brand-script, "Cormorant Infant", "Playfair Display", serif);
+//             font-style: italic;
+//             font-weight: 600;
+//             letter-spacing: 0.02em;
+//             -webkit-font-smoothing: antialiased;
+//             -moz-osx-font-smoothing: grayscale;
+//           }
+//         `}</style>
+//       </div>
+//     </div>
+//   );
+// }
+
+
+
+// // src/app/booking/(steps)/services/page.tsx
+// 'use client';
+
+// import React, { useState, useEffect } from 'react';
+// import { motion, AnimatePresence } from 'framer-motion';
+// import { useRouter } from 'next/navigation';
+// import { BookingAnimatedBackground } from '@/components/layout/BookingAnimatedBackground';
+// import PremiumProgressBar from '@/components/PremiumProgressBar';
+// import { Sparkles, Star, Zap, Award } from 'lucide-react';
+
+// interface ServiceDto {
+//   id: string;
+//   title: string;
+//   description: string | null;
+//   durationMin: number;
+//   priceCents: number | null;
+//   parentId: string;
+// }
+
+// interface GroupDto {
+//   id: string;
+//   title: string;
+//   services: ServiceDto[];
+// }
+
+// interface PromotionDto {
+//   id: string;
+//   title: string;
+//   percent: number;
+//   isGlobal: boolean;
+// }
+
+// interface ApiResponse {
+//   groups: GroupDto[];
+//   promotions: PromotionDto[];
+// }
+
+// const BOOKING_STEPS = [
+//   { id: 'services', label: 'Услуга', icon: '✨' },
+//   { id: 'master', label: 'Мастер', icon: '👤' },
+//   { id: 'calendar', label: 'Дата', icon: '📅' },
+//   { id: 'client', label: 'Данные', icon: '📝' },
+//   { id: 'verify', label: 'Проверка', icon: '✓' },
+//   { id: 'payment', label: 'Оплата', icon: '💳' },
+// ];
+
+// const categoryIcons: Record<string, string> = {
+//   Маникюр: '💅',
+//   Стрижка: '✂️',
+//   Все: '✨',
+// };
+
+// export default function ServicesPage(): React.JSX.Element {
+//   const router = useRouter();
+//   const [groups, setGroups] = useState<GroupDto[]>([]);
+//   const [loading, setLoading] = useState<boolean>(true);
+//   const [error, setError] = useState<string | null>(null);
+//   const [selectedCategory, setSelectedCategory] = useState<string>('Все');
+//   const [selectedServices, setSelectedServices] = useState<string[]>([]);
+//   const [hoveredCard, setHoveredCard] = useState<string | null>(null);
+
+//   useEffect(() => {
+//     const fetchServices = async (): Promise<void> => {
+//       try {
+//         setLoading(true);
+//         const response = await fetch('/api/booking/services', { method: 'POST' });
+//         if (!response.ok) throw new Error('Ошибка загрузки услуг');
+
+//         const data: ApiResponse = await response.json();
+//         setGroups(data.groups);
+//         setError(null);
+//       } catch (err) {
+//         console.error('Error fetching services:', err);
+//         setError('Не удалось загрузить услуги');
+//       } finally {
+//         setLoading(false);
+//       }
+//     };
+
+//     void fetchServices();
+//   }, []);
+
+//   const allServices = groups.flatMap((g) => g.services);
+//   const categories = ['Все', ...groups.map((g) => g.title)];
+
+//   const filteredGroups =
+//     selectedCategory === 'Все' ? groups : groups.filter((g) => g.title === selectedCategory);
+
+//   const toggleService = (serviceId: string): void => {
+//     setSelectedServices((prev) =>
+//       prev.includes(serviceId) ? prev.filter((id) => id !== serviceId) : [...prev, serviceId],
+//     );
+//   };
+
+//   const totalPrice = allServices
+//     .filter((s) => selectedServices.includes(s.id))
+//     .reduce((sum, s) => sum + (s.priceCents ?? 0), 0);
+
+//   const totalDuration = allServices
+//     .filter((s) => selectedServices.includes(s.id))
+//     .reduce((sum, s) => sum + s.durationMin, 0);
+
+//   const handleContinue = (): void => {
+//     const params = new URLSearchParams();
+//     selectedServices.forEach((id) => params.append('s', id));
+
+//     router.push(`/booking/master?${params.toString()}`);
+//   };
+
+//   const formatPrice = (cents: number): string => (cents / 100).toLocaleString('ru-RU');
+
+//   /* ===========
+//       LOADING
+//   =============*/
+//   if (loading) {
+//     return (
+//       <div className="min-h-screen bg-gradient-to-br from-gray-950 via-black to-gray-950">
+//         <div className="booking-progress-wrap">
+//           <PremiumProgressBar currentStep={0} steps={BOOKING_STEPS} />
+//         </div>
+
+//         <div className="flex items-center justify-center min-h-screen">
+//           <motion.div
+//             initial={{ opacity: 0, scale: 0.8 }}
+//             animate={{ opacity: 1, scale: 1 }}
+//             className="relative"
+//           >
+//             <div className="w-24 h-24 relative">
+//               <div className="absolute inset-0 rounded-full bg-gradient-to-r from-amber-500 via-yellow-500 to-amber-500 opacity-20 blur-xl animate-pulse" />
+//               <div className="absolute inset-0 rounded-full border-4 border-transparent border-t-amber-500 animate-spin" />
+//               <Sparkles className="absolute inset-0 m-auto w-12 h-12 text-amber-500 animate-pulse" />
+//             </div>
+
+//             <p className="text-white/60 text-center mt-8 font-medium">
+//               Загрузка премиум услуг...
+//             </p>
+//           </motion.div>
+//         </div>
+//       </div>
+//     );
+//   }
+
+//   /* ===========
+//       ERROR
+//   =============*/
+//   if (error) {
+//     return (
+//       <div className="min-h-screen bg-gradient-to-br from-gray-950 via-black to-gray-950 flex items-center justify-center">
+//         <div className="booking-progress-wrap">
+//           <PremiumProgressBar currentStep={0} steps={BOOKING_STEPS} />
+//         </div>
+
+//         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-center px-4">
+//           <div className="text-6xl mb-4">⚠️</div>
+//           <h2 className="text-2xl font-bold text-red-400 mb-4">{error}</h2>
+
+//           <button
+//             onClick={() => window.location.reload()}
+//             className="px-8 py-4 bg-gradient-to-r from-amber-500 to-yellow-500 text-black rounded-2xl font-bold hover:scale-105 transition-transform shadow-lg shadow-amber-500/50"
+//           >
+//             Попробовать снова
+//           </button>
+//         </motion.div>
+//       </div>
+//     );
+//   }
+
+//   /* =======================
+//       MAIN PAGE CONTENT
+//   =========================*/
+//   return (
+//     <div className="relative min-h-screen overflow-hidden bg-black">
+//       <BookingAnimatedBackground />
+
+//       <div className="relative z-10 flex min-h-screen flex-col">
+//         {/* FIXED PROGRESS BAR */}
+//         <div className="booking-progress-wrap">
+//           <PremiumProgressBar currentStep={0} steps={BOOKING_STEPS} />
+//         </div>
+
+//         {/* PAGE INNER CONTENT */}
+//         <div className="booking-content relative pt-28 md:pt-32 pb-28 md:pb-32 px-4">
+//           <div className="mx-auto w-full max-w-screen-2xl">
+
+//             {/* -----------------------------
+//                HERO SECTION
+//             ------------------------------ */}
+//             <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} className="text-center mb-12 md:mb-16">
+//               <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ delay: 0.2, type: 'spring', stiffness: 200 }} className="inline-block mb-6">
+//                 <div className="relative">
+//                   <div className="absolute inset-0 bg-gradient-to-r from-amber-500 to-yellow-500 rounded-full blur-xl opacity-50 animate-pulse" />
+//                   <div className="relative bg-gradient-to-r from-amber-500 to-yellow-500 text-black px-6 py-2.5 rounded-full font-bold flex items-center gap-2 shadow-xl">
+//                     <Star className="w-5 h-5" />
+//                     <span>Premium Selection</span>
+//                     <Star className="w-5 h-5" />
+//                   </div>
+//                 </div>
+//               </motion.div>
+
+//               <motion.h1
+//                 initial={{ opacity: 0, y: 18 }}
+//                 animate={{ opacity: 1, y: 0 }}
+//                 transition={{ delay: 0.28 }}
+//                 className="
+//                   text-4xl md:text-5xl xl:text-6xl
+//                   font-serif italic leading-tight
+//                   text-transparent bg-clip-text
+//                   bg-gradient-to-r from-[#F5C518]/90 via-[#FFD166]/90 to-[#F5C518]/90
+//                   drop-shadow-[0_0_18px_rgba(245,197,24,0.35)]
+//                   mb-3
+//                 "
+//               >
+//                 Выберите услугу
+//               </motion.h1>
+
+//               <motion.p
+//                 initial={{ opacity: 0 }}
+//                 animate={{ opacity: 1 }}
+//                 transition={{ delay: 0.45 }}
+//                 className="mx-auto max-w-2xl brand-script tracking-wide text-base md:text-lg brand-subtitle"
+//               >
+//                 Создайте свой уникальный образ с нашими эксклюзивными премиум услугами
+//               </motion.p>
+//             </motion.div>
+
+//             {/* -----------------------------
+//                  CATEGORIES
+//             ------------------------------ */}
+//             <motion.div
+//               initial={{ opacity: 0, y: 20 }}
+//               animate={{ opacity: 1, y: 0 }}
+//               transition={{ delay: 0.55 }}
+//               className="flex flex-wrap gap-3 md:gap-4 justify-center mb-12 md:mb-16"
+//             >
+//               {categories.map((category, index) => {
+//                 const isActive = selectedCategory === category;
+
+//                 return (
+//                   <motion.button
+//                     key={category}
+//                     initial={{ opacity: 0, scale: 0.9 }}
+//                     animate={{ opacity: 1, scale: 1 }}
+//                     transition={{ delay: 0.05 * index }}
+//                     whileHover={{ scale: 1.05, y: -2 }}
+//                     whileTap={{ scale: 0.95 }}
+//                     onClick={() => setSelectedCategory(category)}
+//                     className={`group relative px-6 py-3 rounded-2xl font-semibold transition-all ${
+//                       isActive ? 'text-black' : 'text-gray-300 hover:text-white'
+//                     }`}
+//                   >
+//                     <div
+//                       className={`absolute inset-0 rounded-2xl transition-all ${
+//                         isActive
+//                           ? 'bg-gradient-to-r from-amber-500 to-yellow-500 shadow-2xl shadow-amber-500/50'
+//                           : 'bg-white/5 backdrop-blur-sm border border-white/10 group-hover:bg-white/10'
+//                       }`}
+//                     />
+//                     <span className="relative flex items-center gap-2">
+//                       <span className="text-xl">{categoryIcons[category] || '✨'}</span>
+//                       {category}
+//                     </span>
+//                   </motion.button>
+//                 );
+//               })}
+//             </motion.div>
+
+//             {/* -----------------------------
+//                GROUPS & SERVICES GRID
+//             ------------------------------ */}
+//             {filteredGroups.map((group, groupIndex) => (
+//               <motion.div
+//                 key={group.id}
+//                 initial={{ opacity: 0, y: 30 }}
+//                 animate={{ opacity: 1, y: 0 }}
+//                 transition={{ delay: 0.6 + groupIndex * 0.08 }}
+//                 className="mb-20"
+//               >
+//                 {/* Title */}
+//                 <div className="flex items-center gap-4 mb-8">
+//                   <div className="h-1 flex-1 bg-gradient-to-r from-transparent via-amber-500/40 to-transparent" />
+//                   <h2 className="text-3xl font-bold bg-gradient-to-r from-amber-400 to-yellow-400 bg-clip-text text-transparent">
+//                     {group.title}
+//                   </h2>
+//                   <div className="h-1 flex-1 bg-gradient-to-r from-transparent via-amber-500/40 to-transparent" />
+//                 </div>
+
+//                 {/* Services */}
+//                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+//                   <AnimatePresence mode="popLayout">
+//                     {group.services.map((service, index) => {
+//                       const isSelected = selectedServices.includes(service.id);
+//                       const isHovered = hoveredCard === service.id;
+//                       const price = service.priceCents ? formatPrice(service.priceCents) : 'По запросу';
+
+//                       return (
+//                         <motion.div
+//                           key={service.id}
+//                           layout
+//                           initial={{ opacity: 0, scale: 0.9, y: 16 }}
+//                           animate={{ opacity: 1, scale: 1, y: 0 }}
+//                           exit={{ opacity: 0, scale: 0.92 }}
+//                           transition={{ delay: index * 0.04, type: 'spring', stiffness: 300, damping: 26 }}
+//                           whileHover={{ y: -6, scale: 1.015 }}
+//                           onHoverStart={() => setHoveredCard(service.id)}
+//                           onHoverEnd={() => setHoveredCard(null)}
+//                           onClick={() => toggleService(service.id)}
+//                           className="group relative cursor-pointer"
+//                         >
+//                           {/* Card glow */}
+//                           <div
+//                             className={`absolute -inset-3 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 blur-lg ${
+//                               isSelected
+//                                 ? 'bg-gradient-to-r from-amber-500/45 to-yellow-500/45'
+//                                 : 'bg-gradient-to-r from-amber-500/18 to-yellow-500/18'
+//                             }`}
+//                           />
+
+//                           {/* MAIN CARD */}
+//                           <div
+//                             className={`relative rounded-2xl overflow-hidden transition-all duration-500 ${
+//                               isSelected
+//                                 ? 'bg-gradient-to-br from-amber-500/18 via-yellow-500/10 to-amber-500/18 border border-amber-500/40'
+//                                 : 'bg-white/5 backdrop-blur-xl border border-white/10'
+//                             }`}
+//                           >
+//                             {/* animated background */}
+//                             <div className="absolute inset-0 opacity-25">
+//                               <div className="absolute inset-0 bg-gradient-to-br from-amber-500/10 to-transparent" />
+//                               <motion.div
+//                                 animate={{ backgroundPosition: ['0% 0%', '100% 100%'] }}
+//                                 transition={{ duration: 18, repeat: Infinity, repeatType: 'reverse' }}
+//                                 className="absolute inset-0"
+//                                 style={{
+//                                   backgroundImage:
+//                                     'radial-gradient(circle at 20% 50%, rgba(251, 191, 36, 0.12) 0%, transparent 50%)',
+//                                   backgroundSize: '200% 200%',
+//                                 }}
+//                               />
+//                             </div>
+
+//                             {/* CONTENT */}
+//                             <div className="relative p-6">
+//                               <div className="flex items-start justify-between mb-4">
+//                                 {/* Checkbox */}
+//                                 <motion.div
+//                                   initial={false}
+//                                   animate={{ scale: isSelected ? 1.08 : 1, rotate: isSelected ? 360 : 0 }}
+//                                   transition={{ type: 'spring', stiffness: 300 }}
+//                                   className={`w-7 h-7 rounded-full border-2 flex items-center justify-center ${
+//                                     isSelected
+//                                       ? 'bg-gradient-to-br from-amber-500 to-yellow-500 border-amber-500 shadow-lg shadow-amber-500/40'
+//                                       : 'border-white/30 backdrop-blur-sm'
+//                                   }`}
+//                                 >
+//                                   {isSelected && (
+//                                     <motion.svg
+//                                       initial={{ scale: 0, rotate: -180 }}
+//                                       animate={{ scale: 1, rotate: 0 }}
+//                                       className="w-4 h-4 text-black"
+//                                       fill="none"
+//                                       viewBox="0 0 24 24"
+//                                       stroke="currentColor"
+//                                     >
+//                                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+//                                     </motion.svg>
+//                                   )}
+//                                 </motion.div>
+
+//                                 {/* Badge */}
+//                                 <motion.div
+//                                   animate={{ rotate: [0, 4, -4, 0] }}
+//                                   transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }}
+//                                   className="relative"
+//                                 >
+//                                   <div className="absolute inset-0 bg-gradient-to-r from-amber-500 to-yellow-500 rounded-full blur-md opacity-50" />
+//                                   <div className="relative w-12 h-12 rounded-full bg-gradient-to-br from-amber-500 to-yellow-500 flex items-center justify-center shadow-xl">
+//                                     <Sparkles className="w-6 h-6 text-black" />
+//                                   </div>
+//                                 </motion.div>
+//                               </div>
+
+//                               <h3
+//                                 className={`text-lg font-bold mb-2 transition-all ${
+//                                   isSelected || isHovered
+//                                     ? 'text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-yellow-400'
+//                                     : 'text-white'
+//                                 }`}
+//                               >
+//                                 {service.title}
+//                               </h3>
+
+//                               {service.description && (
+//                                 <p className="text-gray-400 text-sm mb-5 line-clamp-2">{service.description}</p>
+//                               )}
+
+//                               {/* bottom */}
+//                               <div className="flex items-end justify-between">
+//                                 <div>
+//                                   <div className="flex items-baseline gap-1.5 mb-1">
+//                                     <span className="text-3xl font-extrabold bg-gradient-to-r from-amber-400 to-yellow-400 bg-clip-text text-transparent">
+//                                       {price}
+//                                     </span>
+//                                     <span className="text-xl font-bold text-amber-400">€</span>
+//                                   </div>
+//                                   <div className="flex items-center gap-2 text-gray-500 text-sm">
+//                                     <Zap className="w-4 h-4" />
+//                                     <span>{service.durationMin} минут</span>
+//                                   </div>
+//                                 </div>
+
+//                                 <motion.div
+//                                   animate={{ scale: isHovered ? 1 : 0.85, opacity: isHovered ? 1 : 0.6 }}
+//                                   className={`w-14 h-14 rounded-xl flex items-center justify-center ${
+//                                     isSelected
+//                                       ? 'bg-gradient-to-br from-amber-500 to-yellow-500 shadow-lg shadow-amber-500/40'
+//                                       : 'bg-white/5'
+//                                   }`}
+//                                 >
+//                                   <Award className={`w-7 h-7 ${isSelected ? 'text-black' : 'text-amber-500'}`} />
+//                                 </motion.div>
+//                               </div>
+//                             </div>
+//                           </div>
+//                         </motion.div>
+//                       );
+//                     })}
+//                   </AnimatePresence>
+//                 </div>
+//               </motion.div>
+//             ))}
+//           </div>
+//         </div>
+
+//         {/* FLOATING FOOTERS */}
+//         <AnimatePresence>
+//           {selectedServices.length > 0 && (
+//             <>
+//               {/* MOBILE */}
+//               <motion.div
+//                 initial={{ y: 50, opacity: 0 }}
+//                 animate={{ y: 0, opacity: 1 }}
+//                 exit={{ y: 50, opacity: 0 }}
+//                 className="md:hidden sticky bottom-0 z-50 p-4"
+//                 style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 0.25rem)' }}
+//               >
+//                 <div className="mx-auto w-full max-w-screen-2xl">
+//                   <div className="relative">
+//                     <div className="absolute -inset-4 bg-gradient-to-r from-amber-500 to-yellow-500 rounded-3xl blur-xl opacity-50" />
+//                     <div className="relative bg-black/90 backdrop-blur-2xl border border-amber-500/50 rounded-3xl p-6">
+//                       <div className="flex items-center justify-between gap-4">
+//                         <div>
+//                           <div className="text-sm text-gray-400 mb-1 font-medium">
+//                             Выбрано услуг: <span className="text-amber-400 font-bold">{selectedServices.length}</span>
+//                           </div>
+
+//                           <div className="flex items-baseline gap-3">
+//                             <span className="text-4xl font-black bg-gradient-to-r from-amber-400 to-yellow-400 bg-clip-text text-transparent">
+//                               {formatPrice(totalPrice)}
+//                             </span>
+//                             <span className="text-2xl font-bold text-amber-400">€</span>
+//                             <span className="text-base text-gray-500">• {totalDuration} мин</span>
+//                           </div>
+//                         </div>
+
+//                         <motion.button
+//                           whileHover={{ scale: 1.03 }}
+//                           whileTap={{ scale: 0.97 }}
+//                           onClick={handleContinue}
+//                           className="relative group shrink-0"
+//                         >
+//                           <div className="absolute inset-0 bg-gradient-to-r from-amber-500 to-yellow-500 rounded-2xl blur-lg group-hover:blur-xl transition-all" />
+//                           <div className="relative bg-gradient-to-r from-amber-500 to-yellow-500 text-black px-7 py-4 rounded-2xl font-bold text-base flex items-center gap-3 shadow-2xl">
+//                             <span>Продолжить</span>
+//                             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+//                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+//                             </svg>
+//                           </div>
+//                         </motion.button>
+//                       </div>
+//                     </div>
+//                   </div>
+//                 </div>
+//               </motion.div>
+
+//               {/* DESKTOP */}
+//               <motion.div
+//                 initial={{ y: 100, opacity: 0 }}
+//                 animate={{ y: 0, opacity: 1 }}
+//                 exit={{ y: 100, opacity: 0 }}
+//                 className="hidden md:block fixed bottom-0 left-0 right-0 z-50 p-6"
+//                 style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
+//               >
+//                 <div className="mx-auto w-full max-w-screen-2xl">
+//                   <div className="relative">
+//                     <div className="absolute -inset-4 bg-gradient-to-r from-amber-500 to-yellow-500 rounded-3xl blur-xl opacity-50" />
+//                     <div className="relative bg-black/90 backdrop-blur-2xl border border-amber-500/50 rounded-3xl p-8">
+//                       <div className="flex items-center justify-between flex-wrap gap-6">
+//                         <div>
+//                           <div className="text-sm text-gray-400 mb-2 font-medium">
+//                             Выбрано услуг:{' '}
+//                             <span className="text-amber-400 font-bold">{selectedServices.length}</span>
+//                           </div>
+
+//                           <div className="flex items-baseline gap-4">
+//                             <span className="text-5xl font-black bg-gradient-to-r from-amber-400 to-yellow-400 bg-clip-text text-transparent">
+//                               {formatPrice(totalPrice)}
+//                             </span>
+//                             <span className="text-3xl font-bold text-amber-400">€</span>
+//                             <span className="text-xl text-gray-500 ml-2">• {totalDuration} мин</span>
+//                           </div>
+//                         </div>
+
+//                         <motion.button
+//                           whileHover={{ scale: 1.05 }}
+//                           whileTap={{ scale: 0.95 }}
+//                           onClick={handleContinue}
+//                           className="relative group"
+//                         >
+//                           <div className="absolute inset-0 bg-gradient-to-r from-amber-500 to-yellow-500 rounded-2xl blur-lg group-hover:blur-xl transition-all" />
+//                           <div className="relative bg-gradient-to-r from-amber-500 to-yellow-500 text-black px-12 py-5 rounded-2xl font-bold text-lg flex items-center gap-3 shadow-2xl">
+//                             <span>Продолжить</span>
+//                             <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+//                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+//                             </svg>
+//                           </div>
+//                         </motion.button>
+//                       </div>
+//                     </div>
+//                   </div>
+//                 </div>
+//               </motion.div>
+//             </>
+//           )}
+//         </AnimatePresence>
+//       </div>
+
+//       {/* GLOBAL STYLES */}
+//       <style jsx global>{`
+//         @keyframes gradient {
+//           0%,
+//           100% {
+//             background-position: 0% 50%;
+//           }
+//           50% {
+//             background-position: 100% 50%;
+//           }
+//         }
+//         .animate-gradient {
+//           background-size: 200% 200%;
+//           animation: gradient 3s ease infinite;
+//         }
+//         .bg-300\% {
+//           background-size: 300% 300%;
+//         }
+
+//         /* brand subtitle styling */
+//         .brand-subtitle {
+//           background: linear-gradient(90deg, #8b5cf6 0%, #3b82f6 50%, #06b6d4 100%);
+//           -webkit-background-clip: text;
+//           background-clip: text;
+//           color: transparent;
+//           text-shadow: 0 0 10px rgba(139, 92, 246, 0.35),
+//             0 0 18px rgba(59, 130, 246, 0.25),
+//             0 0 28px rgba(6, 182, 212, 0.22);
+//           filter: drop-shadow(0 0 14px rgba(59, 130, 246, 0.15));
+//         }
+//         .brand-subtitle:hover {
+//           text-shadow: 0 0 12px rgba(139, 92, 246, 0.45),
+//             0 0 22px rgba(59, 130, 246, 0.35),
+//             0 0 32px rgba(6, 182, 212, 0.28);
+//         }
+
+//         /* cursive brand style */
+//         .brand-script {
+//           font-family: var(--brand-script, 'YourBrandScript', 'Cormorant Infant', 'Playfair Display', serif);
+//           font-style: italic;
+//           font-weight: 600;
+//           letter-spacing: 0.02em;
+//         }
+//       `}</style>
+
+//     </div>
+//   );
+// }
+
+
+
+//--------всё работает, меняю только задний фон----------
+// 'use client';
+
+// import React, { useState, useEffect } from 'react';
+// import { motion, AnimatePresence } from 'framer-motion';
+// import { useRouter } from 'next/navigation';
+// import PremiumProgressBar from '@/components/PremiumProgressBar';
+// import { Sparkles, Star, Zap, Award } from 'lucide-react';
+
+// interface ServiceDto {
+//   id: string;
+//   title: string;
+//   description: string | null;
+//   durationMin: number;
+//   priceCents: number | null;
+//   parentId: string;
+// }
+
+// interface GroupDto {
+//   id: string;
+//   title: string;
+//   services: ServiceDto[];
+// }
+
+// interface PromotionDto {
+//   id: string;
+//   title: string;
+//   percent: number;
+//   isGlobal: boolean;
+// }
+
+// interface ApiResponse {
+//   groups: GroupDto[];
+//   promotions: PromotionDto[];
+// }
+
+// const BOOKING_STEPS = [
+//   { id: 'services', label: 'Услуга', icon: '✨' },
+//   { id: 'master', label: 'Мастер', icon: '👤' },
+//   { id: 'calendar', label: 'Дата', icon: '📅' },
+//   { id: 'client', label: 'Данные', icon: '📝' },
+//   { id: 'verify', label: 'Проверка', icon: '✓' },
+//   { id: 'payment', label: 'Оплата', icon: '💳' },
+// ];
+
+// // без any
+// const categoryIcons: Record<string, string> = {
+//   Маникюр: '💅',
+//   Стрижка: '✂️',
+//   Все: '✨',
+// };
+
+// export default function ServicesPage(): React.JSX.Element {
+//   const router = useRouter();
+//   const [groups, setGroups] = useState<GroupDto[]>([]);
+//   const [loading, setLoading] = useState<boolean>(true);
+//   const [error, setError] = useState<string | null>(null);
+//   const [selectedCategory, setSelectedCategory] = useState<string>('Все');
+//   const [selectedServices, setSelectedServices] = useState<string[]>([]);
+//   const [hoveredCard, setHoveredCard] = useState<string | null>(null);
+
+//   useEffect(() => {
+//     const fetchServices = async (): Promise<void> => {
+//       try {
+//         setLoading(true);
+//         const response = await fetch('/api/booking/services', { method: 'POST' });
+//         if (!response.ok) throw new Error('Ошибка загрузки услуг');
+//         const data: ApiResponse = await response.json();
+//         setGroups(data.groups);
+//         setError(null);
+//       } catch (err) {
+//         console.error('Error fetching services:', err);
+//         setError('Не удалось загрузить услуги');
+//       } finally {
+//         setLoading(false);
+//       }
+//     };
+
+//     void fetchServices();
+//   }, []);
+
+//   const allServices = groups.flatMap((g) => g.services);
+//   const categories = ['Все', ...groups.map((g) => g.title)];
+
+//   const filteredGroups =
+//     selectedCategory === 'Все' ? groups : groups.filter((g) => g.title === selectedCategory);
+
+//   const toggleService = (serviceId: string): void => {
+//     setSelectedServices((prev) =>
+//       prev.includes(serviceId) ? prev.filter((id) => id !== serviceId) : [...prev, serviceId],
+//     );
+//   };
+
+//   const totalPrice = allServices
+//     .filter((s) => selectedServices.includes(s.id))
+//     .reduce((sum, s) => sum + (s.priceCents ?? 0), 0);
+
+//   const totalDuration = allServices
+//     .filter((s) => selectedServices.includes(s.id))
+//     .reduce((sum, s) => sum + s.durationMin, 0);
+
+//   const handleContinue = (): void => {
+//     const params = new URLSearchParams();
+//     selectedServices.forEach((id) => params.append('s', id));
+//     router.push(`/booking/master?${params.toString()}`);
+//   };
+
+//   const formatPrice = (cents: number): string => (cents / 100).toLocaleString('ru-RU');
+
+//   if (loading) {
+//     return (
+//       <div className="min-h-screen bg-gradient-to-br from-gray-950 via-black to-gray-950">
+//         <div className="booking-progress-wrap">
+//           <PremiumProgressBar currentStep={0} steps={BOOKING_STEPS} />
+//         </div>
+
+//         <div className="flex items-center justify-center min-h-screen">
+//           <motion.div initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} className="relative">
+//             <div className="w-24 h-24 relative">
+//               <div className="absolute inset-0 rounded-full bg-gradient-to-r from-amber-500 via-yellow-500 to-amber-500 opacity-20 blur-xl animate-pulse" />
+//               <div className="absolute inset-0 rounded-full border-4 border-transparent border-t-amber-500 animate-spin" />
+//               <Sparkles className="absolute inset-0 m-auto w-12 h-12 text-amber-500 animate-pulse" />
+//             </div>
+//             <p className="text-white/60 text-center mt-8 font-medium">Загрузка премиум услуг...</p>
+//           </motion.div>
+//         </div>
+//       </div>
+//     );
+//   }
+
+//   if (error) {
+//     return (
+//       <div className="min-h-screen bg-gradient-to-br from-gray-950 via-black to-gray-950 flex items-center justify-center">
+//         <div className="booking-progress-wrap">
+//           <PremiumProgressBar currentStep={0} steps={BOOKING_STEPS} />
+//         </div>
+
+//         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-center px-4">
+//           <div className="text-6xl mb-4">⚠️</div>
+//           <h2 className="text-2xl font-bold text-red-400 mb-4">{error}</h2>
+//           <button
+//             onClick={() => window.location.reload()}
+//             className="px-8 py-4 bg-gradient-to-r from-amber-500 to-yellow-500 text-black rounded-2xl font-bold hover:scale-105 transition-transform shadow-lg shadow-amber-500/50"
+//           >
+//             Попробовать снова
+//           </button>
+//         </motion.div>
+//       </div>
+//     );
+//   }
+
+//   return (
+//     <div className="min-h-screen bg-gradient-to-br from-gray-950 via-black to-gray-950 relative overflow-hidden">
+//       {/* Закреплённый прогресс-бар с золотой линией (см. booking/layout.tsx) */}
+//       <div className="booking-progress-wrap">
+//         <PremiumProgressBar currentStep={0} steps={BOOKING_STEPS} />
+//       </div>
+
+//       {/* Animated background */}
+//       <div className="fixed inset-0 overflow-hidden pointer-events-none">
+//         <motion.div
+//           animate={{ scale: [1, 1.2, 1], opacity: [0.3, 0.5, 0.3] }}
+//           transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut' }}
+//           className="absolute -top-1/2 -left-1/2 w-full h-full bg-gradient-to-br from-amber-500/20 via-transparent to-transparent rounded-full blur-3xl"
+//         />
+//         <motion.div
+//           animate={{ scale: [1, 1.3, 1], opacity: [0.2, 0.4, 0.2] }}
+//           transition={{ duration: 10, repeat: Infinity, ease: 'easeInOut', delay: 1 }}
+//           className="absolute -bottom-1/2 -right-1/2 w-full h-full bg-gradient-to-tl from-yellow-500/20 via-transparent to-transparent rounded-full blur-3xl"
+//         />
+//       </div>
+
+//       {/* Контент с базовым отступом от прогресс-бара (см. booking/layout.tsx) */}
+//       <div className="booking-content relative pt-28 md:pt-32 pb-28 md:pb-32 px-4">
+//         <div className="mx-auto w-full max-w-screen-2xl">
+//           {/* Hero */}
+//           <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} className="text-center mb-12 md:mb-16">
+//             <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ delay: 0.2, type: 'spring', stiffness: 200 }} className="inline-block mb-6">
+//               <div className="relative">
+//                 <div className="absolute inset-0 bg-gradient-to-r from-amber-500 to-yellow-500 rounded-full blur-xl opacity-50 animate-pulse" />
+//                 <div className="relative bg-gradient-to-r from-amber-500 to-yellow-500 text-black px-6 md:px-8 py-2.5 md:py-3 rounded-full font-bold flex items-center gap-2 shadow-xl">
+//                   <Star className="w-4 h-4 md:w-5 md:h-5" />
+//                   <span>Premium Selection</span>
+//                   <Star className="w-4 h-4 md:w-5 md:h-5" />
+//                 </div>
+//               </div>
+//             </motion.div>
+
+//             {/* Заголовок — как в мастере */}
+//             <motion.h1
+//               initial={{ opacity: 0, y: 18 }}
+//               animate={{ opacity: 1, y: 0 }}
+//               transition={{ delay: 0.28 }}
+//               className="
+//                 text-4xl md:text-5xl lg:text-5xl xl:text-6xl 2xl:text-7xl
+//                 font-serif italic leading-tight
+//                 text-transparent bg-clip-text
+//                 bg-gradient-to-r from-[#F5C518]/90 via-[#FFD166]/90 to-[#F5C518]/90
+//                 drop-shadow-[0_0_18px_rgba(245,197,24,0.35)]
+//                 lg:bg-gradient-to-r lg:from-[#7CFFFB] lg:via-[#22D3EE] lg:to-[#7CFFFB]
+//                 lg:drop-shadow-[0_0_22px_rgba(34,211,238,0.6)]
+//                 xl:bg-gradient-to-r xl:from-[#F5C518]/90 xl:via-[#FFD166]/90 xl:to-[#F5C518]/90
+//                 xl:drop-shadow-[0_0_18px_rgba(245,197,24,0.35)]
+//                 mb-3 md:mb-4
+//               "
+//             >
+//               Выберите услугу
+//             </motion.h1>
+
+//             {/* === ТОЛЬКО ЭТО ИЗМЕНЕНО: добавлен шрифт brand-script (под «прописной») === */}
+//             <motion.p
+//               initial={{ opacity: 0 }}
+//               animate={{ opacity: 1 }}
+//               transition={{ delay: 0.45 }}
+//               className="mx-auto max-w-2xl brand-script tracking-wide text-base md:text-lg brand-subtitle"
+//             >
+//               Создайте свой уникальный образ с нашими эксклюзивными премиум услугами
+//             </motion.p>
+//           </motion.div>
+
+//           {/* Категории */}
+//           <motion.div
+//             initial={{ opacity: 0, y: 20 }}
+//             animate={{ opacity: 1, y: 0 }}
+//             transition={{ delay: 0.55 }}
+//             className="flex flex-wrap gap-3 md:gap-4 justify-center mb-12 md:mb-16"
+//           >
+//             {categories.map((category, index) => {
+//               const isActive = selectedCategory === category;
+//               return (
+//                 <motion.button
+//                   key={category}
+//                   initial={{ opacity: 0, scale: 0.9 }}
+//                   animate={{ opacity: 1, scale: 1 }}
+//                   transition={{ delay: 0.05 * index }}
+//                   whileHover={{ scale: 1.05, y: -2 }}
+//                   whileTap={{ scale: 0.96 }}
+//                   onClick={() => setSelectedCategory(category)}
+//                   className={`group relative px-6 md:px-8 py-3 rounded-2xl font-semibold transition-all duration-300 ${
+//                     isActive ? 'text-black' : 'text-gray-300 hover:text-white'
+//                   }`}
+//                 >
+//                   <div
+//                     className={`absolute inset-0 rounded-2xl transition-all duration-300 ${
+//                       isActive
+//                         ? 'bg-gradient-to-r from-amber-500 to-yellow-500 shadow-2xl shadow-amber-500/50'
+//                         : 'bg-white/5 backdrop-blur-sm border border-white/10 group-hover:bg-white/10'
+//                     }`}
+//                   />
+//                   <span className="relative flex items-center gap-2">
+//                     <span className="text-xl">{categoryIcons[category] || '✨'}</span>
+//                     {category}
+//                   </span>
+//                 </motion.button>
+//               );
+//             })}
+//           </motion.div>
+
+//           {/* Группы и услуги */}
+//           {filteredGroups.map((group, groupIndex) => (
+//             <motion.div
+//               key={group.id}
+//               initial={{ opacity: 0, y: 30 }}
+//               animate={{ opacity: 1, y: 0 }}
+//               transition={{ delay: groupIndex * 0.08 + 0.6 }}
+//               className="mb-16 md:mb-20"
+//             >
+//               {/* Заголовок группы */}
+//               <div className="flex items-center gap-4 mb-6 md:mb-8">
+//                 <div className="h-1 flex-1 bg-gradient-to-r from-transparent via-amber-500/40 to-transparent" />
+//                 <h2 className="text-2xl md:text-3xl font-bold bg-gradient-to-r from-amber-400 to-yellow-400 bg-clip-text text-transparent">
+//                   {group.title}
+//                 </h2>
+//                 <div className="h-1 flex-1 bg-gradient-to-r from-transparent via-amber-500/40 to-transparent" />
+//               </div>
+
+//               {/* Сетка карточек */}
+//               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-5 md:gap-6">
+//                 <AnimatePresence mode="popLayout">
+//                   {group.services.map((service, index) => {
+//                     const isSelected = selectedServices.includes(service.id);
+//                     const isHovered = hoveredCard === service.id;
+//                     const price = service.priceCents ? formatPrice(service.priceCents) : 'По запросу';
+
+//                     return (
+//                       <motion.div
+//                         key={service.id}
+//                         layout
+//                         initial={{ opacity: 0, scale: 0.9, y: 16 }}
+//                         animate={{ opacity: 1, scale: 1, y: 0 }}
+//                         exit={{ opacity: 0, scale: 0.92 }}
+//                         transition={{ delay: index * 0.04, type: 'spring', stiffness: 300, damping: 26 }}
+//                         whileHover={{ y: -6, scale: 1.015 }}
+//                         onHoverStart={() => setHoveredCard(service.id)}
+//                         onHoverEnd={() => setHoveredCard(null)}
+//                         onClick={() => toggleService(service.id)}
+//                         className="group relative cursor-pointer"
+//                       >
+//                         {/* Подсветка */}
+//                         <div
+//                           className={`absolute -inset-3 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 blur-lg ${
+//                             isSelected
+//                               ? 'bg-gradient-to-r from-amber-500/45 to-yellow-500/45'
+//                               : 'bg-gradient-to-r from-amber-500/18 to-yellow-500/18'
+//                           }`}
+//                         />
+
+//                         {/* Карточка */}
+//                         <div
+//                           className={`relative rounded-2xl overflow-hidden transition-all duration-500 ${
+//                             isSelected
+//                               ? 'bg-gradient-to-br from-amber-500/18 via-yellow-500/10 to-amber-500/18 border border-amber-500/40'
+//                               : 'bg-white/5 backdrop-blur-xl border border-white/10'
+//                           }`}
+//                         >
+//                           {/* Фон-акцент */}
+//                           <div className="absolute inset-0 opacity-25">
+//                             <div className="absolute inset-0 bg-gradient-to-br from-amber-500/10 to-transparent" />
+//                             <motion.div
+//                               animate={{ backgroundPosition: ['0% 0%', '100% 100%'] }}
+//                               transition={{ duration: 18, repeat: Infinity, repeatType: 'reverse' }}
+//                               className="absolute inset-0"
+//                               style={{
+//                                 backgroundImage:
+//                                   'radial-gradient(circle at 20% 50%, rgba(251, 191, 36, 0.12) 0%, transparent 50%)',
+//                                 backgroundSize: '200% 200%',
+//                               }}
+//                             />
+//                           </div>
+
+//                           {/* Контент */}
+//                           <div className="relative p-5 md:p-6">
+//                             {/* Верхняя строка */}
+//                             <div className="flex items-start justify-between mb-4">
+//                               {/* Чекбокс */}
+//                               <motion.div
+//                                 initial={false}
+//                                 animate={{ scale: isSelected ? 1.08 : 1, rotate: isSelected ? 360 : 0 }}
+//                                 transition={{ type: 'spring', stiffness: 300 }}
+//                                 className={`w-7 h-7 rounded-full border-2 flex items-center justify-center ${
+//                                   isSelected
+//                                     ? 'bg-gradient-to-br from-amber-500 to-yellow-500 border-amber-500 shadow-lg shadow-amber-500/40'
+//                                     : 'border-white/30 backdrop-blur-sm'
+//                                 }`}
+//                               >
+//                                 {isSelected && (
+//                                   <motion.svg
+//                                     initial={{ scale: 0, rotate: -180 }}
+//                                     animate={{ scale: 1, rotate: 0 }}
+//                                     className="w-4 h-4 text-black"
+//                                     fill="none"
+//                                     viewBox="0 0 24 24"
+//                                     stroke="currentColor"
+//                                   >
+//                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+//                                   </motion.svg>
+//                                 )}
+//                               </motion.div>
+
+//                               {/* Бейдж */}
+//                               <motion.div
+//                                 animate={{ rotate: [0, 4, -4, 0] }}
+//                                 transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }}
+//                                 className="relative"
+//                               >
+//                                 <div className="absolute inset-0 bg-gradient-to-r from-amber-500 to-yellow-500 rounded-full blur-md opacity-50" />
+//                                 <div className="relative w-12 h-12 rounded-full bg-gradient-to-br from-amber-500 to-yellow-500 flex items-center justify-center shadow-xl">
+//                                   <Sparkles className="w-6 h-6 text-black" />
+//                                 </div>
+//                               </motion.div>
+//                             </div>
+
+//                             {/* Заголовок услуги */}
+//                             <h3
+//                               className={`text-lg md:text-xl font-bold mb-2 transition-all ${
+//                                 isSelected || isHovered
+//                                   ? 'text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-yellow-400'
+//                                   : 'text-white'
+//                               }`}
+//                             >
+//                               {service.title}
+//                             </h3>
+
+//                             {/* Описание */}
+//                             {service.description && (
+//                               <p className="text-gray-400 text-xs md:text-sm mb-5 line-clamp-2 font-light">
+//                                 {service.description}
+//                               </p>
+//                             )}
+
+//                             {/* Низ карточки */}
+//                             <div className="flex items-end justify-between">
+//                               {/* Цена и длительность */}
+//                               <div>
+//                                 <div className="flex items-baseline gap-1.5 mb-0.5">
+//                                   <span className="text-2xl md:text-3xl font-extrabold bg-gradient-to-r from-amber-400 to-yellow-400 bg-clip-text text-transparent">
+//                                     {price}
+//                                   </span>
+//                                   <span className="text-lg md:text-xl font-bold text-amber-400">€</span>
+//                                 </div>
+//                                 <div className="flex items-center gap-2 text-gray-500 text-xs md:text-sm">
+//                                   <Zap className="w-4 h-4" />
+//                                   <span>{service.durationMin} минут</span>
+//                                 </div>
+//                               </div>
+
+//                               {/* Иконка справа */}
+//                               <motion.div
+//                                 animate={{ scale: isHovered ? 1 : 0.85, opacity: isHovered ? 1 : 0.6 }}
+//                                 className={`w-12 h-12 md:w-14 md:h-14 rounded-xl flex items-center justify-center ${
+//                                   isSelected
+//                                     ? 'bg-gradient-to-br from-amber-500 to-yellow-500 shadow-lg shadow-amber-500/40'
+//                                     : 'bg-white/5'
+//                                 }`}
+//                               >
+//                                 <Award className={`w-7 h-7 ${isSelected ? 'text-black' : 'text-amber-500'}`} />
+//                               </motion.div>
+//                             </div>
+//                           </div>
+//                         </div>
+//                       </motion.div>
+//                     );
+//                   })}
+//                 </AnimatePresence>
+//               </div>
+//             </motion.div>
+//           ))}
+//         </div>
+//       </div>
+
+//       {/* Floating Footer: мобилка — sticky, tablet/desktop — fixed */}
+//       <AnimatePresence>
+//         {selectedServices.length > 0 && (
+//           <>
+//             {/* MOBILE sticky + safe area */}
+//             <motion.div
+//               initial={{ y: 50, opacity: 0 }}
+//               animate={{ y: 0, opacity: 1 }}
+//               exit={{ y: 50, opacity: 0 }}
+//               className="md:hidden sticky bottom-0 z-50 p-4"
+//               style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 0.25rem)' }}
+//             >
+//               <div className="mx-auto w-full max-w-screen-2xl">
+//                 <div className="relative">
+//                   <div className="absolute -inset-4 bg-gradient-to-r from-amber-500 to-yellow-500 rounded-3xl blur-xl opacity-50" />
+//                   <div className="relative bg-black/90 backdrop-blur-2xl border border-amber-500/50 rounded-3xl p-6">
+//                     <div className="flex items-center justify-between gap-4">
+//                       <div>
+//                         <div className="text-sm text-gray-400 mb-1 font-medium">
+//                           Выбрано услуг:{' '}
+//                           <span className="text-amber-400 font-bold">{selectedServices.length}</span>
+//                         </div>
+//                         <div className="flex items-baseline gap-3">
+//                           <span className="text-4xl font-black bg-gradient-to-r from-amber-400 to-yellow-400 bg-clip-text text-transparent">
+//                             {formatPrice(totalPrice)}
+//                           </span>
+//                           <span className="text-2xl font-bold text-amber-400">€</span>
+//                           <span className="text-base text-gray-500">• {totalDuration} мин</span>
+//                         </div>
+//                       </div>
+
+//                       <motion.button
+//                         whileHover={{ scale: 1.03 }}
+//                         whileTap={{ scale: 0.97 }}
+//                         onClick={handleContinue}
+//                         className="relative group shrink-0"
+//                       >
+//                         <div className="absolute inset-0 bg-gradient-to-r from-amber-500 to-yellow-500 rounded-2xl blur-lg group-hover:blur-xl transition-all" />
+//                         <div className="relative bg-gradient-to-r from-amber-500 to-yellow-500 text-black px-7 py-4 rounded-2xl font-bold text-base flex items-center gap-3 shadow-2xl">
+//                           <span>Продолжить</span>
+//                           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+//                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+//                           </svg>
+//                         </div>
+//                       </motion.button>
+//                     </div>
+//                   </div>
+//                 </div>
+//               </div>
+//             </motion.div>
+
+//             {/* TABLET/DESKTOP fixed */}
+//             <motion.div
+//               initial={{ y: 100, opacity: 0 }}
+//               animate={{ y: 0, opacity: 1 }}
+//               exit={{ y: 100, opacity: 0 }}
+//               className="hidden md:block fixed bottom-0 left-0 right-0 z-50 p-6"
+//               style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
+//             >
+//               <div className="mx-auto w-full max-w-screen-2xl">
+//                 <div className="relative">
+//                   <div className="absolute -inset-4 bg-gradient-to-r from-amber-500 to-yellow-500 rounded-3xl blur-xl opacity-50" />
+//                   <div className="relative bg-black/90 backdrop-blur-2xl border border-amber-500/50 rounded-3xl p-8">
+//                     <div className="flex items-center justify-between flex-wrap gap-6">
+//                       <div>
+//                         <div className="text-sm text-gray-400 mb-2 font-medium">
+//                           Выбрано услуг:{' '}
+//                           <span className="text-amber-400 font-bold">{selectedServices.length}</span>
+//                         </div>
+//                         <div className="flex items-baseline gap-4">
+//                           <span className="text-5xl font-black bg-gradient-to-r from-amber-400 to-yellow-400 bg-clip-text text-transparent">
+//                             {formatPrice(totalPrice)}
+//                           </span>
+//                           <span className="text-3xl font-bold text-amber-400">€</span>
+//                           <span className="text-xl text-gray-500 ml-2">• {totalDuration} мин</span>
+//                         </div>
+//                       </div>
+
+//                       <motion.button
+//                         whileHover={{ scale: 1.05 }}
+//                         whileTap={{ scale: 0.95 }}
+//                         onClick={handleContinue}
+//                         className="relative group"
+//                       >
+//                         <div className="absolute inset-0 bg-gradient-to-r from-amber-500 to-yellow-500 rounded-2xl blur-lg group-hover:blur-xl transition-all" />
+//                         <div className="relative bg-gradient-to-r from-amber-500 to-yellow-500 text-black px-12 py-5 rounded-2xl font-bold text-lg flex items-center gap-3 shadow-2xl">
+//                           <span>Продолжить</span>
+//                           <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+//                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+//                           </svg>
+//                         </div>
+//                       </motion.button>
+//                     </div>
+//                   </div>
+//                 </div>
+//               </div>
+//             </motion.div>
+//           </>
+//         )}
+//       </AnimatePresence>
+
+//       <style jsx global>{`
+//         @keyframes gradient {
+//           0%,
+//           100% {
+//             background-position: 0% 50%;
+//           }
+//           50% {
+//             background-position: 100% 50%;
+//           }
+//         }
+//         .animate-gradient {
+//           background-size: 200% 200%;
+//           animation: gradient 3s ease infinite;
+//         }
+//         .bg-300\% {
+//           background-size: 300% 300%;
+//         }
+
+//         /* === добавлено ранее: фирменная подсветка для подзаголовков === */
+//         .brand-subtitle{
+//           background: linear-gradient(90deg, #8B5CF6 0%, #3B82F6 50%, #06B6D4 100%);
+//           -webkit-background-clip: text;
+//           background-clip: text;
+//           color: transparent;
+//           text-shadow:
+//             0 0 10px rgba(139, 92, 246, 0.35),
+//             0 0 18px rgba(59, 130, 246, 0.25),
+//             0 0 28px rgba(6, 182, 212, 0.22);
+//           filter: drop-shadow(0 0 14px rgba(59, 130, 246, 0.15));
+//         }
+//         .brand-subtitle:hover,
+//         .brand-subtitle:active{
+//           text-shadow:
+//             0 0 12px rgba(139, 92, 246, 0.45),
+//             0 0 22px rgba(59, 130, 246, 0.35),
+//             0 0 32px rgba(6, 182, 212, 0.28);
+//         }
+
+//         /* === ДОБАВЛЕНО СЕЙЧАС: фирменный «прописной» шрифт === */
+//         .brand-script{
+//           font-family: var(--brand-script, 'YourBrandScript', 'Cormorant Infant', 'Playfair Display', serif);
+//           font-style: italic;
+//           font-weight: 600;
+//           letter-spacing: .02em;
+//           -webkit-font-smoothing: antialiased;
+//           -moz-osx-font-smoothing: grayscale;
+//         }
+//       `}</style>
+//     </div>
+//   );
+// }
 
 
 
