@@ -238,23 +238,131 @@ html { scroll-behavior: smooth; }
 .prose-elen p { white-space: pre-line; text-indent: 0; }
 
 /* ========= Booking background animations (Google / booking pages) ========= */
-@keyframes booking-orbit {
+/* ========= Booking animated background (WOW версия) ========= */
+@keyframes booking-rays {
   0% {
-    transform: rotate(0deg) translate3d(0, 0, 0);
+    transform: rotate(0deg) scale(1);
+    opacity: 0.7;
+  }
+  50% {
+    transform: rotate(180deg) scale(1.08);
+    opacity: 1;
   }
   100% {
-    transform: rotate(360deg) translate3d(0, 0, 0);
+    transform: rotate(360deg) scale(1);
+    opacity: 0.7;
   }
 }
 
-@keyframes booking-orbit-reverse {
-  0% {
-    transform: rotate(360deg) translate3d(0, 0, 0);
+@keyframes booking-blob {
+  0%, 100% {
+    transform: translate3d(0, 0, 0) scale(1);
   }
-  100% {
-    transform: rotate(0deg) translate3d(0, 0, 0);
+  25% {
+    transform: translate3d(30px, -30px, 0) scale(1.12);
+  }
+  50% {
+    transform: translate3d(60px, 10px, 0) scale(1.18);
+  }
+  75% {
+    transform: translate3d(20px, 30px, 0) scale(1.1);
   }
 }
+
+@keyframes booking-blob-alt {
+  0%, 100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  25% {
+    transform: translate3d(-25px, 25px, 0) scale(1.08);
+  }
+  50% {
+    transform: translate3d(-55px, -10px, 0) scale(1.16);
+  }
+  75% {
+    transform: translate3d(-10px, -35px, 0) scale(1.1);
+  }
+}
+
+@keyframes booking-spotlight-pulse {
+  0%, 100% {
+    opacity: 0.65;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: translate3d(0, -10px, 0) scale(1.05);
+  }
+}
+
+@layer components {
+  /* центральное “солнце” за заголовком */
+  .booking-spotlight {
+    position: absolute;
+    top: -10%;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 70rem;
+    height: 70rem;
+    border-radius: 9999px;
+    background:
+      radial-gradient(circle at 50% 30%, rgba(250, 204, 21, 0.8), transparent 60%),
+      radial-gradient(circle at 50% 60%, rgba(59, 130, 246, 0.5), transparent 70%);
+    filter: blur(22px);
+    mix-blend-mode: screen;
+    animation: booking-spotlight-pulse 18s ease-in-out infinite;
+  }
+
+  /* вращающиеся лучи света (как у Prisma) */
+  .booking-rays {
+    position: absolute;
+    inset: -45%;
+    background: conic-gradient(
+      from 0deg,
+      rgba(56, 189, 248, 0.0),
+      rgba(56, 189, 248, 0.7),
+      rgba(37, 99, 235, 0.0),
+      rgba(244, 114, 182, 0.75),
+      rgba(16, 185, 129, 0.65),
+      rgba(56, 189, 248, 0.9),
+      rgba(56, 189, 248, 0.0)
+    );
+    opacity: 0.85;
+    mix-blend-mode: screen;
+    filter: blur(50px);
+    transform-origin: center;
+    animation: booking-rays 26s linear infinite;
+  }
+
+  .booking-blob-left {
+    position: absolute;
+    left: -18%;
+    top: 30%;
+    width: 42rem;
+    height: 42rem;
+    border-radius: 9999px;
+    background: radial-gradient(circle, rgba(244, 114, 182, 0.95), transparent 65%);
+    filter: blur(45px);
+    opacity: 0.95;
+    mix-blend-mode: screen;
+    animation: booking-blob 22s ease-in-out infinite;
+  }
+
+  .booking-blob-right {
+    position: absolute;
+    right: -20%;
+    bottom: -10%;
+    width: 44rem;
+    height: 44rem;
+    border-radius: 9999px;
+    background: radial-gradient(circle, rgba(56, 189, 248, 0.95), transparent 65%);
+    filter: blur(45px);
+    opacity: 0.9;
+    mix-blend-mode: screen;
+    animation: booking-blob-alt 24s ease-in-out infinite;
+  }
+}
+
 
 /* =================================================================== */
 /* ===================== HERO CTA (как было) ========================= */

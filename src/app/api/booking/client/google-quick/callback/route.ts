@@ -1,3 +1,4 @@
+// src/app/api/booking/client/google-quick/callback/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { exchangeCodeForToken, getUserInfo } from "@/lib/google-oauth";
