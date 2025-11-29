@@ -1,1292 +1,647 @@
+// src/app/booking/(steps)/master/page.tsx
 "use client";
 
-import * as React from "react";
-import Link from "next/link";
-import {
-  Instagram,
-  Facebook,
-  Youtube,
-  Mail,
-  Phone,
-  MapPin,
-  Clock,
-  ArrowRight,
-  CalendarCheck,
-  Scissors,
-  Sparkles,
-  ChevronUp,
-} from "lucide-react";
-import { motion } from "framer-motion";
+import React, { useState, useEffect, useMemo, Suspense } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { useRouter, useSearchParams } from "next/navigation";
+import Image from "next/image";
+import PremiumProgressBar from "@/components/PremiumProgressBar";
 import { BookingAnimatedBackground } from "@/components/layout/BookingAnimatedBackground";
+import { User, ChevronRight, ArrowLeft, Sparkles, Star, Crown } from "lucide-react";
 
-const mainNav = [
-  { href: "/", label: "Главная" },
-  { href: "/services", label: "Услуги" },
-  { href: "/prices", label: "Цены" },
-  { href: "/news", label: "Новости" },
-  { href: "/about", label: "О нас" },
-  { href: "/contacts", label: "Контакты" },
+interface Master {
+  id: string;
+  name: string;
+  avatarUrl?: string | null;
+  description?: string | null;
+  specialty?: string | null;
+  rating?: number | null;
+  reviewCount?: number | null;
+}
+
+const BOOKING_STEPS = [
+  { id: "services", label: "Услуга", icon: "✨" },
+  { id: "master", label: "Мастер", icon: "👤" },
+  { id: "calendar", label: "Дата", icon: "📅" },
+  { id: "client", label: "Данные", icon: "📝" },
+  { id: "verify", label: "Проверка", icon: "✓" },
+  { id: "payment", label: "Оплата", icon: "💳" },
 ];
 
-const clientNav = [
-  { href: "/booking", label: "Онлайн-запись" },
-  { href: "/booking/client", label: "Личный кабинет записи" },
-  { href: "/admin", label: "Вход для администратора/мастера" },
-];
+/* ===================== Floating Particles Background ===================== */
+function FloatingParticles() {
+  const [particles, setParticles] = useState<Array<{ x: number; y: number; id: number }>>([]);
 
-const socials = [
-  {
-    href: "https://instagram.com",
-    label: "Instagram",
-    icon: Instagram,
-    bgClass: "from-[#F58529] via-[#DD2A7B] to-[#8134AF]",
-    ringClass: "ring-fuchsia-400/70",
-    tooltip: "Открыть Instagram салона",
-  },
-  {
-    href: "https://facebook.com",
-    label: "Facebook",
-    icon: Facebook,
-    bgClass: "from-[#1877F2] via-[#1d4ed8] to-[#0f172a]",
-    ringClass: "ring-sky-400/70",
-    tooltip: "Открыть Facebook страницу",
-  },
-  {
-    href: "https://youtube.com",
-    label: "YouTube",
-    icon: Youtube,
-    bgClass: "from-[#FF0000] via-[#b91c1c] to-[#0f172a]",
-    ringClass: "ring-red-500/70",
-    tooltip: "Открыть YouTube канал",
-  },
-];
+  useEffect(() => {
+    // Генерируем частицы только на клиенте - БЕЗ SSR ошибок!
+    const newParticles = [...Array(20)].map((_, i) => ({
+      x: Math.random() * window.innerWidth,
+      y: Math.random() * window.innerHeight,
+      id: i,
+    }));
+    setParticles(newParticles);
+  }, []);
 
-const messengers = [
-  {
-    href: "https://t.me/",
-    label: "Telegram",
-    pillClass:
-      "border-sky-400/50 bg-sky-500/10 hover:border-sky-400/80 hover:bg-sky-500/20",
-    dotClass: "bg-sky-400",
-    tooltip: "Записаться через Telegram",
-  },
-  {
-    href: "https://wa.me/",
-    label: "WhatsApp",
-    pillClass:
-      "border-emerald-400/60 bg-emerald-500/10 hover:border-emerald-400/90 hover:bg-emerald-500/20",
-    dotClass: "bg-emerald-400",
-    tooltip: "Записаться через WhatsApp",
-  },
-  {
-    href: "viber://chat",
-    label: "Viber",
-    pillClass:
-      "border-purple-400/60 bg-purple-500/10 hover:border-purple-400/90 hover:bg-purple-500/20",
-    dotClass: "bg-purple-400",
-    tooltip: "Записаться через Viber",
-  },
-];
-
-const fadeInUp = {
-  hidden: { opacity: 0, y: 18 },
-  visible: { opacity: 1, y: 0 },
-};
-
-const fadeIn = {
-  hidden: { opacity: 0 },
-  visible: { opacity: 1 },
-};
-
-export default function SiteFooter(): React.JSX.Element {
-  const year = new Date().getFullYear();
-
-  const handleScrollTop = () => {
-    if (typeof window !== "undefined") {
-      window.scrollTo({ top: 0, behavior: "smooth" });
-    }
-  };
+  if (particles.length === 0) return null;
 
   return (
-    <motion.footer
-      initial={{ opacity: 0, y: 18 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.55, ease: "easeOut" }}
-      className="relative mt-16 overflow-hidden bg-black text-sm text-slate-200"
-    >
-      {/* тот же фон, что и в booking/master */}
-      <BookingAnimatedBackground />
-
-      {/* весь контент футера поверх эффектов */}
-      <div className="relative z-10">
-        {/* Неоновая линия */}
-        <div className="pointer-events-none h-px w-full bg-[linear-gradient(90deg,#f97316,#ec4899,#22d3ee,#22c55e,#f97316)] bg-[length:200%_2px] animate-[bg-slide_9s_linear_infinite]" />
-
-        <div className="mx-auto max-w-6xl px-4 pb-8 pt-10 sm:px-6 lg:px-8 lg:pt-12">
-          {/* Верхний блок: бренд + CTA букинга */}
-          <motion.div
-            variants={fadeInUp}
-            initial="hidden"
-            animate="visible"
-            transition={{ duration: 0.5, ease: "easeOut" }}
-            className="relative flex flex-col gap-6 border-b border-white/5 pb-8 md:flex-row md:items-center md:justify-between"
-          >
-            {/* Мягкое свечение под блоком */}
-            <div className="pointer-events-none absolute inset-x-10 -top-6 h-12 rounded-full bg-white/10 blur-3xl" />
-
-            <div className="space-y-3">
-              <motion.div
-                variants={fadeInUp}
-                transition={{ duration: 0.4, delay: 0.05 }}
-                className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-gradient-to-r from-slate-900/80 via-slate-900/50 to-slate-900/80 px-3 py-1 text-[11px] uppercase tracking-[0.16em] text-slate-300 shadow-[0_0_20px_rgba(15,23,42,0.9)]"
-              >
-                <span className="relative flex h-2 w-2">
-                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400/60 opacity-75" />
-                  <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(45,255,196,0.9)]" />
-                </span>
-                <span className="text-[10px] font-medium text-slate-200">
-                  Онлайн-запись премиум-класса
-                </span>
-              </motion.div>
-
-              <motion.div
-                variants={fadeInUp}
-                transition={{ duration: 0.45, delay: 0.12 }}
-              >
-                <div className="flex items-center gap-2">
-                  <motion.div
-                    whileHover={{ scale: 1.02 }}
-                    className="rounded-xl bg-gradient-to-r from-fuchsia-500/30 via-sky-500/15 to-emerald-400/25 p-[1px]"
-                  >
-                    <div className="flex items-center gap-1 rounded-[10px] bg-black/70 px-3 py-1.5">
-                      <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-200">
-                        Salon Elen
-                      </span>
-                      <motion.span
-                        animate={{ width: ["1rem", "1.7rem", "1rem"] }}
-                        transition={{ repeat: Infinity, duration: 4, ease: "easeInOut" }}
-                        className="h-1 w-4 rounded-full bg-gradient-to-r from-fuchsia-400 to-emerald-300"
-                      />
-                    </div>
-                  </motion.div>
-                </div>
-                <p className="mt-2 max-w-xl text-xs leading-relaxed text-slate-300 sm:text-sm">
-                  Современная студия красоты в Halle с умной системой онлайн-бронирования:
-                  выберите услугу, мастера и удобное время за пару кликов — без ожидания на
-                  линии.
-                </p>
-              </motion.div>
-            </div>
-
-            {/* Блок букинга + кнопки */}
-            <motion.div
-              variants={fadeInUp}
-              transition={{ duration: 0.45, delay: 0.18 }}
-              className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4"
-            >
-              <motion.div
-                whileHover={{ y: -2, scale: 1.01 }}
-                transition={{ type: "spring", stiffness: 260, damping: 22 }}
-                className="relative flex flex-1 flex-col gap-2 overflow-hidden rounded-2xl border border-emerald-400/40 bg-gradient-to-br from-emerald-500/20 via-slate-950/90 to-slate-950 shadow-[0_0_32px_rgba(16,185,129,0.45)]"
-              >
-                <div className="pointer-events-none absolute -right-10 -top-10 h-24 w-24 rounded-full bg-emerald-400/40 blur-3xl" />
-                <div className="flex items-center justify-between gap-3 px-4 pt-3">
-                  <div>
-                    <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-emerald-300">
-                      Быстрая запись
-                    </p>
-                    <p className="text-sm font-semibold text-slate-50">
-                      Свободные слоты сегодня и на ближайшие дни
-                    </p>
-                  </div>
-                  <motion.div
-                    animate={{ rotate: [0, 8, -6, 0] }}
-                    transition={{
-                      repeat: Infinity,
-                      duration: 6,
-                      ease: "easeInOut",
-                    }}
-                    className="hidden rounded-xl bg-black/40 p-2 sm:block"
-                  >
-                    <CalendarCheck className="h-5 w-5 text-emerald-300" />
-                  </motion.div>
-                </div>
-                <div className="flex flex-wrap items-center gap-2 px-4 pb-3 pt-1 text-[11px] text-slate-300">
-                  <StepPill icon={Scissors} text="1. Выберите услугу" />
-                  <StepPill icon={Sparkles} text="2. Выберите мастера" />
-                  <StepPill icon={CalendarCheck} text="3. Подтвердите время" />
-                </div>
-              </motion.div>
-
-              <motion.div
-                variants={fadeInUp}
-                transition={{ duration: 0.4, delay: 0.25 }}
-                className="flex flex-col gap-2 sm:w-48"
-              >
-                <motion.div
-                  whileHover={{ y: -2, scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  transition={{ type: "spring", stiffness: 260, damping: 20 }}
-                >
-                  <Link
-                    href="/booking"
-                    className="group inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-fuchsia-500 via-sky-500 to-emerald-400 px-4 py-2.5 text-sm font-semibold text-slate-950 shadow-[0_14px_35px_rgba(56,189,248,0.55)] transition hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400/70"
-                  >
-                    Онлайн-запись
-                    <motion.span
-                      className="inline-flex"
-                      initial={{ x: 0 }}
-                      whileHover={{ x: 4 }}
-                      transition={{ type: "spring", stiffness: 260, damping: 20 }}
-                    >
-                      <ArrowRight className="h-4 w-4" />
-                    </motion.span>
-                  </Link>
-                </motion.div>
-                <motion.a
-                  href="tel:+490000000000"
-                  whileHover={{ y: -1 }}
-                  className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/10 bg-black/70 px-4 py-2.5 text-xs font-medium text-slate-200 transition hover:border-emerald-400/60 hover:text-emerald-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/70"
-                >
-                  <Phone className="h-3.5 w-3.5" />
-                  Позвонить администратору
-                </motion.a>
-              </motion.div>
-            </motion.div>
-          </motion.div>
-
-          {/* Мобильный блок соцсетей */}
-          <div className="mt-8 md:hidden">
-            <SocialsSectionMobile />
-          </div>
-
-          {/* Основная сетка */}
-          <motion.div
-            variants={fadeIn}
-            initial="hidden"
-            animate="visible"
-            transition={{ duration: 0.6, delay: 0.1 }}
-            className="mt-8 grid gap-8 md:grid-cols-4"
-          >
-            {/* Локация / время */}
-            <motion.div
-              variants={fadeInUp}
-              transition={{ duration: 0.45, delay: 0.05 }}
-              className="space-y-4"
-            >
-              <SectionTitle>Салон &amp; локация</SectionTitle>
-              <div className="space-y-3 text-sm text-slate-300">
-                <div className="flex items-start gap-2">
-                  <motion.div
-                    whileHover={{ scale: 1.1, rotate: -4 }}
-                    className="mt-0.5 rounded-full bg-sky-500/20 p-1"
-                  >
-                    <MapPin className="h-4 w-4 text-sky-400" />
-                  </motion.div>
-                  <div>
-                    <p>Halle (Saale)</p>
-                    <p className="text-xs text-slate-300">
-                      Точный адрес и подробная схема проезда — в разделе{" "}
-                      <Link href="/contacts" className="underline underline-offset-2">
-                        контакты
-                      </Link>
-                      .
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-2">
-                  <motion.div
-                    whileHover={{ scale: 1.1, rotate: 4 }}
-                    className="mt-0.5 rounded-full bg-emerald-500/20 p-1"
-                  >
-                    <Clock className="h-4 w-4 text-emerald-400" />
-                  </motion.div>
-                  <div className="space-y-1">
-                    <p>Ежедневно: 10:00 – 20:00</p>
-                    <p className="text-xs text-slate-300">
-                      Онлайн-запись доступна 24/7 — выберите удобное время даже ночью.
-                    </p>
-                  </div>
-                </div>
-                <div className="space-y-1 text-sm">
-                  <p className="font-medium text-slate-100">Контакты</p>
-                  <Tooltip label="Позвонить в салон">
-                    <a
-                      href="tel:+490000000000"
-                      className="flex items-center gap-2 text-slate-300 transition hover:text-emerald-300"
-                    >
-                      <Phone className="h-4 w-4" />
-                      +49 (0) 000 000 000
-                    </a>
-                  </Tooltip>
-                  <Tooltip label="Написать на e-mail">
-                    <a
-                      href="mailto:info@salon-elen.de"
-                      className="flex items-center gap-2 text-slate-300 transition hover:text-sky-300"
-                    >
-                      <Mail className="h-4 w-4" />
-                      info@salon-elen.de
-                    </a>
-                  </Tooltip>
-                </div>
-              </div>
-            </motion.div>
-
-            {/* Навигация */}
-            <motion.div
-              variants={fadeInUp}
-              transition={{ duration: 0.45, delay: 0.12 }}
-              className="space-y-4"
-            >
-              <SectionTitle>Навигация</SectionTitle>
-              <ul className="space-y-2 text-sm text-slate-300">
-                {mainNav.map((item, index) => (
-                  <motion.li
-                    key={item.href}
-                    variants={fadeInUp}
-                    transition={{ duration: 0.3, delay: 0.05 * index }}
-                  >
-                    <motion.div whileHover={{ x: 2 }}>
-                      <Link
-                        href={item.href}
-                        className="group inline-flex items-center gap-1.5 rounded-lg px-1 py-0.5 text-slate-300 transition hover:text-sky-300"
-                      >
-                        <span className="h-1 w-1 rounded-full bg-sky-400/70 transition group-hover:w-3 group-hover:bg-emerald-300" />
-                        <span className="underline-offset-4 group-hover:underline">
-                          {item.label}
-                        </span>
-                      </Link>
-                    </motion.div>
-                  </motion.li>
-                ))}
-              </ul>
-            </motion.div>
-
-            {/* Для клиентов / мастеров */}
-            <motion.div
-              variants={fadeInUp}
-              transition={{ duration: 0.45, delay: 0.18 }}
-              className="space-y-4"
-            >
-              <SectionTitle>Для клиентов и мастеров</SectionTitle>
-              <ul className="space-y-2 text-sm text-slate-300">
-                {clientNav.map((item, index) => (
-                  <motion.li
-                    key={item.href}
-                    variants={fadeInUp}
-                    transition={{ duration: 0.3, delay: 0.06 * index }}
-                  >
-                    <motion.div whileHover={{ x: 2 }}>
-                      <Link
-                        href={item.href}
-                        className="group inline-flex items-center gap-2 rounded-lg px-1 py-0.5 text-slate-300 transition hover:text-emerald-300"
-                      >
-                        <span className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-emerald-500/18 text-[9px] font-semibold text-emerald-300 group-hover:bg-emerald-400/30">
-                          •
-                        </span>
-                        <span className="underline-offset-4 group-hover:underline">
-                          {item.label}
-                        </span>
-                      </Link>
-                    </motion.div>
-                  </motion.li>
-                ))}
-              </ul>
-
-              <motion.div
-                variants={fadeInUp}
-                transition={{ duration: 0.4, delay: 0.26 }}
-                whileHover={{ y: -1 }}
-                className="mt-3 rounded-2xl border border-white/10 bg-gradient-to-br from-white/10 via-slate-900/80 to-slate-950 p-3 text-xs text-slate-300"
-              >
-                <p className="font-medium text-slate-100">Партнёрство с мастерами</p>
-                <p className="mt-1 text-[11px] leading-relaxed text-slate-300">
-                  Ищете современный салон с прозрачным онлайн-расписанием и комфортными
-                  условиями? Напишите нам — обсудим сотрудничество.
-                </p>
-              </motion.div>
-            </motion.div>
-
-            {/* Соцсети — десктоп */}
-            <motion.div
-              variants={fadeInUp}
-              transition={{ duration: 0.45, delay: 0.22 }}
-              className="hidden space-y-4 md:block"
-            >
-              <SocialsSectionDesktop />
-            </motion.div>
-          </motion.div>
-
-          {/* Нижняя полоса с кнопкой "Наверх" */}
-          <motion.div
-            variants={fadeInUp}
-            initial="hidden"
-            animate="visible"
-            transition={{ duration: 0.45, delay: 0.3 }}
-            className="mt-10 flex flex-col gap-3 border-t border-white/10 pt-4 text-[11px] text-slate-400 sm:flex-row sm:items-center sm:justify-between"
-          >
-            <p>© {year} Salon Elen. Все права защищены.</p>
-            <div className="flex flex-wrap items-center gap-3">
-              <motion.div whileHover={{ y: -1 }}>
-                <Link
-                  href="/privacy"
-                  className="transition hover:text-slate-200 hover:underline hover:underline-offset-4"
-                >
-                  Политика конфиденциальности
-                </Link>
-              </motion.div>
-              <motion.div whileHover={{ y: -1 }}>
-                <Link
-                  href="/terms"
-                  className="transition hover:text-slate-200 hover:underline hover:underline-offset-4"
-                >
-                  Условия использования
-                </Link>
-              </motion.div>
-              <motion.button
-                type="button"
-                onClick={handleScrollTop}
-                whileHover={{ y: -1, scale: 1.04 }}
-                whileTap={{ scale: 0.96 }}
-                className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-black/70 px-3 py-1.5 text-[11px] font-medium text-slate-200 shadow-[0_0_14px_rgba(15,23,42,0.8)] backdrop-blur-sm hover:border-sky-400/70 hover:text-sky-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400/70"
-              >
-                <ChevronUp className="h-3 w-3" />
-                Наверх
-              </motion.button>
-            </div>
-          </motion.div>
-        </div>
-      </div>
-    </motion.footer>
+    <div className="pointer-events-none absolute inset-0 overflow-hidden">
+      {particles.map((particle) => (
+        <motion.div
+          key={particle.id}
+          className="absolute h-1 w-1 rounded-full bg-amber-400/30"
+          initial={{ x: particle.x, y: particle.y, opacity: 0 }}
+          animate={{
+            x: [particle.x, Math.random() * window.innerWidth, particle.x],
+            y: [particle.y, Math.random() * window.innerHeight, particle.y],
+            scale: [1, 1.5, 1],
+            opacity: [0.3, 0.8, 0.3],
+          }}
+          transition={{
+            duration: Math.random() * 10 + 10,
+            repeat: Infinity,
+            ease: "linear",
+          }}
+        />
+      ))}
+    </div>
   );
 }
 
-function SectionTitle(props: { children: React.ReactNode }) {
+/* ===================== Page Shell ===================== */
+function PageShell({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="relative min-h-screen overflow-hidden bg-black text-white">
+      <BookingAnimatedBackground />
+      <FloatingParticles />
+
+      <div className="relative z-10 min-h-screen">
+        <header className="booking-header fixed inset-x-0 top-0 z-50 border-b border-white/10 bg-black/50 backdrop-blur-md">
+          <div className="mx-auto w-full max-w-screen-2xl px-4 py-3 xl:px-8">
+            <PremiumProgressBar currentStep={1} steps={BOOKING_STEPS} />
+          </div>
+        </header>
+
+        <div className="h-[84px] md:h-[96px]" />
+
+        {children}
+      </div>
+    </div>
+  );
+}
+
+/* ===================== Video Section ===================== */
+function VideoSection() {
+  return (
+    <section className="relative py-10 sm:py-12">
+      <div className="relative mx-auto w-full max-w-screen-2xl aspect-[16/9] rounded-2xl overflow-hidden border border-white/10 shadow-[0_0_80px_rgba(255,215,0,.12)] bg-black">
+        <video
+          className="h-full w-full object-contain 2xl:object-cover object-[50%_90%] lg:object-[50%_96%] xl:object-[50%_100%] 2xl:object-[50%_96%] bg-black"
+          autoPlay
+          muted
+          loop
+          playsInline
+          preload="metadata"
+          poster="/fallback-poster.jpg"
+          aria-hidden="true"
+        >
+          <source src="/SE-logo-video-master.webm" type="video/webm" />
+          <source src="/SE-logo-video-master.mp4" type="video/mp4" />
+        </video>
+
+        <div className="pointer-events-none absolute inset-0 rounded-2xl ring-1 ring-white/5" />
+      </div>
+    </section>
+  );
+}
+
+/* ===================== Master Card - PREMIUM REDESIGN ===================== */
+function MasterCard({
+  master,
+  onSelect,
+  index,
+}: {
+  master: Master;
+  onSelect: (id: string) => void;
+  index: number;
+}) {
+  const [isHovered, setIsHovered] = useState(false);
+
   return (
     <motion.div
-      whileHover={{ x: 2 }}
-      className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1"
+      layout
+      initial={{ opacity: 0, scale: 0.95, y: 30 }}
+      animate={{ opacity: 1, scale: 1, y: 0 }}
+      exit={{ opacity: 0, scale: 0.92 }}
+      transition={{
+        delay: index * 0.1,
+        type: "spring",
+        stiffness: 280,
+        damping: 25,
+      }}
+      whileHover={{ y: -8, scale: 1.02 }}
+      onHoverStart={() => setIsHovered(true)}
+      onHoverEnd={() => setIsHovered(false)}
+      onClick={() => onSelect(master.id)}
+      className="group relative mx-auto w-full max-w-[900px] cursor-pointer xl:max-w-[1020px]"
     >
-      <span className="h-1 w-5 rounded-full bg-gradient-to-r from-fuchsia-400 via-sky-400 to-emerald-300" />
-      <h3 className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-300">
-        {props.children}
-      </h3>
+      {/* Outer Glow */}
+      <div
+        className={`absolute -inset-6 rounded-[32px] bg-gradient-to-r from-amber-500/40 via-yellow-400/40 to-amber-500/40 opacity-0 blur-2xl transition-opacity duration-700 ${
+          isHovered ? "opacity-100" : ""
+        }`}
+      />
+
+      {/* Main Card */}
+      <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-black/40 via-slate-950/60 to-black/40 p-6 shadow-[0_20px_80px_rgba(0,0,0,0.9)] backdrop-blur-xl transition-all duration-500 group-hover:border-amber-500/60 group-hover:shadow-[0_0_60px_rgba(245,197,24,0.4)] md:p-8 lg:p-10">
+        {/* Animated Background Pattern */}
+        <div className="pointer-events-none absolute inset-0 opacity-20">
+          <motion.div
+            animate={{
+              backgroundPosition: ["0% 0%", "100% 100%", "0% 0%"],
+            }}
+            transition={{ duration: 25, repeat: Infinity, ease: "linear" }}
+            className="absolute inset-0"
+            style={{
+              backgroundImage:
+                "radial-gradient(circle at 20% 50%, rgba(245,197,24,0.15) 0%, transparent 50%), radial-gradient(circle at 80% 80%, rgba(253,224,71,0.12) 0%, transparent 50%)",
+              backgroundSize: "200% 200%",
+            }}
+          />
+        </div>
+
+        {/* Content */}
+        <div className="relative flex items-center gap-4 md:gap-6 lg:gap-8">
+          {/* Avatar Section */}
+          <div className="relative shrink-0">
+            {/* Animated Ring */}
+            <motion.div
+              animate={{ rotate: 360 }}
+              transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+              className="absolute -inset-4 rounded-full bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-500 opacity-30 blur-md"
+            />
+
+            {/* Sparkles */}
+            <motion.div
+              animate={{
+                scale: [1, 1.2, 1],
+                opacity: [0.6, 1, 0.6],
+              }}
+              transition={{ duration: 2, repeat: Infinity }}
+              className="absolute -top-2 -right-2 z-10"
+            >
+              <Sparkles className="h-5 w-5 md:h-6 md:w-6 text-amber-400" />
+            </motion.div>
+
+            <motion.div
+              animate={{
+                scale: [1, 1.3, 1],
+                opacity: [0.5, 1, 0.5],
+              }}
+              transition={{ duration: 2.5, repeat: Infinity, delay: 0.5 }}
+              className="absolute -bottom-2 -left-2 z-10"
+            >
+              <Star className="h-4 w-4 md:h-5 md:w-5 text-yellow-300" />
+            </motion.div>
+
+            {/* Avatar */}
+            <div className="relative">
+              {master.avatarUrl ? (
+                <div className="relative h-20 w-20 md:h-24 md:w-24 lg:h-28 lg:w-28 overflow-hidden rounded-full ring-4 ring-amber-500/50 transition-all group-hover:ring-amber-400">
+                  <Image
+                    src={master.avatarUrl}
+                    alt={master.name}
+                    width={128}
+                    height={128}
+                    className="h-full w-full object-cover"
+                  />
+                </div>
+              ) : (
+                <div className="flex h-20 w-20 md:h-24 md:w-24 lg:h-28 lg:w-28 items-center justify-center rounded-full bg-gradient-to-br from-amber-500 to-yellow-500 ring-4 ring-amber-500/50 transition-all group-hover:ring-amber-400">
+                  <User className="h-10 w-10 md:h-12 md:w-12 lg:h-14 lg:w-14 text-black" />
+                </div>
+              )}
+            </div>
+
+            {/* VIP Badge */}
+            <motion.div
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ delay: index * 0.1 + 0.3, type: "spring" }}
+              className="absolute -bottom-1 -right-1 z-10"
+            >
+              <div className="flex h-7 w-7 md:h-8 md:w-8 items-center justify-center rounded-full bg-gradient-to-br from-amber-500 to-yellow-500 shadow-lg shadow-amber-500/50">
+                <Crown className="h-3.5 w-3.5 md:h-4 md:w-4 text-black" />
+              </div>
+            </motion.div>
+          </div>
+
+          {/* Info Section */}
+          <div className="min-w-0 flex-1">
+            {/* Premium Badge */}
+            <motion.div
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: index * 0.1 + 0.2 }}
+              className="mb-2 md:mb-3 inline-flex items-center gap-2 rounded-full border border-amber-500/40 bg-amber-500/10 px-3 py-1"
+            >
+              <Sparkles className="h-3 w-3 text-amber-400" />
+              <span className="text-xs font-semibold uppercase tracking-wider text-amber-300">
+                VIP Master
+              </span>
+            </motion.div>
+
+            {/* Name with Glow Effect - ИСПРАВЛЕНО для мобильных */}
+            <motion.h3
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: index * 0.1 + 0.3 }}
+              className="mb-1.5 md:mb-2 bg-gradient-to-r from-amber-300 via-yellow-200 to-amber-400 bg-clip-text text-xl font-extrabold text-transparent md:text-2xl lg:text-3xl xl:text-4xl break-words"
+              style={{
+                textShadow:
+                  "0 0 30px rgba(245,197,24,0.5), 0 0 60px rgba(253,224,71,0.3)",
+                wordBreak: "break-word",
+                overflowWrap: "break-word",
+              }}
+            >
+              {master.name}
+            </motion.h3>
+
+            {/* Description/Specialty - БЕРЁМ ИЗ ДАННЫХ */}
+            <motion.p
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: index * 0.1 + 0.4 }}
+              className="text-sm text-white/70 md:text-base lg:text-lg break-words"
+              style={{
+                wordBreak: "break-word",
+                overflowWrap: "break-word",
+              }}
+            >
+              {master.description || master.specialty || "Мастер салона красоты"}
+            </motion.p>
+
+            {/* Rating Stars - БЕРЁМ ИЗ ДАННЫХ */}
+            {(master.rating || master.reviewCount) && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: index * 0.1 + 0.5 }}
+                className="mt-2 md:mt-3 flex flex-wrap items-center gap-1"
+              >
+                {master.rating && (
+                  <>
+                    {[...Array(5)].map((_, i) => (
+                      <Star
+                        key={i}
+                        className={`h-3.5 w-3.5 md:h-4 md:w-4 ${
+                          i < Math.floor(master.rating!)
+                            ? "fill-amber-400 text-amber-400"
+                            : "fill-gray-600 text-gray-600"
+                        }`}
+                      />
+                    ))}
+                    <span className="ml-2 text-xs md:text-sm text-white/60">
+                      {master.rating.toFixed(1)}
+                      {master.reviewCount && ` (${master.reviewCount} отзывов)`}
+                    </span>
+                  </>
+                )}
+                {!master.rating && master.reviewCount && (
+                  <span className="text-xs md:text-sm text-white/60">
+                    {master.reviewCount} отзывов
+                  </span>
+                )}
+              </motion.div>
+            )}
+          </div>
+
+          {/* Arrow Icon */}
+          <motion.div
+            animate={{
+              x: isHovered ? 8 : 0,
+            }}
+            transition={{ type: "spring", stiffness: 300 }}
+            className="flex-shrink-0"
+          >
+            <div className="flex h-12 w-12 md:h-14 md:w-14 lg:h-16 lg:w-16 items-center justify-center rounded-full bg-gradient-to-br from-amber-500 to-yellow-500 shadow-lg shadow-amber-500/50 transition-all group-hover:shadow-xl group-hover:shadow-amber-500/60">
+              <ChevronRight className="h-6 w-6 md:h-7 md:w-7 lg:h-8 lg:w-8 text-black" />
+            </div>
+          </motion.div>
+        </div>
+
+        {/* Bottom Shine Effect */}
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-amber-500/50 to-transparent" />
+      </div>
     </motion.div>
   );
 }
 
-function StepPill(props: { icon: React.ElementType; text: string }) {
-  const Icon = props.icon;
-  return (
-    <motion.span
-      whileHover={{ scale: 1.03 }}
-      className="inline-flex items-center gap-1 rounded-full bg-black/70 px-2 py-1 text-[10px] text-slate-200 ring-1 ring-white/10 backdrop-blur-sm"
-    >
-      <Icon className="h-3 w-3 text-emerald-300" />
-      {props.text}
-    </motion.span>
+/* ===================== Main Page Component ===================== */
+function MasterInner(): React.JSX.Element {
+  const router = useRouter();
+  const params = useSearchParams();
+
+  const serviceIds = useMemo<string[]>(
+    () => params.getAll("s").filter(Boolean),
+    [params],
   );
-}
 
-type TooltipProps = {
-  label: string;
-  children: React.ReactNode;
-};
+  const [masters, setMasters] = useState<Master[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
 
-function Tooltip({ label, children }: TooltipProps) {
-  return (
-    <div className="group relative inline-flex">
-      {children}
-      <div className="pointer-events-none absolute -top-8 left-1/2 z-20 w-max -translate-x-1/2 rounded-full bg-black/90 px-3 py-1 text-[10px] font-medium text-slate-100 opacity-0 shadow-lg ring-1 ring-white/10 transition group-hover:-translate-y-1 group-hover:opacity-100">
-        {label}
-      </div>
-    </div>
-  );
-}
+  useEffect(() => {
+    let cancelled = false;
 
-/* ====== Блоки соцсетей / мессенджеров ====== */
+    async function loadMasters(): Promise<void> {
+      if (serviceIds.length === 0) {
+        setLoading(false);
+        return;
+      }
+      setLoading(true);
+      setError(null);
 
-function SocialsSectionDesktop() {
-  return (
-    <>
-      <SectionTitle>Соцсети &amp; мессенджеры</SectionTitle>
+      try {
+        const qs = new URLSearchParams();
+        qs.set("serviceIds", serviceIds.join(","));
+        const res = await fetch(`/api/masters?${qs.toString()}`, {
+          cache: "no-store",
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = (await res.json()) as { masters: Master[] };
+        if (!cancelled) setMasters(data.masters ?? []);
+      } catch (e) {
+        const msg =
+          e instanceof Error ? e.message : "Не удалось загрузить мастеров";
+        if (!cancelled) setError(msg);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
 
-      <motion.div variants={fadeIn} className="flex flex-wrap gap-2">
-        {socials.map((link, index) => (
-          <motion.div
-            key={link.label}
-            variants={fadeInUp}
-            transition={{ duration: 0.3, delay: 0.05 * index }}
-          >
-            <Tooltip label={link.tooltip}>
-              <motion.a
-                href={link.href}
-                target="_blank"
-                rel="noreferrer"
-                aria-label={link.label}
-                whileHover={{ y: -3, scale: 1.08 }}
-                whileTap={{ scale: 0.96 }}
-                className="relative inline-flex h-10 w-10 items-center justify-center rounded-full bg-black/70 text-slate-100 shadow-[0_0_22px_rgba(15,23,42,0.9)] backdrop-blur-sm focus-visible:outline-none focus-visible:ring-2"
-              >
-                <span
-                  className={`pointer-events-none absolute inset-0 -z-10 rounded-full bg-gradient-to-br ${link.bgClass} opacity-70 blur-md`}
-                />
-                <span
-                  className={`absolute inset-[1px] rounded-full border border-white/10 ring-0 ${link.ringClass}`}
-                />
-                <link.icon className="relative h-4 w-4" />
-              </motion.a>
-            </Tooltip>
-          </motion.div>
-        ))}
-      </motion.div>
+    void loadMasters();
+    return () => {
+      cancelled = true;
+    };
+  }, [serviceIds]);
 
-      <div className="space-y-2 text-xs text-slate-300">
-        <p className="font-medium text-slate-100">Запись через мессенджеры</p>
-        <div className="flex flex-wrap gap-1.5">
-          {messengers.map((m, index) => (
+  const selectMaster = (masterId: string): void => {
+    const qs = new URLSearchParams();
+    serviceIds.forEach((id) => qs.append("s", id));
+    qs.set("m", masterId);
+    router.push(`/booking/calendar?${qs.toString()}`);
+  };
+
+  /* ---------- No Services ---------- */
+  if (serviceIds.length === 0) {
+    return (
+      <PageShell>
+        <div className="mx-auto w-full max-w-screen-2xl px-4 xl:px-8">
+          <div className="flex min-h-[60vh] items-center justify-center pt-10 md:pt-12 lg:pt-14">
             <motion.div
-              key={m.label}
-              variants={fadeInUp}
-              transition={{ duration: 0.3, delay: 0.08 * index }}
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="max-w-md text-center"
             >
-              <Tooltip label={m.tooltip}>
-                <motion.a
-                  href={m.href}
-                  target="_blank"
-                  rel="noreferrer"
-                  whileHover={{ y: -2, scale: 1.05 }}
-                  whileTap={{ scale: 0.97 }}
-                  className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[11px] text-slate-100 backdrop-blur-sm transition ${m.pillClass}`}
-                >
-                  <span className="relative flex h-2 w-2">
-                    <span
-                      className={`absolute inline-flex h-full w-full animate-ping rounded-full ${m.dotClass} opacity-60`}
-                    />
-                    <span
-                      className={`relative inline-flex h-2 w-2 rounded-full ${m.dotClass} shadow-[0_0_10px_rgba(74,222,128,0.9)]`}
-                    />
-                  </span>
-                  {m.label}
-                </motion.a>
-              </Tooltip>
-            </motion.div>
-          ))}
-        </div>
-        <p className="text-[11px] text-slate-400">
-          Напишите в удобном мессенджере — ответим максимально быстро ✨
-        </p>
-      </div>
-    </>
-  );
-}
-
-function SocialsSectionMobile() {
-  return (
-    <div className="space-y-4">
-      <SectionTitle>Соцсети &amp; мессенджеры</SectionTitle>
-
-      <div className="flex flex-wrap gap-2">
-        {socials.map((link) => (
-          <Tooltip key={link.label} label={link.tooltip}>
-            <a
-              href={link.href}
-              target="_blank"
-              rel="noreferrer"
-              aria-label={link.label}
-              className="relative inline-flex h-10 w-10 items-center justify-center rounded-full bg-black/70 text-slate-100 shadow-[0_0_22px_rgba(15,23,42,0.9)] backdrop-blur-sm"
-            >
-              <span
-                className={`pointer-events-none absolute inset-0 -z-10 rounded-full bg-gradient-to-br ${link.bgClass} opacity-70 blur-md`}
-              />
-              <span
-                className={`absolute inset-[1px] rounded-full border border-white/10 ring-0 ${link.ringClass}`}
-              />
-              <link.icon className="relative h-4 w-4" />
-            </a>
-          </Tooltip>
-        ))}
-      </div>
-
-      <div className="space-y-2 text-xs text-slate-300">
-        <p className="font-medium text-slate-100">Запись через мессенджеры</p>
-        <div className="flex flex-wrap gap-1.5">
-          {messengers.map((m) => (
-            <Tooltip key={m.label} label={m.tooltip}>
-              <a
-                href={m.href}
-                target="_blank"
-                rel="noreferrer"
-                className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[11px] text-slate-100 backdrop-blur-sm transition ${m.pillClass}`}
+              <div className="mb-6 text-5xl md:text-6xl">⚠️</div>
+              <h2 className="mb-4 bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-400 bg-clip-text text-3xl font-extrabold text-transparent md:text-4xl">
+                Услуги не выбраны
+              </h2>
+              <p className="mb-8 text-white/80">
+                Пожалуйста, сначала выберите услуги.
+              </p>
+              <button
+                onClick={() => router.push("/booking/services")}
+                className="rounded-2xl bg-gradient-to-r from-amber-500 to-yellow-500 px-8 py-4 font-bold text-black shadow-[0_0_30px_rgba(245,197,24,0.5)] transition-all hover:scale-105 hover:shadow-[0_0_50px_rgba(245,197,24,0.7)]"
               >
-                <span className="relative flex h-2 w-2">
-                  <span
-                    className={`absolute inline-flex h-full w-full animate-ping rounded-full ${m.dotClass} opacity-60`}
-                  />
-                  <span
-                    className={`relative inline-flex h-2 w-2 rounded-full ${m.dotClass} shadow-[0_0_10px_rgba(74,222,128,0.9)]`}
-                  />
-                </span>
-                {m.label}
-              </a>
-            </Tooltip>
-          ))}
+                Выбрать услуги
+              </button>
+            </motion.div>
+          </div>
         </div>
-        <p className="text-[11px] text-slate-400">
-          Напишите в удобном мессенджере — ответим максимально быстро ✨
-        </p>
-      </div>
-    </div>
+      </PageShell>
+    );
+  }
+
+  /* ---------- Loading ---------- */
+  if (loading) {
+    return (
+      <PageShell>
+        <div className="mx-auto w-full max-w-screen-2xl px-4 xl:px-8">
+          <div className="flex min-h-[60vh] items-center justify-center pt-10 md:pt-12 lg:pt-14">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="text-center"
+            >
+              <motion.div
+                animate={{ rotate: 360 }}
+                transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
+                className="mx-auto mb-6 h-20 w-20 rounded-full border-4 border-amber-500/30 border-t-amber-500"
+              />
+              <p className="text-lg font-medium text-white/80">
+                Загрузка мастеров…
+              </p>
+            </motion.div>
+          </div>
+        </div>
+      </PageShell>
+    );
+  }
+
+  /* ---------- Error ---------- */
+  if (error) {
+    return (
+      <PageShell>
+        <div className="mx-auto w-full max-w-screen-2xl px-4 xl:px-8">
+          <div className="flex min-h-[60vh] items-center justify-center pt-10 md:pt-12 lg:pt-14">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="max-w-md text-center"
+            >
+              <div className="mb-6 text-6xl">❌</div>
+              <h2 className="mb-4 text-3xl font-bold text-red-400">Ошибка</h2>
+              <p className="mb-8 text-white/80">{error}</p>
+              <button
+                onClick={() => window.location.reload()}
+                className="rounded-2xl bg-gradient-to-r from-amber-500 to-yellow-500 px-8 py-4 font-bold text-black shadow-[0_0_30px_rgba(245,197,24,0.5)] transition-all hover:scale-105"
+              >
+                Попробовать снова
+              </button>
+            </motion.div>
+          </div>
+        </div>
+      </PageShell>
+    );
+  }
+
+  /* ---------- No Masters ---------- */
+  if (masters.length === 0) {
+    return (
+      <PageShell>
+        <main className="mx-auto w-full max-w-screen-2xl px-4 xl:px-8">
+          <div className="flex min-h-[60vh] items-center justify-center pt-10 md:pt-12 lg:pt-14">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="max-w-xl text-center"
+            >
+              <motion.div
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ type: "spring", stiffness: 200 }}
+                className="mb-6 inline-flex items-center gap-2 rounded-full border border-amber-500/40 bg-amber-500/10 px-6 py-3"
+              >
+                <Sparkles className="h-5 w-5 text-amber-400" />
+                <span className="font-semibold text-amber-300">
+                  Нет подходящего мастера
+                </span>
+              </motion.div>
+
+              <h2 className="mb-4 bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-400 bg-clip-text font-serif text-4xl italic text-transparent md:text-5xl">
+                Выбранные услуги выполняют разные мастера
+              </h2>
+
+              <p className="brand-script brand-subtitle mx-auto mb-8 max-w-lg text-lg md:text-xl">
+                Выберите набор услуг одного специалиста или вернитесь к выбору
+              </p>
+
+              <button
+                onClick={() => router.push("/booking/services")}
+                className="inline-flex items-center gap-3 rounded-2xl bg-gradient-to-r from-amber-500 to-yellow-500 px-8 py-4 font-bold text-black shadow-[0_0_30px_rgba(245,197,24,0.5)] transition-all hover:scale-105"
+              >
+                <ArrowLeft className="h-5 w-5" />
+                Вернуться к услугам
+              </button>
+            </motion.div>
+          </div>
+        </main>
+
+        <VideoSection />
+      </PageShell>
+    );
+  }
+
+  /* ---------- Masters List ---------- */
+  return (
+    <PageShell>
+      <main className="mx-auto w-full max-w-screen-2xl px-4 xl:px-8">
+        {/* Hero Section */}
+        <div className="flex w-full flex-col items-center text-center pt-8 md:pt-12">
+          {/* Premium Badge */}
+          <motion.div
+            initial={{ scale: 0, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ type: "spring", stiffness: 300, damping: 20 }}
+            className="relative mb-6 md:mb-8"
+          >
+            <div className="absolute -inset-4 animate-pulse rounded-full bg-gradient-to-r from-amber-500 to-yellow-500 opacity-50 blur-xl" />
+            <div className="relative flex items-center gap-3 rounded-full border border-amber-400/50 bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-500 px-8 py-3 shadow-[0_10px_40px_rgba(245,197,24,0.5)]">
+              <Crown className="h-5 w-5 text-black md:h-6 md:w-6" />
+              <span className="font-serif text-base font-bold italic text-black md:text-lg">
+                Шаг 2 — Выбор Премиум Мастера
+              </span>
+              <Crown className="h-5 w-5 text-black md:h-6 md:w-6" />
+            </div>
+          </motion.div>
+
+          {/* Title */}
+          <motion.h1
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            className="mb-4 bg-gradient-to-r from-[#F5C518]/90 via-[#FFD166]/90 to-[#F5C518]/90 bg-clip-text font-serif text-5xl italic leading-tight text-transparent drop-shadow-[0_0_30px_rgba(245,197,24,0.5)] md:mb-5 md:text-6xl lg:text-7xl"
+          >
+            Выбор мастера
+          </motion.h1>
+
+          {/* Subtitle */}
+          <motion.p
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="brand-script brand-subtitle mx-auto max-w-2xl text-lg md:text-xl"
+          >
+            Наши эксперты создадут для вас идеальный образ
+          </motion.p>
+        </div>
+
+        {/* Masters Grid */}
+        <div className="mt-12 grid grid-cols-1 gap-6 md:mt-16 md:gap-8 lg:gap-10">
+          <AnimatePresence mode="popLayout">
+            {masters.map((m, i) => (
+              <MasterCard
+                key={m.id}
+                master={m}
+                index={i}
+                onSelect={selectMaster}
+              />
+            ))}
+          </AnimatePresence>
+        </div>
+
+        {/* Back Button */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.4 }}
+          className="mt-12 mb-8 text-center md:mt-16"
+        >
+          <button
+            onClick={() => router.push("/booking/services")}
+            className="inline-flex items-center gap-2 font-medium text-white/70 transition-colors hover:text-amber-400"
+          >
+            <ArrowLeft className="h-5 w-5" />
+            Вернуться к выбору услуг
+          </button>
+        </motion.div>
+      </main>
+
+      <VideoSection />
+
+      <style jsx global>{`
+        .brand-subtitle {
+          background: linear-gradient(90deg, #8b5cf6 0%, #3b82f6 50%, #06b6d4 100%);
+          -webkit-background-clip: text;
+          background-clip: text;
+          color: transparent;
+          text-shadow:
+            0 0 10px rgba(139, 92, 246, 0.4),
+            0 0 20px rgba(59, 130, 246, 0.3),
+            0 0 30px rgba(6, 182, 212, 0.25);
+        }
+        .brand-script {
+          font-family: var(
+            --brand-script,
+            "Cormorant Infant",
+            "Playfair Display",
+            serif
+          );
+          font-style: italic;
+          font-weight: 600;
+          letter-spacing: 0.02em;
+        }
+      `}</style>
+    </PageShell>
   );
 }
 
-
-
-
-// // src/app/booking/(steps)/master/page.tsx
-// "use client";
-
-// import React, { useState, useEffect, useMemo, Suspense } from "react";
-// import { motion, AnimatePresence } from "framer-motion";
-// import { useRouter, useSearchParams } from "next/navigation";
-// import Image from "next/image";
-// import PremiumProgressBar from "@/components/PremiumProgressBar";
-// import { BookingAnimatedBackground } from "@/components/layout/BookingAnimatedBackground";
-// import { User, ChevronRight, ArrowLeft, Sparkles, Star, Crown } from "lucide-react";
-
-// interface Master {
-//   id: string;
-//   name: string;
-//   avatarUrl?: string | null;
-//   description?: string | null;
-//   specialty?: string | null;
-//   rating?: number | null;
-//   reviewCount?: number | null;
-// }
-
-// const BOOKING_STEPS = [
-//   { id: "services", label: "Услуга", icon: "✨" },
-//   { id: "master", label: "Мастер", icon: "👤" },
-//   { id: "calendar", label: "Дата", icon: "📅" },
-//   { id: "client", label: "Данные", icon: "📝" },
-//   { id: "verify", label: "Проверка", icon: "✓" },
-//   { id: "payment", label: "Оплата", icon: "💳" },
-// ];
-
-// /* ===================== Floating Particles Background ===================== */
-// function FloatingParticles() {
-//   const [particles, setParticles] = useState<Array<{ x: number; y: number; id: number }>>([]);
-
-//   useEffect(() => {
-//     // Генерируем частицы только на клиенте - БЕЗ SSR ошибок!
-//     const newParticles = [...Array(20)].map((_, i) => ({
-//       x: Math.random() * window.innerWidth,
-//       y: Math.random() * window.innerHeight,
-//       id: i,
-//     }));
-//     setParticles(newParticles);
-//   }, []);
-
-//   if (particles.length === 0) return null;
-
-//   return (
-//     <div className="pointer-events-none absolute inset-0 overflow-hidden">
-//       {particles.map((particle) => (
-//         <motion.div
-//           key={particle.id}
-//           className="absolute h-1 w-1 rounded-full bg-amber-400/30"
-//           initial={{ x: particle.x, y: particle.y, opacity: 0 }}
-//           animate={{
-//             x: [particle.x, Math.random() * window.innerWidth, particle.x],
-//             y: [particle.y, Math.random() * window.innerHeight, particle.y],
-//             scale: [1, 1.5, 1],
-//             opacity: [0.3, 0.8, 0.3],
-//           }}
-//           transition={{
-//             duration: Math.random() * 10 + 10,
-//             repeat: Infinity,
-//             ease: "linear",
-//           }}
-//         />
-//       ))}
-//     </div>
-//   );
-// }
-
-// /* ===================== Page Shell ===================== */
-// function PageShell({ children }: { children: React.ReactNode }) {
-//   return (
-//     <div className="relative min-h-screen overflow-hidden bg-black text-white">
-//       <BookingAnimatedBackground />
-//       <FloatingParticles />
-
-//       <div className="relative z-10 min-h-screen">
-//         <header className="booking-header fixed inset-x-0 top-0 z-50 border-b border-white/10 bg-black/50 backdrop-blur-md">
-//           <div className="mx-auto w-full max-w-screen-2xl px-4 py-3 xl:px-8">
-//             <PremiumProgressBar currentStep={1} steps={BOOKING_STEPS} />
-//           </div>
-//         </header>
-
-//         <div className="h-[84px] md:h-[96px]" />
-
-//         {children}
-//       </div>
-//     </div>
-//   );
-// }
-
-// /* ===================== Video Section ===================== */
-// function VideoSection() {
-//   return (
-//     <section className="relative py-10 sm:py-12">
-//       <div className="relative mx-auto w-full max-w-screen-2xl aspect-[16/9] rounded-2xl overflow-hidden border border-white/10 shadow-[0_0_80px_rgba(255,215,0,.12)] bg-black">
-//         <video
-//           className="h-full w-full object-contain 2xl:object-cover object-[50%_90%] lg:object-[50%_96%] xl:object-[50%_100%] 2xl:object-[50%_96%] bg-black"
-//           autoPlay
-//           muted
-//           loop
-//           playsInline
-//           preload="metadata"
-//           poster="/fallback-poster.jpg"
-//           aria-hidden="true"
-//         >
-//           <source src="/SE-logo-video-master.webm" type="video/webm" />
-//           <source src="/SE-logo-video-master.mp4" type="video/mp4" />
-//         </video>
-
-//         <div className="pointer-events-none absolute inset-0 rounded-2xl ring-1 ring-white/5" />
-//       </div>
-//     </section>
-//   );
-// }
-
-// /* ===================== Master Card - PREMIUM REDESIGN ===================== */
-// function MasterCard({
-//   master,
-//   onSelect,
-//   index,
-// }: {
-//   master: Master;
-//   onSelect: (id: string) => void;
-//   index: number;
-// }) {
-//   const [isHovered, setIsHovered] = useState(false);
-
-//   return (
-//     <motion.div
-//       layout
-//       initial={{ opacity: 0, scale: 0.95, y: 30 }}
-//       animate={{ opacity: 1, scale: 1, y: 0 }}
-//       exit={{ opacity: 0, scale: 0.92 }}
-//       transition={{
-//         delay: index * 0.1,
-//         type: "spring",
-//         stiffness: 280,
-//         damping: 25,
-//       }}
-//       whileHover={{ y: -8, scale: 1.02 }}
-//       onHoverStart={() => setIsHovered(true)}
-//       onHoverEnd={() => setIsHovered(false)}
-//       onClick={() => onSelect(master.id)}
-//       className="group relative mx-auto w-full max-w-[900px] cursor-pointer xl:max-w-[1020px]"
-//     >
-//       {/* Outer Glow */}
-//       <div
-//         className={`absolute -inset-6 rounded-[32px] bg-gradient-to-r from-amber-500/40 via-yellow-400/40 to-amber-500/40 opacity-0 blur-2xl transition-opacity duration-700 ${
-//           isHovered ? "opacity-100" : ""
-//         }`}
-//       />
-
-//       {/* Main Card */}
-//       <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-black/40 via-slate-950/60 to-black/40 p-6 shadow-[0_20px_80px_rgba(0,0,0,0.9)] backdrop-blur-xl transition-all duration-500 group-hover:border-amber-500/60 group-hover:shadow-[0_0_60px_rgba(245,197,24,0.4)] md:p-8 lg:p-10">
-//         {/* Animated Background Pattern */}
-//         <div className="pointer-events-none absolute inset-0 opacity-20">
-//           <motion.div
-//             animate={{
-//               backgroundPosition: ["0% 0%", "100% 100%", "0% 0%"],
-//             }}
-//             transition={{ duration: 25, repeat: Infinity, ease: "linear" }}
-//             className="absolute inset-0"
-//             style={{
-//               backgroundImage:
-//                 "radial-gradient(circle at 20% 50%, rgba(245,197,24,0.15) 0%, transparent 50%), radial-gradient(circle at 80% 80%, rgba(253,224,71,0.12) 0%, transparent 50%)",
-//               backgroundSize: "200% 200%",
-//             }}
-//           />
-//         </div>
-
-//         {/* Content */}
-//         <div className="relative flex items-center gap-4 md:gap-6 lg:gap-8">
-//           {/* Avatar Section */}
-//           <div className="relative shrink-0">
-//             {/* Animated Ring */}
-//             <motion.div
-//               animate={{ rotate: 360 }}
-//               transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-//               className="absolute -inset-4 rounded-full bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-500 opacity-30 blur-md"
-//             />
-
-//             {/* Sparkles */}
-//             <motion.div
-//               animate={{
-//                 scale: [1, 1.2, 1],
-//                 opacity: [0.6, 1, 0.6],
-//               }}
-//               transition={{ duration: 2, repeat: Infinity }}
-//               className="absolute -top-2 -right-2 z-10"
-//             >
-//               <Sparkles className="h-5 w-5 md:h-6 md:w-6 text-amber-400" />
-//             </motion.div>
-
-//             <motion.div
-//               animate={{
-//                 scale: [1, 1.3, 1],
-//                 opacity: [0.5, 1, 0.5],
-//               }}
-//               transition={{ duration: 2.5, repeat: Infinity, delay: 0.5 }}
-//               className="absolute -bottom-2 -left-2 z-10"
-//             >
-//               <Star className="h-4 w-4 md:h-5 md:w-5 text-yellow-300" />
-//             </motion.div>
-
-//             {/* Avatar */}
-//             <div className="relative">
-//               {master.avatarUrl ? (
-//                 <div className="relative h-20 w-20 md:h-24 md:w-24 lg:h-28 lg:w-28 overflow-hidden rounded-full ring-4 ring-amber-500/50 transition-all group-hover:ring-amber-400">
-//                   <Image
-//                     src={master.avatarUrl}
-//                     alt={master.name}
-//                     width={128}
-//                     height={128}
-//                     className="h-full w-full object-cover"
-//                   />
-//                 </div>
-//               ) : (
-//                 <div className="flex h-20 w-20 md:h-24 md:w-24 lg:h-28 lg:w-28 items-center justify-center rounded-full bg-gradient-to-br from-amber-500 to-yellow-500 ring-4 ring-amber-500/50 transition-all group-hover:ring-amber-400">
-//                   <User className="h-10 w-10 md:h-12 md:w-12 lg:h-14 lg:w-14 text-black" />
-//                 </div>
-//               )}
-//             </div>
-
-//             {/* VIP Badge */}
-//             <motion.div
-//               initial={{ scale: 0 }}
-//               animate={{ scale: 1 }}
-//               transition={{ delay: index * 0.1 + 0.3, type: "spring" }}
-//               className="absolute -bottom-1 -right-1 z-10"
-//             >
-//               <div className="flex h-7 w-7 md:h-8 md:w-8 items-center justify-center rounded-full bg-gradient-to-br from-amber-500 to-yellow-500 shadow-lg shadow-amber-500/50">
-//                 <Crown className="h-3.5 w-3.5 md:h-4 md:w-4 text-black" />
-//               </div>
-//             </motion.div>
-//           </div>
-
-//           {/* Info Section */}
-//           <div className="min-w-0 flex-1">
-//             {/* Premium Badge */}
-//             <motion.div
-//               initial={{ opacity: 0, x: -20 }}
-//               animate={{ opacity: 1, x: 0 }}
-//               transition={{ delay: index * 0.1 + 0.2 }}
-//               className="mb-2 md:mb-3 inline-flex items-center gap-2 rounded-full border border-amber-500/40 bg-amber-500/10 px-3 py-1"
-//             >
-//               <Sparkles className="h-3 w-3 text-amber-400" />
-//               <span className="text-xs font-semibold uppercase tracking-wider text-amber-300">
-//                 VIP Master
-//               </span>
-//             </motion.div>
-
-//             {/* Name with Glow Effect - ИСПРАВЛЕНО для мобильных */}
-//             <motion.h3
-//               initial={{ opacity: 0, y: 10 }}
-//               animate={{ opacity: 1, y: 0 }}
-//               transition={{ delay: index * 0.1 + 0.3 }}
-//               className="mb-1.5 md:mb-2 bg-gradient-to-r from-amber-300 via-yellow-200 to-amber-400 bg-clip-text text-xl font-extrabold text-transparent md:text-2xl lg:text-3xl xl:text-4xl break-words"
-//               style={{
-//                 textShadow:
-//                   "0 0 30px rgba(245,197,24,0.5), 0 0 60px rgba(253,224,71,0.3)",
-//                 wordBreak: "break-word",
-//                 overflowWrap: "break-word",
-//               }}
-//             >
-//               {master.name}
-//             </motion.h3>
-
-//             {/* Description/Specialty - БЕРЁМ ИЗ ДАННЫХ */}
-//             <motion.p
-//               initial={{ opacity: 0 }}
-//               animate={{ opacity: 1 }}
-//               transition={{ delay: index * 0.1 + 0.4 }}
-//               className="text-sm text-white/70 md:text-base lg:text-lg break-words"
-//               style={{
-//                 wordBreak: "break-word",
-//                 overflowWrap: "break-word",
-//               }}
-//             >
-//               {master.description || master.specialty || "Мастер салона красоты"}
-//             </motion.p>
-
-//             {/* Rating Stars - БЕРЁМ ИЗ ДАННЫХ */}
-//             {(master.rating || master.reviewCount) && (
-//               <motion.div
-//                 initial={{ opacity: 0 }}
-//                 animate={{ opacity: 1 }}
-//                 transition={{ delay: index * 0.1 + 0.5 }}
-//                 className="mt-2 md:mt-3 flex flex-wrap items-center gap-1"
-//               >
-//                 {master.rating && (
-//                   <>
-//                     {[...Array(5)].map((_, i) => (
-//                       <Star
-//                         key={i}
-//                         className={`h-3.5 w-3.5 md:h-4 md:w-4 ${
-//                           i < Math.floor(master.rating!)
-//                             ? "fill-amber-400 text-amber-400"
-//                             : "fill-gray-600 text-gray-600"
-//                         }`}
-//                       />
-//                     ))}
-//                     <span className="ml-2 text-xs md:text-sm text-white/60">
-//                       {master.rating.toFixed(1)}
-//                       {master.reviewCount && ` (${master.reviewCount} отзывов)`}
-//                     </span>
-//                   </>
-//                 )}
-//                 {!master.rating && master.reviewCount && (
-//                   <span className="text-xs md:text-sm text-white/60">
-//                     {master.reviewCount} отзывов
-//                   </span>
-//                 )}
-//               </motion.div>
-//             )}
-//           </div>
-
-//           {/* Arrow Icon */}
-//           <motion.div
-//             animate={{
-//               x: isHovered ? 8 : 0,
-//             }}
-//             transition={{ type: "spring", stiffness: 300 }}
-//             className="flex-shrink-0"
-//           >
-//             <div className="flex h-12 w-12 md:h-14 md:w-14 lg:h-16 lg:w-16 items-center justify-center rounded-full bg-gradient-to-br from-amber-500 to-yellow-500 shadow-lg shadow-amber-500/50 transition-all group-hover:shadow-xl group-hover:shadow-amber-500/60">
-//               <ChevronRight className="h-6 w-6 md:h-7 md:w-7 lg:h-8 lg:w-8 text-black" />
-//             </div>
-//           </motion.div>
-//         </div>
-
-//         {/* Bottom Shine Effect */}
-//         <div className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-amber-500/50 to-transparent" />
-//       </div>
-//     </motion.div>
-//   );
-// }
-
-// /* ===================== Main Page Component ===================== */
-// function MasterInner(): React.JSX.Element {
-//   const router = useRouter();
-//   const params = useSearchParams();
-
-//   const serviceIds = useMemo<string[]>(
-//     () => params.getAll("s").filter(Boolean),
-//     [params],
-//   );
-
-//   const [masters, setMasters] = useState<Master[]>([]);
-//   const [loading, setLoading] = useState<boolean>(true);
-//   const [error, setError] = useState<string | null>(null);
-
-//   useEffect(() => {
-//     let cancelled = false;
-
-//     async function loadMasters(): Promise<void> {
-//       if (serviceIds.length === 0) {
-//         setLoading(false);
-//         return;
-//       }
-//       setLoading(true);
-//       setError(null);
-
-//       try {
-//         const qs = new URLSearchParams();
-//         qs.set("serviceIds", serviceIds.join(","));
-//         const res = await fetch(`/api/masters?${qs.toString()}`, {
-//           cache: "no-store",
-//         });
-//         if (!res.ok) throw new Error(`HTTP ${res.status}`);
-//         const data = (await res.json()) as { masters: Master[] };
-//         if (!cancelled) setMasters(data.masters ?? []);
-//       } catch (e) {
-//         const msg =
-//           e instanceof Error ? e.message : "Не удалось загрузить мастеров";
-//         if (!cancelled) setError(msg);
-//       } finally {
-//         if (!cancelled) setLoading(false);
-//       }
-//     }
-
-//     void loadMasters();
-//     return () => {
-//       cancelled = true;
-//     };
-//   }, [serviceIds]);
-
-//   const selectMaster = (masterId: string): void => {
-//     const qs = new URLSearchParams();
-//     serviceIds.forEach((id) => qs.append("s", id));
-//     qs.set("m", masterId);
-//     router.push(`/booking/calendar?${qs.toString()}`);
-//   };
-
-//   /* ---------- No Services ---------- */
-//   if (serviceIds.length === 0) {
-//     return (
-//       <PageShell>
-//         <div className="mx-auto w-full max-w-screen-2xl px-4 xl:px-8">
-//           <div className="flex min-h-[60vh] items-center justify-center pt-10 md:pt-12 lg:pt-14">
-//             <motion.div
-//               initial={{ opacity: 0, scale: 0.95 }}
-//               animate={{ opacity: 1, scale: 1 }}
-//               className="max-w-md text-center"
-//             >
-//               <div className="mb-6 text-5xl md:text-6xl">⚠️</div>
-//               <h2 className="mb-4 bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-400 bg-clip-text text-3xl font-extrabold text-transparent md:text-4xl">
-//                 Услуги не выбраны
-//               </h2>
-//               <p className="mb-8 text-white/80">
-//                 Пожалуйста, сначала выберите услуги.
-//               </p>
-//               <button
-//                 onClick={() => router.push("/booking/services")}
-//                 className="rounded-2xl bg-gradient-to-r from-amber-500 to-yellow-500 px-8 py-4 font-bold text-black shadow-[0_0_30px_rgba(245,197,24,0.5)] transition-all hover:scale-105 hover:shadow-[0_0_50px_rgba(245,197,24,0.7)]"
-//               >
-//                 Выбрать услуги
-//               </button>
-//             </motion.div>
-//           </div>
-//         </div>
-//       </PageShell>
-//     );
-//   }
-
-//   /* ---------- Loading ---------- */
-//   if (loading) {
-//     return (
-//       <PageShell>
-//         <div className="mx-auto w-full max-w-screen-2xl px-4 xl:px-8">
-//           <div className="flex min-h-[60vh] items-center justify-center pt-10 md:pt-12 lg:pt-14">
-//             <motion.div
-//               initial={{ opacity: 0 }}
-//               animate={{ opacity: 1 }}
-//               className="text-center"
-//             >
-//               <motion.div
-//                 animate={{ rotate: 360 }}
-//                 transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
-//                 className="mx-auto mb-6 h-20 w-20 rounded-full border-4 border-amber-500/30 border-t-amber-500"
-//               />
-//               <p className="text-lg font-medium text-white/80">
-//                 Загрузка мастеров…
-//               </p>
-//             </motion.div>
-//           </div>
-//         </div>
-//       </PageShell>
-//     );
-//   }
-
-//   /* ---------- Error ---------- */
-//   if (error) {
-//     return (
-//       <PageShell>
-//         <div className="mx-auto w-full max-w-screen-2xl px-4 xl:px-8">
-//           <div className="flex min-h-[60vh] items-center justify-center pt-10 md:pt-12 lg:pt-14">
-//             <motion.div
-//               initial={{ opacity: 0, y: 20 }}
-//               animate={{ opacity: 1, y: 0 }}
-//               className="max-w-md text-center"
-//             >
-//               <div className="mb-6 text-6xl">❌</div>
-//               <h2 className="mb-4 text-3xl font-bold text-red-400">Ошибка</h2>
-//               <p className="mb-8 text-white/80">{error}</p>
-//               <button
-//                 onClick={() => window.location.reload()}
-//                 className="rounded-2xl bg-gradient-to-r from-amber-500 to-yellow-500 px-8 py-4 font-bold text-black shadow-[0_0_30px_rgba(245,197,24,0.5)] transition-all hover:scale-105"
-//               >
-//                 Попробовать снова
-//               </button>
-//             </motion.div>
-//           </div>
-//         </div>
-//       </PageShell>
-//     );
-//   }
-
-//   /* ---------- No Masters ---------- */
-//   if (masters.length === 0) {
-//     return (
-//       <PageShell>
-//         <main className="mx-auto w-full max-w-screen-2xl px-4 xl:px-8">
-//           <div className="flex min-h-[60vh] items-center justify-center pt-10 md:pt-12 lg:pt-14">
-//             <motion.div
-//               initial={{ opacity: 0, y: 20 }}
-//               animate={{ opacity: 1, y: 0 }}
-//               className="max-w-xl text-center"
-//             >
-//               <motion.div
-//                 initial={{ scale: 0 }}
-//                 animate={{ scale: 1 }}
-//                 transition={{ type: "spring", stiffness: 200 }}
-//                 className="mb-6 inline-flex items-center gap-2 rounded-full border border-amber-500/40 bg-amber-500/10 px-6 py-3"
-//               >
-//                 <Sparkles className="h-5 w-5 text-amber-400" />
-//                 <span className="font-semibold text-amber-300">
-//                   Нет подходящего мастера
-//                 </span>
-//               </motion.div>
-
-//               <h2 className="mb-4 bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-400 bg-clip-text font-serif text-4xl italic text-transparent md:text-5xl">
-//                 Выбранные услуги выполняют разные мастера
-//               </h2>
-
-//               <p className="brand-script brand-subtitle mx-auto mb-8 max-w-lg text-lg md:text-xl">
-//                 Выберите набор услуг одного специалиста или вернитесь к выбору
-//               </p>
-
-//               <button
-//                 onClick={() => router.push("/booking/services")}
-//                 className="inline-flex items-center gap-3 rounded-2xl bg-gradient-to-r from-amber-500 to-yellow-500 px-8 py-4 font-bold text-black shadow-[0_0_30px_rgba(245,197,24,0.5)] transition-all hover:scale-105"
-//               >
-//                 <ArrowLeft className="h-5 w-5" />
-//                 Вернуться к услугам
-//               </button>
-//             </motion.div>
-//           </div>
-//         </main>
-
-//         <VideoSection />
-//       </PageShell>
-//     );
-//   }
-
-//   /* ---------- Masters List ---------- */
-//   return (
-//     <PageShell>
-//       <main className="mx-auto w-full max-w-screen-2xl px-4 xl:px-8">
-//         {/* Hero Section */}
-//         <div className="flex w-full flex-col items-center text-center pt-8 md:pt-12">
-//           {/* Premium Badge */}
-//           <motion.div
-//             initial={{ scale: 0, opacity: 0 }}
-//             animate={{ scale: 1, opacity: 1 }}
-//             transition={{ type: "spring", stiffness: 300, damping: 20 }}
-//             className="relative mb-6 md:mb-8"
-//           >
-//             <div className="absolute -inset-4 animate-pulse rounded-full bg-gradient-to-r from-amber-500 to-yellow-500 opacity-50 blur-xl" />
-//             <div className="relative flex items-center gap-3 rounded-full border border-amber-400/50 bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-500 px-8 py-3 shadow-[0_10px_40px_rgba(245,197,24,0.5)]">
-//               <Crown className="h-5 w-5 text-black md:h-6 md:w-6" />
-//               <span className="font-serif text-base font-bold italic text-black md:text-lg">
-//                 Шаг 2 — Выбор Премиум Мастера
-//               </span>
-//               <Crown className="h-5 w-5 text-black md:h-6 md:w-6" />
-//             </div>
-//           </motion.div>
-
-//           {/* Title */}
-//           <motion.h1
-//             initial={{ opacity: 0, y: 20 }}
-//             animate={{ opacity: 1, y: 0 }}
-//             transition={{ delay: 0.1 }}
-//             className="mb-4 bg-gradient-to-r from-[#F5C518]/90 via-[#FFD166]/90 to-[#F5C518]/90 bg-clip-text font-serif text-5xl italic leading-tight text-transparent drop-shadow-[0_0_30px_rgba(245,197,24,0.5)] md:mb-5 md:text-6xl lg:text-7xl"
-//           >
-//             Выбор мастера
-//           </motion.h1>
-
-//           {/* Subtitle */}
-//           <motion.p
-//             initial={{ opacity: 0, y: 10 }}
-//             animate={{ opacity: 1, y: 0 }}
-//             transition={{ delay: 0.2 }}
-//             className="brand-script brand-subtitle mx-auto max-w-2xl text-lg md:text-xl"
-//           >
-//             Наши эксперты создадут для вас идеальный образ
-//           </motion.p>
-//         </div>
-
-//         {/* Masters Grid */}
-//         <div className="mt-12 grid grid-cols-1 gap-6 md:mt-16 md:gap-8 lg:gap-10">
-//           <AnimatePresence mode="popLayout">
-//             {masters.map((m, i) => (
-//               <MasterCard
-//                 key={m.id}
-//                 master={m}
-//                 index={i}
-//                 onSelect={selectMaster}
-//               />
-//             ))}
-//           </AnimatePresence>
-//         </div>
-
-//         {/* Back Button */}
-//         <motion.div
-//           initial={{ opacity: 0 }}
-//           animate={{ opacity: 1 }}
-//           transition={{ delay: 0.4 }}
-//           className="mt-12 mb-8 text-center md:mt-16"
-//         >
-//           <button
-//             onClick={() => router.push("/booking/services")}
-//             className="inline-flex items-center gap-2 font-medium text-white/70 transition-colors hover:text-amber-400"
-//           >
-//             <ArrowLeft className="h-5 w-5" />
-//             Вернуться к выбору услуг
-//           </button>
-//         </motion.div>
-//       </main>
-
-//       <VideoSection />
-
-//       <style jsx global>{`
-//         .brand-subtitle {
-//           background: linear-gradient(90deg, #8b5cf6 0%, #3b82f6 50%, #06b6d4 100%);
-//           -webkit-background-clip: text;
-//           background-clip: text;
-//           color: transparent;
-//           text-shadow:
-//             0 0 10px rgba(139, 92, 246, 0.4),
-//             0 0 20px rgba(59, 130, 246, 0.3),
-//             0 0 30px rgba(6, 182, 212, 0.25);
-//         }
-//         .brand-script {
-//           font-family: var(
-//             --brand-script,
-//             "Cormorant Infant",
-//             "Playfair Display",
-//             serif
-//           );
-//           font-style: italic;
-//           font-weight: 600;
-//           letter-spacing: 0.02em;
-//         }
-//       `}</style>
-//     </PageShell>
-//   );
-// }
-
-// /* ===================== Export ===================== */
-// export default function MasterPage(): React.JSX.Element {
-//   return (
-//     <Suspense
-//       fallback={
-//         <div className="flex min-h-screen items-center justify-center bg-black">
-//           <div className="h-20 w-20 animate-spin rounded-full border-4 border-amber-500/30 border-t-amber-500" />
-//         </div>
-//       }
-//     >
-//       <MasterInner />
-//     </Suspense>
-//   );
-// }
+/* ===================== Export ===================== */
+export default function MasterPage(): React.JSX.Element {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen items-center justify-center bg-black">
+          <div className="h-20 w-20 animate-spin rounded-full border-4 border-amber-500/30 border-t-amber-500" />
+        </div>
+      }
+    >
+      <MasterInner />
+    </Suspense>
+  );
+}
 
 
 //-------уже вот вот осталось добавить описание мастера и рейтинг-------
