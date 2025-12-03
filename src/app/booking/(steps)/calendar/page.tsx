@@ -353,6 +353,9 @@ function CalendarInner() {
   const [monthBusyData, setMonthBusyData] = useState<DayBusyData>({});
   const [loadingMonthData, setLoadingMonthData] = useState(false);
 
+  // НОВОЕ: ref для секции времени (для автоскролла)
+  const timeSectionRef = useRef<HTMLElement>(null);
+
   const debouncedDate = useDebounce(dateISO, 300);
   const debouncedMasterId = useDebounce(masterId, 300);
 
@@ -722,6 +725,17 @@ function CalendarInner() {
     const safe = clampISO(newISO, minISO, maxISO);
     setDateISO(safe);
     syncUrl(safe, masterId);
+    
+    // НОВОЕ: Автоскролл к секции времени на мобилке (< 1024px)
+    if (typeof window !== 'undefined' && window.innerWidth < 1024) {
+      // Небольшая задержка чтобы контент успел обновиться
+      setTimeout(() => {
+        timeSectionRef.current?.scrollIntoView({ 
+          behavior: 'smooth', 
+          block: 'start' 
+        });
+      }, 1300);
+    }
   };
 
   const syncUrl = (d: string, m: string) => {
@@ -1340,8 +1354,9 @@ function CalendarInner() {
             </div>
           </motion.section>
 
-          {/* Время - с bounce анимацией */}
+          {/* Время - с bounce анимацией и ref для автоскролла */}
           <motion.section
+            ref={timeSectionRef}
             key={`time-${dateISO}`} // НОВОЕ: key для пересоздания при смене даты
             initial={{ opacity: 0, x: 20, scale: 0.95 }}
             animate={{ 
@@ -1676,7 +1691,6 @@ export default function CalendarPage() {
     </Suspense>
   );
 }
-
 
 
 //---------пробую допилить дизайн календаря бронирования---------//
