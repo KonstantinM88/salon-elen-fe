@@ -1166,7 +1166,7 @@ function CalendarInner() {
                 ) : (
                   days.map((day, index) => {
                     if (!day)
-                      return <div key={index} className="aspect-square" />;
+                      return <div key={`empty-${index}`} className="aspect-square" />;
 
                     const disabled = isDisabledDay(day);
                     const isTodayDay = isToday(day);
@@ -1195,7 +1195,7 @@ function CalendarInner() {
 
                     return (
                       <motion.button
-                        key={index}
+                        key={dayISO}
                         type="button"
                         initial={{ opacity: 0, scale: 0.85, y: 6 }}
                         animate={{ opacity: 1, scale: 1, y: 0 }}
