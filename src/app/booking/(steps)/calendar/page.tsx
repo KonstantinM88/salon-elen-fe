@@ -734,7 +734,7 @@ function CalendarInner() {
           behavior: 'smooth', 
           block: 'start' 
         });
-      }, 1300);
+      }, 300);
     }
   };
 
@@ -1565,12 +1565,12 @@ function CalendarInner() {
                               <span className={`flex items-center justify-center gap-1 text-xs font-bold whitespace-nowrap md:text-base ${
                                 isVipSlot ? "text-amber-50 group-hover:text-white" : isHotSlot ? "text-amber-100 group-hover:text-amber-50" : "text-white group-hover:text-emerald-50"
                               }`}>
-                                <Clock className="h-3 w-3 opacity-70 flex-shrink-0 md:h-3.5 md:w-3.5" />
                                 <span className="whitespace-nowrap">{formatHM(slot.startMinutes)}&nbsp;–&nbsp;{formatHM(slot.endMinutes)}</span>
                               </span>
-                              <span className={`text-[10px] font-medium whitespace-nowrap md:text-xs ${
+                              <span className={`flex items-center justify-center gap-1 text-[10px] font-medium whitespace-nowrap md:text-xs ${
                                 isVipSlot ? "text-amber-200/90 group-hover:text-amber-100" : isHotSlot ? "text-amber-300/90 group-hover:text-amber-200" : "text-slate-400 group-hover:text-emerald-200"
                               }`}>
+                                <Clock className="h-3 w-3 opacity-70 flex-shrink-0 md:h-3.5 md:w-3.5" />
                                 {durationMin} минут
                               </span>
                             </div>
