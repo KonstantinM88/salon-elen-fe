@@ -468,7 +468,7 @@ function ClientForm(): React.JSX.Element {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.2 }}
-            className="mx-auto max-w-3xl text-lg font-semibold italic tracking-wide text-cyan-400/95 drop-shadow-[0_0_10px_rgba(34,211,238,0.3)] md:text-xl"
+            className="brand-script mx-auto max-w-3xl text-xl font-semibold italic tracking-wide text-cyan-400/95 drop-shadow-[0_0_10px_rgba(34,211,238,0.3)] md:text-2xl lg:text-3xl"
           >
             Укажите ваши данные, чтобы мы подтвердили бронь
           </motion.p>
