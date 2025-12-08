@@ -734,7 +734,7 @@ function CalendarInner() {
           behavior: 'smooth', 
           block: 'start' 
         });
-      }, 300);
+      }, 1200);
     }
   };
 

@@ -690,6 +690,12 @@ const defaultBallpitConfig: BallpitConfig = {
 
 const tempObject = new Object3D();
 
+const isMobile =
+  typeof window !== "undefined" &&
+  /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+    window.navigator.userAgent
+  );
+
 /* ======================================================================= */
 /*                            Pointer helper                                */
 /* ======================================================================= */
@@ -1047,7 +1053,7 @@ function createBallpit(
 
   const pointerData = createPointerData(canvas);
 
-  if (config.followCursor !== false) {
+  if (config.followCursor !== false && !isMobile) {
     pointerData.onMove = (data) => {
       raycaster.setFromCamera(data.nPosition, threeInstance.camera);
       threeInstance.camera.getWorldDirection(plane.normal);
@@ -1069,9 +1075,9 @@ function createBallpit(
     };
   }
 
-  canvas.style.touchAction = "none";
-  canvas.style.userSelect = "none";
-  (canvas.style as { webkitUserSelect?: string }).webkitUserSelect = "none";
+  // canvas.style.touchAction = "none";
+  // canvas.style.userSelect = "none";
+  // (canvas.style as { webkitUserSelect?: string }).webkitUserSelect = "none";
 
   const setBox = () => {
     const worldW = threeInstance.size.wWidth;
@@ -1214,7 +1220,7 @@ const Ballpit: React.FC<BallpitProps> = ({
         width: "100vw",
         height: "100vh",
         display: "block",
-        pointerEvents: "auto",
+        pointerEvents: "none",
         zIndex: 1,
       }}
     />
