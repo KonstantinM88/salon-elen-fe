@@ -1,3 +1,4 @@
+// src/components/Ballpit.tsx
 "use client";
 
 import React, { useEffect, useRef } from "react";
@@ -778,7 +779,7 @@ function onPointerClick(e: PointerEvent) {
 
 function onTouchStart(e: TouchEvent) {
   if (e.touches.length === 0) return;
-  e.preventDefault();
+  // e.preventDefault();
   pointerPosition.set(e.touches[0].clientX, e.touches[0].clientY);
   for (const [elem, data] of pointerMap.entries()) {
     const rect = elem.getBoundingClientRect();
@@ -796,7 +797,7 @@ function onTouchStart(e: TouchEvent) {
 
 function onTouchMove(e: TouchEvent) {
   if (e.touches.length === 0) return;
-  e.preventDefault();
+  // e.preventDefault();
   pointerPosition.set(e.touches[0].clientX, e.touches[0].clientY);
   for (const [elem, data] of pointerMap.entries()) {
     const rect = elem.getBoundingClientRect();
