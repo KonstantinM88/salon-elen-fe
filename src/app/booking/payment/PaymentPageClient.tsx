@@ -214,14 +214,12 @@ export default function PaymentPageClient(): React.JSX.Element {
       // 🔍 DEBUG: Проверяем текущую локаль
       console.log('🌍 Current locale from useLocale():', locale);
       
-      // ✅ iOS FIX: Открываем окно СРАЗУ (синхронно) чтобы Safari не заблокировал
-      const newWindow = window.open('about:blank', '_blank', 'noopener,noreferrer');
+      // Определяем iOS
+      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
       
       const response = await fetch(`/api/appointments/${appointmentId}`);
       
       if (!response.ok) {
-        // Закрываем окно если ошибка
-        if (newWindow) newWindow.close();
         throw new Error(t("booking_success_error_load_failed"));
       }
       
@@ -240,12 +238,13 @@ export default function PaymentPageClient(): React.JSX.Element {
       
       console.log('📅 Generated calendar link:', calendarLink.substring(0, 100) + '...');
       
-      // ✅ iOS FIX: Обновляем URL уже открытого окна
-      if (newWindow) {
-        newWindow.location.href = calendarLink;
-      } else {
-        // Fallback если popup заблокирован
+      // ✅ iOS FIX: На iOS открываем в текущей вкладке, на других платформах - в новой
+      if (isIOS) {
+        // iOS: открываем в текущей вкладке (Safari разрешает)
         window.location.href = calendarLink;
+      } else {
+        // Desktop/Android: открываем в новой вкладке
+        window.open(calendarLink, '_blank', 'noopener,noreferrer');
       }
       
     } catch (error) {
@@ -279,20 +278,43 @@ export default function PaymentPageClient(): React.JSX.Element {
         locale: locale, // ✅ Передаём текущую локаль из контекста
       });
       
-      // ✅ iOS FIX: Используем разные методы для iOS и других платформ
+      // ✅ iOS FIX: Создаём <a> элемент с правильными атрибутами
       const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
       
       if (isIOS) {
-        // iOS: Используем FileReader для создания data URL
+        // iOS: используем data URL с <a> элементом
         const reader = new FileReader();
         reader.onload = function(e) {
           const dataUrl = e.target?.result as string;
-          // Открываем data URL - iOS предложит открыть в Calendar
-          window.location.href = dataUrl;
+          
+          // Создаём <a> элемент
+          const link = document.createElement('a');
+          link.href = dataUrl;
+          link.download = `SalonElen-Appointment-${appointmentId}.ics`;
+          
+          // Делаем элемент невидимым но в DOM
+          link.style.position = 'fixed';
+          link.style.top = '0';
+          link.style.left = '0';
+          link.style.opacity = '0';
+          link.style.pointerEvents = 'none';
+          
+          // Добавляем в DOM
+          document.body.appendChild(link);
+          
+          // Кликаем программно
+          link.click();
+          
+          // Удаляем через 100ms
+          setTimeout(() => {
+            document.body.removeChild(link);
+          }, 100);
+          
+          console.log('📅 iOS: Apple Calendar .ics file triggered');
         };
         reader.readAsDataURL(icsBlob);
       } else {
-        // Desktop/Android: Используем обычное скачивание
+        // Desktop/Android: используем обычное скачивание
         const url = window.URL.createObjectURL(icsBlob);
         const link = document.createElement('a');
         link.href = url;
@@ -301,9 +323,9 @@ export default function PaymentPageClient(): React.JSX.Element {
         link.click();
         document.body.removeChild(link);
         window.URL.revokeObjectURL(url);
+        
+        console.log('📅 Desktop/Android: Apple Calendar .ics file downloaded');
       }
-      
-      console.log('📅 Apple Calendar .ics file processed successfully');
       
     } catch (error) {
       console.error('Ошибка при создании .ics файла:', error);
