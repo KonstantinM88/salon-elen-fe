@@ -932,6 +932,10 @@ export default function ClientPage(): React.JSX.Element {
   );
 }
 
+
+
+
+
 //--------------всё хорошо пытаюсь ещё улучшить дизайн страницы--------------
 // // src/app/booking/client/form/page.tsx
 // "use client";

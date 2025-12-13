@@ -57,6 +57,9 @@ export default async function ClientPage({
   );
 }
 
+
+
+
 //----------рабочий с старым гуглом без хедера-----------
 // // src/app/booking/client/page.tsx
 // import { Metadata } from "next";
