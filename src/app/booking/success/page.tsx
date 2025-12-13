@@ -1,3 +1,4 @@
+// src/app/booking/success/page.tsx
 import { JSX, Suspense } from 'react';
 import SuccessClient from './SuccessClient';
 

@@ -25,20 +25,12 @@ import {
   User2,
   Calendar as CalendarIcon,
 } from "lucide-react";
+import { useTranslations } from "@/i18n/useTranslations";
 
 // Динамически импортируем Ballpit с отключением SSR
 const Ballpit = dynamic(() => import('@/components/Ballpit'), { ssr: false });
 
 type PaymentMethod = "onsite" | "online_soon";
-
-const BOOKING_STEPS: { id: string; label: string; icon: string }[] = [
-  { id: "services", label: "Услуга", icon: "✨" },
-  { id: "master", label: "Мастер", icon: "👤" },
-  { id: "calendar", label: "Дата", icon: "📅" },
-  { id: "client", label: "Данные", icon: "📝" },
-  { id: "verify", label: "Проверка", icon: "✓" },
-  { id: "payment", label: "Оплата", icon: "💳" },
-];
 
 /* ===================== Floating Particles - PREMIUM VERSION ===================== */
 function FloatingParticles() {
@@ -88,7 +80,12 @@ function FloatingParticles() {
   );
 }
 
-function PageShell({ children }: { children: React.ReactNode }): React.JSX.Element {
+interface PageShellProps {
+  children: React.ReactNode;
+  bookingSteps: Array<{ id: string; label: string; icon: string }>;
+}
+
+function PageShell({ children, bookingSteps }: PageShellProps): React.JSX.Element {
   return (
     <div className="relative min-h-screen overflow-hidden bg-gradient-to-b from-slate-950/40 via-slate-950 to-black/95 text-white">
       {/* СЛОЙ 1: Анимированный фон (BookingAnimatedBackground) */}
@@ -125,7 +122,7 @@ function PageShell({ children }: { children: React.ReactNode }): React.JSX.Eleme
       {/* Хедер с прогресс-баром */}
       <header className="booking-header pointer-events-auto fixed inset-x-0 top-0 z-50 border-b border-white/10 bg-black/50 backdrop-blur-md">
         <div className="mx-auto w-full max-w-screen-2xl px-4 py-3 xl:px-8">
-          <PremiumProgressBar currentStep={5} steps={BOOKING_STEPS} />
+          <PremiumProgressBar currentStep={5} steps={bookingSteps} />
         </div>
       </header>
 
@@ -190,6 +187,17 @@ function VideoSection(): React.JSX.Element {
 export default function PaymentPageClient(): React.JSX.Element {
   const searchParams = useSearchParams();
   const router = useRouter();
+  const t = useTranslations();
+
+  // Dynamic booking steps with i18n
+  const BOOKING_STEPS = React.useMemo(() => [
+    { id: "services", label: t("booking_step_services"), icon: "✨" },
+    { id: "master", label: t("booking_step_master"), icon: "👤" },
+    { id: "calendar", label: t("booking_step_date"), icon: "📅" },
+    { id: "client", label: t("booking_step_client"), icon: "📝" },
+    { id: "verify", label: t("booking_step_verify"), icon: "✓" },
+    { id: "payment", label: t("booking_step_payment"), icon: "💳" },
+  ], [t]);
 
   const appointmentId = searchParams.get("appointment") ?? "";
 
@@ -201,39 +209,34 @@ export default function PaymentPageClient(): React.JSX.Element {
   // Обработчик для добавления в Google Calendar
   const handleAddToGoogleCalendar = async () => {
     try {
-      // Получаем реальные данные appointment из API
       const response = await fetch(`/api/appointments/${appointmentId}`);
       
       if (!response.ok) {
-        throw new Error('Не удалось загрузить данные записи');
+        throw new Error(t("booking_success_error_load_failed"));
       }
       
       const appointment = await response.json();
       
-      // Создаём ссылку на Google Calendar с РЕАЛЬНЫМИ данными
       const calendarLink = createSalonAppointmentCalendarLink({
-        serviceTitle: appointment.serviceTitle,     // ✅ Реальная услуга
-        masterName: appointment.masterName,         // ✅ Реальный мастер
-        dateIso: appointment.startAt,               // ✅ Реальная дата начала
-        timeIso: appointment.startAt,               // ✅ Реальное время начала
-        duration: appointment.duration,             // ✅ Реальная длительность
+        serviceTitle: appointment.serviceTitle,
+        masterName: appointment.masterName,
+        dateIso: appointment.startAt,
+        timeIso: appointment.startAt,
+        duration: appointment.duration,
         appointmentId: appointmentId,
       });
       
-      // Открываем Google Calendar в новой вкладке
       window.open(calendarLink, '_blank', 'noopener,noreferrer');
       
     } catch (error) {
       console.error('Ошибка при создании события календаря:', error);
-      alert('Не удалось создать событие в календаре. Попробуйте позже.');
+      alert(t("booking_success_error_load_failed"));
     }
   };
 
   const handleConfirm = (): void => {
     if (!appointmentId) {
-      setError(
-        "Отсутствует идентификатор записи. Пожалуйста, начните запись заново.",
-      );
+      setError(t("booking_payment_error_missing"));
       return;
     }
 
@@ -243,25 +246,24 @@ export default function PaymentPageClient(): React.JSX.Element {
 
   if (!appointmentId) {
     return (
-      <PageShell>
+      <PageShell bookingSteps={BOOKING_STEPS}>
         <main className="relative z-10 mx-auto w-full max-w-screen-2xl px-4 pb-24 pt-6 xl:px-8">
           <div className="mx-auto max-w-2xl rounded-2xl border border-red-500/40 bg-red-500/10 p-6 backdrop-blur-xl">
             <div className="flex items-start gap-3">
               <AlertCircle className="mt-0.5 h-5 w-5 text-red-300" />
               <div className="space-y-2">
                 <h1 className="text-lg font-semibold text-red-100">
-                  Ошибка при переходе к оплате
+                  {t("booking_payment_error_title")}
                 </h1>
                 <p className="text-sm text-red-100/80">
-                  Мы не смогли найти идентификатор записи. Возможно, ссылка
-                  устарела или шаг подтверждения email был пропущен.
+                  {t("booking_payment_error_desc")}
                 </p>
                 <Link
                   href="/booking"
                   className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-amber-500 via-yellow-500 to-amber-500 px-4 py-2 text-sm font-semibold text-black shadow-[0_10px_30px_rgba(245,197,24,0.45)] hover:brightness-110"
                 >
                   <ArrowLeft className="h-4 w-4" />
-                  Вернуться к записи
+                  {t("booking_payment_error_return")}
                 </Link>
               </div>
             </div>
@@ -273,7 +275,7 @@ export default function PaymentPageClient(): React.JSX.Element {
   }
 
   return (
-    <PageShell>
+    <PageShell bookingSteps={BOOKING_STEPS}>
       <main className="pointer-events-auto relative z-10 mx-auto w-full max-w-screen-2xl px-4 pb-24 xl:px-8">
         {/* ПРЕМИУМ ЗАГОЛОВОК */}
         <div className="relative z-10 flex w-full flex-col items-center text-center pt-8">
@@ -292,7 +294,7 @@ export default function PaymentPageClient(): React.JSX.Element {
             >
               <Crown className="h-5 w-5 text-black drop-shadow-lg" />
               <span className="font-serif text-base font-bold italic text-black drop-shadow-sm md:text-lg">
-                Шаг 6 — Оплата и финальное подтверждение
+                {t("booking_payment_badge")}
               </span>
             </motion.div>
           </motion.div>
@@ -313,7 +315,7 @@ export default function PaymentPageClient(): React.JSX.Element {
               `,
             }}
           >
-            Завершение записи
+            {t("booking_payment_hero_title")}
           </motion.h1>
 
           {/* Subtitle */}
@@ -323,6 +325,7 @@ export default function PaymentPageClient(): React.JSX.Element {
             transition={{ delay: 0.2 }}
             className="brand-script relative mx-auto max-w-3xl text-xl font-semibold italic tracking-wide md:text-2xl lg:text-3xl"
             style={{
+              fontFamily: "'Cormorant Garamond', serif",
               color: '#FF6EC7',
               textShadow: `
                 0 0 20px rgba(255,110,199,0.8),
@@ -332,7 +335,7 @@ export default function PaymentPageClient(): React.JSX.Element {
               `,
             }}
           >
-            Выберите способ оплаты и подтвердите бронь
+            {t("booking_payment_hero_subtitle")}
           </motion.p>
 
           {/* Appointment ID */}
@@ -346,7 +349,7 @@ export default function PaymentPageClient(): React.JSX.Element {
               textShadow: '0 2px 4px rgba(0,0,0,0.8), 0 0 10px rgba(0,0,0,0.5)',
             }}
           >
-            Номер записи:{" "}
+            {t("booking_payment_appointment_id")}{" "}
             <span 
               className="font-mono font-semibold"
               style={{
@@ -390,8 +393,8 @@ export default function PaymentPageClient(): React.JSX.Element {
             transition={{ delay: 0.3 }}
             className="relative z-10"
           >
-            {/* ПРЕМИАЛЬНАЯ ОБЁРТКА */}
-            <div className="relative z-10 rounded-[32px] bg-gradient-to-br from-emerald-400/80 via-emerald-200/20 to-teal-400/60 p-[1.5px] shadow-[0_0_50px_rgba(16,185,129,0.4)]">
+            {/* ПРЕМИАЛЬНАЯ ОБЁРТКА с цветной радужной границей */}
+            <div className="relative z-10 rounded-[32px] bg-gradient-to-r from-fuchsia-500 via-cyan-400 to-purple-500 p-[2px] shadow-[0_0_50px_rgba(168,85,247,0.4)]">
               <div className="pointer-events-none absolute -inset-12 rounded-[40px] bg-[radial-gradient(circle_at_20%_20%,rgba(16,185,129,0.3),transparent_65%)] blur-3xl" />
 
               {/* ВНУТРЕННЯЯ КАРТОЧКА */}
@@ -406,7 +409,7 @@ export default function PaymentPageClient(): React.JSX.Element {
                     <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-emerald-400/30 to-teal-400/20 ring-1 ring-emerald-400/40 shadow-[0_0_15px_rgba(16,185,129,0.4)]">
                       <CreditCard className="h-4 w-4 text-emerald-300" />
                     </span>
-                    Способ оплаты
+                    {t("booking_payment_method_title")}
                   </h2>
 
                   {/* Методы оплаты */}
@@ -432,8 +435,8 @@ export default function PaymentPageClient(): React.JSX.Element {
                             <Wallet className="h-6 w-6 text-emerald-300 drop-shadow-[0_0_8px_rgba(16,185,129,0.8)]" />
                           </div>
                           <div>
-                            <div className="font-bold text-white">Оплата в салоне</div>
-                            <div className="text-xs text-slate-400">На месте</div>
+                            <div className="font-bold text-white">{t("booking_payment_onsite_title")}</div>
+                            <div className="text-xs text-slate-400">{t("booking_payment_onsite_desc")}</div>
                           </div>
                         </div>
                         {selectedMethod === "onsite" && (
@@ -449,15 +452,15 @@ export default function PaymentPageClient(): React.JSX.Element {
                       <ul className="space-y-1.5 text-xs text-slate-300">
                         <li className="flex items-start gap-2">
                           <Check className="mt-0.5 h-3 w-3 flex-shrink-0 text-emerald-400" />
-                          <span>Наличные или карта в салоне</span>
+                          <span>{t("booking_payment_onsite_benefit_1")}</span>
                         </li>
                         <li className="flex items-start gap-2">
                           <Check className="mt-0.5 h-3 w-3 flex-shrink-0 text-emerald-400" />
-                          <span>Без предоплаты</span>
+                          <span>{t("booking_payment_onsite_benefit_2")}</span>
                         </li>
                         <li className="flex items-start gap-2">
                           <Check className="mt-0.5 h-3 w-3 flex-shrink-0 text-emerald-400" />
-                          <span>Оплата после услуги</span>
+                          <span>{t("booking_payment_onsite_benefit_3")}</span>
                         </li>
                       </ul>
                     </motion.button>
@@ -483,8 +486,8 @@ export default function PaymentPageClient(): React.JSX.Element {
                             <CreditCard className="h-6 w-6 text-amber-300 drop-shadow-[0_0_8px_rgba(251,191,36,0.8)]" />
                           </div>
                           <div>
-                            <div className="font-bold text-white">Онлайн-оплата</div>
-                            <div className="text-xs text-slate-400">Скоро</div>
+                            <div className="font-bold text-white">{t("booking_payment_online_title")}</div>
+                            <div className="text-xs text-slate-400">{t("booking_payment_online_desc")}</div>
                           </div>
                         </div>
                         {selectedMethod === "online_soon" && (
@@ -500,15 +503,15 @@ export default function PaymentPageClient(): React.JSX.Element {
                       <ul className="space-y-1.5 text-xs text-slate-300">
                         <li className="flex items-start gap-2">
                           <Clock3 className="mt-0.5 h-3 w-3 flex-shrink-0 text-amber-400" />
-                          <span>Карта, Apple Pay, Google Pay</span>
+                          <span>{t("booking_payment_online_benefit_1")}</span>
                         </li>
                         <li className="flex items-start gap-2">
                           <Clock3 className="mt-0.5 h-3 w-3 flex-shrink-0 text-amber-400" />
-                          <span>В разработке</span>
+                          <span>{t("booking_payment_online_benefit_2")}</span>
                         </li>
                         <li className="flex items-start gap-2">
                           <Clock3 className="mt-0.5 h-3 w-3 flex-shrink-0 text-amber-400" />
-                          <span>Запись всё равно будет подтверждена</span>
+                          <span>{t("booking_payment_online_benefit_3")}</span>
                         </li>
                       </ul>
                     </motion.button>
@@ -518,11 +521,10 @@ export default function PaymentPageClient(): React.JSX.Element {
                   <div className="space-y-3 rounded-2xl border border-white/10 bg-slate-900/60 p-4 backdrop-blur-xl">
                     <p className="flex items-center gap-2 font-bold text-white">
                       <ShieldCheck className="h-4 w-4 text-emerald-400" />
-                      Как это работает?
+                      {t("booking_payment_info_title")}
                     </p>
                     <p className="text-sm text-slate-300">
-                      Система уже создала запись в расписании салона. Оплата фиксируется
-                      на стороне салона. Онлайн-оплата будет добавлена позже.
+                      {t("booking_payment_info_desc")}
                     </p>
                   </div>
 
@@ -551,10 +553,10 @@ export default function PaymentPageClient(): React.JSX.Element {
                       className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-500 px-6 py-4 text-base font-bold text-black shadow-[0_0_30px_rgba(251,191,36,0.7)] transition-all hover:shadow-[0_0_40px_rgba(251,191,36,0.9)]"
                     >
                       <CheckCircle2 className="h-5 w-5" />
-                      Подтвердить запись
+                      {t("booking_payment_confirm_button")}
                     </motion.button>
                     <p className="mt-3 text-center text-xs text-slate-400">
-                      Нажимая «Подтвердить запись», вы соглашаетесь с условиями салона
+                      {t("booking_payment_confirm_terms")}
                     </p>
                   </div>
                 </div>
@@ -572,7 +574,7 @@ export default function PaymentPageClient(): React.JSX.Element {
             transition={{ delay: 0.4 }}
             className="relative z-10"
           >
-            <div className="relative z-10 rounded-[32px] bg-gradient-to-br from-cyan-400/80 via-sky-200/20 to-blue-400/60 p-[1.5px] shadow-[0_0_50px_rgba(34,211,238,0.4)]">
+            <div className="relative z-10 rounded-[32px] bg-gradient-to-r from-fuchsia-500 via-cyan-400 to-purple-500 p-[2px] shadow-[0_0_50px_rgba(34,211,238,0.4)]">
               <div className="pointer-events-none absolute -inset-12 rounded-[40px] bg-[radial-gradient(circle_at_20%_20%,rgba(34,211,238,0.3),transparent_65%)] blur-3xl" />
 
               <div className="relative z-10 overflow-hidden rounded-[30px] bg-gradient-to-br from-slate-900/95 via-slate-900/85 to-slate-950/95 p-6 ring-1 ring-white/10 backdrop-blur-xl md:p-8">
@@ -585,7 +587,7 @@ export default function PaymentPageClient(): React.JSX.Element {
                       <Scissors className="h-5 w-5 text-cyan-300" />
                     </span>
                     <span className="bg-gradient-to-r from-cyan-200 via-sky-100 to-blue-200 bg-clip-text text-transparent drop-shadow-[0_0_20px_rgba(34,211,238,0.5)]">
-                      Резюме записи
+                      {t("booking_payment_summary_title")}
                     </span>
                   </h3>
 
@@ -593,24 +595,24 @@ export default function PaymentPageClient(): React.JSX.Element {
                   <div className="space-y-3 rounded-2xl border border-white/10 bg-slate-900/60 p-4 backdrop-blur-xl">
                     <div className="flex items-center gap-2 text-sm font-semibold text-white">
                       <User2 className="h-5 w-5 text-cyan-400" />
-                      <span>Ваш визит в SalonElen</span>
+                      <span>{t("booking_payment_summary_visit")}</span>
                     </div>
                     <ul className="space-y-2 text-sm text-slate-300">
                       <li className="flex items-start gap-2">
                         <Check className="mt-0.5 h-4 w-4 flex-shrink-0 text-cyan-400" />
-                        <span>Услуга из записи (Appointment)</span>
+                        <span>{t("booking_payment_summary_service")}</span>
                       </li>
                       <li className="flex items-start gap-2">
                         <Check className="mt-0.5 h-4 w-4 flex-shrink-0 text-cyan-400" />
-                        <span>Мастер из записи</span>
+                        <span>{t("booking_payment_summary_master")}</span>
                       </li>
                       <li className="flex items-start gap-2">
                         <Check className="mt-0.5 h-4 w-4 flex-shrink-0 text-cyan-400" />
-                        <span>Дата и время по ID: {appointmentId.slice(0, 8)}...</span>
+                        <span>{t("booking_payment_summary_datetime")} {appointmentId.slice(0, 8)}...</span>
                       </li>
                       <li className="flex items-start gap-2">
                         <Check className="mt-0.5 h-4 w-4 flex-shrink-0 text-cyan-400" />
-                        <span>Адрес салона</span>
+                        <span>{t("booking_payment_summary_address")}</span>
                       </li>
                     </ul>
                   </div>
@@ -619,17 +621,15 @@ export default function PaymentPageClient(): React.JSX.Element {
                   <div className="space-y-3 rounded-2xl border border-white/10 bg-slate-900/60 p-4 backdrop-blur-xl">
                     <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-slate-400">
                       <MapPin className="h-4 w-4 text-cyan-400" />
-                      Политика отмены
+                      {t("booking_payment_summary_cancellation_title")}
                     </p>
                     <p className="text-sm text-slate-300">
-                      Если вы не сможете прийти, пожалуйста, отмените запись заранее —
-                      это позволит освободить время для других гостей салона.
+                      {t("booking_payment_summary_cancellation_desc")}
                     </p>
                   </div>
 
                   <div className="border-t border-white/10 pt-4 text-sm text-slate-400">
-                    После запуска онлайн-оплаты здесь появится блок выбора платёжного
-                    метода и статус платежа
+                    {t("booking_payment_summary_future_note")}
                   </div>
                 </div>
 
@@ -690,12 +690,11 @@ export default function PaymentPageClient(): React.JSX.Element {
                     </motion.div>
 
                     <h2 className="brand-script mb-4 bg-gradient-to-r from-amber-200 via-yellow-100 to-amber-300 bg-clip-text text-3xl font-bold italic text-transparent drop-shadow-[0_0_20px_rgba(251,191,36,0.6)] md:text-4xl">
-                      Запись подтверждена!
+                      {t("booking_payment_success_title")}
                     </h2>
 
                     <p className="mb-8 text-base text-slate-200 md:text-lg">
-                      Ваша запись успешно подтверждена. Оплата будет произведена в
-                      салоне.
+                      {t("booking_payment_success_desc")}
                     </p>
 
                     <div className="flex flex-col gap-3">
@@ -704,10 +703,10 @@ export default function PaymentPageClient(): React.JSX.Element {
                         href="/"
                         className="w-full rounded-2xl bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-500 px-6 py-3.5 text-center font-bold text-black shadow-[0_0_30px_rgba(251,191,36,0.7)] transition hover:shadow-[0_0_40px_rgba(251,191,36,0.9)]"
                       >
-                        На главную страницу
+                        {t("booking_payment_success_home")}
                       </Link>
 
-                      {/* НОВАЯ КНОПКА - Google Calendar */}
+                      {/* Google Calendar button */}
                       <motion.button
                         type="button"
                         onClick={handleAddToGoogleCalendar}
@@ -715,12 +714,11 @@ export default function PaymentPageClient(): React.JSX.Element {
                         whileTap={{ scale: 0.98 }}
                         className="group relative w-full overflow-hidden rounded-2xl border border-white/20 bg-gradient-to-r from-blue-600/20 via-blue-500/20 to-blue-600/20 px-6 py-3.5 text-center font-semibold text-white transition hover:border-blue-400/60 hover:from-blue-600/30 hover:via-blue-500/30 hover:to-blue-600/30"
                       >
-                        {/* Анимированный градиент фона */}
                         <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-transparent via-blue-400/10 to-transparent opacity-0 transition-opacity group-hover:animate-[shimmer_2s_ease-in-out_infinite] group-hover:opacity-100" />
                         
                         <div className="relative flex items-center justify-center gap-2">
                           <CalendarIcon className="h-5 w-5" />
-                          <span>Добавить в Google Calendar</span>
+                          <span>{t("booking_payment_success_calendar")}</span>
                         </div>
                       </motion.button>
 
@@ -729,7 +727,7 @@ export default function PaymentPageClient(): React.JSX.Element {
                         href="/booking"
                         className="w-full rounded-2xl border border-white/20 bg-white/5 px-6 py-3.5 text-center font-semibold text-white transition hover:bg-white/10"
                       >
-                        Сделать новую запись
+                        {t("booking_payment_success_new")}
                       </Link>
                     </div>
                   </div>
@@ -744,6 +742,760 @@ export default function PaymentPageClient(): React.JSX.Element {
     </PageShell>
   );
 }
+
+
+
+
+
+
+
+//------------добовляем словарь---------
+// // src/app/booking/payment/PaymentPageClient.tsx
+// "use client";
+
+// import * as React from "react";
+// import { useSearchParams, useRouter } from "next/navigation";
+// import Link from "next/link";
+// import { motion, AnimatePresence } from "framer-motion";
+// import dynamic from 'next/dynamic';
+// import PremiumProgressBar from "@/components/PremiumProgressBar";
+// import { BookingAnimatedBackground } from "@/components/layout/BookingAnimatedBackground";
+// import { createSalonAppointmentCalendarLink } from "@/utils/googleCalendar";
+// import {
+//   ArrowLeft,
+//   CreditCard,
+//   Wallet,
+//   ShieldCheck,
+//   Scissors,
+//   CheckCircle2,
+//   AlertCircle,
+//   X,
+//   Crown,
+//   Check,
+//   Clock3,
+//   MapPin,
+//   User2,
+//   Calendar as CalendarIcon,
+// } from "lucide-react";
+
+// // Динамически импортируем Ballpit с отключением SSR
+// const Ballpit = dynamic(() => import('@/components/Ballpit'), { ssr: false });
+
+// type PaymentMethod = "onsite" | "online_soon";
+
+// const BOOKING_STEPS: { id: string; label: string; icon: string }[] = [
+//   { id: "services", label: "Услуга", icon: "✨" },
+//   { id: "master", label: "Мастер", icon: "👤" },
+//   { id: "calendar", label: "Дата", icon: "📅" },
+//   { id: "client", label: "Данные", icon: "📝" },
+//   { id: "verify", label: "Проверка", icon: "✓" },
+//   { id: "payment", label: "Оплата", icon: "💳" },
+// ];
+
+// /* ===================== Floating Particles - PREMIUM VERSION ===================== */
+// function FloatingParticles() {
+//   const [particles, setParticles] = React.useState<Array<{ x: number; y: number; id: number; color: string }>>([]);
+
+//   React.useEffect(() => {
+//     const colors = [
+//       "bg-amber-400/30",
+//       "bg-fuchsia-400/25",
+//       "bg-sky-400/25",
+//       "bg-emerald-400/25",
+//       "bg-yellow-300/30",
+//     ];
+    
+//     const newParticles = [...Array(30)].map((_, i) => ({
+//       x: Math.random() * window.innerWidth,
+//       y: Math.random() * window.innerHeight,
+//       id: i,
+//       color: colors[Math.floor(Math.random() * colors.length)],
+//     }));
+//     setParticles(newParticles);
+//   }, []);
+
+//   if (particles.length === 0) return null;
+
+//   return (
+//     <div className="pointer-events-none absolute inset-0 overflow-hidden">
+//       {particles.map((particle) => (
+//         <motion.div
+//           key={particle.id}
+//           className={`absolute h-1 w-1 rounded-full ${particle.color}`}
+//           initial={{ x: particle.x, y: particle.y, opacity: 0 }}
+//           animate={{
+//             x: [particle.x, Math.random() * window.innerWidth, particle.x],
+//             y: [particle.y, Math.random() * window.innerHeight, particle.y],
+//             scale: [1, 2, 1],
+//             opacity: [0.3, 1, 0.3],
+//           }}
+//           transition={{
+//             duration: Math.random() * 15 + 10,
+//             repeat: Infinity,
+//             ease: "linear",
+//           }}
+//         />
+//       ))}
+//     </div>
+//   );
+// }
+
+// function PageShell({ children }: { children: React.ReactNode }): React.JSX.Element {
+//   return (
+//     <div className="relative min-h-screen overflow-hidden bg-gradient-to-b from-slate-950/40 via-slate-950 to-black/95 text-white">
+//       {/* СЛОЙ 1: Анимированный фон (BookingAnimatedBackground) */}
+//       <BookingAnimatedBackground />
+      
+//       {/* СЛОЙ 2: Floating Particles */}
+//       <FloatingParticles />
+
+//       {/* СЛОЙ 3: Премиальный фон с радиальными градиентами */}
+//       <div className="pointer-events-none absolute inset-0 -z-10">
+//         <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_30%,_rgba(236,72,153,0.25),_transparent_55%),radial-gradient(circle_at_80%_70%,_rgba(56,189,248,0.2),_transparent_55%),radial-gradient(circle_at_50%_50%,_rgba(251,191,36,0.15),_transparent_65%)]" />
+//         <div className="absolute -left-20 top-20 h-72 w-72 rounded-full bg-fuchsia-600/30 blur-3xl" />
+//         <div className="absolute right-[-6rem] top-40 h-80 w-80 rounded-full bg-sky-500/25 blur-3xl" />
+//         <div className="absolute bottom-20 left-1/3 h-96 w-96 rounded-full bg-emerald-500/20 blur-3xl" />
+//         <div className="absolute bottom-[-4rem] right-1/4 h-72 w-72 rounded-full bg-amber-400/25 blur-3xl" />
+//       </div>
+
+//       {/* СЛОЙ 4: 3D Ballpit - ИНТЕРАКТИВНЫЕ ШАРЫ НА ЗАДНЕМ ФОНЕ */}
+//       <Ballpit
+//         count={50}
+//         gravity={0}
+//         friction={0.9995}
+//         wallBounce={0.98}
+//         maxVelocity={0.10}
+//         minSize={0.4}
+//         maxSize={0.8}
+//         followCursor={true}
+//         colors={[0xff7cf0, 0x9b8cff, 0x8ae9ff, 0xe0e0e0]}
+//       />
+
+//       {/* Неоновая верхняя линия */}
+//       <div className="pointer-events-none fixed inset-x-0 top-0 z-50 h-px w-full bg-[linear-gradient(90deg,#f97316,#ec4899,#22d3ee,#22c55e,#f97316)] bg-[length:200%_2px] animate-[bg-slide_9s_linear_infinite]" />
+
+//       {/* Хедер с прогресс-баром */}
+//       <header className="booking-header pointer-events-auto fixed inset-x-0 top-0 z-50 border-b border-white/10 bg-black/50 backdrop-blur-md">
+//         <div className="mx-auto w-full max-w-screen-2xl px-4 py-3 xl:px-8">
+//           <PremiumProgressBar currentStep={5} steps={BOOKING_STEPS} />
+//         </div>
+//       </header>
+
+//       <div className="h-[84px] md:h-[96px]" />
+
+//       {children}
+
+//       <style jsx global>{`
+//         .brand-script {
+//           font-family: var(
+//             --brand-script,
+//             "Cormorant Infant",
+//             "Playfair Display",
+//             serif
+//           );
+//           font-style: italic;
+//           font-weight: 600;
+//           letter-spacing: 0.02em;
+//         }
+        
+//         @keyframes bg-slide {
+//           0%, 100% { background-position: 0% 0%; }
+//           50% { background-position: 100% 0%; }
+//         }
+        
+//         @keyframes shimmer {
+//           0% {
+//             transform: translateX(-100%);
+//           }
+//           100% {
+//             transform: translateX(100%);
+//           }
+//         }
+//       `}</style>
+//     </div>
+//   );
+// }
+
+// function VideoSection(): React.JSX.Element {
+//   return (
+//     <section className="pointer-events-auto relative z-10 py-10 sm:py-12">
+//       <div className="relative mx-auto w-full max-w-screen-2xl aspect-[16/9] rounded-2xl overflow-hidden border border-white/10 shadow-[0_0_80px_rgba(255,215,0,.12)] bg-black">
+//         <video
+//           className="absolute inset-0 h-full w-full object-contain 2xl:object-cover object-[50%_90%] lg:object-[50%_96%] xl:object-[50%_100%] 2xl:object-[50%_96%]"
+//           autoPlay
+//           muted
+//           loop
+//           playsInline
+//           preload="metadata"
+//           poster="/fallback-poster.jpg"
+//           aria-hidden="true"
+//         >
+//           <source src="/SE-logo-video-master.webm" type="video/webm" />
+//           <source src="/SE-logo-video-master.mp4" type="video/mp4" />
+//         </video>
+//         <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/45 via-black/25 to-black/10" />
+//       </div>
+//     </section>
+//   );
+// }
+
+// export default function PaymentPageClient(): React.JSX.Element {
+//   const searchParams = useSearchParams();
+//   const router = useRouter();
+
+//   const appointmentId = searchParams.get("appointment") ?? "";
+
+//   const [selectedMethod, setSelectedMethod] =
+//     React.useState<PaymentMethod>("onsite");
+//   const [error, setError] = React.useState<string | null>(null);
+//   const [showModal, setShowModal] = React.useState(false);
+
+//   // Обработчик для добавления в Google Calendar
+//   const handleAddToGoogleCalendar = async () => {
+//     try {
+//       // Получаем реальные данные appointment из API
+//       const response = await fetch(`/api/appointments/${appointmentId}`);
+      
+//       if (!response.ok) {
+//         throw new Error('Не удалось загрузить данные записи');
+//       }
+      
+//       const appointment = await response.json();
+      
+//       // Создаём ссылку на Google Calendar с РЕАЛЬНЫМИ данными
+//       const calendarLink = createSalonAppointmentCalendarLink({
+//         serviceTitle: appointment.serviceTitle,     // ✅ Реальная услуга
+//         masterName: appointment.masterName,         // ✅ Реальный мастер
+//         dateIso: appointment.startAt,               // ✅ Реальная дата начала
+//         timeIso: appointment.startAt,               // ✅ Реальное время начала
+//         duration: appointment.duration,             // ✅ Реальная длительность
+//         appointmentId: appointmentId,
+//       });
+      
+//       // Открываем Google Calendar в новой вкладке
+//       window.open(calendarLink, '_blank', 'noopener,noreferrer');
+      
+//     } catch (error) {
+//       console.error('Ошибка при создании события календаря:', error);
+//       alert('Не удалось создать событие в календаре. Попробуйте позже.');
+//     }
+//   };
+
+//   const handleConfirm = (): void => {
+//     if (!appointmentId) {
+//       setError(
+//         "Отсутствует идентификатор записи. Пожалуйста, начните запись заново.",
+//       );
+//       return;
+//     }
+
+//     setError(null);
+//     setShowModal(true);
+//   };
+
+//   if (!appointmentId) {
+//     return (
+//       <PageShell>
+//         <main className="relative z-10 mx-auto w-full max-w-screen-2xl px-4 pb-24 pt-6 xl:px-8">
+//           <div className="mx-auto max-w-2xl rounded-2xl border border-red-500/40 bg-red-500/10 p-6 backdrop-blur-xl">
+//             <div className="flex items-start gap-3">
+//               <AlertCircle className="mt-0.5 h-5 w-5 text-red-300" />
+//               <div className="space-y-2">
+//                 <h1 className="text-lg font-semibold text-red-100">
+//                   Ошибка при переходе к оплате
+//                 </h1>
+//                 <p className="text-sm text-red-100/80">
+//                   Мы не смогли найти идентификатор записи. Возможно, ссылка
+//                   устарела или шаг подтверждения email был пропущен.
+//                 </p>
+//                 <Link
+//                   href="/booking"
+//                   className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-amber-500 via-yellow-500 to-amber-500 px-4 py-2 text-sm font-semibold text-black shadow-[0_10px_30px_rgba(245,197,24,0.45)] hover:brightness-110"
+//                 >
+//                   <ArrowLeft className="h-4 w-4" />
+//                   Вернуться к записи
+//                 </Link>
+//               </div>
+//             </div>
+//           </div>
+//         </main>
+//         <VideoSection />
+//       </PageShell>
+//     );
+//   }
+
+//   return (
+//     <PageShell>
+//       <main className="pointer-events-auto relative z-10 mx-auto w-full max-w-screen-2xl px-4 pb-24 xl:px-8">
+//         {/* ПРЕМИУМ ЗАГОЛОВОК */}
+//         <div className="relative z-10 flex w-full flex-col items-center text-center pt-8">
+//           {/* Ultra Premium Badge */}
+//           <motion.div
+//             initial={{ scale: 0, opacity: 0 }}
+//             animate={{ scale: 1, opacity: 1 }}
+//             transition={{ type: "spring", stiffness: 300, damping: 20 }}
+//             className="relative mb-8"
+//           >
+//             <div className="absolute -inset-6 animate-pulse rounded-full bg-gradient-to-r from-amber-400/50 via-yellow-300/50 to-amber-500/50 opacity-70 blur-xl" />
+            
+//             <motion.div
+//               whileHover={{ scale: 1.05 }}
+//               className="relative flex items-center gap-3 rounded-full border border-amber-300/60 bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-500 px-8 py-3 shadow-[0_15px_50px_rgba(251,191,36,0.6)]"
+//             >
+//               <Crown className="h-5 w-5 text-black drop-shadow-lg" />
+//               <span className="font-serif text-base font-bold italic text-black drop-shadow-sm md:text-lg">
+//                 Шаг 6 — Оплата и финальное подтверждение
+//               </span>
+//             </motion.div>
+//           </motion.div>
+
+//           {/* Title */}
+//           <motion.h1
+//             initial={{ opacity: 0, y: 20 }}
+//             animate={{ opacity: 1, y: 0 }}
+//             transition={{ delay: 0.1 }}
+//             className="brand-script relative mb-4 text-4xl font-bold italic leading-tight md:text-5xl lg:text-6xl"
+//             style={{
+//               color: '#FFFFFF',
+//               textShadow: `
+//                 0 0 40px rgba(251,191,36,0.8),
+//                 0 0 60px rgba(251,191,36,0.6),
+//                 0 2px 8px rgba(0,0,0,0.9),
+//                 0 4px 16px rgba(0,0,0,0.7)
+//               `,
+//             }}
+//           >
+//             Завершение записи
+//           </motion.h1>
+
+//           {/* Subtitle */}
+//           <motion.p
+//             initial={{ opacity: 0 }}
+//             animate={{ opacity: 1 }}
+//             transition={{ delay: 0.2 }}
+//             className="brand-script relative mx-auto max-w-3xl text-xl font-semibold italic tracking-wide md:text-2xl lg:text-3xl"
+//             style={{
+//               color: '#FF6EC7',
+//               textShadow: `
+//                 0 0 20px rgba(255,110,199,0.8),
+//                 0 0 30px rgba(255,110,199,0.5),
+//                 0 2px 6px rgba(0,0,0,0.8),
+//                 0 4px 12px rgba(0,0,0,0.6)
+//               `,
+//             }}
+//           >
+//             Выберите способ оплаты и подтвердите бронь
+//           </motion.p>
+
+//           {/* Appointment ID */}
+//           <motion.p
+//             initial={{ opacity: 0, y: 4 }}
+//             animate={{ opacity: 1, y: 0 }}
+//             transition={{ delay: 0.25 }}
+//             className="mt-4 text-sm"
+//             style={{
+//               color: '#E5E7EB',
+//               textShadow: '0 2px 4px rgba(0,0,0,0.8), 0 0 10px rgba(0,0,0,0.5)',
+//             }}
+//           >
+//             Номер записи:{" "}
+//             <span 
+//               className="font-mono font-semibold"
+//               style={{
+//                 color: '#FCD34D',
+//                 textShadow: '0 0 10px rgba(252,211,77,0.6), 0 2px 4px rgba(0,0,0,0.8)',
+//               }}
+//             >
+//               {appointmentId}
+//             </span>
+//           </motion.p>
+
+//           {/* Декоративная линия */}
+//           <motion.div
+//             initial={{ scaleX: 0 }}
+//             animate={{ 
+//               scaleX: [1, 1.5, 1],
+//               opacity: [0.8, 1, 0.8],
+//             }}
+//             transition={{ 
+//               scaleX: {
+//                 duration: 3,
+//                 repeat: Infinity,
+//                 ease: "easeInOut",
+//               },
+//               opacity: {
+//                 duration: 3,
+//                 repeat: Infinity,
+//                 ease: "easeInOut",
+//               },
+//             }}
+//             className="mx-auto mt-6 h-1 w-32 rounded-full bg-gradient-to-r from-transparent via-amber-300 to-transparent shadow-[0_0_15px_rgba(251,191,36,0.6)] md:w-40"
+//           />
+//         </div>
+
+//         {/* Два столбца: выбор оплаты + резюме */}
+//         <div className="relative z-10 mt-12 grid items-start gap-8 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]">
+//           {/* ПРЕМИУМ ФОРМА ОПЛАТЫ */}
+//           <motion.section
+//             initial={{ opacity: 0, x: -30 }}
+//             animate={{ opacity: 1, x: 0 }}
+//             transition={{ delay: 0.3 }}
+//             className="relative z-10"
+//           >
+//             {/* ПРЕМИАЛЬНАЯ ОБЁРТКА */}
+//             <div className="relative z-10 rounded-[32px] bg-gradient-to-br from-emerald-400/80 via-emerald-200/20 to-teal-400/60 p-[1.5px] shadow-[0_0_50px_rgba(16,185,129,0.4)]">
+//               <div className="pointer-events-none absolute -inset-12 rounded-[40px] bg-[radial-gradient(circle_at_20%_20%,rgba(16,185,129,0.3),transparent_65%)] blur-3xl" />
+
+//               {/* ВНУТРЕННЯЯ КАРТОЧКА */}
+//               <div className="relative z-10 overflow-hidden rounded-[30px] bg-gradient-to-br from-slate-900/95 via-slate-900/85 to-slate-950/95 p-6 ring-1 ring-white/10 backdrop-blur-xl md:p-8">
+//                 {/* Внутренние подсветки */}
+//                 <div className="pointer-events-none absolute -top-16 left-10 h-40 w-56 rounded-full bg-emerald-300/20 blur-3xl" />
+//                 <div className="pointer-events-none absolute right-[-3rem] bottom-[-3rem] h-48 w-56 rounded-full bg-teal-400/18 blur-3xl" />
+
+//                 <div className="relative space-y-6">
+//                   {/* Заголовок секции */}
+//                   <h2 className="brand-script flex items-center gap-3 text-xl font-bold italic text-white md:text-2xl">
+//                     <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-emerald-400/30 to-teal-400/20 ring-1 ring-emerald-400/40 shadow-[0_0_15px_rgba(16,185,129,0.4)]">
+//                       <CreditCard className="h-4 w-4 text-emerald-300" />
+//                     </span>
+//                     Способ оплаты
+//                   </h2>
+
+//                   {/* Методы оплаты */}
+//                   <div className="grid gap-4 md:grid-cols-2">
+//                     {/* Оплата в салоне */}
+//                     <motion.button
+//                       type="button"
+//                       onClick={() => {
+//                         setSelectedMethod("onsite");
+//                         setError(null);
+//                       }}
+//                       whileHover={{ scale: 1.02, y: -2 }}
+//                       whileTap={{ scale: 0.98 }}
+//                       className={`flex flex-col items-start gap-3 rounded-2xl border px-4 py-4 text-left transition-all ${
+//                         selectedMethod === "onsite"
+//                           ? "border-emerald-400/80 bg-gradient-to-r from-emerald-500/30 via-emerald-600/20 to-emerald-500/25 shadow-[0_0_25px_rgba(16,185,129,0.4)]"
+//                           : "border-white/15 bg-white/5 hover:border-emerald-300/50 hover:bg-white/10"
+//                       }`}
+//                     >
+//                       <div className="flex w-full items-center justify-between">
+//                         <div className="flex items-center gap-3">
+//                           <div className="relative flex h-11 w-11 items-center justify-center rounded-full bg-gradient-to-br from-emerald-500/20 to-teal-500/20 ring-1 ring-emerald-400/40 shadow-inner">
+//                             <Wallet className="h-6 w-6 text-emerald-300 drop-shadow-[0_0_8px_rgba(16,185,129,0.8)]" />
+//                           </div>
+//                           <div>
+//                             <div className="font-bold text-white">Оплата в салоне</div>
+//                             <div className="text-xs text-slate-400">На месте</div>
+//                           </div>
+//                         </div>
+//                         {selectedMethod === "onsite" && (
+//                           <motion.div
+//                             initial={{ scale: 0 }}
+//                             animate={{ scale: 1 }}
+//                             className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-500 shadow-lg"
+//                           >
+//                             <Check className="h-4 w-4 text-white" />
+//                           </motion.div>
+//                         )}
+//                       </div>
+//                       <ul className="space-y-1.5 text-xs text-slate-300">
+//                         <li className="flex items-start gap-2">
+//                           <Check className="mt-0.5 h-3 w-3 flex-shrink-0 text-emerald-400" />
+//                           <span>Наличные или карта в салоне</span>
+//                         </li>
+//                         <li className="flex items-start gap-2">
+//                           <Check className="mt-0.5 h-3 w-3 flex-shrink-0 text-emerald-400" />
+//                           <span>Без предоплаты</span>
+//                         </li>
+//                         <li className="flex items-start gap-2">
+//                           <Check className="mt-0.5 h-3 w-3 flex-shrink-0 text-emerald-400" />
+//                           <span>Оплата после услуги</span>
+//                         </li>
+//                       </ul>
+//                     </motion.button>
+
+//                     {/* Онлайн-оплата - скоро */}
+//                     <motion.button
+//                       type="button"
+//                       onClick={() => {
+//                         setSelectedMethod("online_soon");
+//                         setError(null);
+//                       }}
+//                       whileHover={{ scale: 1.02, y: -2 }}
+//                       whileTap={{ scale: 0.98 }}
+//                       className={`flex flex-col items-start gap-3 rounded-2xl border px-4 py-4 text-left transition-all ${
+//                         selectedMethod === "online_soon"
+//                           ? "border-amber-400/80 bg-gradient-to-r from-amber-500/30 via-yellow-500/20 to-amber-500/25 shadow-[0_0_25px_rgba(245,197,24,0.4)]"
+//                           : "border-white/15 bg-white/5 hover:border-amber-300/50 hover:bg-white/10"
+//                       }`}
+//                     >
+//                       <div className="flex w-full items-center justify-between">
+//                         <div className="flex items-center gap-3">
+//                           <div className="relative flex h-11 w-11 items-center justify-center rounded-full bg-gradient-to-br from-amber-500/20 to-yellow-500/20 ring-1 ring-amber-400/40 shadow-inner">
+//                             <CreditCard className="h-6 w-6 text-amber-300 drop-shadow-[0_0_8px_rgba(251,191,36,0.8)]" />
+//                           </div>
+//                           <div>
+//                             <div className="font-bold text-white">Онлайн-оплата</div>
+//                             <div className="text-xs text-slate-400">Скоро</div>
+//                           </div>
+//                         </div>
+//                         {selectedMethod === "online_soon" && (
+//                           <motion.div
+//                             initial={{ scale: 0 }}
+//                             animate={{ scale: 1 }}
+//                             className="flex h-6 w-6 items-center justify-center rounded-full bg-amber-500 shadow-lg"
+//                           >
+//                             <Check className="h-4 w-4 text-black" />
+//                           </motion.div>
+//                         )}
+//                       </div>
+//                       <ul className="space-y-1.5 text-xs text-slate-300">
+//                         <li className="flex items-start gap-2">
+//                           <Clock3 className="mt-0.5 h-3 w-3 flex-shrink-0 text-amber-400" />
+//                           <span>Карта, Apple Pay, Google Pay</span>
+//                         </li>
+//                         <li className="flex items-start gap-2">
+//                           <Clock3 className="mt-0.5 h-3 w-3 flex-shrink-0 text-amber-400" />
+//                           <span>В разработке</span>
+//                         </li>
+//                         <li className="flex items-start gap-2">
+//                           <Clock3 className="mt-0.5 h-3 w-3 flex-shrink-0 text-amber-400" />
+//                           <span>Запись всё равно будет подтверждена</span>
+//                         </li>
+//                       </ul>
+//                     </motion.button>
+//                   </div>
+
+//                   {/* Инфо блок */}
+//                   <div className="space-y-3 rounded-2xl border border-white/10 bg-slate-900/60 p-4 backdrop-blur-xl">
+//                     <p className="flex items-center gap-2 font-bold text-white">
+//                       <ShieldCheck className="h-4 w-4 text-emerald-400" />
+//                       Как это работает?
+//                     </p>
+//                     <p className="text-sm text-slate-300">
+//                       Система уже создала запись в расписании салона. Оплата фиксируется
+//                       на стороне салона. Онлайн-оплата будет добавлена позже.
+//                     </p>
+//                   </div>
+
+//                   {/* Сообщения об ошибке */}
+//                   <AnimatePresence>
+//                     {error && (
+//                       <motion.div
+//                         initial={{ opacity: 0, y: 10 }}
+//                         animate={{ opacity: 1, y: 0 }}
+//                         exit={{ opacity: 0, y: -10 }}
+//                         className="flex items-start gap-3 rounded-2xl border border-red-500/40 bg-red-500/10 p-4 backdrop-blur-xl"
+//                       >
+//                         <AlertCircle className="mt-0.5 h-5 w-5 flex-shrink-0 text-red-400" />
+//                         <span className="text-sm text-red-200">{error}</span>
+//                       </motion.div>
+//                     )}
+//                   </AnimatePresence>
+
+//                   {/* Кнопка подтверждения */}
+//                   <div className="pt-2">
+//                     <motion.button
+//                       type="button"
+//                       onClick={handleConfirm}
+//                       whileHover={{ scale: 1.02 }}
+//                       whileTap={{ scale: 0.98 }}
+//                       className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-500 px-6 py-4 text-base font-bold text-black shadow-[0_0_30px_rgba(251,191,36,0.7)] transition-all hover:shadow-[0_0_40px_rgba(251,191,36,0.9)]"
+//                     >
+//                       <CheckCircle2 className="h-5 w-5" />
+//                       Подтвердить запись
+//                     </motion.button>
+//                     <p className="mt-3 text-center text-xs text-slate-400">
+//                       Нажимая «Подтвердить запись», вы соглашаетесь с условиями салона
+//                     </p>
+//                   </div>
+//                 </div>
+
+//                 {/* Нижняя линия */}
+//                 <div className="pointer-events-none absolute inset-x-6 bottom-0 h-px bg-gradient-to-r from-transparent via-emerald-300/40 to-transparent" />
+//               </div>
+//             </div>
+//           </motion.section>
+
+//           {/* ПРЕМИУМ РЕЗЮМЕ */}
+//           <motion.aside
+//             initial={{ opacity: 0, x: 30 }}
+//             animate={{ opacity: 1, x: 0 }}
+//             transition={{ delay: 0.4 }}
+//             className="relative z-10"
+//           >
+//             <div className="relative z-10 rounded-[32px] bg-gradient-to-br from-cyan-400/80 via-sky-200/20 to-blue-400/60 p-[1.5px] shadow-[0_0_50px_rgba(34,211,238,0.4)]">
+//               <div className="pointer-events-none absolute -inset-12 rounded-[40px] bg-[radial-gradient(circle_at_20%_20%,rgba(34,211,238,0.3),transparent_65%)] blur-3xl" />
+
+//               <div className="relative z-10 overflow-hidden rounded-[30px] bg-gradient-to-br from-slate-900/95 via-slate-900/85 to-slate-950/95 p-6 ring-1 ring-white/10 backdrop-blur-xl md:p-8">
+//                 <div className="pointer-events-none absolute -top-16 left-10 h-40 w-56 rounded-full bg-cyan-300/20 blur-3xl" />
+//                 <div className="pointer-events-none absolute right-[-3rem] bottom-[-3rem] h-48 w-56 rounded-full bg-blue-400/18 blur-3xl" />
+
+//                 <div className="relative space-y-5">
+//                   <h3 className="brand-script mb-4 flex items-center gap-3 text-xl font-bold italic md:text-2xl lg:text-3xl">
+//                     <span className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-cyan-400/70 bg-cyan-500/20 shadow-[0_0_15px_rgba(34,211,238,0.5)]">
+//                       <Scissors className="h-5 w-5 text-cyan-300" />
+//                     </span>
+//                     <span className="bg-gradient-to-r from-cyan-200 via-sky-100 to-blue-200 bg-clip-text text-transparent drop-shadow-[0_0_20px_rgba(34,211,238,0.5)]">
+//                       Резюме записи
+//                     </span>
+//                   </h3>
+
+//                   {/* Детали записи */}
+//                   <div className="space-y-3 rounded-2xl border border-white/10 bg-slate-900/60 p-4 backdrop-blur-xl">
+//                     <div className="flex items-center gap-2 text-sm font-semibold text-white">
+//                       <User2 className="h-5 w-5 text-cyan-400" />
+//                       <span>Ваш визит в SalonElen</span>
+//                     </div>
+//                     <ul className="space-y-2 text-sm text-slate-300">
+//                       <li className="flex items-start gap-2">
+//                         <Check className="mt-0.5 h-4 w-4 flex-shrink-0 text-cyan-400" />
+//                         <span>Услуга из записи (Appointment)</span>
+//                       </li>
+//                       <li className="flex items-start gap-2">
+//                         <Check className="mt-0.5 h-4 w-4 flex-shrink-0 text-cyan-400" />
+//                         <span>Мастер из записи</span>
+//                       </li>
+//                       <li className="flex items-start gap-2">
+//                         <Check className="mt-0.5 h-4 w-4 flex-shrink-0 text-cyan-400" />
+//                         <span>Дата и время по ID: {appointmentId.slice(0, 8)}...</span>
+//                       </li>
+//                       <li className="flex items-start gap-2">
+//                         <Check className="mt-0.5 h-4 w-4 flex-shrink-0 text-cyan-400" />
+//                         <span>Адрес салона</span>
+//                       </li>
+//                     </ul>
+//                   </div>
+
+//                   {/* Политика отмены */}
+//                   <div className="space-y-3 rounded-2xl border border-white/10 bg-slate-900/60 p-4 backdrop-blur-xl">
+//                     <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-slate-400">
+//                       <MapPin className="h-4 w-4 text-cyan-400" />
+//                       Политика отмены
+//                     </p>
+//                     <p className="text-sm text-slate-300">
+//                       Если вы не сможете прийти, пожалуйста, отмените запись заранее —
+//                       это позволит освободить время для других гостей салона.
+//                     </p>
+//                   </div>
+
+//                   <div className="border-t border-white/10 pt-4 text-sm text-slate-400">
+//                     После запуска онлайн-оплаты здесь появится блок выбора платёжного
+//                     метода и статус платежа
+//                   </div>
+//                 </div>
+
+//                 <div className="pointer-events-none absolute inset-x-6 bottom-0 h-px bg-gradient-to-r from-transparent via-cyan-300/40 to-transparent" />
+//               </div>
+//             </div>
+//           </motion.aside>
+//         </div>
+//       </main>
+
+//       {/* ПРЕМИУМ МОДАЛКА ПОДТВЕРЖДЕНИЯ */}
+//       <AnimatePresence>
+//         {showModal && (
+//           <motion.div
+//             key="modal-backdrop"
+//             initial={{ opacity: 0 }}
+//             animate={{ opacity: 1 }}
+//             exit={{ opacity: 0 }}
+//             className="fixed inset-0 z-[200] flex items-center justify-center bg-black/80 backdrop-blur-md px-4"
+//             onClick={() => setShowModal(false)}
+//           >
+//             <motion.div
+//               key="modal-content"
+//               initial={{ scale: 0.8, opacity: 0, y: 30 }}
+//               animate={{ scale: 1, opacity: 1, y: 0 }}
+//               exit={{ scale: 0.9, opacity: 0, y: 20 }}
+//               transition={{ type: "spring", stiffness: 220, damping: 22 }}
+//               className="relative w-full max-w-lg"
+//               onClick={(event) => event.stopPropagation()}
+//             >
+//               {/* Премиальная обёртка модалки */}
+//               <div className="relative rounded-[32px] bg-gradient-to-br from-amber-400/80 via-amber-200/20 to-emerald-400/60 p-[2px] shadow-[0_0_60px_rgba(251,191,36,0.6)]">
+//                 <div className="pointer-events-none absolute -inset-16 rounded-[40px] bg-[radial-gradient(circle_at_50%_50%,rgba(251,191,36,0.4),transparent_70%)] blur-3xl" />
+
+//                 <div className="relative overflow-hidden rounded-[30px] bg-gradient-to-br from-slate-900/95 via-slate-900/90 to-slate-950/95 p-8 ring-1 ring-white/10 backdrop-blur-xl">
+//                   {/* Внутренние подсветки */}
+//                   <div className="pointer-events-none absolute -top-12 left-1/2 h-32 w-64 -translate-x-1/2 rounded-full bg-amber-300/30 blur-3xl" />
+//                   <div className="pointer-events-none absolute bottom-0 right-0 h-40 w-40 rounded-full bg-emerald-400/20 blur-3xl" />
+
+//                   {/* Кнопка закрытия */}
+//                   <button
+//                     type="button"
+//                     onClick={() => setShowModal(false)}
+//                     className="absolute right-6 top-6 inline-flex h-8 w-8 items-center justify-center rounded-full border border-white/15 bg-black/40 text-white/70 transition hover:border-amber-300 hover:bg-black/70 hover:text-amber-200"
+//                   >
+//                     <X className="h-4 w-4" />
+//                   </button>
+
+//                   <div className="relative z-10 text-center">
+//                     {/* Success icon */}
+//                     <motion.div
+//                       initial={{ scale: 0 }}
+//                       animate={{ scale: 1 }}
+//                       transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
+//                       className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-br from-emerald-500/30 to-teal-500/30 ring-4 ring-emerald-400/40 shadow-[0_0_30px_rgba(16,185,129,0.5)]"
+//                     >
+//                       <CheckCircle2 className="h-10 w-10 text-emerald-300" />
+//                     </motion.div>
+
+//                     <h2 className="brand-script mb-4 bg-gradient-to-r from-amber-200 via-yellow-100 to-amber-300 bg-clip-text text-3xl font-bold italic text-transparent drop-shadow-[0_0_20px_rgba(251,191,36,0.6)] md:text-4xl">
+//                       Запись подтверждена!
+//                     </h2>
+
+//                     <p className="mb-8 text-base text-slate-200 md:text-lg">
+//                       Ваша запись успешно подтверждена. Оплата будет произведена в
+//                       салоне.
+//                     </p>
+
+//                     <div className="flex flex-col gap-3">
+//                       {/* Кнопка главной страницы */}
+//                       <Link
+//                         href="/"
+//                         className="w-full rounded-2xl bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-500 px-6 py-3.5 text-center font-bold text-black shadow-[0_0_30px_rgba(251,191,36,0.7)] transition hover:shadow-[0_0_40px_rgba(251,191,36,0.9)]"
+//                       >
+//                         На главную страницу
+//                       </Link>
+
+//                       {/* НОВАЯ КНОПКА - Google Calendar */}
+//                       <motion.button
+//                         type="button"
+//                         onClick={handleAddToGoogleCalendar}
+//                         whileHover={{ scale: 1.02 }}
+//                         whileTap={{ scale: 0.98 }}
+//                         className="group relative w-full overflow-hidden rounded-2xl border border-white/20 bg-gradient-to-r from-blue-600/20 via-blue-500/20 to-blue-600/20 px-6 py-3.5 text-center font-semibold text-white transition hover:border-blue-400/60 hover:from-blue-600/30 hover:via-blue-500/30 hover:to-blue-600/30"
+//                       >
+//                         {/* Анимированный градиент фона */}
+//                         <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-transparent via-blue-400/10 to-transparent opacity-0 transition-opacity group-hover:animate-[shimmer_2s_ease-in-out_infinite] group-hover:opacity-100" />
+                        
+//                         <div className="relative flex items-center justify-center gap-2">
+//                           <CalendarIcon className="h-5 w-5" />
+//                           <span>Добавить в Google Calendar</span>
+//                         </div>
+//                       </motion.button>
+
+//                       {/* Кнопка новой записи */}
+//                       <Link
+//                         href="/booking"
+//                         className="w-full rounded-2xl border border-white/20 bg-white/5 px-6 py-3.5 text-center font-semibold text-white transition hover:bg-white/10"
+//                       >
+//                         Сделать новую запись
+//                       </Link>
+//                     </div>
+//                   </div>
+//                 </div>
+//               </div>
+//             </motion.div>
+//           </motion.div>
+//         )}
+//       </AnimatePresence>
+
+//       <VideoSection />
+//     </PageShell>
+//   );
+// }
 
 
 
