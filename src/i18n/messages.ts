@@ -103,6 +103,8 @@ export type BaseMessages = {
   /* ========= BOOKING ========= */
 
   // Шаги бронирования (progress bar)
+  site_name: string;
+  booking_header_subtitle: string;
   booking_step_services: string;
   booking_step_master: string;
   booking_step_date: string;
@@ -496,6 +498,7 @@ export type BaseMessages = {
   weekday_full_friday: string;
   weekday_full_saturday: string;
   weekday_full_sunday: string;
+  
 };
 
 export type MessageKey = keyof BaseMessages;
@@ -608,6 +611,8 @@ const ruMessages: BaseMessages = {
   /* ========= BOOKING ========= */
 
   // Шаги бронирования
+  site_name: "Salon Elen",
+  booking_header_subtitle: "Премиальный букинг",
   booking_step_services: "Услуга",
   booking_step_master: "Мастер",
   booking_step_date: "Дата",
@@ -1088,6 +1093,8 @@ const deMessages: BaseMessages = {
 
   /* ========= BOOKING ========= */
 
+  site_name: "Salon Elen",
+  booking_header_subtitle: "Premium-Buchung",
   booking_step_services: "Dienstleistung",
   booking_step_master: "Meister",
   booking_step_date: "Datum",
@@ -1566,6 +1573,8 @@ const enMessages: BaseMessages = {
 
   /* ========= BOOKING ========= */
 
+  site_name: "Salon Elen",
+  booking_header_subtitle: "Premium Booking",
   booking_step_services: "Service",
   booking_step_master: "Master",
   booking_step_date: "Date",
