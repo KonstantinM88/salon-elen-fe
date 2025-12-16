@@ -433,6 +433,8 @@ model GoogleQuickRegistration {
   startAt       DateTime
   endAt         DateTime
   email         String?
+  customerName  String?    // ✅ НОВОЕ ПОЛЕ
+  birthday      DateTime?  // ✅ НОВОЕ ПОЛЕ - дата рождени
   expiresAt     DateTime
   verified      Boolean  @default(false)
   appointmentId String?
