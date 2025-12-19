@@ -204,12 +204,12 @@ export type BaseMessages = {
   booking_calendar_try_another_day: string;
   booking_calendar_vip_badge: string;
   booking_calendar_available_slots: string;
-  
+
   // ======= BOOKING - CLIENT CHOICE PAGE =======
   booking_client_choice_title: string;
   booking_client_choice_subtitle: string;
   booking_client_choice_recommended: string;
-  
+
   booking_client_google_title: string;
   booking_client_google_description: string;
   booking_client_google_benefit_1: string;
@@ -219,7 +219,7 @@ export type BaseMessages = {
   booking_client_google_button: string;
   booking_client_google_security: string;
   booking_client_google_connecting: string;
-  
+
   booking_client_form_title: string;
   booking_client_form_description: string;
   booking_client_form_benefit_1: string;
@@ -228,20 +228,20 @@ export type BaseMessages = {
   booking_client_form_benefit_4: string;
   booking_client_form_button: string;
   booking_client_form_security: string;
-  
+
   booking_client_choice_footer: string;
   booking_client_choice_footer_highlight: string;
-  
+
   booking_client_popup_blocked: string;
   booking_client_google_error_init: string;
   booking_client_auth_error: string;
   booking_client_auth_waiting: string;
-  
+
   // ======= BOOKING - CLIENT FORM PAGE =======
   booking_client_form_badge: string;
   booking_client_form_hero_title: string;
   booking_client_form_hero_subtitle: string;
-  
+
   booking_client_form_label_name: string;
   booking_client_form_label_phone: string;
   booking_client_form_label_email: string;
@@ -249,20 +249,20 @@ export type BaseMessages = {
   booking_client_form_label_referral: string;
   booking_client_form_label_comment: string;
   booking_client_form_label_optional: string;
-  
+
   booking_client_form_placeholder_name: string;
   booking_client_form_placeholder_phone: string;
   booking_client_form_placeholder_email: string;
   booking_client_form_placeholder_comment: string;
   booking_client_form_placeholder_referral_other: string;
-  
+
   booking_client_form_referral_select: string;
   booking_client_form_referral_google: string;
   booking_client_form_referral_facebook: string;
   booking_client_form_referral_instagram: string;
   booking_client_form_referral_friends: string;
   booking_client_form_referral_other: string;
-  
+
   booking_client_form_error_name: string;
   booking_client_form_error_phone: string;
   booking_client_form_error_email_required: string;
@@ -273,27 +273,27 @@ export type BaseMessages = {
   booking_client_form_error_birth_underage: string;
   booking_client_form_error_referral: string;
   booking_client_form_error_referral_other: string;
-  
+
   booking_client_form_email_checking: string;
   booking_client_form_email_verified: string;
-  
+
   booking_client_form_age_requirement: string;
   booking_client_form_email_error_note: string;
-  
+
   booking_client_form_button_back: string;
   booking_client_form_button_submit: string;
   booking_client_form_button_submitting: string;
-  
+
   booking_client_form_info_title: string;
   booking_client_form_info_point_1: string;
   booking_client_form_info_point_1_highlight: string;
   booking_client_form_info_point_2: string;
   booking_client_form_info_point_2_highlight: string;
   booking_client_form_info_point_3: string;
-  
+
   booking_client_form_invalid_params: string;
   booking_client_form_invalid_return: string;
-  
+
   // ======= BOOKING - PHONE & BIRTHDAY PAGE (NEW) =======
   phone_title: string;
   phone_subtitle: string;
@@ -305,14 +305,14 @@ export type BaseMessages = {
   phone_privacy: string;
   birthday_label: string;
   birthday_hint: string;
-  
+
   // ======= BOOKING - VERIFY PAGE =======
   booking_verify_badge: string;
   booking_verify_hero_title: string;
   booking_verify_hero_subtitle: string;
   booking_verify_method_title: string;
   booking_verify_code_on_email: string;
-  
+
   booking_verify_method_email_title: string;
   booking_verify_method_email_desc: string;
   booking_verify_method_google_title: string;
@@ -321,7 +321,7 @@ export type BaseMessages = {
   booking_verify_method_telegram_desc: string;
   booking_verify_method_whatsapp_title: string;
   booking_verify_method_whatsapp_desc: string;
-  
+
   booking_verify_email_confirm_title: string;
   booking_verify_email_confirm_desc: string;
   booking_verify_email_label: string;
@@ -334,7 +334,7 @@ export type BaseMessages = {
   booking_verify_email_confirm_code: string;
   booking_verify_email_checking: string;
   booking_verify_email_resend: string;
-  
+
   booking_verify_info_title: string;
   booking_verify_info_desc: string;
   booking_verify_info_arrives: string;
@@ -348,10 +348,10 @@ export type BaseMessages = {
   booking_verify_info_progress_4: string;
   booking_verify_info_progress_5: string;
   booking_verify_info_support: string;
-  
+
   booking_verify_invalid_params: string;
   booking_verify_invalid_return: string;
-  
+
   booking_verify_google_title: string;
   booking_verify_google_desc: string;
   booking_verify_google_preparing: string;
@@ -368,7 +368,7 @@ export type BaseMessages = {
   booking_verify_google_success: string;
   booking_verify_google_preparing_window: string;
   booking_verify_google_allow_popups: string;
-  
+
   booking_verify_telegram_title: string;
   booking_verify_telegram_desc_registered: string;
   booking_verify_telegram_desc_unregistered: string;
@@ -387,7 +387,7 @@ export type BaseMessages = {
   booking_verify_telegram_opening: string;
   booking_verify_telegram_click_button: string;
   booking_verify_telegram_success: string;
-  
+
   booking_verify_error_enter_code: string;
   booking_verify_success_redirect: string;
 
@@ -397,24 +397,24 @@ export type BaseMessages = {
   booking_payment_hero_subtitle: string;
   booking_payment_appointment_id: string;
   booking_payment_method_title: string;
-  
+
   booking_payment_onsite_title: string;
   booking_payment_onsite_desc: string;
   booking_payment_onsite_benefit_1: string;
   booking_payment_onsite_benefit_2: string;
   booking_payment_onsite_benefit_3: string;
-  
+
   booking_payment_online_title: string;
   booking_payment_online_desc: string;
   booking_payment_online_benefit_1: string;
   booking_payment_online_benefit_2: string;
   booking_payment_online_benefit_3: string;
-  
+
   booking_payment_info_title: string;
   booking_payment_info_desc: string;
   booking_payment_confirm_button: string;
   booking_payment_confirm_terms: string;
-  
+
   booking_payment_summary_title: string;
   booking_payment_summary_visit: string;
   booking_payment_summary_service: string;
@@ -424,19 +424,19 @@ export type BaseMessages = {
   booking_payment_summary_cancellation_title: string;
   booking_payment_summary_cancellation_desc: string;
   booking_payment_summary_future_note: string;
-  
+
   booking_payment_success_title: string;
   booking_payment_success_desc: string;
   booking_payment_success_home: string;
   booking_payment_success_calendar: string;
   booking_payment_success_apple_calendar: string;
   booking_payment_success_new: string;
-  
+
   booking_payment_error_title: string;
   booking_payment_error_desc: string;
   booking_payment_error_return: string;
   booking_payment_error_missing: string;
-  
+
   // ======= BOOKING - SUCCESS PAGE =======
   booking_success_page_title: string;
   booking_success_page_subtitle: string;
@@ -507,7 +507,65 @@ export type BaseMessages = {
   weekday_full_friday: string;
   weekday_full_saturday: string;
   weekday_full_sunday: string;
-  
+
+  // SMS VERIFICATION PAGE
+  booking_sms_verify_title: string;
+  booking_sms_verify_subtitle: string;
+  booking_sms_verify_phone_label: string;
+  booking_sms_verify_phone_placeholder: string;
+  booking_sms_verify_phone_hint: string;
+  booking_sms_verify_phone_required: string;
+  booking_sms_verify_send_pin: string;
+  booking_sms_verify_sending: string;
+  booking_sms_verify_pin_validity: string;
+
+  booking_sms_verify_pin_title: string;
+  booking_sms_verify_pin_subtitle: string;
+  booking_sms_verify_pin_label: string;
+  booking_sms_verify_pin_placeholder: string;
+  booking_sms_verify_pin_hint: string;
+  booking_sms_verify_confirm: string;
+  booking_sms_verify_checking: string;
+  booking_sms_verify_resend: string;
+  booking_sms_verify_change_phone: string;
+  booking_sms_verify_pin_validity_note: string;
+
+  booking_sms_verify_error_title: string;
+  booking_sms_verify_error_missing_params: string;
+  booking_sms_verify_error_return: string;
+
+  booking_sms_verify_contact: string;
+
+  // SMS DETAILS PAGE
+  booking_sms_details_title: string;
+  booking_sms_details_subtitle: string;
+  booking_sms_details_name_label: string;
+  booking_sms_details_name_placeholder: string;
+  booking_sms_details_name_required: string;
+  booking_sms_details_email_label: string;
+  booking_sms_details_email_placeholder: string;
+  booking_sms_details_email_hint: string;
+  booking_sms_details_birth_label: string;
+  booking_sms_details_birth_hint: string;
+  booking_sms_details_submit: string;
+  booking_sms_details_submitting: string;
+  booking_sms_details_privacy: string;
+
+  booking_sms_details_error_title: string;
+  booking_sms_details_error_missing_id: string;
+  booking_sms_details_error_return: string;
+
+  booking_sms_details_contact: string;
+
+  // SMS CARD (CLIENT CHOICE PAGE)
+  booking_client_sms_title: string;
+  booking_client_sms_description: string;
+  booking_client_sms_benefit_1: string;
+  booking_client_sms_benefit_2: string;
+  booking_client_sms_benefit_3: string;
+  booking_client_sms_benefit_4: string;
+  booking_client_sms_button: string;
+  booking_client_sms_security: string;
 };
 
 export type MessageKey = keyof BaseMessages;
@@ -667,7 +725,8 @@ const ruMessages: BaseMessages = {
   // MASTER PAGE – hero
   booking_master_step_title: "Шаг 2 — Выбор Премиум Мастера",
   booking_master_hero_title: "Выбор мастера",
-  booking_master_hero_subtitle: "Наши эксперты создадут для вас идеальный образ",
+  booking_master_hero_subtitle:
+    "Наши эксперты создадут для вас идеальный образ",
   booking_master_back_button: "Вернуться к выбору услуг",
 
   // Общий заголовок ошибок
@@ -726,9 +785,10 @@ const ruMessages: BaseMessages = {
   booking_client_choice_title: "Как вы хотите продолжить?",
   booking_client_choice_subtitle: "Выберите удобный способ регистрации",
   booking_client_choice_recommended: "Рекомендуем",
-  
+
   booking_client_google_title: "Быстрая регистрация",
-  booking_client_google_description: "Войдите через Google и сразу перейдите к оплате",
+  booking_client_google_description:
+    "Войдите через Google и сразу перейдите к оплате",
   booking_client_google_benefit_1: "Один клик до оплаты",
   booking_client_google_benefit_2: "Автозаполнение данных",
   booking_client_google_benefit_3: "Безопасно и надёжно",
@@ -736,29 +796,32 @@ const ruMessages: BaseMessages = {
   booking_client_google_button: "Начать за 1 клик",
   booking_client_google_security: "Защищено Google OAuth 2.0",
   booking_client_google_connecting: "Подключение...",
-  
+
   booking_client_form_title: "Заполнить форму",
-  booking_client_form_description: "Традиционный способ с полным контролем над данными",
+  booking_client_form_description:
+    "Традиционный способ с полным контролем над данными",
   booking_client_form_benefit_1: "Полный контроль данных",
   booking_client_form_benefit_2: "Без Google аккаунта",
   booking_client_form_benefit_3: "Привычный процесс",
   booking_client_form_benefit_4: "Верификация через Telegram",
   booking_client_form_button: "Заполнить форму",
   booking_client_form_security: "Подтверждение через Telegram Bot",
-  
+
   booking_client_choice_footer: "Оба способа безопасны и надёжны.",
   booking_client_choice_footer_highlight: "Выберите тот, который вам удобнее.",
-  
-  booking_client_popup_blocked: "Не удалось открыть окно. Разрешите всплывающие окна в браузере.",
+
+  booking_client_popup_blocked:
+    "Не удалось открыть окно. Разрешите всплывающие окна в браузере.",
   booking_client_google_error_init: "Ошибка инициализации Google OAuth",
   booking_client_auth_error: "Ошибка авторизации",
   booking_client_auth_waiting: "Ожидаем подтверждение через Google...",
-  
+
   // ======= BOOKING - CLIENT FORM PAGE =======
   booking_client_form_badge: "Шаг 4 — Ваши контактные данные",
   booking_client_form_hero_title: "Онлайн-запись",
-  booking_client_form_hero_subtitle: "Укажите ваши данные, чтобы мы подтвердили бронь",
-  
+  booking_client_form_hero_subtitle:
+    "Укажите ваши данные, чтобы мы подтвердили бронь",
+
   booking_client_form_label_name: "Имя",
   booking_client_form_label_phone: "Телефон",
   booking_client_form_label_email: "E-mail",
@@ -766,20 +829,21 @@ const ruMessages: BaseMessages = {
   booking_client_form_label_referral: "Как вы узнали о нас?",
   booking_client_form_label_comment: "Комментарий",
   booking_client_form_label_optional: "(необязательно)",
-  
+
   booking_client_form_placeholder_name: "Ваше полное имя",
   booking_client_form_placeholder_phone: "+49 (xxx) xxx-xx-xx",
   booking_client_form_placeholder_email: "your@email.com",
-  booking_client_form_placeholder_comment: "Дополнительная информация или пожелания",
+  booking_client_form_placeholder_comment:
+    "Дополнительная информация или пожелания",
   booking_client_form_placeholder_referral_other: "Уточните источник",
-  
+
   booking_client_form_referral_select: "Выберите вариант",
   booking_client_form_referral_google: "Google",
   booking_client_form_referral_facebook: "Facebook",
   booking_client_form_referral_instagram: "Instagram",
   booking_client_form_referral_friends: "Рекомендация друзей",
   booking_client_form_referral_other: "Другое",
-  
+
   booking_client_form_error_name: "Укажите имя полностью",
   booking_client_form_error_phone: "Укажите корректный номер телефона",
   booking_client_form_error_email_required: "E-mail обязателен",
@@ -787,28 +851,34 @@ const ruMessages: BaseMessages = {
   booking_client_form_error_email_not_verified: "E-mail не подтверждён",
   booking_client_form_error_birth_required: "Дата рождения обязательна",
   booking_client_form_error_birth_future: "Дата в будущем недопустима",
-  booking_client_form_error_birth_underage: "Для онлайн-записи требуется возраст 16+",
+  booking_client_form_error_birth_underage:
+    "Для онлайн-записи требуется возраст 16+",
   booking_client_form_error_referral: "Выберите вариант",
   booking_client_form_error_referral_other: "Уточните источник",
-  
+
   booking_client_form_email_checking: "Проверка e-mail…",
   booking_client_form_email_verified: "E-mail подтверждён",
-  
-  booking_client_form_age_requirement: "Для онлайн-записи требуется возраст 16+",
-  booking_client_form_email_error_note: "Если вы допустите ошибку в адресе, вы всё равно сможете прийти на приём, но не получите напоминания и подтверждения.",
-  
+
+  booking_client_form_age_requirement:
+    "Для онлайн-записи требуется возраст 16+",
+  booking_client_form_email_error_note:
+    "Если вы допустите ошибку в адресе, вы всё равно сможете прийти на приём, но не получите напоминания и подтверждения.",
+
   booking_client_form_button_back: "Назад",
   booking_client_form_button_submit: "Забронировать",
   booking_client_form_button_submitting: "Проверка данных…",
-  
+
   booking_client_form_info_title: "Почему мы просим e-mail?",
   booking_client_form_info_point_1: "На ваш e-mail мы отправим",
-  booking_client_form_info_point_1_highlight: "подтверждение брони и все детали записи",
+  booking_client_form_info_point_1_highlight:
+    "подтверждение брони и все детали записи",
   booking_client_form_info_point_2: "Вы получите",
   booking_client_form_info_point_2_highlight: "напоминание перед визитом",
-  booking_client_form_info_point_3: "Мы бережно относимся к персональным данным и используем ваш e-mail только для обслуживания вашей записи",
-  
-  booking_client_form_invalid_params: "Некорректные параметры. Пожалуйста, начните запись заново.",
+  booking_client_form_info_point_3:
+    "Мы бережно относимся к персональным данным и используем ваш e-mail только для обслуживания вашей записи",
+
+  booking_client_form_invalid_params:
+    "Некорректные параметры. Пожалуйста, начните запись заново.",
   booking_client_form_invalid_return: "Вернуться к выбору услуг",
 
   // ======= BOOKING - PHONE & BIRTHDAY PAGE (NEW) =======
@@ -821,7 +891,8 @@ const ruMessages: BaseMessages = {
   phone_submitting: "Отправка...",
   phone_privacy: "Ваши данные защищены и не передаются третьим лицам",
   birthday_label: "Дата рождения",
-  birthday_hint: "Нам нужна Ваша дата рождения, чтобы мы могли в будущем предоставить Вам индивидуальную скидку к Вашему празднику!",
+  birthday_hint:
+    "Нам нужна Ваша дата рождения, чтобы мы могли в будущем предоставить Вам индивидуальную скидку к Вашему празднику!",
 
   booking_verify_badge: "Шаг 5 — Подтверждение email",
   booking_verify_hero_title: "Подтверждение записи",
@@ -839,7 +910,8 @@ const ruMessages: BaseMessages = {
   booking_verify_email_confirm_title: "Подтвердите ваш email",
   booking_verify_email_confirm_desc: "Мы отправим одноразовый 6-значный код на",
   booking_verify_email_label: "Почта для подтверждения",
-  booking_verify_email_wrong_hint: "Если email неверный, вернитесь на предыдущий шаг",
+  booking_verify_email_wrong_hint:
+    "Если email неверный, вернитесь на предыдущий шаг",
   booking_verify_email_send_code: "Отправить код",
   booking_verify_email_sending: "Отправка…",
   booking_verify_email_arrives_hint: "Код приходит в течение нескольких секунд",
@@ -849,22 +921,27 @@ const ruMessages: BaseMessages = {
   booking_verify_email_checking: "Проверка…",
   booking_verify_email_resend: "Отправить код повторно",
   booking_verify_info_title: "Безопасное подтверждение",
-  booking_verify_info_desc: "Мы используем одноразовый код для защиты ваших данных и расписания салона",
+  booking_verify_info_desc:
+    "Мы используем одноразовый код для защиты ваших данных и расписания салона",
   booking_verify_info_arrives: "Код приходит за 1–2 минуты",
   booking_verify_info_check_spam: "Проверьте папку «Спам»",
   booking_verify_info_check_email: "Убедитесь в правильности email",
-  booking_verify_info_resend_if_needed: "Запросите код повторно при необходимости",
+  booking_verify_info_resend_if_needed:
+    "Запросите код повторно при необходимости",
   booking_verify_info_progress_title: "Ваш прогресс",
   booking_verify_info_progress_1: "Выбрали услугу и мастера",
   booking_verify_info_progress_2: "Указали дату и время",
   booking_verify_info_progress_3: "Заполнили контактные данные",
   booking_verify_info_progress_4: "Сейчас — подтверждение email",
   booking_verify_info_progress_5: "Далее — оплата",
-  booking_verify_info_support: "При возникновении сложностей свяжитесь с нами — мы поможем завершить запись",
-  booking_verify_invalid_params: "Некорректные параметры. Пожалуйста, начните запись заново.",
+  booking_verify_info_support:
+    "При возникновении сложностей свяжитесь с нами — мы поможем завершить запись",
+  booking_verify_invalid_params:
+    "Некорректные параметры. Пожалуйста, начните запись заново.",
   booking_verify_invalid_return: "Вернуться к выбору услуг",
   booking_verify_google_title: "Подтвердите через Google",
-  booking_verify_google_desc: "Войдите через свой Google аккаунт для быстрого и безопасного подтверждения бронирования.",
+  booking_verify_google_desc:
+    "Войдите через свой Google аккаунт для быстрого и безопасного подтверждения бронирования.",
   booking_verify_google_preparing: "Подготовка авторизации...",
   booking_verify_google_open_button: "Войти через Google",
   booking_verify_google_reopen_button: "Открыть Google повторно",
@@ -875,17 +952,23 @@ const ruMessages: BaseMessages = {
   booking_verify_google_how_step_3: "Разрешите доступ к email",
   booking_verify_google_how_step_4: "Автоматически вернётесь к оплате",
   booking_verify_google_security_title: "Безопасно и надёжно",
-  booking_verify_google_security_desc: "Мы не получаем доступ к вашему паролю Google. Используется официальный OAuth протокол.",
-  booking_verify_google_success: "✅ Подтверждено через Google! Переход к оплате...",
+  booking_verify_google_security_desc:
+    "Мы не получаем доступ к вашему паролю Google. Используется официальный OAuth протокол.",
+  booking_verify_google_success:
+    "✅ Подтверждено через Google! Переход к оплате...",
   booking_verify_google_preparing_window: "🔐 Google откроется в новом окне...",
-  booking_verify_google_allow_popups: "⚠️ Разрешите всплывающие окна и нажмите кнопку ниже.",
+  booking_verify_google_allow_popups:
+    "⚠️ Разрешите всплывающие окна и нажмите кнопку ниже.",
   booking_verify_telegram_title: "Подтвердите через Telegram",
-  booking_verify_telegram_desc_registered: "Код отправлен в Telegram бот. Проверьте сообщения и нажмите кнопку подтверждения.",
-  booking_verify_telegram_desc_unregistered: "Telegram откроется автоматически. Вы получите код для ввода или сможете подтвердить сразу кнопкой в боте.",
+  booking_verify_telegram_desc_registered:
+    "Код отправлен в Telegram бот. Проверьте сообщения и нажмите кнопку подтверждения.",
+  booking_verify_telegram_desc_unregistered:
+    "Telegram откроется автоматически. Вы получите код для ввода или сможете подтвердить сразу кнопкой в боте.",
   booking_verify_telegram_sending_code: "Отправка кода...",
   booking_verify_telegram_open_button: "Открыть Telegram",
   booking_verify_telegram_reopen_button: "Открыть Telegram повторно",
-  booking_verify_telegram_waiting_bot: "Ожидание подтверждения в Telegram боте...",
+  booking_verify_telegram_waiting_bot:
+    "Ожидание подтверждения в Telegram боте...",
   booking_verify_telegram_waiting: "Ожидание подтверждения...",
   booking_verify_telegram_divider: "или",
   booking_verify_telegram_enter_code: "Введите 6-значный код из Telegram",
@@ -893,10 +976,14 @@ const ruMessages: BaseMessages = {
   booking_verify_telegram_code_valid: "Код действителен 10 минут.",
   booking_verify_telegram_confirm_button: "Подтвердить код",
   booking_verify_telegram_checking: "Проверка...",
-  booking_verify_telegram_code_sent: "✈️ Код отправлен в Telegram! Проверьте бота и нажмите кнопку подтверждения.",
-  booking_verify_telegram_opening: "✈️ Telegram открывается... Ожидание подтверждения.",
-  booking_verify_telegram_click_button: "⚠️ Нажмите кнопку ниже, чтобы открыть Telegram.",
-  booking_verify_telegram_success: "✅ Подтверждено через Telegram! Переход к оплате...",
+  booking_verify_telegram_code_sent:
+    "✈️ Код отправлен в Telegram! Проверьте бота и нажмите кнопку подтверждения.",
+  booking_verify_telegram_opening:
+    "✈️ Telegram открывается... Ожидание подтверждения.",
+  booking_verify_telegram_click_button:
+    "⚠️ Нажмите кнопку ниже, чтобы открыть Telegram.",
+  booking_verify_telegram_success:
+    "✅ Подтверждено через Telegram! Переход к оплате...",
   booking_verify_error_enter_code: "Введите 6-значный код",
   booking_verify_success_redirect: "Верификация успешна! Переход к оплате...",
 
@@ -916,9 +1003,11 @@ const ruMessages: BaseMessages = {
   booking_payment_online_benefit_2: "В разработке",
   booking_payment_online_benefit_3: "Запись всё равно будет подтверждена",
   booking_payment_info_title: "Как это работает?",
-  booking_payment_info_desc: "Система уже создала запись в расписании салона. Оплата фиксируется на стороне салона. Онлайн-оплата будет добавлена позже.",
+  booking_payment_info_desc:
+    "Система уже создала запись в расписании салона. Оплата фиксируется на стороне салона. Онлайн-оплата будет добавлена позже.",
   booking_payment_confirm_button: "Подтвердить запись",
-  booking_payment_confirm_terms: "Нажимая «Подтвердить запись», вы соглашаетесь с условиями салона",
+  booking_payment_confirm_terms:
+    "Нажимая «Подтвердить запись», вы соглашаетесь с условиями салона",
   booking_payment_summary_title: "Резюме записи",
   booking_payment_summary_visit: "Ваш визит в SalonElen",
   booking_payment_summary_service: "Услуга из записи (Appointment)",
@@ -926,18 +1015,23 @@ const ruMessages: BaseMessages = {
   booking_payment_summary_datetime: "Дата и время по ID:",
   booking_payment_summary_address: "Адрес салона",
   booking_payment_summary_cancellation_title: "Политика отмены",
-  booking_payment_summary_cancellation_desc: "Если вы не сможете прийти, пожалуйста, отмените запись заранее — это позволит освободить время для других гостей салона.",
-  booking_payment_summary_future_note: "После запуска онлайн-оплаты здесь появится блок выбора платёжного метода и статус платежа",
+  booking_payment_summary_cancellation_desc:
+    "Если вы не сможете прийти, пожалуйста, отмените запись заранее — это позволит освободить время для других гостей салона.",
+  booking_payment_summary_future_note:
+    "После запуска онлайн-оплаты здесь появится блок выбора платёжного метода и статус платежа",
   booking_payment_success_title: "Запись подтверждена!",
-  booking_payment_success_desc: "Ваша запись успешно подтверждена. Оплата будет произведена в салоне.",
+  booking_payment_success_desc:
+    "Ваша запись успешно подтверждена. Оплата будет произведена в салоне.",
   booking_payment_success_home: "На главную страницу",
   booking_payment_success_calendar: "Добавить в Google Calendar",
   booking_payment_success_apple_calendar: "Добавить в Apple Calendar",
   booking_payment_success_new: "Сделать новую запись",
   booking_payment_error_title: "Ошибка при переходе к оплате",
-  booking_payment_error_desc: "Мы не смогли найти идентификатор записи. Возможно, ссылка устарела или шаг подтверждения email был пропущен.",
+  booking_payment_error_desc:
+    "Мы не смогли найти идентификатор записи. Возможно, ссылка устарела или шаг подтверждения email был пропущен.",
   booking_payment_error_return: "Вернуться к записи",
-  booking_payment_error_missing: "Отсутствует идентификатор записи. Пожалуйста, начните запись заново.",
+  booking_payment_error_missing:
+    "Отсутствует идентификатор записи. Пожалуйста, начните запись заново.",
   booking_success_page_title: "Онлайн-запись",
   booking_success_page_subtitle: "Успех",
   booking_success_loading: "Загрузка...",
@@ -947,7 +1041,8 @@ const ruMessages: BaseMessages = {
   booking_success_error_load_failed: "Не удалось загрузить данные записи",
   booking_success_error_return: "Вернуться к бронированию",
   booking_success_title: "Запись подтверждена!",
-  booking_success_desc: "Ваша запись успешно создана. Мы отправили подтверждение на вашу почту.",
+  booking_success_desc:
+    "Ваша запись успешно создана. Мы отправили подтверждение на вашу почту.",
   booking_success_details_title: "Детали записи:",
   booking_success_details_name: "Имя",
   booking_success_details_email: "Email",
@@ -968,7 +1063,8 @@ const ruMessages: BaseMessages = {
   calendar_address: "Адрес:",
   calendar_contacts: "Контакты:",
   calendar_phone: "Telefon:",
-  calendar_reschedule_notice: "Если вам необходимо перенести или отменить запись, пожалуйста, свяжитесь с нами заранее.",
+  calendar_reschedule_notice:
+    "Если вам необходимо перенести или отменить запись, пожалуйста, свяжитесь с нами заранее.",
   calendar_see_you: "До встречи! ✨",
   calendar_location: "SalonElen, Lessingstrasse 37, 06114, Halle Saale",
 
@@ -1006,7 +1102,74 @@ const ruMessages: BaseMessages = {
   weekday_full_friday: "пятницу",
   weekday_full_saturday: "субботу",
   weekday_full_sunday: "воскресенье",
-  
+
+  // SMS VERIFICATION PAGE
+  booking_sms_verify_title: "Подтверждение телефона",
+  booking_sms_verify_subtitle: "Мы отправим вам 4-значный PIN код по SMS",
+  booking_sms_verify_phone_label: "Номер телефона",
+  booking_sms_verify_phone_placeholder: "+49 177 899 5106",
+  booking_sms_verify_phone_hint:
+    "Формат: +[код страны][номер] (например: +4917789951064)",
+  booking_sms_verify_phone_required: "Введите номер телефона",
+  booking_sms_verify_send_pin: "Отправить PIN код",
+  booking_sms_verify_sending: "Отправка...",
+  booking_sms_verify_pin_validity: "PIN код будет действителен 10 минут",
+
+  booking_sms_verify_pin_title: "Введите PIN код",
+  booking_sms_verify_pin_subtitle: "PIN код отправлен на",
+  booking_sms_verify_pin_label: "PIN код",
+  booking_sms_verify_pin_placeholder: "0000",
+  booking_sms_verify_pin_hint: "Введите 4-значный PIN код из SMS",
+  booking_sms_verify_confirm: "Подтвердить",
+  booking_sms_verify_checking: "Проверка...",
+  booking_sms_verify_resend: "Отправить PIN повторно",
+  booking_sms_verify_change_phone: "Изменить номер телефона",
+  booking_sms_verify_pin_validity_note:
+    "PIN код действителен 10 минут • Максимум 3 попытки",
+
+  booking_sms_verify_error_title: "⚠️ Ошибка",
+  booking_sms_verify_error_missing_params:
+    "Недостаточно параметров. Пожалуйста, начните запись заново.",
+  booking_sms_verify_error_return: "Вернуться к записи",
+
+  booking_sms_verify_contact:
+    "Возникли вопросы? Свяжитесь с нами: +49 177 899 5106",
+
+  // SMS DETAILS PAGE
+  booking_sms_details_title: "Ваши данные",
+  booking_sms_details_subtitle:
+    "Пожалуйста, укажите ваше имя и дополнительную информацию",
+  booking_sms_details_name_label: "Ваше имя",
+  booking_sms_details_name_placeholder: "Иван Иванов",
+  booking_sms_details_name_required: "Имя обязательно для заполнения",
+  booking_sms_details_email_label: "Email",
+  booking_sms_details_email_placeholder: "ivan@example.com",
+  booking_sms_details_email_hint: "Для отправки подтверждения и напоминаний",
+  booking_sms_details_birth_label: "Дата рождения",
+  booking_sms_details_birth_hint:
+    "Нам нужна Ваша дата рождения, чтобы мы могли в будущем предоставить Вам индивидуальную скидку к Вашему празднику!",
+  booking_sms_details_submit: "Продолжить к оплате",
+  booking_sms_details_submitting: "Сохранение...",
+  booking_sms_details_privacy:
+    "Ваши данные защищены и не передаются третьим лицам",
+
+  booking_sms_details_error_title: "⚠️ Ошибка",
+  booking_sms_details_error_missing_id:
+    "Отсутствует ID регистрации. Пожалуйста, начните запись заново.",
+  booking_sms_details_error_return: "Вернуться к записи",
+
+  booking_sms_details_contact:
+    "Возникли вопросы? Свяжитесь с нами: +49 177 899 5106",
+
+  // SMS CARD
+  booking_client_sms_title: "По телефону (SMS)",
+  booking_client_sms_description: "Получите PIN код через SMS",
+  booking_client_sms_benefit_1: "PIN код по SMS",
+  booking_client_sms_benefit_2: "Без email регистрации",
+  booking_client_sms_benefit_3: "Быстро и безопасно",
+  booking_client_sms_benefit_4: "4-значный код",
+  booking_client_sms_button: "Войти по SMS",
+  booking_client_sms_security: "Infobip SMS",
 };
 
 /* ==================== GERMAN (DE) ==================== */
@@ -1187,7 +1350,8 @@ const deMessages: BaseMessages = {
   booking_calendar_no_slots: "Keine Termine",
 
   // CALENDAR PAGE – Legend
-  booking_calendar_legend_title: "Goldene Füllung zeigt die Auslastung des Tages",
+  booking_calendar_legend_title:
+    "Goldene Füllung zeigt die Auslastung des Tages",
   booking_calendar_legend_loading: "Daten werden geladen...",
   booking_calendar_legend_subtitle:
     "Je höher die Füllung, desto mehr Buchungen",
@@ -1219,11 +1383,13 @@ const deMessages: BaseMessages = {
 
   // ======= BOOKING - CLIENT CHOICE PAGE =======
   booking_client_choice_title: "Wie möchten Sie fortfahren?",
-  booking_client_choice_subtitle: "Wählen Sie eine bequeme Registrierungsmethode",
+  booking_client_choice_subtitle:
+    "Wählen Sie eine bequeme Registrierungsmethode",
   booking_client_choice_recommended: "Empfohlen",
-  
+
   booking_client_google_title: "Schnelle Registrierung",
-  booking_client_google_description: "Melden Sie sich über Google an und gehen Sie direkt zur Zahlung",
+  booking_client_google_description:
+    "Melden Sie sich über Google an und gehen Sie direkt zur Zahlung",
   booking_client_google_benefit_1: "Ein Klick zur Zahlung",
   booking_client_google_benefit_2: "Automatisches Ausfüllen",
   booking_client_google_benefit_3: "Sicher und zuverlässig",
@@ -1231,29 +1397,33 @@ const deMessages: BaseMessages = {
   booking_client_google_button: "Mit 1 Klick starten",
   booking_client_google_security: "Geschützt durch Google OAuth 2.0",
   booking_client_google_connecting: "Verbindung wird hergestellt...",
-  
+
   booking_client_form_title: "Formular ausfüllen",
-  booking_client_form_description: "Traditionelle Methode mit voller Kontrolle über Ihre Daten",
+  booking_client_form_description:
+    "Traditionelle Methode mit voller Kontrolle über Ihre Daten",
   booking_client_form_benefit_1: "Volle Datenkontrolle",
   booking_client_form_benefit_2: "Kein Google-Konto erforderlich",
   booking_client_form_benefit_3: "Gewohnter Prozess",
   booking_client_form_benefit_4: "Verifizierung über Telegram",
   booking_client_form_button: "Formular ausfüllen",
   booking_client_form_security: "Bestätigung über Telegram Bot",
-  
+
   booking_client_choice_footer: "Beide Methoden sind sicher und zuverlässig.",
   booking_client_choice_footer_highlight: "Wählen Sie die für Sie bequemste.",
-  
-  booking_client_popup_blocked: "Fenster konnte nicht geöffnet werden. Erlauben Sie Pop-ups in Ihrem Browser.",
-  booking_client_google_error_init: "Fehler bei der Google OAuth-Initialisierung",
+
+  booking_client_popup_blocked:
+    "Fenster konnte nicht geöffnet werden. Erlauben Sie Pop-ups in Ihrem Browser.",
+  booking_client_google_error_init:
+    "Fehler bei der Google OAuth-Initialisierung",
   booking_client_auth_error: "Autorisierungsfehler",
   booking_client_auth_waiting: "Warten auf Bestätigung über Google...",
-  
+
   // ======= BOOKING - CLIENT FORM PAGE =======
   booking_client_form_badge: "Schritt 4 — Ihre Kontaktdaten",
   booking_client_form_hero_title: "Online-Terminbuchung",
-  booking_client_form_hero_subtitle: "Geben Sie Ihre Daten an, damit wir Ihre Buchung bestätigen können",
-  
+  booking_client_form_hero_subtitle:
+    "Geben Sie Ihre Daten an, damit wir Ihre Buchung bestätigen können",
+
   booking_client_form_label_name: "Name",
   booking_client_form_label_phone: "Telefon",
   booking_client_form_label_email: "E-Mail",
@@ -1261,49 +1431,60 @@ const deMessages: BaseMessages = {
   booking_client_form_label_referral: "Wie haben Sie von uns erfahren?",
   booking_client_form_label_comment: "Kommentar",
   booking_client_form_label_optional: "(optional)",
-  
+
   booking_client_form_placeholder_name: "Ihr vollständiger Name",
   booking_client_form_placeholder_phone: "+49 (xxx) xxx-xx-xx",
   booking_client_form_placeholder_email: "ihre@email.de",
-  booking_client_form_placeholder_comment: "Zusätzliche Informationen oder Wünsche",
+  booking_client_form_placeholder_comment:
+    "Zusätzliche Informationen oder Wünsche",
   booking_client_form_placeholder_referral_other: "Bitte angeben",
-  
+
   booking_client_form_referral_select: "Wählen Sie eine Option",
   booking_client_form_referral_google: "Google",
   booking_client_form_referral_facebook: "Facebook",
   booking_client_form_referral_instagram: "Instagram",
   booking_client_form_referral_friends: "Empfehlung von Freunden",
   booking_client_form_referral_other: "Andere",
-  
-  booking_client_form_error_name: "Bitte geben Sie Ihren vollständigen Namen an",
-  booking_client_form_error_phone: "Bitte geben Sie eine gültige Telefonnummer an",
+
+  booking_client_form_error_name:
+    "Bitte geben Sie Ihren vollständigen Namen an",
+  booking_client_form_error_phone:
+    "Bitte geben Sie eine gültige Telefonnummer an",
   booking_client_form_error_email_required: "E-Mail ist erforderlich",
   booking_client_form_error_email_invalid: "Ungültige E-Mail",
   booking_client_form_error_email_not_verified: "E-Mail nicht bestätigt",
   booking_client_form_error_birth_required: "Geburtsdatum ist erforderlich",
-  booking_client_form_error_birth_future: "Zukünftiges Datum ist nicht zulässig",
-  booking_client_form_error_birth_underage: "Für Online-Buchungen ist ein Mindestalter von 16 Jahren erforderlich",
+  booking_client_form_error_birth_future:
+    "Zukünftiges Datum ist nicht zulässig",
+  booking_client_form_error_birth_underage:
+    "Für Online-Buchungen ist ein Mindestalter von 16 Jahren erforderlich",
   booking_client_form_error_referral: "Wählen Sie eine Option",
   booking_client_form_error_referral_other: "Bitte angeben",
-  
+
   booking_client_form_email_checking: "E-Mail wird überprüft…",
   booking_client_form_email_verified: "E-Mail bestätigt",
-  
-  booking_client_form_age_requirement: "Für Online-Buchungen ist ein Mindestalter von 16 Jahren erforderlich",
-  booking_client_form_email_error_note: "Wenn Sie einen Fehler in der Adresse machen, können Sie trotzdem zum Termin kommen, erhalten aber keine Erinnerungen und Bestätigungen.",
-  
+
+  booking_client_form_age_requirement:
+    "Für Online-Buchungen ist ein Mindestalter von 16 Jahren erforderlich",
+  booking_client_form_email_error_note:
+    "Wenn Sie einen Fehler in der Adresse machen, können Sie trotzdem zum Termin kommen, erhalten aber keine Erinnerungen und Bestätigungen.",
+
   booking_client_form_button_back: "Zurück",
   booking_client_form_button_submit: "Buchen",
   booking_client_form_button_submitting: "Daten werden überprüft…",
-  
+
   booking_client_form_info_title: "Warum benötigen wir Ihre E-Mail?",
   booking_client_form_info_point_1: "An Ihre E-Mail senden wir",
-  booking_client_form_info_point_1_highlight: "die Buchungsbestätigung und alle Details",
+  booking_client_form_info_point_1_highlight:
+    "die Buchungsbestätigung und alle Details",
   booking_client_form_info_point_2: "Sie erhalten",
-  booking_client_form_info_point_2_highlight: "eine Erinnerung vor Ihrem Besuch",
-  booking_client_form_info_point_3: "Wir behandeln personenbezogene Daten sorgfältig und verwenden Ihre E-Mail nur für die Bearbeitung Ihrer Buchung",
-  
-  booking_client_form_invalid_params: "Ungültige Parameter. Bitte beginnen Sie die Buchung erneut.",
+  booking_client_form_info_point_2_highlight:
+    "eine Erinnerung vor Ihrem Besuch",
+  booking_client_form_info_point_3:
+    "Wir behandeln personenbezogene Daten sorgfältig und verwenden Ihre E-Mail nur für die Bearbeitung Ihrer Buchung",
+
+  booking_client_form_invalid_params:
+    "Ungültige Parameter. Bitte beginnen Sie die Buchung erneut.",
   booking_client_form_invalid_return: "Zurück zur Dienstleistungsauswahl",
 
   // ======= BOOKING - PHONE & BIRTHDAY PAGE (NEW) =======
@@ -1314,13 +1495,16 @@ const deMessages: BaseMessages = {
   phone_required: "Telefonnummer ist erforderlich",
   phone_submit: "Weiter",
   phone_submitting: "Senden...",
-  phone_privacy: "Ihre Daten sind geschützt und werden nicht an Dritte weitergegeben",
+  phone_privacy:
+    "Ihre Daten sind geschützt und werden nicht an Dritte weitergegeben",
   birthday_label: "Geburtsdatum",
-  birthday_hint: "Wir benötigen Ihr Geburtsdatum, damit wir Ihnen in Zukunft einen individuellen Rabatt zu Ihrem Fest anbieten können!",
+  birthday_hint:
+    "Wir benötigen Ihr Geburtsdatum, damit wir Ihnen in Zukunft einen individuellen Rabatt zu Ihrem Fest anbieten können!",
 
   booking_verify_badge: "Schritt 5 — E-Mail-Bestätigung",
   booking_verify_hero_title: "Buchungsbestätigung",
-  booking_verify_hero_subtitle: "Überprüfen Sie Ihre E-Mail und geben Sie den Code ein",
+  booking_verify_hero_subtitle:
+    "Überprüfen Sie Ihre E-Mail und geben Sie den Code ein",
   booking_verify_method_title: "Bestätigungsmethode",
   booking_verify_code_on_email: "Code an",
   booking_verify_method_email_title: "E-Mail",
@@ -1332,34 +1516,43 @@ const deMessages: BaseMessages = {
   booking_verify_method_whatsapp_title: "WhatsApp",
   booking_verify_method_whatsapp_desc: "Bald verfügbar",
   booking_verify_email_confirm_title: "Bestätigen Sie Ihre E-Mail",
-  booking_verify_email_confirm_desc: "Wir senden einen einmaligen 6-stelligen Code an",
+  booking_verify_email_confirm_desc:
+    "Wir senden einen einmaligen 6-stelligen Code an",
   booking_verify_email_label: "E-Mail zur Bestätigung",
-  booking_verify_email_wrong_hint: "Falls die E-Mail falsch ist, gehen Sie zum vorherigen Schritt zurück",
+  booking_verify_email_wrong_hint:
+    "Falls die E-Mail falsch ist, gehen Sie zum vorherigen Schritt zurück",
   booking_verify_email_send_code: "Code senden",
   booking_verify_email_sending: "Wird gesendet…",
-  booking_verify_email_arrives_hint: "Der Code kommt innerhalb weniger Sekunden an",
+  booking_verify_email_arrives_hint:
+    "Der Code kommt innerhalb weniger Sekunden an",
   booking_verify_email_enter_code: "Geben Sie den 6-stelligen Code ein",
   booking_verify_email_code_valid: "Der Code ist begrenzt gültig",
   booking_verify_email_confirm_code: "Code bestätigen",
   booking_verify_email_checking: "Wird überprüft…",
   booking_verify_email_resend: "Code erneut senden",
   booking_verify_info_title: "Sichere Bestätigung",
-  booking_verify_info_desc: "Wir verwenden einen Einmalcode zum Schutz Ihrer Daten und des Salon-Zeitplans",
+  booking_verify_info_desc:
+    "Wir verwenden einen Einmalcode zum Schutz Ihrer Daten und des Salon-Zeitplans",
   booking_verify_info_arrives: "Der Code kommt in 1-2 Minuten an",
   booking_verify_info_check_spam: "Prüfen Sie den Spam-Ordner",
-  booking_verify_info_check_email: "Vergewissern Sie sich, dass die E-Mail korrekt ist",
-  booking_verify_info_resend_if_needed: "Fordern Sie bei Bedarf einen neuen Code an",
+  booking_verify_info_check_email:
+    "Vergewissern Sie sich, dass die E-Mail korrekt ist",
+  booking_verify_info_resend_if_needed:
+    "Fordern Sie bei Bedarf einen neuen Code an",
   booking_verify_info_progress_title: "Ihr Fortschritt",
   booking_verify_info_progress_1: "Dienstleistung und Meister ausgewählt",
   booking_verify_info_progress_2: "Datum und Uhrzeit angegeben",
   booking_verify_info_progress_3: "Kontaktdaten ausgefüllt",
   booking_verify_info_progress_4: "Jetzt — E-Mail-Bestätigung",
   booking_verify_info_progress_5: "Als nächstes — Zahlung",
-  booking_verify_info_support: "Bei Schwierigkeiten kontaktieren Sie uns — wir helfen Ihnen, die Buchung abzuschließen",
-  booking_verify_invalid_params: "Ungültige Parameter. Bitte beginnen Sie die Buchung erneut.",
+  booking_verify_info_support:
+    "Bei Schwierigkeiten kontaktieren Sie uns — wir helfen Ihnen, die Buchung abzuschließen",
+  booking_verify_invalid_params:
+    "Ungültige Parameter. Bitte beginnen Sie die Buchung erneut.",
   booking_verify_invalid_return: "Zurück zur Dienstleistungsauswahl",
   booking_verify_google_title: "Über Google bestätigen",
-  booking_verify_google_desc: "Melden Sie sich mit Ihrem Google-Konto an für eine schnelle und sichere Bestätigung Ihrer Buchung.",
+  booking_verify_google_desc:
+    "Melden Sie sich mit Ihrem Google-Konto an für eine schnelle und sichere Bestätigung Ihrer Buchung.",
   booking_verify_google_preparing: "Autorisierung wird vorbereitet...",
   booking_verify_google_open_button: "Mit Google anmelden",
   booking_verify_google_reopen_button: "Google erneut öffnen",
@@ -1370,34 +1563,48 @@ const deMessages: BaseMessages = {
   booking_verify_google_how_step_3: "Erlauben Sie Zugriff auf E-Mail",
   booking_verify_google_how_step_4: "Automatische Weiterleitung zur Zahlung",
   booking_verify_google_security_title: "Sicher und zuverlässig",
-  booking_verify_google_security_desc: "Wir erhalten keinen Zugriff auf Ihr Google-Passwort. Es wird das offizielle OAuth-Protokoll verwendet.",
-  booking_verify_google_success: "✅ Über Google bestätigt! Weiterleitung zur Zahlung...",
-  booking_verify_google_preparing_window: "🔐 Google öffnet sich in einem neuen Fenster...",
-  booking_verify_google_allow_popups: "⚠️ Erlauben Sie Pop-ups und klicken Sie auf die Schaltfläche unten.",
+  booking_verify_google_security_desc:
+    "Wir erhalten keinen Zugriff auf Ihr Google-Passwort. Es wird das offizielle OAuth-Protokoll verwendet.",
+  booking_verify_google_success:
+    "✅ Über Google bestätigt! Weiterleitung zur Zahlung...",
+  booking_verify_google_preparing_window:
+    "🔐 Google öffnet sich in einem neuen Fenster...",
+  booking_verify_google_allow_popups:
+    "⚠️ Erlauben Sie Pop-ups und klicken Sie auf die Schaltfläche unten.",
   booking_verify_telegram_title: "Über Telegram bestätigen",
-  booking_verify_telegram_desc_registered: "Code wurde an Telegram Bot gesendet. Prüfen Sie Nachrichten und klicken Sie auf die Bestätigungsschaltfläche.",
-  booking_verify_telegram_desc_unregistered: "Telegram öffnet sich automatisch. Sie erhalten einen Code zum Eingeben oder können direkt mit einer Schaltfläche im Bot bestätigen.",
+  booking_verify_telegram_desc_registered:
+    "Code wurde an Telegram Bot gesendet. Prüfen Sie Nachrichten und klicken Sie auf die Bestätigungsschaltfläche.",
+  booking_verify_telegram_desc_unregistered:
+    "Telegram öffnet sich automatisch. Sie erhalten einen Code zum Eingeben oder können direkt mit einer Schaltfläche im Bot bestätigen.",
   booking_verify_telegram_sending_code: "Code wird gesendet...",
   booking_verify_telegram_open_button: "Telegram öffnen",
   booking_verify_telegram_reopen_button: "Telegram erneut öffnen",
-  booking_verify_telegram_waiting_bot: "Warten auf Bestätigung im Telegram Bot...",
+  booking_verify_telegram_waiting_bot:
+    "Warten auf Bestätigung im Telegram Bot...",
   booking_verify_telegram_waiting: "Warten auf Bestätigung...",
   booking_verify_telegram_divider: "oder",
-  booking_verify_telegram_enter_code: "Geben Sie den 6-stelligen Code aus Telegram ein",
+  booking_verify_telegram_enter_code:
+    "Geben Sie den 6-stelligen Code aus Telegram ein",
   booking_verify_telegram_code_placeholder: "000000",
   booking_verify_telegram_code_valid: "Der Code ist 10 Minuten gültig.",
   booking_verify_telegram_confirm_button: "Code bestätigen",
   booking_verify_telegram_checking: "Wird überprüft...",
-  booking_verify_telegram_code_sent: "✈️ Code an Telegram gesendet! Prüfen Sie den Bot und klicken Sie auf die Bestätigungsschaltfläche.",
-  booking_verify_telegram_opening: "✈️ Telegram öffnet sich... Warten auf Bestätigung.",
-  booking_verify_telegram_click_button: "⚠️ Klicken Sie auf die Schaltfläche unten, um Telegram zu öffnen.",
-  booking_verify_telegram_success: "✅ Über Telegram bestätigt! Weiterleitung zur Zahlung...",
+  booking_verify_telegram_code_sent:
+    "✈️ Code an Telegram gesendet! Prüfen Sie den Bot und klicken Sie auf die Bestätigungsschaltfläche.",
+  booking_verify_telegram_opening:
+    "✈️ Telegram öffnet sich... Warten auf Bestätigung.",
+  booking_verify_telegram_click_button:
+    "⚠️ Klicken Sie auf die Schaltfläche unten, um Telegram zu öffnen.",
+  booking_verify_telegram_success:
+    "✅ Über Telegram bestätigt! Weiterleitung zur Zahlung...",
   booking_verify_error_enter_code: "Geben Sie den 6-stelligen Code ein",
-  booking_verify_success_redirect: "Verifizierung erfolgreich! Weiterleitung zur Zahlung...",
+  booking_verify_success_redirect:
+    "Verifizierung erfolgreich! Weiterleitung zur Zahlung...",
 
   booking_payment_badge: "Schritt 6 — Zahlung und endgültige Bestätigung",
   booking_payment_hero_title: "Buchung abschließen",
-  booking_payment_hero_subtitle: "Wählen Sie die Zahlungsmethode und bestätigen Sie die Buchung",
+  booking_payment_hero_subtitle:
+    "Wählen Sie die Zahlungsmethode und bestätigen Sie die Buchung",
   booking_payment_appointment_id: "Buchungsnummer:",
   booking_payment_method_title: "Zahlungsmethode",
   booking_payment_onsite_title: "Zahlung im Salon",
@@ -1411,9 +1618,11 @@ const deMessages: BaseMessages = {
   booking_payment_online_benefit_2: "In Entwicklung",
   booking_payment_online_benefit_3: "Buchung wird trotzdem bestätigt",
   booking_payment_info_title: "Wie funktioniert das?",
-  booking_payment_info_desc: "Das System hat bereits einen Termin im Salon-Zeitplan erstellt. Die Zahlung wird auf der Seite des Salons erfasst. Online-Zahlung wird später hinzugefügt.",
+  booking_payment_info_desc:
+    "Das System hat bereits einen Termin im Salon-Zeitplan erstellt. Die Zahlung wird auf der Seite des Salons erfasst. Online-Zahlung wird später hinzugefügt.",
   booking_payment_confirm_button: "Buchung bestätigen",
-  booking_payment_confirm_terms: "Durch Klicken auf \"Buchung bestätigen\" stimmen Sie den Salon-Bedingungen zu",
+  booking_payment_confirm_terms:
+    'Durch Klicken auf "Buchung bestätigen" stimmen Sie den Salon-Bedingungen zu',
   booking_payment_summary_title: "Buchungszusammenfassung",
   booking_payment_summary_visit: "Ihr Besuch bei SalonElen",
   booking_payment_summary_service: "Dienstleistung aus der Buchung",
@@ -1421,28 +1630,35 @@ const deMessages: BaseMessages = {
   booking_payment_summary_datetime: "Datum und Uhrzeit nach ID:",
   booking_payment_summary_address: "Salon-Adresse",
   booking_payment_summary_cancellation_title: "Stornierungsbedingungen",
-  booking_payment_summary_cancellation_desc: "Wenn Sie nicht kommen können, stornieren Sie bitte im Voraus — dies ermöglicht es, die Zeit für andere Salon-Gäste freizugeben.",
-  booking_payment_summary_future_note: "Nach dem Start der Online-Zahlung erscheint hier ein Block zur Auswahl der Zahlungsmethode und des Zahlungsstatus",
+  booking_payment_summary_cancellation_desc:
+    "Wenn Sie nicht kommen können, stornieren Sie bitte im Voraus — dies ermöglicht es, die Zeit für andere Salon-Gäste freizugeben.",
+  booking_payment_summary_future_note:
+    "Nach dem Start der Online-Zahlung erscheint hier ein Block zur Auswahl der Zahlungsmethode und des Zahlungsstatus",
   booking_payment_success_title: "Buchung bestätigt!",
-  booking_payment_success_desc: "Ihre Buchung wurde erfolgreich bestätigt. Die Zahlung erfolgt im Salon.",
+  booking_payment_success_desc:
+    "Ihre Buchung wurde erfolgreich bestätigt. Die Zahlung erfolgt im Salon.",
   booking_payment_success_home: "Zur Startseite",
   booking_payment_success_calendar: "Zu Google Calendar hinzufügen",
   booking_payment_success_apple_calendar: "Zu Apple Calendar hinzufügen",
   booking_payment_success_new: "Neue Buchung erstellen",
   booking_payment_error_title: "Fehler beim Übergang zur Zahlung",
-  booking_payment_error_desc: "Wir konnten die Buchungs-ID nicht finden. Möglicherweise ist der Link veraltet oder der E-Mail-Bestätigungsschritt wurde übersprungen.",
+  booking_payment_error_desc:
+    "Wir konnten die Buchungs-ID nicht finden. Möglicherweise ist der Link veraltet oder der E-Mail-Bestätigungsschritt wurde übersprungen.",
   booking_payment_error_return: "Zurück zur Buchung",
-  booking_payment_error_missing: "Buchungs-ID fehlt. Bitte beginnen Sie die Buchung erneut.",
+  booking_payment_error_missing:
+    "Buchungs-ID fehlt. Bitte beginnen Sie die Buchung erneut.",
   booking_success_page_title: "Online-Buchung",
   booking_success_page_subtitle: "Erfolg",
   booking_success_loading: "Wird geladen...",
   booking_success_loading_data: "Daten werden geladen…",
   booking_success_error_title: "Fehler",
   booking_success_error_not_found: "Buchungs-ID nicht gefunden",
-  booking_success_error_load_failed: "Buchungsdaten konnten nicht geladen werden",
+  booking_success_error_load_failed:
+    "Buchungsdaten konnten nicht geladen werden",
   booking_success_error_return: "Zurück zur Buchung",
   booking_success_title: "Buchung bestätigt!",
-  booking_success_desc: "Ihre Buchung wurde erfolgreich erstellt. Wir haben eine Bestätigung an Ihre E-Mail gesendet.",
+  booking_success_desc:
+    "Ihre Buchung wurde erfolgreich erstellt. Wir haben eine Bestätigung an Ihre E-Mail gesendet.",
   booking_success_details_title: "Buchungsdetails:",
   booking_success_details_name: "Name",
   booking_success_details_email: "E-Mail",
@@ -1463,7 +1679,8 @@ const deMessages: BaseMessages = {
   calendar_address: "Adresse:",
   calendar_contacts: "Kontakte:",
   calendar_phone: "Telefon:",
-  calendar_reschedule_notice: "Wenn Sie Ihren Termin verschieben oder absagen müssen, kontaktieren Sie uns bitte im Voraus.",
+  calendar_reschedule_notice:
+    "Wenn Sie Ihren Termin verschieben oder absagen müssen, kontaktieren Sie uns bitte im Voraus.",
   calendar_see_you: "Bis bald! ✨",
   calendar_location: "SalonElen, Lessingstrasse 37, 06114, Halle Saale",
 
@@ -1501,6 +1718,73 @@ const deMessages: BaseMessages = {
   weekday_full_friday: "Freitag",
   weekday_full_saturday: "Samstag",
   weekday_full_sunday: "Sonntag",
+
+  // SMS VERIFICATION PAGE
+  booking_sms_verify_title: "Telefonbestätigung",
+  booking_sms_verify_subtitle:
+    "Wir senden Ihnen einen 4-stelligen PIN-Code per SMS",
+  booking_sms_verify_phone_label: "Telefonnummer",
+  booking_sms_verify_phone_placeholder: "+49 177 899 5106",
+  booking_sms_verify_phone_hint:
+    "Format: +[Ländercode][Nummer] (z.B.: +4917789951064)",
+  booking_sms_verify_phone_required: "Telefonnummer eingeben",
+  booking_sms_verify_send_pin: "PIN-Code senden",
+  booking_sms_verify_sending: "Wird gesendet...",
+  booking_sms_verify_pin_validity: "PIN-Code ist 10 Minuten gültig",
+
+  booking_sms_verify_pin_title: "PIN-Code eingeben",
+  booking_sms_verify_pin_subtitle: "PIN-Code gesendet an",
+  booking_sms_verify_pin_label: "PIN-Code",
+  booking_sms_verify_pin_placeholder: "0000",
+  booking_sms_verify_pin_hint: "4-stelligen PIN-Code aus SMS eingeben",
+  booking_sms_verify_confirm: "Bestätigen",
+  booking_sms_verify_checking: "Wird überprüft...",
+  booking_sms_verify_resend: "PIN-Code erneut senden",
+  booking_sms_verify_change_phone: "Telefonnummer ändern",
+  booking_sms_verify_pin_validity_note:
+    "PIN-Code ist 10 Minuten gültig • Maximal 3 Versuche",
+
+  booking_sms_verify_error_title: "⚠️ Fehler",
+  booking_sms_verify_error_missing_params:
+    "Unzureichende Parameter. Bitte beginnen Sie die Buchung erneut.",
+  booking_sms_verify_error_return: "Zurück zur Buchung",
+
+  booking_sms_verify_contact: "Fragen? Kontaktieren Sie uns: +49 177 899 5106",
+
+  // SMS DETAILS PAGE
+  booking_sms_details_title: "Ihre Daten",
+  booking_sms_details_subtitle:
+    "Bitte geben Sie Ihren Namen und zusätzliche Informationen an",
+  booking_sms_details_name_label: "Ihr Name",
+  booking_sms_details_name_placeholder: "Max Mustermann",
+  booking_sms_details_name_required: "Name ist erforderlich",
+  booking_sms_details_email_label: "E-Mail",
+  booking_sms_details_email_placeholder: "max@example.com",
+  booking_sms_details_email_hint: "Für Bestätigung und Erinnerungen",
+  booking_sms_details_birth_label: "Geburtsdatum",
+  booking_sms_details_birth_hint:
+    "Wir benötigen Ihr Geburtsdatum, damit wir Ihnen in Zukunft einen individuellen Rabatt zu Ihrem Fest anbieten können!",
+  booking_sms_details_submit: "Zur Zahlung fortfahren",
+  booking_sms_details_submitting: "Speichern...",
+  booking_sms_details_privacy:
+    "Ihre Daten sind geschützt und werden nicht an Dritte weitergegeben",
+
+  booking_sms_details_error_title: "⚠️ Fehler",
+  booking_sms_details_error_missing_id:
+    "Registrierungs-ID fehlt. Bitte beginnen Sie die Buchung erneut.",
+  booking_sms_details_error_return: "Zurück zur Buchung",
+
+  booking_sms_details_contact: "Fragen? Kontaktieren Sie uns: +49 177 899 5106",
+
+  // SMS CARD
+  booking_client_sms_title: "Per Telefon (SMS)",
+  booking_client_sms_description: "PIN-Code per SMS erhalten",
+  booking_client_sms_benefit_1: "PIN-Code per SMS",
+  booking_client_sms_benefit_2: "Keine E-Mail-Registrierung",
+  booking_client_sms_benefit_3: "Schnell und sicher",
+  booking_client_sms_benefit_4: "4-stelliger Code",
+  booking_client_sms_button: "Per SMS anmelden",
+  booking_client_sms_security: "Infobip SMS",
 };
 
 /* ==================== ENGLISH (EN) ==================== */
@@ -1529,11 +1813,9 @@ const enMessages: BaseMessages = {
   home_services_card1_title: "Women's haircut",
   home_services_card1_text: "We highlight your style and individuality.",
   home_services_card2_title: "Manicure",
-  home_services_card2_text:
-    "Aesthetics, hygiene and long-lasting coating.",
+  home_services_card2_text: "Aesthetics, hygiene and long-lasting coating.",
   home_services_card3_title: "Make-up",
-  home_services_card3_text:
-    "We create the right look for any occasion.",
+  home_services_card3_text: "We create the right look for any occasion.",
 
   // Home – news
   home_news_title: "News & articles",
@@ -1652,7 +1934,8 @@ const enMessages: BaseMessages = {
 
   booking_master_step_title: "Step 2 — Premium Master Selection",
   booking_master_hero_title: "Master Selection",
-  booking_master_hero_subtitle: "Our experts will create the perfect look for you",
+  booking_master_hero_subtitle:
+    "Our experts will create the perfect look for you",
   booking_master_back_button: "Back to Service Selection",
 
   booking_error_title: "Error",
@@ -1681,8 +1964,7 @@ const enMessages: BaseMessages = {
   // CALENDAR PAGE – Legend
   booking_calendar_legend_title: "Golden fill shows day availability",
   booking_calendar_legend_loading: "Loading data...",
-  booking_calendar_legend_subtitle:
-    "The higher the fill, the more bookings",
+  booking_calendar_legend_subtitle: "The higher the fill, the more bookings",
 
   // CALENDAR PAGE – Smart Tips
   booking_calendar_smart_tip_label: "💡 Smart Tip",
@@ -1711,9 +1993,10 @@ const enMessages: BaseMessages = {
   booking_client_choice_title: "How would you like to proceed?",
   booking_client_choice_subtitle: "Choose your preferred registration method",
   booking_client_choice_recommended: "Recommended",
-  
+
   booking_client_google_title: "Quick Registration",
-  booking_client_google_description: "Sign in with Google and go straight to payment",
+  booking_client_google_description:
+    "Sign in with Google and go straight to payment",
   booking_client_google_benefit_1: "One click to payment",
   booking_client_google_benefit_2: "Auto-fill data",
   booking_client_google_benefit_3: "Safe and secure",
@@ -1721,29 +2004,33 @@ const enMessages: BaseMessages = {
   booking_client_google_button: "Start with 1 click",
   booking_client_google_security: "Protected by Google OAuth 2.0",
   booking_client_google_connecting: "Connecting...",
-  
+
   booking_client_form_title: "Fill out form",
-  booking_client_form_description: "Traditional method with full control over your data",
+  booking_client_form_description:
+    "Traditional method with full control over your data",
   booking_client_form_benefit_1: "Full data control",
   booking_client_form_benefit_2: "No Google account needed",
   booking_client_form_benefit_3: "Familiar process",
   booking_client_form_benefit_4: "Verification via Telegram",
   booking_client_form_button: "Fill out form",
   booking_client_form_security: "Confirmation via Telegram Bot",
-  
+
   booking_client_choice_footer: "Both methods are safe and reliable.",
-  booking_client_choice_footer_highlight: "Choose the one that's more convenient for you.",
-  
-  booking_client_popup_blocked: "Could not open window. Please allow pop-ups in your browser.",
+  booking_client_choice_footer_highlight:
+    "Choose the one that's more convenient for you.",
+
+  booking_client_popup_blocked:
+    "Could not open window. Please allow pop-ups in your browser.",
   booking_client_google_error_init: "Google OAuth initialization error",
   booking_client_auth_error: "Authorization error",
   booking_client_auth_waiting: "Waiting for confirmation via Google...",
-  
+
   // ======= BOOKING - CLIENT FORM PAGE =======
   booking_client_form_badge: "Step 4 — Your contact information",
   booking_client_form_hero_title: "Online Booking",
-  booking_client_form_hero_subtitle: "Provide your details so we can confirm your booking",
-  
+  booking_client_form_hero_subtitle:
+    "Provide your details so we can confirm your booking",
+
   booking_client_form_label_name: "Name",
   booking_client_form_label_phone: "Phone",
   booking_client_form_label_email: "E-mail",
@@ -1751,20 +2038,20 @@ const enMessages: BaseMessages = {
   booking_client_form_label_referral: "How did you hear about us?",
   booking_client_form_label_comment: "Comment",
   booking_client_form_label_optional: "(optional)",
-  
+
   booking_client_form_placeholder_name: "Your full name",
   booking_client_form_placeholder_phone: "+49 (xxx) xxx-xx-xx",
   booking_client_form_placeholder_email: "your@email.com",
   booking_client_form_placeholder_comment: "Additional information or requests",
   booking_client_form_placeholder_referral_other: "Please specify",
-  
+
   booking_client_form_referral_select: "Select an option",
   booking_client_form_referral_google: "Google",
   booking_client_form_referral_facebook: "Facebook",
   booking_client_form_referral_instagram: "Instagram",
   booking_client_form_referral_friends: "Friend's recommendation",
   booking_client_form_referral_other: "Other",
-  
+
   booking_client_form_error_name: "Please provide your full name",
   booking_client_form_error_phone: "Please provide a valid phone number",
   booking_client_form_error_email_required: "E-mail is required",
@@ -1775,25 +2062,29 @@ const enMessages: BaseMessages = {
   booking_client_form_error_birth_underage: "Online booking requires age 16+",
   booking_client_form_error_referral: "Select an option",
   booking_client_form_error_referral_other: "Please specify",
-  
+
   booking_client_form_email_checking: "Verifying e-mail…",
   booking_client_form_email_verified: "E-mail verified",
-  
+
   booking_client_form_age_requirement: "Online booking requires age 16+",
-  booking_client_form_email_error_note: "If you make a mistake in the address, you can still come to the appointment, but you won't receive reminders and confirmations.",
-  
+  booking_client_form_email_error_note:
+    "If you make a mistake in the address, you can still come to the appointment, but you won't receive reminders and confirmations.",
+
   booking_client_form_button_back: "Back",
   booking_client_form_button_submit: "Book",
   booking_client_form_button_submitting: "Verifying data…",
-  
+
   booking_client_form_info_title: "Why do we ask for your e-mail?",
   booking_client_form_info_point_1: "We will send to your e-mail",
-  booking_client_form_info_point_1_highlight: "booking confirmation and all details",
+  booking_client_form_info_point_1_highlight:
+    "booking confirmation and all details",
   booking_client_form_info_point_2: "You will receive",
   booking_client_form_info_point_2_highlight: "a reminder before your visit",
-  booking_client_form_info_point_3: "We carefully handle personal data and use your e-mail only for your booking service",
-  
-  booking_client_form_invalid_params: "Invalid parameters. Please start the booking again.",
+  booking_client_form_info_point_3:
+    "We carefully handle personal data and use your e-mail only for your booking service",
+
+  booking_client_form_invalid_params:
+    "Invalid parameters. Please start the booking again.",
   booking_client_form_invalid_return: "Return to service selection",
 
   // ======= BOOKING - PHONE & BIRTHDAY PAGE (NEW) =======
@@ -1806,7 +2097,8 @@ const enMessages: BaseMessages = {
   phone_submitting: "Submitting...",
   phone_privacy: "Your data is protected and not shared with third parties",
   birthday_label: "Date of Birth",
-  birthday_hint: "We need your date of birth so we can offer you a personalized discount for your celebration in the future!",
+  birthday_hint:
+    "We need your date of birth so we can offer you a personalized discount for your celebration in the future!",
 
   booking_verify_badge: "Step 5 — Email Confirmation",
   booking_verify_hero_title: "Booking Confirmation",
@@ -1824,7 +2116,8 @@ const enMessages: BaseMessages = {
   booking_verify_email_confirm_title: "Confirm your email",
   booking_verify_email_confirm_desc: "We'll send a one-time 6-digit code to",
   booking_verify_email_label: "Email for confirmation",
-  booking_verify_email_wrong_hint: "If email is incorrect, go back to the previous step",
+  booking_verify_email_wrong_hint:
+    "If email is incorrect, go back to the previous step",
   booking_verify_email_send_code: "Send code",
   booking_verify_email_sending: "Sending…",
   booking_verify_email_arrives_hint: "Code arrives within a few seconds",
@@ -1834,7 +2127,8 @@ const enMessages: BaseMessages = {
   booking_verify_email_checking: "Checking…",
   booking_verify_email_resend: "Resend code",
   booking_verify_info_title: "Secure Confirmation",
-  booking_verify_info_desc: "We use a one-time code to protect your data and salon schedule",
+  booking_verify_info_desc:
+    "We use a one-time code to protect your data and salon schedule",
   booking_verify_info_arrives: "Code arrives in 1-2 minutes",
   booking_verify_info_check_spam: "Check spam folder",
   booking_verify_info_check_email: "Make sure email is correct",
@@ -1845,11 +2139,14 @@ const enMessages: BaseMessages = {
   booking_verify_info_progress_3: "Filled contact details",
   booking_verify_info_progress_4: "Now — email confirmation",
   booking_verify_info_progress_5: "Next — payment",
-  booking_verify_info_support: "If you have difficulties, contact us — we'll help complete the booking",
-  booking_verify_invalid_params: "Invalid parameters. Please start the booking again.",
+  booking_verify_info_support:
+    "If you have difficulties, contact us — we'll help complete the booking",
+  booking_verify_invalid_params:
+    "Invalid parameters. Please start the booking again.",
   booking_verify_invalid_return: "Return to service selection",
   booking_verify_google_title: "Confirm via Google",
-  booking_verify_google_desc: "Sign in with your Google account for quick and secure booking confirmation.",
+  booking_verify_google_desc:
+    "Sign in with your Google account for quick and secure booking confirmation.",
   booking_verify_google_preparing: "Preparing authorization...",
   booking_verify_google_open_button: "Sign in with Google",
   booking_verify_google_reopen_button: "Reopen Google",
@@ -1860,17 +2157,24 @@ const enMessages: BaseMessages = {
   booking_verify_google_how_step_3: "Allow email access",
   booking_verify_google_how_step_4: "Automatic redirect to payment",
   booking_verify_google_security_title: "Safe and secure",
-  booking_verify_google_security_desc: "We don't get access to your Google password. Official OAuth protocol is used.",
-  booking_verify_google_success: "✅ Confirmed via Google! Redirecting to payment...",
-  booking_verify_google_preparing_window: "🔐 Google will open in a new window...",
-  booking_verify_google_allow_popups: "⚠️ Allow pop-ups and click the button below.",
+  booking_verify_google_security_desc:
+    "We don't get access to your Google password. Official OAuth protocol is used.",
+  booking_verify_google_success:
+    "✅ Confirmed via Google! Redirecting to payment...",
+  booking_verify_google_preparing_window:
+    "🔐 Google will open in a new window...",
+  booking_verify_google_allow_popups:
+    "⚠️ Allow pop-ups and click the button below.",
   booking_verify_telegram_title: "Confirm via Telegram",
-  booking_verify_telegram_desc_registered: "Code sent to Telegram bot. Check messages and click the confirmation button.",
-  booking_verify_telegram_desc_unregistered: "Telegram will open automatically. You'll get a code to enter or can confirm directly with a button in the bot.",
+  booking_verify_telegram_desc_registered:
+    "Code sent to Telegram bot. Check messages and click the confirmation button.",
+  booking_verify_telegram_desc_unregistered:
+    "Telegram will open automatically. You'll get a code to enter or can confirm directly with a button in the bot.",
   booking_verify_telegram_sending_code: "Sending code...",
   booking_verify_telegram_open_button: "Open Telegram",
   booking_verify_telegram_reopen_button: "Reopen Telegram",
-  booking_verify_telegram_waiting_bot: "Waiting for confirmation in Telegram bot...",
+  booking_verify_telegram_waiting_bot:
+    "Waiting for confirmation in Telegram bot...",
   booking_verify_telegram_waiting: "Waiting for confirmation...",
   booking_verify_telegram_divider: "or",
   booking_verify_telegram_enter_code: "Enter 6-digit code from Telegram",
@@ -1878,16 +2182,22 @@ const enMessages: BaseMessages = {
   booking_verify_telegram_code_valid: "Code is valid for 10 minutes.",
   booking_verify_telegram_confirm_button: "Confirm code",
   booking_verify_telegram_checking: "Checking...",
-  booking_verify_telegram_code_sent: "✈️ Code sent to Telegram! Check the bot and click the confirmation button.",
-  booking_verify_telegram_opening: "✈️ Telegram is opening... Waiting for confirmation.",
-  booking_verify_telegram_click_button: "⚠️ Click the button below to open Telegram.",
-  booking_verify_telegram_success: "✅ Confirmed via Telegram! Redirecting to payment...",
+  booking_verify_telegram_code_sent:
+    "✈️ Code sent to Telegram! Check the bot and click the confirmation button.",
+  booking_verify_telegram_opening:
+    "✈️ Telegram is opening... Waiting for confirmation.",
+  booking_verify_telegram_click_button:
+    "⚠️ Click the button below to open Telegram.",
+  booking_verify_telegram_success:
+    "✅ Confirmed via Telegram! Redirecting to payment...",
   booking_verify_error_enter_code: "Enter 6-digit code",
-  booking_verify_success_redirect: "Verification successful! Redirecting to payment...",
+  booking_verify_success_redirect:
+    "Verification successful! Redirecting to payment...",
 
   booking_payment_badge: "Step 6 — Payment and Final Confirmation",
   booking_payment_hero_title: "Complete Booking",
-  booking_payment_hero_subtitle: "Choose payment method and confirm your booking",
+  booking_payment_hero_subtitle:
+    "Choose payment method and confirm your booking",
   booking_payment_appointment_id: "Booking number:",
   booking_payment_method_title: "Payment Method",
   booking_payment_onsite_title: "Pay at Salon",
@@ -1901,9 +2211,11 @@ const enMessages: BaseMessages = {
   booking_payment_online_benefit_2: "In development",
   booking_payment_online_benefit_3: "Booking will be confirmed anyway",
   booking_payment_info_title: "How it works?",
-  booking_payment_info_desc: "The system has already created an appointment in the salon schedule. Payment is recorded on the salon side. Online payment will be added later.",
+  booking_payment_info_desc:
+    "The system has already created an appointment in the salon schedule. Payment is recorded on the salon side. Online payment will be added later.",
   booking_payment_confirm_button: "Confirm Booking",
-  booking_payment_confirm_terms: "By clicking \"Confirm Booking\", you agree to the salon terms",
+  booking_payment_confirm_terms:
+    'By clicking "Confirm Booking", you agree to the salon terms',
   booking_payment_summary_title: "Booking Summary",
   booking_payment_summary_visit: "Your visit to SalonElen",
   booking_payment_summary_service: "Service from booking",
@@ -1911,18 +2223,23 @@ const enMessages: BaseMessages = {
   booking_payment_summary_datetime: "Date and time by ID:",
   booking_payment_summary_address: "Salon address",
   booking_payment_summary_cancellation_title: "Cancellation Policy",
-  booking_payment_summary_cancellation_desc: "If you cannot make it, please cancel in advance — this will free up time for other salon guests.",
-  booking_payment_summary_future_note: "After launching online payment, a payment method selection block and payment status will appear here",
+  booking_payment_summary_cancellation_desc:
+    "If you cannot make it, please cancel in advance — this will free up time for other salon guests.",
+  booking_payment_summary_future_note:
+    "After launching online payment, a payment method selection block and payment status will appear here",
   booking_payment_success_title: "Booking Confirmed!",
-  booking_payment_success_desc: "Your booking has been successfully confirmed. Payment will be made at the salon.",
+  booking_payment_success_desc:
+    "Your booking has been successfully confirmed. Payment will be made at the salon.",
   booking_payment_success_home: "Go to Home",
   booking_payment_success_calendar: "Add to Google Calendar",
   booking_payment_success_apple_calendar: "Add to Apple Calendar",
   booking_payment_success_new: "Make New Booking",
   booking_payment_error_title: "Error Proceeding to Payment",
-  booking_payment_error_desc: "We couldn't find the booking ID. Perhaps the link is outdated or the email confirmation step was skipped.",
+  booking_payment_error_desc:
+    "We couldn't find the booking ID. Perhaps the link is outdated or the email confirmation step was skipped.",
   booking_payment_error_return: "Return to Booking",
-  booking_payment_error_missing: "Booking ID is missing. Please start the booking again.",
+  booking_payment_error_missing:
+    "Booking ID is missing. Please start the booking again.",
   booking_success_page_title: "Online Booking",
   booking_success_page_subtitle: "Success",
   booking_success_loading: "Loading...",
@@ -1932,7 +2249,8 @@ const enMessages: BaseMessages = {
   booking_success_error_load_failed: "Failed to load booking data",
   booking_success_error_return: "Return to Booking",
   booking_success_title: "Booking Confirmed!",
-  booking_success_desc: "Your booking has been successfully created. We've sent a confirmation to your email.",
+  booking_success_desc:
+    "Your booking has been successfully created. We've sent a confirmation to your email.",
   booking_success_details_title: "Booking Details:",
   booking_success_details_name: "Name",
   booking_success_details_email: "Email",
@@ -1953,7 +2271,8 @@ const enMessages: BaseMessages = {
   calendar_address: "Address:",
   calendar_contacts: "Contacts:",
   calendar_phone: "Phone:",
-  calendar_reschedule_notice: "If you need to reschedule or cancel your appointment, please contact us in advance.",
+  calendar_reschedule_notice:
+    "If you need to reschedule or cancel your appointment, please contact us in advance.",
   calendar_see_you: "See you soon! ✨",
   calendar_location: "SalonElen, Lessingstrasse 37, 06114, Halle Saale",
 
@@ -1991,6 +2310,72 @@ const enMessages: BaseMessages = {
   weekday_full_friday: "Friday",
   weekday_full_saturday: "Saturday",
   weekday_full_sunday: "Sunday",
+
+  // SMS VERIFICATION PAGE
+  booking_sms_verify_title: "Phone Verification",
+  booking_sms_verify_subtitle: "We'll send you a 4-digit PIN code via SMS",
+  booking_sms_verify_phone_label: "Phone Number",
+  booking_sms_verify_phone_placeholder: "+49 177 899 5106",
+  booking_sms_verify_phone_hint:
+    "Format: +[country code][number] (e.g.: +4917789951064)",
+  booking_sms_verify_phone_required: "Enter phone number",
+  booking_sms_verify_send_pin: "Send PIN Code",
+  booking_sms_verify_sending: "Sending...",
+  booking_sms_verify_pin_validity: "PIN code is valid for 10 minutes",
+
+  booking_sms_verify_pin_title: "Enter PIN Code",
+  booking_sms_verify_pin_subtitle: "PIN code sent to",
+  booking_sms_verify_pin_label: "PIN Code",
+  booking_sms_verify_pin_placeholder: "0000",
+  booking_sms_verify_pin_hint: "Enter 4-digit PIN code from SMS",
+  booking_sms_verify_confirm: "Confirm",
+  booking_sms_verify_checking: "Checking...",
+  booking_sms_verify_resend: "Resend PIN Code",
+  booking_sms_verify_change_phone: "Change Phone Number",
+  booking_sms_verify_pin_validity_note:
+    "PIN code is valid for 10 minutes • Maximum 3 attempts",
+
+  booking_sms_verify_error_title: "⚠️ Error",
+  booking_sms_verify_error_missing_params:
+    "Insufficient parameters. Please start the booking again.",
+  booking_sms_verify_error_return: "Return to Booking",
+
+  booking_sms_verify_contact: "Questions? Contact us: +49 177 899 5106",
+
+  // SMS DETAILS PAGE
+  booking_sms_details_title: "Your Details",
+  booking_sms_details_subtitle:
+    "Please provide your name and additional information",
+  booking_sms_details_name_label: "Your Name",
+  booking_sms_details_name_placeholder: "John Doe",
+  booking_sms_details_name_required: "Name is required",
+  booking_sms_details_email_label: "Email",
+  booking_sms_details_email_placeholder: "john@example.com",
+  booking_sms_details_email_hint: "For confirmation and reminders",
+  booking_sms_details_birth_label: "Date of Birth",
+  booking_sms_details_birth_hint:
+    "We need your date of birth so we can offer you a personalized discount for your celebration in the future!",
+  booking_sms_details_submit: "Continue to Payment",
+  booking_sms_details_submitting: "Saving...",
+  booking_sms_details_privacy:
+    "Your data is protected and not shared with third parties",
+
+  booking_sms_details_error_title: "⚠️ Error",
+  booking_sms_details_error_missing_id:
+    "Registration ID is missing. Please start the booking again.",
+  booking_sms_details_error_return: "Return to Booking",
+
+  booking_sms_details_contact: "Questions? Contact us: +49 177 899 5106",
+
+  // SMS CARD
+  booking_client_sms_title: "By Phone (SMS)",
+  booking_client_sms_description: "Get PIN code via SMS",
+  booking_client_sms_benefit_1: "PIN code via SMS",
+  booking_client_sms_benefit_2: "No email registration",
+  booking_client_sms_benefit_3: "Fast and secure",
+  booking_client_sms_benefit_4: "4-digit code",
+  booking_client_sms_button: "Sign in via SMS",
+  booking_client_sms_security: "Infobip SMS",
 };
 
 /* ==================== EXPORT ==================== */
@@ -2005,9 +2390,6 @@ export function translate(locale: Locale, key: MessageKey): string {
   const dict = messages[locale] ?? messages.ru;
   return dict[key] ?? key;
 }
-
-
-
 
 //----------добавляю страницу регистрации через гугл------------
 // // src/i18n/messages.ts
@@ -2220,7 +2602,7 @@ export function translate(locale: Locale, key: MessageKey): string {
 //   booking_client_choice_title: string;
 //   booking_client_choice_subtitle: string;
 //   booking_client_choice_recommended: string;
-  
+
 //   booking_client_google_title: string;
 //   booking_client_google_description: string;
 //   booking_client_google_benefit_1: string;
@@ -2230,7 +2612,7 @@ export function translate(locale: Locale, key: MessageKey): string {
 //   booking_client_google_button: string;
 //   booking_client_google_security: string;
 //   booking_client_google_connecting: string;
-  
+
 //   booking_client_form_title: string;
 //   booking_client_form_description: string;
 //   booking_client_form_benefit_1: string;
@@ -2239,20 +2621,20 @@ export function translate(locale: Locale, key: MessageKey): string {
 //   booking_client_form_benefit_4: string;
 //   booking_client_form_button: string;
 //   booking_client_form_security: string;
-  
+
 //   booking_client_choice_footer: string;
 //   booking_client_choice_footer_highlight: string;
-  
+
 //   booking_client_popup_blocked: string;
 //   booking_client_google_error_init: string;
 //   booking_client_auth_error: string;
 //   booking_client_auth_waiting: string;
-  
+
 //   // ======= BOOKING - CLIENT FORM PAGE =======
 //   booking_client_form_badge: string;
 //   booking_client_form_hero_title: string;
 //   booking_client_form_hero_subtitle: string;
-  
+
 //   booking_client_form_label_name: string;
 //   booking_client_form_label_phone: string;
 //   booking_client_form_label_email: string;
@@ -2260,20 +2642,20 @@ export function translate(locale: Locale, key: MessageKey): string {
 //   booking_client_form_label_referral: string;
 //   booking_client_form_label_comment: string;
 //   booking_client_form_label_optional: string;
-  
+
 //   booking_client_form_placeholder_name: string;
 //   booking_client_form_placeholder_phone: string;
 //   booking_client_form_placeholder_email: string;
 //   booking_client_form_placeholder_comment: string;
 //   booking_client_form_placeholder_referral_other: string;
-  
+
 //   booking_client_form_referral_select: string;
 //   booking_client_form_referral_google: string;
 //   booking_client_form_referral_facebook: string;
 //   booking_client_form_referral_instagram: string;
 //   booking_client_form_referral_friends: string;
 //   booking_client_form_referral_other: string;
-  
+
 //   booking_client_form_error_name: string;
 //   booking_client_form_error_phone: string;
 //   booking_client_form_error_email_required: string;
@@ -2284,34 +2666,34 @@ export function translate(locale: Locale, key: MessageKey): string {
 //   booking_client_form_error_birth_underage: string;
 //   booking_client_form_error_referral: string;
 //   booking_client_form_error_referral_other: string;
-  
+
 //   booking_client_form_email_checking: string;
 //   booking_client_form_email_verified: string;
-  
+
 //   booking_client_form_age_requirement: string;
 //   booking_client_form_email_error_note: string;
-  
+
 //   booking_client_form_button_back: string;
 //   booking_client_form_button_submit: string;
 //   booking_client_form_button_submitting: string;
-  
+
 //   booking_client_form_info_title: string;
 //   booking_client_form_info_point_1: string;
 //   booking_client_form_info_point_1_highlight: string;
 //   booking_client_form_info_point_2: string;
 //   booking_client_form_info_point_2_highlight: string;
 //   booking_client_form_info_point_3: string;
-  
+
 //   booking_client_form_invalid_params: string;
 //   booking_client_form_invalid_return: string;
-  
+
 //   // ======= BOOKING - VERIFY PAGE =======
 //   booking_verify_badge: string;
 //   booking_verify_hero_title: string;
 //   booking_verify_hero_subtitle: string;
 //   booking_verify_method_title: string;
 //   booking_verify_code_on_email: string;
-  
+
 //   booking_verify_method_email_title: string;
 //   booking_verify_method_email_desc: string;
 //   booking_verify_method_google_title: string;
@@ -2320,7 +2702,7 @@ export function translate(locale: Locale, key: MessageKey): string {
 //   booking_verify_method_telegram_desc: string;
 //   booking_verify_method_whatsapp_title: string;
 //   booking_verify_method_whatsapp_desc: string;
-  
+
 //   booking_verify_email_confirm_title: string;
 //   booking_verify_email_confirm_desc: string;
 //   booking_verify_email_label: string;
@@ -2333,7 +2715,7 @@ export function translate(locale: Locale, key: MessageKey): string {
 //   booking_verify_email_confirm_code: string;
 //   booking_verify_email_checking: string;
 //   booking_verify_email_resend: string;
-  
+
 //   booking_verify_info_title: string;
 //   booking_verify_info_desc: string;
 //   booking_verify_info_arrives: string;
@@ -2347,10 +2729,10 @@ export function translate(locale: Locale, key: MessageKey): string {
 //   booking_verify_info_progress_4: string;
 //   booking_verify_info_progress_5: string;
 //   booking_verify_info_support: string;
-  
+
 //   booking_verify_invalid_params: string;
 //   booking_verify_invalid_return: string;
-  
+
 //   booking_verify_google_title: string;
 //   booking_verify_google_desc: string;
 //   booking_verify_google_preparing: string;
@@ -2367,7 +2749,7 @@ export function translate(locale: Locale, key: MessageKey): string {
 //   booking_verify_google_success: string;
 //   booking_verify_google_preparing_window: string;
 //   booking_verify_google_allow_popups: string;
-  
+
 //   booking_verify_telegram_title: string;
 //   booking_verify_telegram_desc_registered: string;
 //   booking_verify_telegram_desc_unregistered: string;
@@ -2386,7 +2768,7 @@ export function translate(locale: Locale, key: MessageKey): string {
 //   booking_verify_telegram_opening: string;
 //   booking_verify_telegram_click_button: string;
 //   booking_verify_telegram_success: string;
-  
+
 //   booking_verify_error_enter_code: string;
 //   booking_verify_success_redirect: string;
 
@@ -2396,24 +2778,24 @@ export function translate(locale: Locale, key: MessageKey): string {
 //   booking_payment_hero_subtitle: string;
 //   booking_payment_appointment_id: string;
 //   booking_payment_method_title: string;
-  
+
 //   booking_payment_onsite_title: string;
 //   booking_payment_onsite_desc: string;
 //   booking_payment_onsite_benefit_1: string;
 //   booking_payment_onsite_benefit_2: string;
 //   booking_payment_onsite_benefit_3: string;
-  
+
 //   booking_payment_online_title: string;
 //   booking_payment_online_desc: string;
 //   booking_payment_online_benefit_1: string;
 //   booking_payment_online_benefit_2: string;
 //   booking_payment_online_benefit_3: string;
-  
+
 //   booking_payment_info_title: string;
 //   booking_payment_info_desc: string;
 //   booking_payment_confirm_button: string;
 //   booking_payment_confirm_terms: string;
-  
+
 //   booking_payment_summary_title: string;
 //   booking_payment_summary_visit: string;
 //   booking_payment_summary_service: string;
@@ -2423,19 +2805,19 @@ export function translate(locale: Locale, key: MessageKey): string {
 //   booking_payment_summary_cancellation_title: string;
 //   booking_payment_summary_cancellation_desc: string;
 //   booking_payment_summary_future_note: string;
-  
+
 //   booking_payment_success_title: string;
 //   booking_payment_success_desc: string;
 //   booking_payment_success_home: string;
 //   booking_payment_success_calendar: string;
 //   booking_payment_success_apple_calendar: string;
 //   booking_payment_success_new: string;
-  
+
 //   booking_payment_error_title: string;
 //   booking_payment_error_desc: string;
 //   booking_payment_error_return: string;
 //   booking_payment_error_missing: string;
-  
+
 //   // ======= BOOKING - SUCCESS PAGE =======
 //   booking_success_page_title: string;
 //   booking_success_page_subtitle: string;
@@ -2472,10 +2854,6 @@ export function translate(locale: Locale, key: MessageKey): string {
 //   calendar_see_you: string;
 //   calendar_location: string;
 
-
-
-
-
 //   // Navigation
 //   booking_calendar_back_to_master: string;
 
@@ -2510,7 +2888,7 @@ export function translate(locale: Locale, key: MessageKey): string {
 //   weekday_full_friday: string;
 //   weekday_full_saturday: string;
 //   weekday_full_sunday: string;
-  
+
 // };
 
 // export type MessageKey = keyof BaseMessages;
@@ -2727,7 +3105,7 @@ export function translate(locale: Locale, key: MessageKey): string {
 //   booking_client_choice_title: "Как вы хотите продолжить?",
 //   booking_client_choice_subtitle: "Выберите удобный способ регистрации",
 //   booking_client_choice_recommended: "Рекомендуем",
-  
+
 //   booking_client_google_title: "Быстрая регистрация",
 //   booking_client_google_description: "Войдите через Google и сразу перейдите к оплате",
 //   booking_client_google_benefit_1: "Один клик до оплаты",
@@ -2737,7 +3115,7 @@ export function translate(locale: Locale, key: MessageKey): string {
 //   booking_client_google_button: "Начать за 1 клик",
 //   booking_client_google_security: "Защищено Google OAuth 2.0",
 //   booking_client_google_connecting: "Подключение...",
-  
+
 //   booking_client_form_title: "Заполнить форму",
 //   booking_client_form_description: "Традиционный способ с полным контролем над данными",
 //   booking_client_form_benefit_1: "Полный контроль данных",
@@ -2746,20 +3124,20 @@ export function translate(locale: Locale, key: MessageKey): string {
 //   booking_client_form_benefit_4: "Верификация через Telegram",
 //   booking_client_form_button: "Заполнить форму",
 //   booking_client_form_security: "Подтверждение через Telegram Bot",
-  
+
 //   booking_client_choice_footer: "Оба способа безопасны и надёжны.",
 //   booking_client_choice_footer_highlight: "Выберите тот, который вам удобнее.",
-  
+
 //   booking_client_popup_blocked: "Не удалось открыть окно. Разрешите всплывающие окна в браузере.",
 //   booking_client_google_error_init: "Ошибка инициализации Google OAuth",
 //   booking_client_auth_error: "Ошибка авторизации",
 //   booking_client_auth_waiting: "Ожидаем подтверждение через Google...",
-  
+
 //   // ======= BOOKING - CLIENT FORM PAGE =======
 //   booking_client_form_badge: "Шаг 4 — Ваши контактные данные",
 //   booking_client_form_hero_title: "Онлайн-запись",
 //   booking_client_form_hero_subtitle: "Укажите ваши данные, чтобы мы подтвердили бронь",
-  
+
 //   booking_client_form_label_name: "Имя",
 //   booking_client_form_label_phone: "Телефон",
 //   booking_client_form_label_email: "E-mail",
@@ -2767,20 +3145,20 @@ export function translate(locale: Locale, key: MessageKey): string {
 //   booking_client_form_label_referral: "Как вы узнали о нас?",
 //   booking_client_form_label_comment: "Комментарий",
 //   booking_client_form_label_optional: "(необязательно)",
-  
+
 //   booking_client_form_placeholder_name: "Ваше полное имя",
 //   booking_client_form_placeholder_phone: "+49 (xxx) xxx-xx-xx",
 //   booking_client_form_placeholder_email: "your@email.com",
 //   booking_client_form_placeholder_comment: "Дополнительная информация или пожелания",
 //   booking_client_form_placeholder_referral_other: "Уточните источник",
-  
+
 //   booking_client_form_referral_select: "Выберите вариант",
 //   booking_client_form_referral_google: "Google",
 //   booking_client_form_referral_facebook: "Facebook",
 //   booking_client_form_referral_instagram: "Instagram",
 //   booking_client_form_referral_friends: "Рекомендация друзей",
 //   booking_client_form_referral_other: "Другое",
-  
+
 //   booking_client_form_error_name: "Укажите имя полностью",
 //   booking_client_form_error_phone: "Укажите корректный номер телефона",
 //   booking_client_form_error_email_required: "E-mail обязателен",
@@ -2791,24 +3169,24 @@ export function translate(locale: Locale, key: MessageKey): string {
 //   booking_client_form_error_birth_underage: "Для онлайн-записи требуется возраст 16+",
 //   booking_client_form_error_referral: "Выберите вариант",
 //   booking_client_form_error_referral_other: "Уточните источник",
-  
+
 //   booking_client_form_email_checking: "Проверка e-mail…",
 //   booking_client_form_email_verified: "E-mail подтверждён",
-  
+
 //   booking_client_form_age_requirement: "Для онлайн-записи требуется возраст 16+",
 //   booking_client_form_email_error_note: "Если вы допустите ошибку в адресе, вы всё равно сможете прийти на приём, но не получите напоминания и подтверждения.",
-  
+
 //   booking_client_form_button_back: "Назад",
 //   booking_client_form_button_submit: "Забронировать",
 //   booking_client_form_button_submitting: "Проверка данных…",
-  
+
 //   booking_client_form_info_title: "Почему мы просим e-mail?",
 //   booking_client_form_info_point_1: "На ваш e-mail мы отправим",
 //   booking_client_form_info_point_1_highlight: "подтверждение брони и все детали записи",
 //   booking_client_form_info_point_2: "Вы получите",
 //   booking_client_form_info_point_2_highlight: "напоминание перед визитом",
 //   booking_client_form_info_point_3: "Мы бережно относимся к персональным данным и используем ваш e-mail только для обслуживания вашей записи",
-  
+
 //   booking_client_form_invalid_params: "Некорректные параметры. Пожалуйста, начните запись заново.",
 //   booking_client_form_invalid_return: "Вернуться к выбору услуг",
 
@@ -2961,7 +3339,6 @@ export function translate(locale: Locale, key: MessageKey): string {
 //   calendar_see_you: "До встречи! ✨",
 //   calendar_location: "SalonElen, Lessingstrasse 37, 06114, Halle Saale",
 
-
 //   // CALENDAR PAGE – Navigation
 //   booking_calendar_back_to_master: "Вернуться к выбору мастера",
 
@@ -2996,7 +3373,7 @@ export function translate(locale: Locale, key: MessageKey): string {
 //   weekday_full_friday: "пятницу",
 //   weekday_full_saturday: "субботу",
 //   weekday_full_sunday: "воскресенье",
-  
+
 // };
 
 // /* ==================== GERMAN (DE) ==================== */
@@ -3209,7 +3586,7 @@ export function translate(locale: Locale, key: MessageKey): string {
 //   booking_client_choice_title: "Wie möchten Sie fortfahren?",
 //   booking_client_choice_subtitle: "Wählen Sie eine bequeme Registrierungsmethode",
 //   booking_client_choice_recommended: "Empfohlen",
-  
+
 //   booking_client_google_title: "Schnelle Registrierung",
 //   booking_client_google_description: "Melden Sie sich über Google an und gehen Sie direkt zur Zahlung",
 //   booking_client_google_benefit_1: "Ein Klick zur Zahlung",
@@ -3219,7 +3596,7 @@ export function translate(locale: Locale, key: MessageKey): string {
 //   booking_client_google_button: "Mit 1 Klick starten",
 //   booking_client_google_security: "Geschützt durch Google OAuth 2.0",
 //   booking_client_google_connecting: "Verbindung wird hergestellt...",
-  
+
 //   booking_client_form_title: "Formular ausfüllen",
 //   booking_client_form_description: "Traditionelle Methode mit voller Kontrolle über Ihre Daten",
 //   booking_client_form_benefit_1: "Volle Datenkontrolle",
@@ -3228,20 +3605,20 @@ export function translate(locale: Locale, key: MessageKey): string {
 //   booking_client_form_benefit_4: "Verifizierung über Telegram",
 //   booking_client_form_button: "Formular ausfüllen",
 //   booking_client_form_security: "Bestätigung über Telegram Bot",
-  
+
 //   booking_client_choice_footer: "Beide Methoden sind sicher und zuverlässig.",
 //   booking_client_choice_footer_highlight: "Wählen Sie die für Sie bequemste.",
-  
+
 //   booking_client_popup_blocked: "Fenster konnte nicht geöffnet werden. Erlauben Sie Pop-ups in Ihrem Browser.",
 //   booking_client_google_error_init: "Fehler bei der Google OAuth-Initialisierung",
 //   booking_client_auth_error: "Autorisierungsfehler",
 //   booking_client_auth_waiting: "Warten auf Bestätigung über Google...",
-  
+
 //   // ======= BOOKING - CLIENT FORM PAGE =======
 //   booking_client_form_badge: "Schritt 4 — Ihre Kontaktdaten",
 //   booking_client_form_hero_title: "Online-Terminbuchung",
 //   booking_client_form_hero_subtitle: "Geben Sie Ihre Daten an, damit wir Ihre Buchung bestätigen können",
-  
+
 //   booking_client_form_label_name: "Name",
 //   booking_client_form_label_phone: "Telefon",
 //   booking_client_form_label_email: "E-Mail",
@@ -3249,20 +3626,20 @@ export function translate(locale: Locale, key: MessageKey): string {
 //   booking_client_form_label_referral: "Wie haben Sie von uns erfahren?",
 //   booking_client_form_label_comment: "Kommentar",
 //   booking_client_form_label_optional: "(optional)",
-  
+
 //   booking_client_form_placeholder_name: "Ihr vollständiger Name",
 //   booking_client_form_placeholder_phone: "+49 (xxx) xxx-xx-xx",
 //   booking_client_form_placeholder_email: "ihre@email.de",
 //   booking_client_form_placeholder_comment: "Zusätzliche Informationen oder Wünsche",
 //   booking_client_form_placeholder_referral_other: "Bitte angeben",
-  
+
 //   booking_client_form_referral_select: "Wählen Sie eine Option",
 //   booking_client_form_referral_google: "Google",
 //   booking_client_form_referral_facebook: "Facebook",
 //   booking_client_form_referral_instagram: "Instagram",
 //   booking_client_form_referral_friends: "Empfehlung von Freunden",
 //   booking_client_form_referral_other: "Andere",
-  
+
 //   booking_client_form_error_name: "Bitte geben Sie Ihren vollständigen Namen an",
 //   booking_client_form_error_phone: "Bitte geben Sie eine gültige Telefonnummer an",
 //   booking_client_form_error_email_required: "E-Mail ist erforderlich",
@@ -3273,24 +3650,24 @@ export function translate(locale: Locale, key: MessageKey): string {
 //   booking_client_form_error_birth_underage: "Für Online-Buchungen ist ein Mindestalter von 16 Jahren erforderlich",
 //   booking_client_form_error_referral: "Wählen Sie eine Option",
 //   booking_client_form_error_referral_other: "Bitte angeben",
-  
+
 //   booking_client_form_email_checking: "E-Mail wird überprüft…",
 //   booking_client_form_email_verified: "E-Mail bestätigt",
-  
+
 //   booking_client_form_age_requirement: "Für Online-Buchungen ist ein Mindestalter von 16 Jahren erforderlich",
 //   booking_client_form_email_error_note: "Wenn Sie einen Fehler in der Adresse machen, können Sie trotzdem zum Termin kommen, erhalten aber keine Erinnerungen und Bestätigungen.",
-  
+
 //   booking_client_form_button_back: "Zurück",
 //   booking_client_form_button_submit: "Buchen",
 //   booking_client_form_button_submitting: "Daten werden überprüft…",
-  
+
 //   booking_client_form_info_title: "Warum benötigen wir Ihre E-Mail?",
 //   booking_client_form_info_point_1: "An Ihre E-Mail senden wir",
 //   booking_client_form_info_point_1_highlight: "die Buchungsbestätigung und alle Details",
 //   booking_client_form_info_point_2: "Sie erhalten",
 //   booking_client_form_info_point_2_highlight: "eine Erinnerung vor Ihrem Besuch",
 //   booking_client_form_info_point_3: "Wir behandeln personenbezogene Daten sorgfältig und verwenden Ihre E-Mail nur für die Bearbeitung Ihrer Buchung",
-  
+
 //   booking_client_form_invalid_params: "Ungültige Parameter. Bitte beginnen Sie die Buchung erneut.",
 //   booking_client_form_invalid_return: "Zurück zur Dienstleistungsauswahl",
 
@@ -3442,7 +3819,6 @@ export function translate(locale: Locale, key: MessageKey): string {
 //   calendar_reschedule_notice: "Wenn Sie Ihren Termin verschieben oder absagen müssen, kontaktieren Sie uns bitte im Voraus.",
 //   calendar_see_you: "Bis bald! ✨",
 //   calendar_location: "SalonElen, Lessingstrasse 37, 06114, Halle Saale",
-
 
 //   // CALENDAR PAGE – Navigation
 //   booking_calendar_back_to_master: "Zurück zur Meisterauswahl",
@@ -3686,7 +4062,7 @@ export function translate(locale: Locale, key: MessageKey): string {
 //   booking_client_choice_title: "How would you like to proceed?",
 //   booking_client_choice_subtitle: "Choose your preferred registration method",
 //   booking_client_choice_recommended: "Recommended",
-  
+
 //   booking_client_google_title: "Quick Registration",
 //   booking_client_google_description: "Sign in with Google and go straight to payment",
 //   booking_client_google_benefit_1: "One click to payment",
@@ -3696,7 +4072,7 @@ export function translate(locale: Locale, key: MessageKey): string {
 //   booking_client_google_button: "Start with 1 click",
 //   booking_client_google_security: "Protected by Google OAuth 2.0",
 //   booking_client_google_connecting: "Connecting...",
-  
+
 //   booking_client_form_title: "Fill out form",
 //   booking_client_form_description: "Traditional method with full control over your data",
 //   booking_client_form_benefit_1: "Full data control",
@@ -3705,20 +4081,20 @@ export function translate(locale: Locale, key: MessageKey): string {
 //   booking_client_form_benefit_4: "Verification via Telegram",
 //   booking_client_form_button: "Fill out form",
 //   booking_client_form_security: "Confirmation via Telegram Bot",
-  
+
 //   booking_client_choice_footer: "Both methods are safe and reliable.",
 //   booking_client_choice_footer_highlight: "Choose the one that's more convenient for you.",
-  
+
 //   booking_client_popup_blocked: "Could not open window. Please allow pop-ups in your browser.",
 //   booking_client_google_error_init: "Google OAuth initialization error",
 //   booking_client_auth_error: "Authorization error",
 //   booking_client_auth_waiting: "Waiting for confirmation via Google...",
-  
+
 //   // ======= BOOKING - CLIENT FORM PAGE =======
 //   booking_client_form_badge: "Step 4 — Your contact information",
 //   booking_client_form_hero_title: "Online Booking",
 //   booking_client_form_hero_subtitle: "Provide your details so we can confirm your booking",
-  
+
 //   booking_client_form_label_name: "Name",
 //   booking_client_form_label_phone: "Phone",
 //   booking_client_form_label_email: "E-mail",
@@ -3726,20 +4102,20 @@ export function translate(locale: Locale, key: MessageKey): string {
 //   booking_client_form_label_referral: "How did you hear about us?",
 //   booking_client_form_label_comment: "Comment",
 //   booking_client_form_label_optional: "(optional)",
-  
+
 //   booking_client_form_placeholder_name: "Your full name",
 //   booking_client_form_placeholder_phone: "+49 (xxx) xxx-xx-xx",
 //   booking_client_form_placeholder_email: "your@email.com",
 //   booking_client_form_placeholder_comment: "Additional information or requests",
 //   booking_client_form_placeholder_referral_other: "Please specify",
-  
+
 //   booking_client_form_referral_select: "Select an option",
 //   booking_client_form_referral_google: "Google",
 //   booking_client_form_referral_facebook: "Facebook",
 //   booking_client_form_referral_instagram: "Instagram",
 //   booking_client_form_referral_friends: "Friend's recommendation",
 //   booking_client_form_referral_other: "Other",
-  
+
 //   booking_client_form_error_name: "Please provide your full name",
 //   booking_client_form_error_phone: "Please provide a valid phone number",
 //   booking_client_form_error_email_required: "E-mail is required",
@@ -3750,24 +4126,24 @@ export function translate(locale: Locale, key: MessageKey): string {
 //   booking_client_form_error_birth_underage: "Online booking requires age 16+",
 //   booking_client_form_error_referral: "Select an option",
 //   booking_client_form_error_referral_other: "Please specify",
-  
+
 //   booking_client_form_email_checking: "Verifying e-mail…",
 //   booking_client_form_email_verified: "E-mail verified",
-  
+
 //   booking_client_form_age_requirement: "Online booking requires age 16+",
 //   booking_client_form_email_error_note: "If you make a mistake in the address, you can still come to the appointment, but you won't receive reminders and confirmations.",
-  
+
 //   booking_client_form_button_back: "Back",
 //   booking_client_form_button_submit: "Book",
 //   booking_client_form_button_submitting: "Verifying data…",
-  
+
 //   booking_client_form_info_title: "Why do we ask for your e-mail?",
 //   booking_client_form_info_point_1: "We will send to your e-mail",
 //   booking_client_form_info_point_1_highlight: "booking confirmation and all details",
 //   booking_client_form_info_point_2: "You will receive",
 //   booking_client_form_info_point_2_highlight: "a reminder before your visit",
 //   booking_client_form_info_point_3: "We carefully handle personal data and use your e-mail only for your booking service",
-  
+
 //   booking_client_form_invalid_params: "Invalid parameters. Please start the booking again.",
 //   booking_client_form_invalid_return: "Return to service selection",
 
@@ -3920,7 +4296,6 @@ export function translate(locale: Locale, key: MessageKey): string {
 //   calendar_see_you: "See you soon! ✨",
 //   calendar_location: "SalonElen, Lessingstrasse 37, 06114, Halle Saale",
 
-
 //   // CALENDAR PAGE – Navigation
 //   booking_calendar_back_to_master: "Back to Master Selection",
 
@@ -3969,12 +4344,6 @@ export function translate(locale: Locale, key: MessageKey): string {
 //   const dict = messages[locale] ?? messages.ru;
 //   return dict[key] ?? key;
 // }
-
-
-
-
-
-
 
 //------------добовляем под Apple calendar--------
 // // src/i18n/messages.ts
@@ -4185,7 +4554,7 @@ export function translate(locale: Locale, key: MessageKey): string {
 //   booking_client_choice_title: string;
 //   booking_client_choice_subtitle: string;
 //   booking_client_choice_recommended: string;
-  
+
 //   booking_client_google_title: string;
 //   booking_client_google_description: string;
 //   booking_client_google_benefit_1: string;
@@ -4195,7 +4564,7 @@ export function translate(locale: Locale, key: MessageKey): string {
 //   booking_client_google_button: string;
 //   booking_client_google_security: string;
 //   booking_client_google_connecting: string;
-  
+
 //   booking_client_form_title: string;
 //   booking_client_form_description: string;
 //   booking_client_form_benefit_1: string;
@@ -4204,20 +4573,20 @@ export function translate(locale: Locale, key: MessageKey): string {
 //   booking_client_form_benefit_4: string;
 //   booking_client_form_button: string;
 //   booking_client_form_security: string;
-  
+
 //   booking_client_choice_footer: string;
 //   booking_client_choice_footer_highlight: string;
-  
+
 //   booking_client_popup_blocked: string;
 //   booking_client_google_error_init: string;
 //   booking_client_auth_error: string;
 //   booking_client_auth_waiting: string;
-  
+
 //   // ======= BOOKING - CLIENT FORM PAGE =======
 //   booking_client_form_badge: string;
 //   booking_client_form_hero_title: string;
 //   booking_client_form_hero_subtitle: string;
-  
+
 //   booking_client_form_label_name: string;
 //   booking_client_form_label_phone: string;
 //   booking_client_form_label_email: string;
@@ -4225,20 +4594,20 @@ export function translate(locale: Locale, key: MessageKey): string {
 //   booking_client_form_label_referral: string;
 //   booking_client_form_label_comment: string;
 //   booking_client_form_label_optional: string;
-  
+
 //   booking_client_form_placeholder_name: string;
 //   booking_client_form_placeholder_phone: string;
 //   booking_client_form_placeholder_email: string;
 //   booking_client_form_placeholder_comment: string;
 //   booking_client_form_placeholder_referral_other: string;
-  
+
 //   booking_client_form_referral_select: string;
 //   booking_client_form_referral_google: string;
 //   booking_client_form_referral_facebook: string;
 //   booking_client_form_referral_instagram: string;
 //   booking_client_form_referral_friends: string;
 //   booking_client_form_referral_other: string;
-  
+
 //   booking_client_form_error_name: string;
 //   booking_client_form_error_phone: string;
 //   booking_client_form_error_email_required: string;
@@ -4249,34 +4618,34 @@ export function translate(locale: Locale, key: MessageKey): string {
 //   booking_client_form_error_birth_underage: string;
 //   booking_client_form_error_referral: string;
 //   booking_client_form_error_referral_other: string;
-  
+
 //   booking_client_form_email_checking: string;
 //   booking_client_form_email_verified: string;
-  
+
 //   booking_client_form_age_requirement: string;
 //   booking_client_form_email_error_note: string;
-  
+
 //   booking_client_form_button_back: string;
 //   booking_client_form_button_submit: string;
 //   booking_client_form_button_submitting: string;
-  
+
 //   booking_client_form_info_title: string;
 //   booking_client_form_info_point_1: string;
 //   booking_client_form_info_point_1_highlight: string;
 //   booking_client_form_info_point_2: string;
 //   booking_client_form_info_point_2_highlight: string;
 //   booking_client_form_info_point_3: string;
-  
+
 //   booking_client_form_invalid_params: string;
 //   booking_client_form_invalid_return: string;
-  
+
 //   // ======= BOOKING - VERIFY PAGE =======
 //   booking_verify_badge: string;
 //   booking_verify_hero_title: string;
 //   booking_verify_hero_subtitle: string;
 //   booking_verify_method_title: string;
 //   booking_verify_code_on_email: string;
-  
+
 //   booking_verify_method_email_title: string;
 //   booking_verify_method_email_desc: string;
 //   booking_verify_method_google_title: string;
@@ -4285,7 +4654,7 @@ export function translate(locale: Locale, key: MessageKey): string {
 //   booking_verify_method_telegram_desc: string;
 //   booking_verify_method_whatsapp_title: string;
 //   booking_verify_method_whatsapp_desc: string;
-  
+
 //   booking_verify_email_confirm_title: string;
 //   booking_verify_email_confirm_desc: string;
 //   booking_verify_email_label: string;
@@ -4298,7 +4667,7 @@ export function translate(locale: Locale, key: MessageKey): string {
 //   booking_verify_email_confirm_code: string;
 //   booking_verify_email_checking: string;
 //   booking_verify_email_resend: string;
-  
+
 //   booking_verify_info_title: string;
 //   booking_verify_info_desc: string;
 //   booking_verify_info_arrives: string;
@@ -4312,10 +4681,10 @@ export function translate(locale: Locale, key: MessageKey): string {
 //   booking_verify_info_progress_4: string;
 //   booking_verify_info_progress_5: string;
 //   booking_verify_info_support: string;
-  
+
 //   booking_verify_invalid_params: string;
 //   booking_verify_invalid_return: string;
-  
+
 //   booking_verify_google_title: string;
 //   booking_verify_google_desc: string;
 //   booking_verify_google_preparing: string;
@@ -4332,7 +4701,7 @@ export function translate(locale: Locale, key: MessageKey): string {
 //   booking_verify_google_success: string;
 //   booking_verify_google_preparing_window: string;
 //   booking_verify_google_allow_popups: string;
-  
+
 //   booking_verify_telegram_title: string;
 //   booking_verify_telegram_desc_registered: string;
 //   booking_verify_telegram_desc_unregistered: string;
@@ -4351,7 +4720,7 @@ export function translate(locale: Locale, key: MessageKey): string {
 //   booking_verify_telegram_opening: string;
 //   booking_verify_telegram_click_button: string;
 //   booking_verify_telegram_success: string;
-  
+
 //   booking_verify_error_enter_code: string;
 //   booking_verify_success_redirect: string;
 
@@ -4361,24 +4730,24 @@ export function translate(locale: Locale, key: MessageKey): string {
 //   booking_payment_hero_subtitle: string;
 //   booking_payment_appointment_id: string;
 //   booking_payment_method_title: string;
-  
+
 //   booking_payment_onsite_title: string;
 //   booking_payment_onsite_desc: string;
 //   booking_payment_onsite_benefit_1: string;
 //   booking_payment_onsite_benefit_2: string;
 //   booking_payment_onsite_benefit_3: string;
-  
+
 //   booking_payment_online_title: string;
 //   booking_payment_online_desc: string;
 //   booking_payment_online_benefit_1: string;
 //   booking_payment_online_benefit_2: string;
 //   booking_payment_online_benefit_3: string;
-  
+
 //   booking_payment_info_title: string;
 //   booking_payment_info_desc: string;
 //   booking_payment_confirm_button: string;
 //   booking_payment_confirm_terms: string;
-  
+
 //   booking_payment_summary_title: string;
 //   booking_payment_summary_visit: string;
 //   booking_payment_summary_service: string;
@@ -4388,18 +4757,18 @@ export function translate(locale: Locale, key: MessageKey): string {
 //   booking_payment_summary_cancellation_title: string;
 //   booking_payment_summary_cancellation_desc: string;
 //   booking_payment_summary_future_note: string;
-  
+
 //   booking_payment_success_title: string;
 //   booking_payment_success_desc: string;
 //   booking_payment_success_home: string;
 //   booking_payment_success_calendar: string;
 //   booking_payment_success_new: string;
-  
+
 //   booking_payment_error_title: string;
 //   booking_payment_error_desc: string;
 //   booking_payment_error_return: string;
 //   booking_payment_error_missing: string;
-  
+
 //   // ======= BOOKING - SUCCESS PAGE =======
 //   booking_success_page_title: string;
 //   booking_success_page_subtitle: string;
@@ -4435,10 +4804,6 @@ export function translate(locale: Locale, key: MessageKey): string {
 //   calendar_reschedule_notice: string;
 //   calendar_see_you: string;
 //   calendar_location: string;
-
-
-
-
 
 //   // Navigation
 //   booking_calendar_back_to_master: string;
@@ -4688,7 +5053,7 @@ export function translate(locale: Locale, key: MessageKey): string {
 //   booking_client_choice_title: "Как вы хотите продолжить?",
 //   booking_client_choice_subtitle: "Выберите удобный способ регистрации",
 //   booking_client_choice_recommended: "Рекомендуем",
-  
+
 //   booking_client_google_title: "Быстрая регистрация",
 //   booking_client_google_description: "Войдите через Google и сразу перейдите к оплате",
 //   booking_client_google_benefit_1: "Один клик до оплаты",
@@ -4698,7 +5063,7 @@ export function translate(locale: Locale, key: MessageKey): string {
 //   booking_client_google_button: "Начать за 1 клик",
 //   booking_client_google_security: "Защищено Google OAuth 2.0",
 //   booking_client_google_connecting: "Подключение...",
-  
+
 //   booking_client_form_title: "Заполнить форму",
 //   booking_client_form_description: "Традиционный способ с полным контролем над данными",
 //   booking_client_form_benefit_1: "Полный контроль данных",
@@ -4707,20 +5072,20 @@ export function translate(locale: Locale, key: MessageKey): string {
 //   booking_client_form_benefit_4: "Верификация через Telegram",
 //   booking_client_form_button: "Заполнить форму",
 //   booking_client_form_security: "Подтверждение через Telegram Bot",
-  
+
 //   booking_client_choice_footer: "Оба способа безопасны и надёжны.",
 //   booking_client_choice_footer_highlight: "Выберите тот, который вам удобнее.",
-  
+
 //   booking_client_popup_blocked: "Не удалось открыть окно. Разрешите всплывающие окна в браузере.",
 //   booking_client_google_error_init: "Ошибка инициализации Google OAuth",
 //   booking_client_auth_error: "Ошибка авторизации",
 //   booking_client_auth_waiting: "Ожидаем подтверждение через Google...",
-  
+
 //   // ======= BOOKING - CLIENT FORM PAGE =======
 //   booking_client_form_badge: "Шаг 4 — Ваши контактные данные",
 //   booking_client_form_hero_title: "Онлайн-запись",
 //   booking_client_form_hero_subtitle: "Укажите ваши данные, чтобы мы подтвердили бронь",
-  
+
 //   booking_client_form_label_name: "Имя",
 //   booking_client_form_label_phone: "Телефон",
 //   booking_client_form_label_email: "E-mail",
@@ -4728,20 +5093,20 @@ export function translate(locale: Locale, key: MessageKey): string {
 //   booking_client_form_label_referral: "Как вы узнали о нас?",
 //   booking_client_form_label_comment: "Комментарий",
 //   booking_client_form_label_optional: "(необязательно)",
-  
+
 //   booking_client_form_placeholder_name: "Ваше полное имя",
 //   booking_client_form_placeholder_phone: "+49 (xxx) xxx-xx-xx",
 //   booking_client_form_placeholder_email: "your@email.com",
 //   booking_client_form_placeholder_comment: "Дополнительная информация или пожелания",
 //   booking_client_form_placeholder_referral_other: "Уточните источник",
-  
+
 //   booking_client_form_referral_select: "Выберите вариант",
 //   booking_client_form_referral_google: "Google",
 //   booking_client_form_referral_facebook: "Facebook",
 //   booking_client_form_referral_instagram: "Instagram",
 //   booking_client_form_referral_friends: "Рекомендация друзей",
 //   booking_client_form_referral_other: "Другое",
-  
+
 //   booking_client_form_error_name: "Укажите имя полностью",
 //   booking_client_form_error_phone: "Укажите корректный номер телефона",
 //   booking_client_form_error_email_required: "E-mail обязателен",
@@ -4752,24 +5117,24 @@ export function translate(locale: Locale, key: MessageKey): string {
 //   booking_client_form_error_birth_underage: "Для онлайн-записи требуется возраст 16+",
 //   booking_client_form_error_referral: "Выберите вариант",
 //   booking_client_form_error_referral_other: "Уточните источник",
-  
+
 //   booking_client_form_email_checking: "Проверка e-mail…",
 //   booking_client_form_email_verified: "E-mail подтверждён",
-  
+
 //   booking_client_form_age_requirement: "Для онлайн-записи требуется возраст 16+",
 //   booking_client_form_email_error_note: "Если вы допустите ошибку в адресе, вы всё равно сможете прийти на приём, но не получите напоминания и подтверждения.",
-  
+
 //   booking_client_form_button_back: "Назад",
 //   booking_client_form_button_submit: "Забронировать",
 //   booking_client_form_button_submitting: "Проверка данных…",
-  
+
 //   booking_client_form_info_title: "Почему мы просим e-mail?",
 //   booking_client_form_info_point_1: "На ваш e-mail мы отправим",
 //   booking_client_form_info_point_1_highlight: "подтверждение брони и все детали записи",
 //   booking_client_form_info_point_2: "Вы получите",
 //   booking_client_form_info_point_2_highlight: "напоминание перед визитом",
 //   booking_client_form_info_point_3: "Мы бережно относимся к персональным данным и используем ваш e-mail только для обслуживания вашей записи",
-  
+
 //   booking_client_form_invalid_params: "Некорректные параметры. Пожалуйста, начните запись заново.",
 //   booking_client_form_invalid_return: "Вернуться к выбору услуг",
 
@@ -4920,7 +5285,6 @@ export function translate(locale: Locale, key: MessageKey): string {
 //   calendar_reschedule_notice: "Если вам необходимо перенести или отменить запись, пожалуйста, свяжитесь с нами заранее.",
 //   calendar_see_you: "До встречи! ✨",
 //   calendar_location: "SalonElen, Lessingstrasse 37, 06114, Halle Saale",
-
 
 //   // CALENDAR PAGE – Navigation
 //   booking_calendar_back_to_master: "Вернуться к выбору мастера",
@@ -5166,7 +5530,7 @@ export function translate(locale: Locale, key: MessageKey): string {
 //   booking_client_choice_title: "Wie möchten Sie fortfahren?",
 //   booking_client_choice_subtitle: "Wählen Sie eine bequeme Registrierungsmethode",
 //   booking_client_choice_recommended: "Empfohlen",
-  
+
 //   booking_client_google_title: "Schnelle Registrierung",
 //   booking_client_google_description: "Melden Sie sich über Google an und gehen Sie direkt zur Zahlung",
 //   booking_client_google_benefit_1: "Ein Klick zur Zahlung",
@@ -5176,7 +5540,7 @@ export function translate(locale: Locale, key: MessageKey): string {
 //   booking_client_google_button: "Mit 1 Klick starten",
 //   booking_client_google_security: "Geschützt durch Google OAuth 2.0",
 //   booking_client_google_connecting: "Verbindung wird hergestellt...",
-  
+
 //   booking_client_form_title: "Formular ausfüllen",
 //   booking_client_form_description: "Traditionelle Methode mit voller Kontrolle über Ihre Daten",
 //   booking_client_form_benefit_1: "Volle Datenkontrolle",
@@ -5185,20 +5549,20 @@ export function translate(locale: Locale, key: MessageKey): string {
 //   booking_client_form_benefit_4: "Verifizierung über Telegram",
 //   booking_client_form_button: "Formular ausfüllen",
 //   booking_client_form_security: "Bestätigung über Telegram Bot",
-  
+
 //   booking_client_choice_footer: "Beide Methoden sind sicher und zuverlässig.",
 //   booking_client_choice_footer_highlight: "Wählen Sie die für Sie bequemste.",
-  
+
 //   booking_client_popup_blocked: "Fenster konnte nicht geöffnet werden. Erlauben Sie Pop-ups in Ihrem Browser.",
 //   booking_client_google_error_init: "Fehler bei der Google OAuth-Initialisierung",
 //   booking_client_auth_error: "Autorisierungsfehler",
 //   booking_client_auth_waiting: "Warten auf Bestätigung über Google...",
-  
+
 //   // ======= BOOKING - CLIENT FORM PAGE =======
 //   booking_client_form_badge: "Schritt 4 — Ihre Kontaktdaten",
 //   booking_client_form_hero_title: "Online-Terminbuchung",
 //   booking_client_form_hero_subtitle: "Geben Sie Ihre Daten an, damit wir Ihre Buchung bestätigen können",
-  
+
 //   booking_client_form_label_name: "Name",
 //   booking_client_form_label_phone: "Telefon",
 //   booking_client_form_label_email: "E-Mail",
@@ -5206,20 +5570,20 @@ export function translate(locale: Locale, key: MessageKey): string {
 //   booking_client_form_label_referral: "Wie haben Sie von uns erfahren?",
 //   booking_client_form_label_comment: "Kommentar",
 //   booking_client_form_label_optional: "(optional)",
-  
+
 //   booking_client_form_placeholder_name: "Ihr vollständiger Name",
 //   booking_client_form_placeholder_phone: "+49 (xxx) xxx-xx-xx",
 //   booking_client_form_placeholder_email: "ihre@email.de",
 //   booking_client_form_placeholder_comment: "Zusätzliche Informationen oder Wünsche",
 //   booking_client_form_placeholder_referral_other: "Bitte angeben",
-  
+
 //   booking_client_form_referral_select: "Wählen Sie eine Option",
 //   booking_client_form_referral_google: "Google",
 //   booking_client_form_referral_facebook: "Facebook",
 //   booking_client_form_referral_instagram: "Instagram",
 //   booking_client_form_referral_friends: "Empfehlung von Freunden",
 //   booking_client_form_referral_other: "Andere",
-  
+
 //   booking_client_form_error_name: "Bitte geben Sie Ihren vollständigen Namen an",
 //   booking_client_form_error_phone: "Bitte geben Sie eine gültige Telefonnummer an",
 //   booking_client_form_error_email_required: "E-Mail ist erforderlich",
@@ -5230,24 +5594,24 @@ export function translate(locale: Locale, key: MessageKey): string {
 //   booking_client_form_error_birth_underage: "Für Online-Buchungen ist ein Mindestalter von 16 Jahren erforderlich",
 //   booking_client_form_error_referral: "Wählen Sie eine Option",
 //   booking_client_form_error_referral_other: "Bitte angeben",
-  
+
 //   booking_client_form_email_checking: "E-Mail wird überprüft…",
 //   booking_client_form_email_verified: "E-Mail bestätigt",
-  
+
 //   booking_client_form_age_requirement: "Für Online-Buchungen ist ein Mindestalter von 16 Jahren erforderlich",
 //   booking_client_form_email_error_note: "Wenn Sie einen Fehler in der Adresse machen, können Sie trotzdem zum Termin kommen, erhalten aber keine Erinnerungen und Bestätigungen.",
-  
+
 //   booking_client_form_button_back: "Zurück",
 //   booking_client_form_button_submit: "Buchen",
 //   booking_client_form_button_submitting: "Daten werden überprüft…",
-  
+
 //   booking_client_form_info_title: "Warum benötigen wir Ihre E-Mail?",
 //   booking_client_form_info_point_1: "An Ihre E-Mail senden wir",
 //   booking_client_form_info_point_1_highlight: "die Buchungsbestätigung und alle Details",
 //   booking_client_form_info_point_2: "Sie erhalten",
 //   booking_client_form_info_point_2_highlight: "eine Erinnerung vor Ihrem Besuch",
 //   booking_client_form_info_point_3: "Wir behandeln personenbezogene Daten sorgfältig und verwenden Ihre E-Mail nur für die Bearbeitung Ihrer Buchung",
-  
+
 //   booking_client_form_invalid_params: "Ungültige Parameter. Bitte beginnen Sie die Buchung erneut.",
 //   booking_client_form_invalid_return: "Zurück zur Dienstleistungsauswahl",
 
@@ -5398,7 +5762,6 @@ export function translate(locale: Locale, key: MessageKey): string {
 //   calendar_reschedule_notice: "Wenn Sie Ihren Termin verschieben oder absagen müssen, kontaktieren Sie uns bitte im Voraus.",
 //   calendar_see_you: "Bis bald! ✨",
 //   calendar_location: "SalonElen, Lessingstrasse 37, 06114, Halle Saale",
-
 
 //   // CALENDAR PAGE – Navigation
 //   booking_calendar_back_to_master: "Zurück zur Meisterauswahl",
@@ -5640,7 +6003,7 @@ export function translate(locale: Locale, key: MessageKey): string {
 //   booking_client_choice_title: "How would you like to proceed?",
 //   booking_client_choice_subtitle: "Choose your preferred registration method",
 //   booking_client_choice_recommended: "Recommended",
-  
+
 //   booking_client_google_title: "Quick Registration",
 //   booking_client_google_description: "Sign in with Google and go straight to payment",
 //   booking_client_google_benefit_1: "One click to payment",
@@ -5650,7 +6013,7 @@ export function translate(locale: Locale, key: MessageKey): string {
 //   booking_client_google_button: "Start with 1 click",
 //   booking_client_google_security: "Protected by Google OAuth 2.0",
 //   booking_client_google_connecting: "Connecting...",
-  
+
 //   booking_client_form_title: "Fill out form",
 //   booking_client_form_description: "Traditional method with full control over your data",
 //   booking_client_form_benefit_1: "Full data control",
@@ -5659,20 +6022,20 @@ export function translate(locale: Locale, key: MessageKey): string {
 //   booking_client_form_benefit_4: "Verification via Telegram",
 //   booking_client_form_button: "Fill out form",
 //   booking_client_form_security: "Confirmation via Telegram Bot",
-  
+
 //   booking_client_choice_footer: "Both methods are safe and reliable.",
 //   booking_client_choice_footer_highlight: "Choose the one that's more convenient for you.",
-  
+
 //   booking_client_popup_blocked: "Could not open window. Please allow pop-ups in your browser.",
 //   booking_client_google_error_init: "Google OAuth initialization error",
 //   booking_client_auth_error: "Authorization error",
 //   booking_client_auth_waiting: "Waiting for confirmation via Google...",
-  
+
 //   // ======= BOOKING - CLIENT FORM PAGE =======
 //   booking_client_form_badge: "Step 4 — Your contact information",
 //   booking_client_form_hero_title: "Online Booking",
 //   booking_client_form_hero_subtitle: "Provide your details so we can confirm your booking",
-  
+
 //   booking_client_form_label_name: "Name",
 //   booking_client_form_label_phone: "Phone",
 //   booking_client_form_label_email: "E-mail",
@@ -5680,20 +6043,20 @@ export function translate(locale: Locale, key: MessageKey): string {
 //   booking_client_form_label_referral: "How did you hear about us?",
 //   booking_client_form_label_comment: "Comment",
 //   booking_client_form_label_optional: "(optional)",
-  
+
 //   booking_client_form_placeholder_name: "Your full name",
 //   booking_client_form_placeholder_phone: "+49 (xxx) xxx-xx-xx",
 //   booking_client_form_placeholder_email: "your@email.com",
 //   booking_client_form_placeholder_comment: "Additional information or requests",
 //   booking_client_form_placeholder_referral_other: "Please specify",
-  
+
 //   booking_client_form_referral_select: "Select an option",
 //   booking_client_form_referral_google: "Google",
 //   booking_client_form_referral_facebook: "Facebook",
 //   booking_client_form_referral_instagram: "Instagram",
 //   booking_client_form_referral_friends: "Friend's recommendation",
 //   booking_client_form_referral_other: "Other",
-  
+
 //   booking_client_form_error_name: "Please provide your full name",
 //   booking_client_form_error_phone: "Please provide a valid phone number",
 //   booking_client_form_error_email_required: "E-mail is required",
@@ -5704,24 +6067,24 @@ export function translate(locale: Locale, key: MessageKey): string {
 //   booking_client_form_error_birth_underage: "Online booking requires age 16+",
 //   booking_client_form_error_referral: "Select an option",
 //   booking_client_form_error_referral_other: "Please specify",
-  
+
 //   booking_client_form_email_checking: "Verifying e-mail…",
 //   booking_client_form_email_verified: "E-mail verified",
-  
+
 //   booking_client_form_age_requirement: "Online booking requires age 16+",
 //   booking_client_form_email_error_note: "If you make a mistake in the address, you can still come to the appointment, but you won't receive reminders and confirmations.",
-  
+
 //   booking_client_form_button_back: "Back",
 //   booking_client_form_button_submit: "Book",
 //   booking_client_form_button_submitting: "Verifying data…",
-  
+
 //   booking_client_form_info_title: "Why do we ask for your e-mail?",
 //   booking_client_form_info_point_1: "We will send to your e-mail",
 //   booking_client_form_info_point_1_highlight: "booking confirmation and all details",
 //   booking_client_form_info_point_2: "You will receive",
 //   booking_client_form_info_point_2_highlight: "a reminder before your visit",
 //   booking_client_form_info_point_3: "We carefully handle personal data and use your e-mail only for your booking service",
-  
+
 //   booking_client_form_invalid_params: "Invalid parameters. Please start the booking again.",
 //   booking_client_form_invalid_return: "Return to service selection",
 
@@ -5873,7 +6236,6 @@ export function translate(locale: Locale, key: MessageKey): string {
 //   calendar_see_you: "See you soon! ✨",
 //   calendar_location: "SalonElen, Lessingstrasse 37, 06114, Halle Saale",
 
-
 //   // CALENDAR PAGE – Navigation
 //   booking_calendar_back_to_master: "Back to Master Selection",
 
@@ -5922,9 +6284,6 @@ export function translate(locale: Locale, key: MessageKey): string {
 //   const dict = messages[locale] ?? messages.ru;
 //   return dict[key] ?? key;
 // }
-
-
-
 
 //--------добовляем гугл календарь--------
 // // src/i18n/messages.ts
@@ -6135,7 +6494,7 @@ export function translate(locale: Locale, key: MessageKey): string {
 //   booking_client_choice_title: string;
 //   booking_client_choice_subtitle: string;
 //   booking_client_choice_recommended: string;
-  
+
 //   booking_client_google_title: string;
 //   booking_client_google_description: string;
 //   booking_client_google_benefit_1: string;
@@ -6145,7 +6504,7 @@ export function translate(locale: Locale, key: MessageKey): string {
 //   booking_client_google_button: string;
 //   booking_client_google_security: string;
 //   booking_client_google_connecting: string;
-  
+
 //   booking_client_form_title: string;
 //   booking_client_form_description: string;
 //   booking_client_form_benefit_1: string;
@@ -6154,20 +6513,20 @@ export function translate(locale: Locale, key: MessageKey): string {
 //   booking_client_form_benefit_4: string;
 //   booking_client_form_button: string;
 //   booking_client_form_security: string;
-  
+
 //   booking_client_choice_footer: string;
 //   booking_client_choice_footer_highlight: string;
-  
+
 //   booking_client_popup_blocked: string;
 //   booking_client_google_error_init: string;
 //   booking_client_auth_error: string;
 //   booking_client_auth_waiting: string;
-  
+
 //   // ======= BOOKING - CLIENT FORM PAGE =======
 //   booking_client_form_badge: string;
 //   booking_client_form_hero_title: string;
 //   booking_client_form_hero_subtitle: string;
-  
+
 //   booking_client_form_label_name: string;
 //   booking_client_form_label_phone: string;
 //   booking_client_form_label_email: string;
@@ -6175,20 +6534,20 @@ export function translate(locale: Locale, key: MessageKey): string {
 //   booking_client_form_label_referral: string;
 //   booking_client_form_label_comment: string;
 //   booking_client_form_label_optional: string;
-  
+
 //   booking_client_form_placeholder_name: string;
 //   booking_client_form_placeholder_phone: string;
 //   booking_client_form_placeholder_email: string;
 //   booking_client_form_placeholder_comment: string;
 //   booking_client_form_placeholder_referral_other: string;
-  
+
 //   booking_client_form_referral_select: string;
 //   booking_client_form_referral_google: string;
 //   booking_client_form_referral_facebook: string;
 //   booking_client_form_referral_instagram: string;
 //   booking_client_form_referral_friends: string;
 //   booking_client_form_referral_other: string;
-  
+
 //   booking_client_form_error_name: string;
 //   booking_client_form_error_phone: string;
 //   booking_client_form_error_email_required: string;
@@ -6199,34 +6558,34 @@ export function translate(locale: Locale, key: MessageKey): string {
 //   booking_client_form_error_birth_underage: string;
 //   booking_client_form_error_referral: string;
 //   booking_client_form_error_referral_other: string;
-  
+
 //   booking_client_form_email_checking: string;
 //   booking_client_form_email_verified: string;
-  
+
 //   booking_client_form_age_requirement: string;
 //   booking_client_form_email_error_note: string;
-  
+
 //   booking_client_form_button_back: string;
 //   booking_client_form_button_submit: string;
 //   booking_client_form_button_submitting: string;
-  
+
 //   booking_client_form_info_title: string;
 //   booking_client_form_info_point_1: string;
 //   booking_client_form_info_point_1_highlight: string;
 //   booking_client_form_info_point_2: string;
 //   booking_client_form_info_point_2_highlight: string;
 //   booking_client_form_info_point_3: string;
-  
+
 //   booking_client_form_invalid_params: string;
 //   booking_client_form_invalid_return: string;
-  
+
 //   // ======= BOOKING - VERIFY PAGE =======
 //   booking_verify_badge: string;
 //   booking_verify_hero_title: string;
 //   booking_verify_hero_subtitle: string;
 //   booking_verify_method_title: string;
 //   booking_verify_code_on_email: string;
-  
+
 //   booking_verify_method_email_title: string;
 //   booking_verify_method_email_desc: string;
 //   booking_verify_method_google_title: string;
@@ -6235,7 +6594,7 @@ export function translate(locale: Locale, key: MessageKey): string {
 //   booking_verify_method_telegram_desc: string;
 //   booking_verify_method_whatsapp_title: string;
 //   booking_verify_method_whatsapp_desc: string;
-  
+
 //   booking_verify_email_confirm_title: string;
 //   booking_verify_email_confirm_desc: string;
 //   booking_verify_email_label: string;
@@ -6248,7 +6607,7 @@ export function translate(locale: Locale, key: MessageKey): string {
 //   booking_verify_email_confirm_code: string;
 //   booking_verify_email_checking: string;
 //   booking_verify_email_resend: string;
-  
+
 //   booking_verify_info_title: string;
 //   booking_verify_info_desc: string;
 //   booking_verify_info_arrives: string;
@@ -6262,10 +6621,10 @@ export function translate(locale: Locale, key: MessageKey): string {
 //   booking_verify_info_progress_4: string;
 //   booking_verify_info_progress_5: string;
 //   booking_verify_info_support: string;
-  
+
 //   booking_verify_invalid_params: string;
 //   booking_verify_invalid_return: string;
-  
+
 //   booking_verify_google_title: string;
 //   booking_verify_google_desc: string;
 //   booking_verify_google_preparing: string;
@@ -6282,7 +6641,7 @@ export function translate(locale: Locale, key: MessageKey): string {
 //   booking_verify_google_success: string;
 //   booking_verify_google_preparing_window: string;
 //   booking_verify_google_allow_popups: string;
-  
+
 //   booking_verify_telegram_title: string;
 //   booking_verify_telegram_desc_registered: string;
 //   booking_verify_telegram_desc_unregistered: string;
@@ -6301,7 +6660,7 @@ export function translate(locale: Locale, key: MessageKey): string {
 //   booking_verify_telegram_opening: string;
 //   booking_verify_telegram_click_button: string;
 //   booking_verify_telegram_success: string;
-  
+
 //   booking_verify_error_enter_code: string;
 //   booking_verify_success_redirect: string;
 
@@ -6311,24 +6670,24 @@ export function translate(locale: Locale, key: MessageKey): string {
 //   booking_payment_hero_subtitle: string;
 //   booking_payment_appointment_id: string;
 //   booking_payment_method_title: string;
-  
+
 //   booking_payment_onsite_title: string;
 //   booking_payment_onsite_desc: string;
 //   booking_payment_onsite_benefit_1: string;
 //   booking_payment_onsite_benefit_2: string;
 //   booking_payment_onsite_benefit_3: string;
-  
+
 //   booking_payment_online_title: string;
 //   booking_payment_online_desc: string;
 //   booking_payment_online_benefit_1: string;
 //   booking_payment_online_benefit_2: string;
 //   booking_payment_online_benefit_3: string;
-  
+
 //   booking_payment_info_title: string;
 //   booking_payment_info_desc: string;
 //   booking_payment_confirm_button: string;
 //   booking_payment_confirm_terms: string;
-  
+
 //   booking_payment_summary_title: string;
 //   booking_payment_summary_visit: string;
 //   booking_payment_summary_service: string;
@@ -6338,18 +6697,18 @@ export function translate(locale: Locale, key: MessageKey): string {
 //   booking_payment_summary_cancellation_title: string;
 //   booking_payment_summary_cancellation_desc: string;
 //   booking_payment_summary_future_note: string;
-  
+
 //   booking_payment_success_title: string;
 //   booking_payment_success_desc: string;
 //   booking_payment_success_home: string;
 //   booking_payment_success_calendar: string;
 //   booking_payment_success_new: string;
-  
+
 //   booking_payment_error_title: string;
 //   booking_payment_error_desc: string;
 //   booking_payment_error_return: string;
 //   booking_payment_error_missing: string;
-  
+
 //   // ======= BOOKING - SUCCESS PAGE =======
 //   booking_success_page_title: string;
 //   booking_success_page_subtitle: string;
@@ -6368,9 +6727,6 @@ export function translate(locale: Locale, key: MessageKey): string {
 //   booking_success_details_datetime: string;
 //   booking_success_button_new: string;
 //   booking_success_button_home: string;
-
-
-
 
 //   // Navigation
 //   booking_calendar_back_to_master: string;
@@ -6620,7 +6976,7 @@ export function translate(locale: Locale, key: MessageKey): string {
 //   booking_client_choice_title: "Как вы хотите продолжить?",
 //   booking_client_choice_subtitle: "Выберите удобный способ регистрации",
 //   booking_client_choice_recommended: "Рекомендуем",
-  
+
 //   booking_client_google_title: "Быстрая регистрация",
 //   booking_client_google_description: "Войдите через Google и сразу перейдите к оплате",
 //   booking_client_google_benefit_1: "Один клик до оплаты",
@@ -6630,7 +6986,7 @@ export function translate(locale: Locale, key: MessageKey): string {
 //   booking_client_google_button: "Начать за 1 клик",
 //   booking_client_google_security: "Защищено Google OAuth 2.0",
 //   booking_client_google_connecting: "Подключение...",
-  
+
 //   booking_client_form_title: "Заполнить форму",
 //   booking_client_form_description: "Традиционный способ с полным контролем над данными",
 //   booking_client_form_benefit_1: "Полный контроль данных",
@@ -6639,20 +6995,20 @@ export function translate(locale: Locale, key: MessageKey): string {
 //   booking_client_form_benefit_4: "Верификация через Telegram",
 //   booking_client_form_button: "Заполнить форму",
 //   booking_client_form_security: "Подтверждение через Telegram Bot",
-  
+
 //   booking_client_choice_footer: "Оба способа безопасны и надёжны.",
 //   booking_client_choice_footer_highlight: "Выберите тот, который вам удобнее.",
-  
+
 //   booking_client_popup_blocked: "Не удалось открыть окно. Разрешите всплывающие окна в браузере.",
 //   booking_client_google_error_init: "Ошибка инициализации Google OAuth",
 //   booking_client_auth_error: "Ошибка авторизации",
 //   booking_client_auth_waiting: "Ожидаем подтверждение через Google...",
-  
+
 //   // ======= BOOKING - CLIENT FORM PAGE =======
 //   booking_client_form_badge: "Шаг 4 — Ваши контактные данные",
 //   booking_client_form_hero_title: "Онлайн-запись",
 //   booking_client_form_hero_subtitle: "Укажите ваши данные, чтобы мы подтвердили бронь",
-  
+
 //   booking_client_form_label_name: "Имя",
 //   booking_client_form_label_phone: "Телефон",
 //   booking_client_form_label_email: "E-mail",
@@ -6660,20 +7016,20 @@ export function translate(locale: Locale, key: MessageKey): string {
 //   booking_client_form_label_referral: "Как вы узнали о нас?",
 //   booking_client_form_label_comment: "Комментарий",
 //   booking_client_form_label_optional: "(необязательно)",
-  
+
 //   booking_client_form_placeholder_name: "Ваше полное имя",
 //   booking_client_form_placeholder_phone: "+49 (xxx) xxx-xx-xx",
 //   booking_client_form_placeholder_email: "your@email.com",
 //   booking_client_form_placeholder_comment: "Дополнительная информация или пожелания",
 //   booking_client_form_placeholder_referral_other: "Уточните источник",
-  
+
 //   booking_client_form_referral_select: "Выберите вариант",
 //   booking_client_form_referral_google: "Google",
 //   booking_client_form_referral_facebook: "Facebook",
 //   booking_client_form_referral_instagram: "Instagram",
 //   booking_client_form_referral_friends: "Рекомендация друзей",
 //   booking_client_form_referral_other: "Другое",
-  
+
 //   booking_client_form_error_name: "Укажите имя полностью",
 //   booking_client_form_error_phone: "Укажите корректный номер телефона",
 //   booking_client_form_error_email_required: "E-mail обязателен",
@@ -6684,24 +7040,24 @@ export function translate(locale: Locale, key: MessageKey): string {
 //   booking_client_form_error_birth_underage: "Для онлайн-записи требуется возраст 16+",
 //   booking_client_form_error_referral: "Выберите вариант",
 //   booking_client_form_error_referral_other: "Уточните источник",
-  
+
 //   booking_client_form_email_checking: "Проверка e-mail…",
 //   booking_client_form_email_verified: "E-mail подтверждён",
-  
+
 //   booking_client_form_age_requirement: "Для онлайн-записи требуется возраст 16+",
 //   booking_client_form_email_error_note: "Если вы допустите ошибку в адресе, вы всё равно сможете прийти на приём, но не получите напоминания и подтверждения.",
-  
+
 //   booking_client_form_button_back: "Назад",
 //   booking_client_form_button_submit: "Забронировать",
 //   booking_client_form_button_submitting: "Проверка данных…",
-  
+
 //   booking_client_form_info_title: "Почему мы просим e-mail?",
 //   booking_client_form_info_point_1: "На ваш e-mail мы отправим",
 //   booking_client_form_info_point_1_highlight: "подтверждение брони и все детали записи",
 //   booking_client_form_info_point_2: "Вы получите",
 //   booking_client_form_info_point_2_highlight: "напоминание перед визитом",
 //   booking_client_form_info_point_3: "Мы бережно относимся к персональным данным и используем ваш e-mail только для обслуживания вашей записи",
-  
+
 //   booking_client_form_invalid_params: "Некорректные параметры. Пожалуйста, начните запись заново.",
 //   booking_client_form_invalid_return: "Вернуться к выбору услуг",
 
@@ -6836,7 +7192,6 @@ export function translate(locale: Locale, key: MessageKey): string {
 //   booking_success_details_datetime: "Дата и время",
 //   booking_success_button_new: "Создать новую запись",
 //   booking_success_button_home: "На главную",
-
 
 //   // CALENDAR PAGE – Navigation
 //   booking_calendar_back_to_master: "Вернуться к выбору мастера",
@@ -7082,7 +7437,7 @@ export function translate(locale: Locale, key: MessageKey): string {
 //   booking_client_choice_title: "Wie möchten Sie fortfahren?",
 //   booking_client_choice_subtitle: "Wählen Sie eine bequeme Registrierungsmethode",
 //   booking_client_choice_recommended: "Empfohlen",
-  
+
 //   booking_client_google_title: "Schnelle Registrierung",
 //   booking_client_google_description: "Melden Sie sich über Google an und gehen Sie direkt zur Zahlung",
 //   booking_client_google_benefit_1: "Ein Klick zur Zahlung",
@@ -7092,7 +7447,7 @@ export function translate(locale: Locale, key: MessageKey): string {
 //   booking_client_google_button: "Mit 1 Klick starten",
 //   booking_client_google_security: "Geschützt durch Google OAuth 2.0",
 //   booking_client_google_connecting: "Verbindung wird hergestellt...",
-  
+
 //   booking_client_form_title: "Formular ausfüllen",
 //   booking_client_form_description: "Traditionelle Methode mit voller Kontrolle über Ihre Daten",
 //   booking_client_form_benefit_1: "Volle Datenkontrolle",
@@ -7101,20 +7456,20 @@ export function translate(locale: Locale, key: MessageKey): string {
 //   booking_client_form_benefit_4: "Verifizierung über Telegram",
 //   booking_client_form_button: "Formular ausfüllen",
 //   booking_client_form_security: "Bestätigung über Telegram Bot",
-  
+
 //   booking_client_choice_footer: "Beide Methoden sind sicher und zuverlässig.",
 //   booking_client_choice_footer_highlight: "Wählen Sie die für Sie bequemste.",
-  
+
 //   booking_client_popup_blocked: "Fenster konnte nicht geöffnet werden. Erlauben Sie Pop-ups in Ihrem Browser.",
 //   booking_client_google_error_init: "Fehler bei der Google OAuth-Initialisierung",
 //   booking_client_auth_error: "Autorisierungsfehler",
 //   booking_client_auth_waiting: "Warten auf Bestätigung über Google...",
-  
+
 //   // ======= BOOKING - CLIENT FORM PAGE =======
 //   booking_client_form_badge: "Schritt 4 — Ihre Kontaktdaten",
 //   booking_client_form_hero_title: "Online-Terminbuchung",
 //   booking_client_form_hero_subtitle: "Geben Sie Ihre Daten an, damit wir Ihre Buchung bestätigen können",
-  
+
 //   booking_client_form_label_name: "Name",
 //   booking_client_form_label_phone: "Telefon",
 //   booking_client_form_label_email: "E-Mail",
@@ -7122,20 +7477,20 @@ export function translate(locale: Locale, key: MessageKey): string {
 //   booking_client_form_label_referral: "Wie haben Sie von uns erfahren?",
 //   booking_client_form_label_comment: "Kommentar",
 //   booking_client_form_label_optional: "(optional)",
-  
+
 //   booking_client_form_placeholder_name: "Ihr vollständiger Name",
 //   booking_client_form_placeholder_phone: "+49 (xxx) xxx-xx-xx",
 //   booking_client_form_placeholder_email: "ihre@email.de",
 //   booking_client_form_placeholder_comment: "Zusätzliche Informationen oder Wünsche",
 //   booking_client_form_placeholder_referral_other: "Bitte angeben",
-  
+
 //   booking_client_form_referral_select: "Wählen Sie eine Option",
 //   booking_client_form_referral_google: "Google",
 //   booking_client_form_referral_facebook: "Facebook",
 //   booking_client_form_referral_instagram: "Instagram",
 //   booking_client_form_referral_friends: "Empfehlung von Freunden",
 //   booking_client_form_referral_other: "Andere",
-  
+
 //   booking_client_form_error_name: "Bitte geben Sie Ihren vollständigen Namen an",
 //   booking_client_form_error_phone: "Bitte geben Sie eine gültige Telefonnummer an",
 //   booking_client_form_error_email_required: "E-Mail ist erforderlich",
@@ -7146,24 +7501,24 @@ export function translate(locale: Locale, key: MessageKey): string {
 //   booking_client_form_error_birth_underage: "Für Online-Buchungen ist ein Mindestalter von 16 Jahren erforderlich",
 //   booking_client_form_error_referral: "Wählen Sie eine Option",
 //   booking_client_form_error_referral_other: "Bitte angeben",
-  
+
 //   booking_client_form_email_checking: "E-Mail wird überprüft…",
 //   booking_client_form_email_verified: "E-Mail bestätigt",
-  
+
 //   booking_client_form_age_requirement: "Für Online-Buchungen ist ein Mindestalter von 16 Jahren erforderlich",
 //   booking_client_form_email_error_note: "Wenn Sie einen Fehler in der Adresse machen, können Sie trotzdem zum Termin kommen, erhalten aber keine Erinnerungen und Bestätigungen.",
-  
+
 //   booking_client_form_button_back: "Zurück",
 //   booking_client_form_button_submit: "Buchen",
 //   booking_client_form_button_submitting: "Daten werden überprüft…",
-  
+
 //   booking_client_form_info_title: "Warum benötigen wir Ihre E-Mail?",
 //   booking_client_form_info_point_1: "An Ihre E-Mail senden wir",
 //   booking_client_form_info_point_1_highlight: "die Buchungsbestätigung und alle Details",
 //   booking_client_form_info_point_2: "Sie erhalten",
 //   booking_client_form_info_point_2_highlight: "eine Erinnerung vor Ihrem Besuch",
 //   booking_client_form_info_point_3: "Wir behandeln personenbezogene Daten sorgfältig und verwenden Ihre E-Mail nur für die Bearbeitung Ihrer Buchung",
-  
+
 //   booking_client_form_invalid_params: "Ungültige Parameter. Bitte beginnen Sie die Buchung erneut.",
 //   booking_client_form_invalid_return: "Zurück zur Dienstleistungsauswahl",
 
@@ -7298,7 +7653,6 @@ export function translate(locale: Locale, key: MessageKey): string {
 //   booking_success_details_datetime: "Datum und Uhrzeit",
 //   booking_success_button_new: "Neue Buchung erstellen",
 //   booking_success_button_home: "Zur Startseite",
-
 
 //   // CALENDAR PAGE – Navigation
 //   booking_calendar_back_to_master: "Zurück zur Meisterauswahl",
@@ -7540,7 +7894,7 @@ export function translate(locale: Locale, key: MessageKey): string {
 //   booking_client_choice_title: "How would you like to proceed?",
 //   booking_client_choice_subtitle: "Choose your preferred registration method",
 //   booking_client_choice_recommended: "Recommended",
-  
+
 //   booking_client_google_title: "Quick Registration",
 //   booking_client_google_description: "Sign in with Google and go straight to payment",
 //   booking_client_google_benefit_1: "One click to payment",
@@ -7550,7 +7904,7 @@ export function translate(locale: Locale, key: MessageKey): string {
 //   booking_client_google_button: "Start with 1 click",
 //   booking_client_google_security: "Protected by Google OAuth 2.0",
 //   booking_client_google_connecting: "Connecting...",
-  
+
 //   booking_client_form_title: "Fill out form",
 //   booking_client_form_description: "Traditional method with full control over your data",
 //   booking_client_form_benefit_1: "Full data control",
@@ -7559,20 +7913,20 @@ export function translate(locale: Locale, key: MessageKey): string {
 //   booking_client_form_benefit_4: "Verification via Telegram",
 //   booking_client_form_button: "Fill out form",
 //   booking_client_form_security: "Confirmation via Telegram Bot",
-  
+
 //   booking_client_choice_footer: "Both methods are safe and reliable.",
 //   booking_client_choice_footer_highlight: "Choose the one that's more convenient for you.",
-  
+
 //   booking_client_popup_blocked: "Could not open window. Please allow pop-ups in your browser.",
 //   booking_client_google_error_init: "Google OAuth initialization error",
 //   booking_client_auth_error: "Authorization error",
 //   booking_client_auth_waiting: "Waiting for confirmation via Google...",
-  
+
 //   // ======= BOOKING - CLIENT FORM PAGE =======
 //   booking_client_form_badge: "Step 4 — Your contact information",
 //   booking_client_form_hero_title: "Online Booking",
 //   booking_client_form_hero_subtitle: "Provide your details so we can confirm your booking",
-  
+
 //   booking_client_form_label_name: "Name",
 //   booking_client_form_label_phone: "Phone",
 //   booking_client_form_label_email: "E-mail",
@@ -7580,20 +7934,20 @@ export function translate(locale: Locale, key: MessageKey): string {
 //   booking_client_form_label_referral: "How did you hear about us?",
 //   booking_client_form_label_comment: "Comment",
 //   booking_client_form_label_optional: "(optional)",
-  
+
 //   booking_client_form_placeholder_name: "Your full name",
 //   booking_client_form_placeholder_phone: "+49 (xxx) xxx-xx-xx",
 //   booking_client_form_placeholder_email: "your@email.com",
 //   booking_client_form_placeholder_comment: "Additional information or requests",
 //   booking_client_form_placeholder_referral_other: "Please specify",
-  
+
 //   booking_client_form_referral_select: "Select an option",
 //   booking_client_form_referral_google: "Google",
 //   booking_client_form_referral_facebook: "Facebook",
 //   booking_client_form_referral_instagram: "Instagram",
 //   booking_client_form_referral_friends: "Friend's recommendation",
 //   booking_client_form_referral_other: "Other",
-  
+
 //   booking_client_form_error_name: "Please provide your full name",
 //   booking_client_form_error_phone: "Please provide a valid phone number",
 //   booking_client_form_error_email_required: "E-mail is required",
@@ -7604,24 +7958,24 @@ export function translate(locale: Locale, key: MessageKey): string {
 //   booking_client_form_error_birth_underage: "Online booking requires age 16+",
 //   booking_client_form_error_referral: "Select an option",
 //   booking_client_form_error_referral_other: "Please specify",
-  
+
 //   booking_client_form_email_checking: "Verifying e-mail…",
 //   booking_client_form_email_verified: "E-mail verified",
-  
+
 //   booking_client_form_age_requirement: "Online booking requires age 16+",
 //   booking_client_form_email_error_note: "If you make a mistake in the address, you can still come to the appointment, but you won't receive reminders and confirmations.",
-  
+
 //   booking_client_form_button_back: "Back",
 //   booking_client_form_button_submit: "Book",
 //   booking_client_form_button_submitting: "Verifying data…",
-  
+
 //   booking_client_form_info_title: "Why do we ask for your e-mail?",
 //   booking_client_form_info_point_1: "We will send to your e-mail",
 //   booking_client_form_info_point_1_highlight: "booking confirmation and all details",
 //   booking_client_form_info_point_2: "You will receive",
 //   booking_client_form_info_point_2_highlight: "a reminder before your visit",
 //   booking_client_form_info_point_3: "We carefully handle personal data and use your e-mail only for your booking service",
-  
+
 //   booking_client_form_invalid_params: "Invalid parameters. Please start the booking again.",
 //   booking_client_form_invalid_return: "Return to service selection",
 
@@ -7757,7 +8111,6 @@ export function translate(locale: Locale, key: MessageKey): string {
 //   booking_success_button_new: "Create New Booking",
 //   booking_success_button_home: "Go to Home",
 
-
 //   // CALENDAR PAGE – Navigation
 //   booking_calendar_back_to_master: "Back to Master Selection",
 
@@ -7806,9 +8159,6 @@ export function translate(locale: Locale, key: MessageKey): string {
 //   const dict = messages[locale] ?? messages.ru;
 //   return dict[key] ?? key;
 // }
-
-
-
 
 //------------добовляем словарь для оплаты------
 // // src/i18n/messages.ts
@@ -8019,7 +8369,7 @@ export function translate(locale: Locale, key: MessageKey): string {
 //   booking_client_choice_title: string;
 //   booking_client_choice_subtitle: string;
 //   booking_client_choice_recommended: string;
-  
+
 //   booking_client_google_title: string;
 //   booking_client_google_description: string;
 //   booking_client_google_benefit_1: string;
@@ -8029,7 +8379,7 @@ export function translate(locale: Locale, key: MessageKey): string {
 //   booking_client_google_button: string;
 //   booking_client_google_security: string;
 //   booking_client_google_connecting: string;
-  
+
 //   booking_client_form_title: string;
 //   booking_client_form_description: string;
 //   booking_client_form_benefit_1: string;
@@ -8038,20 +8388,20 @@ export function translate(locale: Locale, key: MessageKey): string {
 //   booking_client_form_benefit_4: string;
 //   booking_client_form_button: string;
 //   booking_client_form_security: string;
-  
+
 //   booking_client_choice_footer: string;
 //   booking_client_choice_footer_highlight: string;
-  
+
 //   booking_client_popup_blocked: string;
 //   booking_client_google_error_init: string;
 //   booking_client_auth_error: string;
 //   booking_client_auth_waiting: string;
-  
+
 //   // ======= BOOKING - CLIENT FORM PAGE =======
 //   booking_client_form_badge: string;
 //   booking_client_form_hero_title: string;
 //   booking_client_form_hero_subtitle: string;
-  
+
 //   booking_client_form_label_name: string;
 //   booking_client_form_label_phone: string;
 //   booking_client_form_label_email: string;
@@ -8059,20 +8409,20 @@ export function translate(locale: Locale, key: MessageKey): string {
 //   booking_client_form_label_referral: string;
 //   booking_client_form_label_comment: string;
 //   booking_client_form_label_optional: string;
-  
+
 //   booking_client_form_placeholder_name: string;
 //   booking_client_form_placeholder_phone: string;
 //   booking_client_form_placeholder_email: string;
 //   booking_client_form_placeholder_comment: string;
 //   booking_client_form_placeholder_referral_other: string;
-  
+
 //   booking_client_form_referral_select: string;
 //   booking_client_form_referral_google: string;
 //   booking_client_form_referral_facebook: string;
 //   booking_client_form_referral_instagram: string;
 //   booking_client_form_referral_friends: string;
 //   booking_client_form_referral_other: string;
-  
+
 //   booking_client_form_error_name: string;
 //   booking_client_form_error_phone: string;
 //   booking_client_form_error_email_required: string;
@@ -8083,34 +8433,34 @@ export function translate(locale: Locale, key: MessageKey): string {
 //   booking_client_form_error_birth_underage: string;
 //   booking_client_form_error_referral: string;
 //   booking_client_form_error_referral_other: string;
-  
+
 //   booking_client_form_email_checking: string;
 //   booking_client_form_email_verified: string;
-  
+
 //   booking_client_form_age_requirement: string;
 //   booking_client_form_email_error_note: string;
-  
+
 //   booking_client_form_button_back: string;
 //   booking_client_form_button_submit: string;
 //   booking_client_form_button_submitting: string;
-  
+
 //   booking_client_form_info_title: string;
 //   booking_client_form_info_point_1: string;
 //   booking_client_form_info_point_1_highlight: string;
 //   booking_client_form_info_point_2: string;
 //   booking_client_form_info_point_2_highlight: string;
 //   booking_client_form_info_point_3: string;
-  
+
 //   booking_client_form_invalid_params: string;
 //   booking_client_form_invalid_return: string;
-  
+
 //   // ======= BOOKING - VERIFY PAGE =======
 //   booking_verify_badge: string;
 //   booking_verify_hero_title: string;
 //   booking_verify_hero_subtitle: string;
 //   booking_verify_method_title: string;
 //   booking_verify_code_on_email: string;
-  
+
 //   booking_verify_method_email_title: string;
 //   booking_verify_method_email_desc: string;
 //   booking_verify_method_google_title: string;
@@ -8119,7 +8469,7 @@ export function translate(locale: Locale, key: MessageKey): string {
 //   booking_verify_method_telegram_desc: string;
 //   booking_verify_method_whatsapp_title: string;
 //   booking_verify_method_whatsapp_desc: string;
-  
+
 //   booking_verify_email_confirm_title: string;
 //   booking_verify_email_confirm_desc: string;
 //   booking_verify_email_label: string;
@@ -8132,7 +8482,7 @@ export function translate(locale: Locale, key: MessageKey): string {
 //   booking_verify_email_confirm_code: string;
 //   booking_verify_email_checking: string;
 //   booking_verify_email_resend: string;
-  
+
 //   booking_verify_info_title: string;
 //   booking_verify_info_desc: string;
 //   booking_verify_info_arrives: string;
@@ -8146,10 +8496,10 @@ export function translate(locale: Locale, key: MessageKey): string {
 //   booking_verify_info_progress_4: string;
 //   booking_verify_info_progress_5: string;
 //   booking_verify_info_support: string;
-  
+
 //   booking_verify_invalid_params: string;
 //   booking_verify_invalid_return: string;
-  
+
 //   booking_verify_google_title: string;
 //   booking_verify_google_desc: string;
 //   booking_verify_google_preparing: string;
@@ -8166,7 +8516,7 @@ export function translate(locale: Locale, key: MessageKey): string {
 //   booking_verify_google_success: string;
 //   booking_verify_google_preparing_window: string;
 //   booking_verify_google_allow_popups: string;
-  
+
 //   booking_verify_telegram_title: string;
 //   booking_verify_telegram_desc_registered: string;
 //   booking_verify_telegram_desc_unregistered: string;
@@ -8185,11 +8535,9 @@ export function translate(locale: Locale, key: MessageKey): string {
 //   booking_verify_telegram_opening: string;
 //   booking_verify_telegram_click_button: string;
 //   booking_verify_telegram_success: string;
-  
+
 //   booking_verify_error_enter_code: string;
 //   booking_verify_success_redirect: string;
-
-
 
 //   // Navigation
 //   booking_calendar_back_to_master: string;
@@ -8439,7 +8787,7 @@ export function translate(locale: Locale, key: MessageKey): string {
 //   booking_client_choice_title: "Как вы хотите продолжить?",
 //   booking_client_choice_subtitle: "Выберите удобный способ регистрации",
 //   booking_client_choice_recommended: "Рекомендуем",
-  
+
 //   booking_client_google_title: "Быстрая регистрация",
 //   booking_client_google_description: "Войдите через Google и сразу перейдите к оплате",
 //   booking_client_google_benefit_1: "Один клик до оплаты",
@@ -8449,7 +8797,7 @@ export function translate(locale: Locale, key: MessageKey): string {
 //   booking_client_google_button: "Начать за 1 клик",
 //   booking_client_google_security: "Защищено Google OAuth 2.0",
 //   booking_client_google_connecting: "Подключение...",
-  
+
 //   booking_client_form_title: "Заполнить форму",
 //   booking_client_form_description: "Традиционный способ с полным контролем над данными",
 //   booking_client_form_benefit_1: "Полный контроль данных",
@@ -8458,20 +8806,20 @@ export function translate(locale: Locale, key: MessageKey): string {
 //   booking_client_form_benefit_4: "Верификация через Telegram",
 //   booking_client_form_button: "Заполнить форму",
 //   booking_client_form_security: "Подтверждение через Telegram Bot",
-  
+
 //   booking_client_choice_footer: "Оба способа безопасны и надёжны.",
 //   booking_client_choice_footer_highlight: "Выберите тот, который вам удобнее.",
-  
+
 //   booking_client_popup_blocked: "Не удалось открыть окно. Разрешите всплывающие окна в браузере.",
 //   booking_client_google_error_init: "Ошибка инициализации Google OAuth",
 //   booking_client_auth_error: "Ошибка авторизации",
 //   booking_client_auth_waiting: "Ожидаем подтверждение через Google...",
-  
+
 //   // ======= BOOKING - CLIENT FORM PAGE =======
 //   booking_client_form_badge: "Шаг 4 — Ваши контактные данные",
 //   booking_client_form_hero_title: "Онлайн-запись",
 //   booking_client_form_hero_subtitle: "Укажите ваши данные, чтобы мы подтвердили бронь",
-  
+
 //   booking_client_form_label_name: "Имя",
 //   booking_client_form_label_phone: "Телефон",
 //   booking_client_form_label_email: "E-mail",
@@ -8479,20 +8827,20 @@ export function translate(locale: Locale, key: MessageKey): string {
 //   booking_client_form_label_referral: "Как вы узнали о нас?",
 //   booking_client_form_label_comment: "Комментарий",
 //   booking_client_form_label_optional: "(необязательно)",
-  
+
 //   booking_client_form_placeholder_name: "Ваше полное имя",
 //   booking_client_form_placeholder_phone: "+49 (xxx) xxx-xx-xx",
 //   booking_client_form_placeholder_email: "your@email.com",
 //   booking_client_form_placeholder_comment: "Дополнительная информация или пожелания",
 //   booking_client_form_placeholder_referral_other: "Уточните источник",
-  
+
 //   booking_client_form_referral_select: "Выберите вариант",
 //   booking_client_form_referral_google: "Google",
 //   booking_client_form_referral_facebook: "Facebook",
 //   booking_client_form_referral_instagram: "Instagram",
 //   booking_client_form_referral_friends: "Рекомендация друзей",
 //   booking_client_form_referral_other: "Другое",
-  
+
 //   booking_client_form_error_name: "Укажите имя полностью",
 //   booking_client_form_error_phone: "Укажите корректный номер телефона",
 //   booking_client_form_error_email_required: "E-mail обязателен",
@@ -8503,24 +8851,24 @@ export function translate(locale: Locale, key: MessageKey): string {
 //   booking_client_form_error_birth_underage: "Для онлайн-записи требуется возраст 16+",
 //   booking_client_form_error_referral: "Выберите вариант",
 //   booking_client_form_error_referral_other: "Уточните источник",
-  
+
 //   booking_client_form_email_checking: "Проверка e-mail…",
 //   booking_client_form_email_verified: "E-mail подтверждён",
-  
+
 //   booking_client_form_age_requirement: "Для онлайн-записи требуется возраст 16+",
 //   booking_client_form_email_error_note: "Если вы допустите ошибку в адресе, вы всё равно сможете прийти на приём, но не получите напоминания и подтверждения.",
-  
+
 //   booking_client_form_button_back: "Назад",
 //   booking_client_form_button_submit: "Забронировать",
 //   booking_client_form_button_submitting: "Проверка данных…",
-  
+
 //   booking_client_form_info_title: "Почему мы просим e-mail?",
 //   booking_client_form_info_point_1: "На ваш e-mail мы отправим",
 //   booking_client_form_info_point_1_highlight: "подтверждение брони и все детали записи",
 //   booking_client_form_info_point_2: "Вы получите",
 //   booking_client_form_info_point_2_highlight: "напоминание перед визитом",
 //   booking_client_form_info_point_3: "Мы бережно относимся к персональным данным и используем ваш e-mail только для обслуживания вашей записи",
-  
+
 //   booking_client_form_invalid_params: "Некорректные параметры. Пожалуйста, начните запись заново.",
 //   booking_client_form_invalid_return: "Вернуться к выбору услуг",
 
@@ -8600,7 +8948,6 @@ export function translate(locale: Locale, key: MessageKey): string {
 //   booking_verify_telegram_success: "✅ Подтверждено через Telegram! Переход к оплате...",
 //   booking_verify_error_enter_code: "Введите 6-значный код",
 //   booking_verify_success_redirect: "Верификация успешна! Переход к оплате...",
-
 
 //   // CALENDAR PAGE – Navigation
 //   booking_calendar_back_to_master: "Вернуться к выбору мастера",
@@ -8846,7 +9193,7 @@ export function translate(locale: Locale, key: MessageKey): string {
 //   booking_client_choice_title: "Wie möchten Sie fortfahren?",
 //   booking_client_choice_subtitle: "Wählen Sie eine bequeme Registrierungsmethode",
 //   booking_client_choice_recommended: "Empfohlen",
-  
+
 //   booking_client_google_title: "Schnelle Registrierung",
 //   booking_client_google_description: "Melden Sie sich über Google an und gehen Sie direkt zur Zahlung",
 //   booking_client_google_benefit_1: "Ein Klick zur Zahlung",
@@ -8856,7 +9203,7 @@ export function translate(locale: Locale, key: MessageKey): string {
 //   booking_client_google_button: "Mit 1 Klick starten",
 //   booking_client_google_security: "Geschützt durch Google OAuth 2.0",
 //   booking_client_google_connecting: "Verbindung wird hergestellt...",
-  
+
 //   booking_client_form_title: "Formular ausfüllen",
 //   booking_client_form_description: "Traditionelle Methode mit voller Kontrolle über Ihre Daten",
 //   booking_client_form_benefit_1: "Volle Datenkontrolle",
@@ -8865,20 +9212,20 @@ export function translate(locale: Locale, key: MessageKey): string {
 //   booking_client_form_benefit_4: "Verifizierung über Telegram",
 //   booking_client_form_button: "Formular ausfüllen",
 //   booking_client_form_security: "Bestätigung über Telegram Bot",
-  
+
 //   booking_client_choice_footer: "Beide Methoden sind sicher und zuverlässig.",
 //   booking_client_choice_footer_highlight: "Wählen Sie die für Sie bequemste.",
-  
+
 //   booking_client_popup_blocked: "Fenster konnte nicht geöffnet werden. Erlauben Sie Pop-ups in Ihrem Browser.",
 //   booking_client_google_error_init: "Fehler bei der Google OAuth-Initialisierung",
 //   booking_client_auth_error: "Autorisierungsfehler",
 //   booking_client_auth_waiting: "Warten auf Bestätigung über Google...",
-  
+
 //   // ======= BOOKING - CLIENT FORM PAGE =======
 //   booking_client_form_badge: "Schritt 4 — Ihre Kontaktdaten",
 //   booking_client_form_hero_title: "Online-Terminbuchung",
 //   booking_client_form_hero_subtitle: "Geben Sie Ihre Daten an, damit wir Ihre Buchung bestätigen können",
-  
+
 //   booking_client_form_label_name: "Name",
 //   booking_client_form_label_phone: "Telefon",
 //   booking_client_form_label_email: "E-Mail",
@@ -8886,20 +9233,20 @@ export function translate(locale: Locale, key: MessageKey): string {
 //   booking_client_form_label_referral: "Wie haben Sie von uns erfahren?",
 //   booking_client_form_label_comment: "Kommentar",
 //   booking_client_form_label_optional: "(optional)",
-  
+
 //   booking_client_form_placeholder_name: "Ihr vollständiger Name",
 //   booking_client_form_placeholder_phone: "+49 (xxx) xxx-xx-xx",
 //   booking_client_form_placeholder_email: "ihre@email.de",
 //   booking_client_form_placeholder_comment: "Zusätzliche Informationen oder Wünsche",
 //   booking_client_form_placeholder_referral_other: "Bitte angeben",
-  
+
 //   booking_client_form_referral_select: "Wählen Sie eine Option",
 //   booking_client_form_referral_google: "Google",
 //   booking_client_form_referral_facebook: "Facebook",
 //   booking_client_form_referral_instagram: "Instagram",
 //   booking_client_form_referral_friends: "Empfehlung von Freunden",
 //   booking_client_form_referral_other: "Andere",
-  
+
 //   booking_client_form_error_name: "Bitte geben Sie Ihren vollständigen Namen an",
 //   booking_client_form_error_phone: "Bitte geben Sie eine gültige Telefonnummer an",
 //   booking_client_form_error_email_required: "E-Mail ist erforderlich",
@@ -8910,24 +9257,24 @@ export function translate(locale: Locale, key: MessageKey): string {
 //   booking_client_form_error_birth_underage: "Für Online-Buchungen ist ein Mindestalter von 16 Jahren erforderlich",
 //   booking_client_form_error_referral: "Wählen Sie eine Option",
 //   booking_client_form_error_referral_other: "Bitte angeben",
-  
+
 //   booking_client_form_email_checking: "E-Mail wird überprüft…",
 //   booking_client_form_email_verified: "E-Mail bestätigt",
-  
+
 //   booking_client_form_age_requirement: "Für Online-Buchungen ist ein Mindestalter von 16 Jahren erforderlich",
 //   booking_client_form_email_error_note: "Wenn Sie einen Fehler in der Adresse machen, können Sie trotzdem zum Termin kommen, erhalten aber keine Erinnerungen und Bestätigungen.",
-  
+
 //   booking_client_form_button_back: "Zurück",
 //   booking_client_form_button_submit: "Buchen",
 //   booking_client_form_button_submitting: "Daten werden überprüft…",
-  
+
 //   booking_client_form_info_title: "Warum benötigen wir Ihre E-Mail?",
 //   booking_client_form_info_point_1: "An Ihre E-Mail senden wir",
 //   booking_client_form_info_point_1_highlight: "die Buchungsbestätigung und alle Details",
 //   booking_client_form_info_point_2: "Sie erhalten",
 //   booking_client_form_info_point_2_highlight: "eine Erinnerung vor Ihrem Besuch",
 //   booking_client_form_info_point_3: "Wir behandeln personenbezogene Daten sorgfältig und verwenden Ihre E-Mail nur für die Bearbeitung Ihrer Buchung",
-  
+
 //   booking_client_form_invalid_params: "Ungültige Parameter. Bitte beginnen Sie die Buchung erneut.",
 //   booking_client_form_invalid_return: "Zurück zur Dienstleistungsauswahl",
 
@@ -9007,7 +9354,6 @@ export function translate(locale: Locale, key: MessageKey): string {
 //   booking_verify_telegram_success: "✅ Über Telegram bestätigt! Weiterleitung zur Zahlung...",
 //   booking_verify_error_enter_code: "Geben Sie den 6-stelligen Code ein",
 //   booking_verify_success_redirect: "Verifizierung erfolgreich! Weiterleitung zur Zahlung...",
-
 
 //   // CALENDAR PAGE – Navigation
 //   booking_calendar_back_to_master: "Zurück zur Meisterauswahl",
@@ -9249,7 +9595,7 @@ export function translate(locale: Locale, key: MessageKey): string {
 //   booking_client_choice_title: "How would you like to proceed?",
 //   booking_client_choice_subtitle: "Choose your preferred registration method",
 //   booking_client_choice_recommended: "Recommended",
-  
+
 //   booking_client_google_title: "Quick Registration",
 //   booking_client_google_description: "Sign in with Google and go straight to payment",
 //   booking_client_google_benefit_1: "One click to payment",
@@ -9259,7 +9605,7 @@ export function translate(locale: Locale, key: MessageKey): string {
 //   booking_client_google_button: "Start with 1 click",
 //   booking_client_google_security: "Protected by Google OAuth 2.0",
 //   booking_client_google_connecting: "Connecting...",
-  
+
 //   booking_client_form_title: "Fill out form",
 //   booking_client_form_description: "Traditional method with full control over your data",
 //   booking_client_form_benefit_1: "Full data control",
@@ -9268,20 +9614,20 @@ export function translate(locale: Locale, key: MessageKey): string {
 //   booking_client_form_benefit_4: "Verification via Telegram",
 //   booking_client_form_button: "Fill out form",
 //   booking_client_form_security: "Confirmation via Telegram Bot",
-  
+
 //   booking_client_choice_footer: "Both methods are safe and reliable.",
 //   booking_client_choice_footer_highlight: "Choose the one that's more convenient for you.",
-  
+
 //   booking_client_popup_blocked: "Could not open window. Please allow pop-ups in your browser.",
 //   booking_client_google_error_init: "Google OAuth initialization error",
 //   booking_client_auth_error: "Authorization error",
 //   booking_client_auth_waiting: "Waiting for confirmation via Google...",
-  
+
 //   // ======= BOOKING - CLIENT FORM PAGE =======
 //   booking_client_form_badge: "Step 4 — Your contact information",
 //   booking_client_form_hero_title: "Online Booking",
 //   booking_client_form_hero_subtitle: "Provide your details so we can confirm your booking",
-  
+
 //   booking_client_form_label_name: "Name",
 //   booking_client_form_label_phone: "Phone",
 //   booking_client_form_label_email: "E-mail",
@@ -9289,20 +9635,20 @@ export function translate(locale: Locale, key: MessageKey): string {
 //   booking_client_form_label_referral: "How did you hear about us?",
 //   booking_client_form_label_comment: "Comment",
 //   booking_client_form_label_optional: "(optional)",
-  
+
 //   booking_client_form_placeholder_name: "Your full name",
 //   booking_client_form_placeholder_phone: "+49 (xxx) xxx-xx-xx",
 //   booking_client_form_placeholder_email: "your@email.com",
 //   booking_client_form_placeholder_comment: "Additional information or requests",
 //   booking_client_form_placeholder_referral_other: "Please specify",
-  
+
 //   booking_client_form_referral_select: "Select an option",
 //   booking_client_form_referral_google: "Google",
 //   booking_client_form_referral_facebook: "Facebook",
 //   booking_client_form_referral_instagram: "Instagram",
 //   booking_client_form_referral_friends: "Friend's recommendation",
 //   booking_client_form_referral_other: "Other",
-  
+
 //   booking_client_form_error_name: "Please provide your full name",
 //   booking_client_form_error_phone: "Please provide a valid phone number",
 //   booking_client_form_error_email_required: "E-mail is required",
@@ -9313,24 +9659,24 @@ export function translate(locale: Locale, key: MessageKey): string {
 //   booking_client_form_error_birth_underage: "Online booking requires age 16+",
 //   booking_client_form_error_referral: "Select an option",
 //   booking_client_form_error_referral_other: "Please specify",
-  
+
 //   booking_client_form_email_checking: "Verifying e-mail…",
 //   booking_client_form_email_verified: "E-mail verified",
-  
+
 //   booking_client_form_age_requirement: "Online booking requires age 16+",
 //   booking_client_form_email_error_note: "If you make a mistake in the address, you can still come to the appointment, but you won't receive reminders and confirmations.",
-  
+
 //   booking_client_form_button_back: "Back",
 //   booking_client_form_button_submit: "Book",
 //   booking_client_form_button_submitting: "Verifying data…",
-  
+
 //   booking_client_form_info_title: "Why do we ask for your e-mail?",
 //   booking_client_form_info_point_1: "We will send to your e-mail",
 //   booking_client_form_info_point_1_highlight: "booking confirmation and all details",
 //   booking_client_form_info_point_2: "You will receive",
 //   booking_client_form_info_point_2_highlight: "a reminder before your visit",
 //   booking_client_form_info_point_3: "We carefully handle personal data and use your e-mail only for your booking service",
-  
+
 //   booking_client_form_invalid_params: "Invalid parameters. Please start the booking again.",
 //   booking_client_form_invalid_return: "Return to service selection",
 
@@ -9411,7 +9757,6 @@ export function translate(locale: Locale, key: MessageKey): string {
 //   booking_verify_error_enter_code: "Enter 6-digit code",
 //   booking_verify_success_redirect: "Verification successful! Redirecting to payment...",
 
-
 //   // CALENDAR PAGE – Navigation
 //   booking_calendar_back_to_master: "Back to Master Selection",
 
@@ -9460,10 +9805,6 @@ export function translate(locale: Locale, key: MessageKey): string {
 //   const dict = messages[locale] ?? messages.ru;
 //   return dict[key] ?? key;
 // }
-
-
-
-
 
 //---------добавляю перевод верифкации------
 // // src/i18n/messages.ts
@@ -9674,7 +10015,7 @@ export function translate(locale: Locale, key: MessageKey): string {
 //   booking_client_choice_title: string;
 //   booking_client_choice_subtitle: string;
 //   booking_client_choice_recommended: string;
-  
+
 //   booking_client_google_title: string;
 //   booking_client_google_description: string;
 //   booking_client_google_benefit_1: string;
@@ -9684,7 +10025,7 @@ export function translate(locale: Locale, key: MessageKey): string {
 //   booking_client_google_button: string;
 //   booking_client_google_security: string;
 //   booking_client_google_connecting: string;
-  
+
 //   booking_client_form_title: string;
 //   booking_client_form_description: string;
 //   booking_client_form_benefit_1: string;
@@ -9693,20 +10034,20 @@ export function translate(locale: Locale, key: MessageKey): string {
 //   booking_client_form_benefit_4: string;
 //   booking_client_form_button: string;
 //   booking_client_form_security: string;
-  
+
 //   booking_client_choice_footer: string;
 //   booking_client_choice_footer_highlight: string;
-  
+
 //   booking_client_popup_blocked: string;
 //   booking_client_google_error_init: string;
 //   booking_client_auth_error: string;
 //   booking_client_auth_waiting: string;
-  
+
 //   // ======= BOOKING - CLIENT FORM PAGE =======
 //   booking_client_form_badge: string;
 //   booking_client_form_hero_title: string;
 //   booking_client_form_hero_subtitle: string;
-  
+
 //   booking_client_form_label_name: string;
 //   booking_client_form_label_phone: string;
 //   booking_client_form_label_email: string;
@@ -9714,20 +10055,20 @@ export function translate(locale: Locale, key: MessageKey): string {
 //   booking_client_form_label_referral: string;
 //   booking_client_form_label_comment: string;
 //   booking_client_form_label_optional: string;
-  
+
 //   booking_client_form_placeholder_name: string;
 //   booking_client_form_placeholder_phone: string;
 //   booking_client_form_placeholder_email: string;
 //   booking_client_form_placeholder_comment: string;
 //   booking_client_form_placeholder_referral_other: string;
-  
+
 //   booking_client_form_referral_select: string;
 //   booking_client_form_referral_google: string;
 //   booking_client_form_referral_facebook: string;
 //   booking_client_form_referral_instagram: string;
 //   booking_client_form_referral_friends: string;
 //   booking_client_form_referral_other: string;
-  
+
 //   booking_client_form_error_name: string;
 //   booking_client_form_error_phone: string;
 //   booking_client_form_error_email_required: string;
@@ -9738,27 +10079,26 @@ export function translate(locale: Locale, key: MessageKey): string {
 //   booking_client_form_error_birth_underage: string;
 //   booking_client_form_error_referral: string;
 //   booking_client_form_error_referral_other: string;
-  
+
 //   booking_client_form_email_checking: string;
 //   booking_client_form_email_verified: string;
-  
+
 //   booking_client_form_age_requirement: string;
 //   booking_client_form_email_error_note: string;
-  
+
 //   booking_client_form_button_back: string;
 //   booking_client_form_button_submit: string;
 //   booking_client_form_button_submitting: string;
-  
+
 //   booking_client_form_info_title: string;
 //   booking_client_form_info_point_1: string;
 //   booking_client_form_info_point_1_highlight: string;
 //   booking_client_form_info_point_2: string;
 //   booking_client_form_info_point_2_highlight: string;
 //   booking_client_form_info_point_3: string;
-  
+
 //   booking_client_form_invalid_params: string;
 //   booking_client_form_invalid_return: string;
-
 
 //   // Navigation
 //   booking_calendar_back_to_master: string;
@@ -10008,7 +10348,7 @@ export function translate(locale: Locale, key: MessageKey): string {
 //   booking_client_choice_title: "Как вы хотите продолжить?",
 //   booking_client_choice_subtitle: "Выберите удобный способ регистрации",
 //   booking_client_choice_recommended: "Рекомендуем",
-  
+
 //   booking_client_google_title: "Быстрая регистрация",
 //   booking_client_google_description: "Войдите через Google и сразу перейдите к оплате",
 //   booking_client_google_benefit_1: "Один клик до оплаты",
@@ -10018,7 +10358,7 @@ export function translate(locale: Locale, key: MessageKey): string {
 //   booking_client_google_button: "Начать за 1 клик",
 //   booking_client_google_security: "Защищено Google OAuth 2.0",
 //   booking_client_google_connecting: "Подключение...",
-  
+
 //   booking_client_form_title: "Заполнить форму",
 //   booking_client_form_description: "Традиционный способ с полным контролем над данными",
 //   booking_client_form_benefit_1: "Полный контроль данных",
@@ -10027,20 +10367,20 @@ export function translate(locale: Locale, key: MessageKey): string {
 //   booking_client_form_benefit_4: "Верификация через Telegram",
 //   booking_client_form_button: "Заполнить форму",
 //   booking_client_form_security: "Подтверждение через Telegram Bot",
-  
+
 //   booking_client_choice_footer: "Оба способа безопасны и надёжны.",
 //   booking_client_choice_footer_highlight: "Выберите тот, который вам удобнее.",
-  
+
 //   booking_client_popup_blocked: "Не удалось открыть окно. Разрешите всплывающие окна в браузере.",
 //   booking_client_google_error_init: "Ошибка инициализации Google OAuth",
 //   booking_client_auth_error: "Ошибка авторизации",
 //   booking_client_auth_waiting: "Ожидаем подтверждение через Google...",
-  
+
 //   // ======= BOOKING - CLIENT FORM PAGE =======
 //   booking_client_form_badge: "Шаг 4 — Ваши контактные данные",
 //   booking_client_form_hero_title: "Онлайн-запись",
 //   booking_client_form_hero_subtitle: "Укажите ваши данные, чтобы мы подтвердили бронь",
-  
+
 //   booking_client_form_label_name: "Имя",
 //   booking_client_form_label_phone: "Телефон",
 //   booking_client_form_label_email: "E-mail",
@@ -10048,20 +10388,20 @@ export function translate(locale: Locale, key: MessageKey): string {
 //   booking_client_form_label_referral: "Как вы узнали о нас?",
 //   booking_client_form_label_comment: "Комментарий",
 //   booking_client_form_label_optional: "(необязательно)",
-  
+
 //   booking_client_form_placeholder_name: "Ваше полное имя",
 //   booking_client_form_placeholder_phone: "+49 (xxx) xxx-xx-xx",
 //   booking_client_form_placeholder_email: "your@email.com",
 //   booking_client_form_placeholder_comment: "Дополнительная информация или пожелания",
 //   booking_client_form_placeholder_referral_other: "Уточните источник",
-  
+
 //   booking_client_form_referral_select: "Выберите вариант",
 //   booking_client_form_referral_google: "Google",
 //   booking_client_form_referral_facebook: "Facebook",
 //   booking_client_form_referral_instagram: "Instagram",
 //   booking_client_form_referral_friends: "Рекомендация друзей",
 //   booking_client_form_referral_other: "Другое",
-  
+
 //   booking_client_form_error_name: "Укажите имя полностью",
 //   booking_client_form_error_phone: "Укажите корректный номер телефона",
 //   booking_client_form_error_email_required: "E-mail обязателен",
@@ -10072,27 +10412,26 @@ export function translate(locale: Locale, key: MessageKey): string {
 //   booking_client_form_error_birth_underage: "Для онлайн-записи требуется возраст 16+",
 //   booking_client_form_error_referral: "Выберите вариант",
 //   booking_client_form_error_referral_other: "Уточните источник",
-  
+
 //   booking_client_form_email_checking: "Проверка e-mail…",
 //   booking_client_form_email_verified: "E-mail подтверждён",
-  
+
 //   booking_client_form_age_requirement: "Для онлайн-записи требуется возраст 16+",
 //   booking_client_form_email_error_note: "Если вы допустите ошибку в адресе, вы всё равно сможете прийти на приём, но не получите напоминания и подтверждения.",
-  
+
 //   booking_client_form_button_back: "Назад",
 //   booking_client_form_button_submit: "Забронировать",
 //   booking_client_form_button_submitting: "Проверка данных…",
-  
+
 //   booking_client_form_info_title: "Почему мы просим e-mail?",
 //   booking_client_form_info_point_1: "На ваш e-mail мы отправим",
 //   booking_client_form_info_point_1_highlight: "подтверждение брони и все детали записи",
 //   booking_client_form_info_point_2: "Вы получите",
 //   booking_client_form_info_point_2_highlight: "напоминание перед визитом",
 //   booking_client_form_info_point_3: "Мы бережно относимся к персональным данным и используем ваш e-mail только для обслуживания вашей записи",
-  
+
 //   booking_client_form_invalid_params: "Некорректные параметры. Пожалуйста, начните запись заново.",
 //   booking_client_form_invalid_return: "Вернуться к выбору услуг",
-
 
 //   // CALENDAR PAGE – Navigation
 //   booking_calendar_back_to_master: "Вернуться к выбору мастера",
@@ -10338,7 +10677,7 @@ export function translate(locale: Locale, key: MessageKey): string {
 //   booking_client_choice_title: "Wie möchten Sie fortfahren?",
 //   booking_client_choice_subtitle: "Wählen Sie eine bequeme Registrierungsmethode",
 //   booking_client_choice_recommended: "Empfohlen",
-  
+
 //   booking_client_google_title: "Schnelle Registrierung",
 //   booking_client_google_description: "Melden Sie sich über Google an und gehen Sie direkt zur Zahlung",
 //   booking_client_google_benefit_1: "Ein Klick zur Zahlung",
@@ -10348,7 +10687,7 @@ export function translate(locale: Locale, key: MessageKey): string {
 //   booking_client_google_button: "Mit 1 Klick starten",
 //   booking_client_google_security: "Geschützt durch Google OAuth 2.0",
 //   booking_client_google_connecting: "Verbindung wird hergestellt...",
-  
+
 //   booking_client_form_title: "Formular ausfüllen",
 //   booking_client_form_description: "Traditionelle Methode mit voller Kontrolle über Ihre Daten",
 //   booking_client_form_benefit_1: "Volle Datenkontrolle",
@@ -10357,20 +10696,20 @@ export function translate(locale: Locale, key: MessageKey): string {
 //   booking_client_form_benefit_4: "Verifizierung über Telegram",
 //   booking_client_form_button: "Formular ausfüllen",
 //   booking_client_form_security: "Bestätigung über Telegram Bot",
-  
+
 //   booking_client_choice_footer: "Beide Methoden sind sicher und zuverlässig.",
 //   booking_client_choice_footer_highlight: "Wählen Sie die für Sie bequemste.",
-  
+
 //   booking_client_popup_blocked: "Fenster konnte nicht geöffnet werden. Erlauben Sie Pop-ups in Ihrem Browser.",
 //   booking_client_google_error_init: "Fehler bei der Google OAuth-Initialisierung",
 //   booking_client_auth_error: "Autorisierungsfehler",
 //   booking_client_auth_waiting: "Warten auf Bestätigung über Google...",
-  
+
 //   // ======= BOOKING - CLIENT FORM PAGE =======
 //   booking_client_form_badge: "Schritt 4 — Ihre Kontaktdaten",
 //   booking_client_form_hero_title: "Online-Terminbuchung",
 //   booking_client_form_hero_subtitle: "Geben Sie Ihre Daten an, damit wir Ihre Buchung bestätigen können",
-  
+
 //   booking_client_form_label_name: "Name",
 //   booking_client_form_label_phone: "Telefon",
 //   booking_client_form_label_email: "E-Mail",
@@ -10378,20 +10717,20 @@ export function translate(locale: Locale, key: MessageKey): string {
 //   booking_client_form_label_referral: "Wie haben Sie von uns erfahren?",
 //   booking_client_form_label_comment: "Kommentar",
 //   booking_client_form_label_optional: "(optional)",
-  
+
 //   booking_client_form_placeholder_name: "Ihr vollständiger Name",
 //   booking_client_form_placeholder_phone: "+49 (xxx) xxx-xx-xx",
 //   booking_client_form_placeholder_email: "ihre@email.de",
 //   booking_client_form_placeholder_comment: "Zusätzliche Informationen oder Wünsche",
 //   booking_client_form_placeholder_referral_other: "Bitte angeben",
-  
+
 //   booking_client_form_referral_select: "Wählen Sie eine Option",
 //   booking_client_form_referral_google: "Google",
 //   booking_client_form_referral_facebook: "Facebook",
 //   booking_client_form_referral_instagram: "Instagram",
 //   booking_client_form_referral_friends: "Empfehlung von Freunden",
 //   booking_client_form_referral_other: "Andere",
-  
+
 //   booking_client_form_error_name: "Bitte geben Sie Ihren vollständigen Namen an",
 //   booking_client_form_error_phone: "Bitte geben Sie eine gültige Telefonnummer an",
 //   booking_client_form_error_email_required: "E-Mail ist erforderlich",
@@ -10402,27 +10741,26 @@ export function translate(locale: Locale, key: MessageKey): string {
 //   booking_client_form_error_birth_underage: "Für Online-Buchungen ist ein Mindestalter von 16 Jahren erforderlich",
 //   booking_client_form_error_referral: "Wählen Sie eine Option",
 //   booking_client_form_error_referral_other: "Bitte angeben",
-  
+
 //   booking_client_form_email_checking: "E-Mail wird überprüft…",
 //   booking_client_form_email_verified: "E-Mail bestätigt",
-  
+
 //   booking_client_form_age_requirement: "Für Online-Buchungen ist ein Mindestalter von 16 Jahren erforderlich",
 //   booking_client_form_email_error_note: "Wenn Sie einen Fehler in der Adresse machen, können Sie trotzdem zum Termin kommen, erhalten aber keine Erinnerungen und Bestätigungen.",
-  
+
 //   booking_client_form_button_back: "Zurück",
 //   booking_client_form_button_submit: "Buchen",
 //   booking_client_form_button_submitting: "Daten werden überprüft…",
-  
+
 //   booking_client_form_info_title: "Warum benötigen wir Ihre E-Mail?",
 //   booking_client_form_info_point_1: "An Ihre E-Mail senden wir",
 //   booking_client_form_info_point_1_highlight: "die Buchungsbestätigung und alle Details",
 //   booking_client_form_info_point_2: "Sie erhalten",
 //   booking_client_form_info_point_2_highlight: "eine Erinnerung vor Ihrem Besuch",
 //   booking_client_form_info_point_3: "Wir behandeln personenbezogene Daten sorgfältig und verwenden Ihre E-Mail nur für die Bearbeitung Ihrer Buchung",
-  
+
 //   booking_client_form_invalid_params: "Ungültige Parameter. Bitte beginnen Sie die Buchung erneut.",
 //   booking_client_form_invalid_return: "Zurück zur Dienstleistungsauswahl",
-
 
 //   // CALENDAR PAGE – Navigation
 //   booking_calendar_back_to_master: "Zurück zur Meisterauswahl",
@@ -10664,7 +11002,7 @@ export function translate(locale: Locale, key: MessageKey): string {
 //   booking_client_choice_title: "How would you like to proceed?",
 //   booking_client_choice_subtitle: "Choose your preferred registration method",
 //   booking_client_choice_recommended: "Recommended",
-  
+
 //   booking_client_google_title: "Quick Registration",
 //   booking_client_google_description: "Sign in with Google and go straight to payment",
 //   booking_client_google_benefit_1: "One click to payment",
@@ -10674,7 +11012,7 @@ export function translate(locale: Locale, key: MessageKey): string {
 //   booking_client_google_button: "Start with 1 click",
 //   booking_client_google_security: "Protected by Google OAuth 2.0",
 //   booking_client_google_connecting: "Connecting...",
-  
+
 //   booking_client_form_title: "Fill out form",
 //   booking_client_form_description: "Traditional method with full control over your data",
 //   booking_client_form_benefit_1: "Full data control",
@@ -10683,20 +11021,20 @@ export function translate(locale: Locale, key: MessageKey): string {
 //   booking_client_form_benefit_4: "Verification via Telegram",
 //   booking_client_form_button: "Fill out form",
 //   booking_client_form_security: "Confirmation via Telegram Bot",
-  
+
 //   booking_client_choice_footer: "Both methods are safe and reliable.",
 //   booking_client_choice_footer_highlight: "Choose the one that's more convenient for you.",
-  
+
 //   booking_client_popup_blocked: "Could not open window. Please allow pop-ups in your browser.",
 //   booking_client_google_error_init: "Google OAuth initialization error",
 //   booking_client_auth_error: "Authorization error",
 //   booking_client_auth_waiting: "Waiting for confirmation via Google...",
-  
+
 //   // ======= BOOKING - CLIENT FORM PAGE =======
 //   booking_client_form_badge: "Step 4 — Your contact information",
 //   booking_client_form_hero_title: "Online Booking",
 //   booking_client_form_hero_subtitle: "Provide your details so we can confirm your booking",
-  
+
 //   booking_client_form_label_name: "Name",
 //   booking_client_form_label_phone: "Phone",
 //   booking_client_form_label_email: "E-mail",
@@ -10704,20 +11042,20 @@ export function translate(locale: Locale, key: MessageKey): string {
 //   booking_client_form_label_referral: "How did you hear about us?",
 //   booking_client_form_label_comment: "Comment",
 //   booking_client_form_label_optional: "(optional)",
-  
+
 //   booking_client_form_placeholder_name: "Your full name",
 //   booking_client_form_placeholder_phone: "+49 (xxx) xxx-xx-xx",
 //   booking_client_form_placeholder_email: "your@email.com",
 //   booking_client_form_placeholder_comment: "Additional information or requests",
 //   booking_client_form_placeholder_referral_other: "Please specify",
-  
+
 //   booking_client_form_referral_select: "Select an option",
 //   booking_client_form_referral_google: "Google",
 //   booking_client_form_referral_facebook: "Facebook",
 //   booking_client_form_referral_instagram: "Instagram",
 //   booking_client_form_referral_friends: "Friend's recommendation",
 //   booking_client_form_referral_other: "Other",
-  
+
 //   booking_client_form_error_name: "Please provide your full name",
 //   booking_client_form_error_phone: "Please provide a valid phone number",
 //   booking_client_form_error_email_required: "E-mail is required",
@@ -10728,27 +11066,26 @@ export function translate(locale: Locale, key: MessageKey): string {
 //   booking_client_form_error_birth_underage: "Online booking requires age 16+",
 //   booking_client_form_error_referral: "Select an option",
 //   booking_client_form_error_referral_other: "Please specify",
-  
+
 //   booking_client_form_email_checking: "Verifying e-mail…",
 //   booking_client_form_email_verified: "E-mail verified",
-  
+
 //   booking_client_form_age_requirement: "Online booking requires age 16+",
 //   booking_client_form_email_error_note: "If you make a mistake in the address, you can still come to the appointment, but you won't receive reminders and confirmations.",
-  
+
 //   booking_client_form_button_back: "Back",
 //   booking_client_form_button_submit: "Book",
 //   booking_client_form_button_submitting: "Verifying data…",
-  
+
 //   booking_client_form_info_title: "Why do we ask for your e-mail?",
 //   booking_client_form_info_point_1: "We will send to your e-mail",
 //   booking_client_form_info_point_1_highlight: "booking confirmation and all details",
 //   booking_client_form_info_point_2: "You will receive",
 //   booking_client_form_info_point_2_highlight: "a reminder before your visit",
 //   booking_client_form_info_point_3: "We carefully handle personal data and use your e-mail only for your booking service",
-  
+
 //   booking_client_form_invalid_params: "Invalid parameters. Please start the booking again.",
 //   booking_client_form_invalid_return: "Return to service selection",
-
 
 //   // CALENDAR PAGE – Navigation
 //   booking_calendar_back_to_master: "Back to Master Selection",
@@ -10798,10 +11135,6 @@ export function translate(locale: Locale, key: MessageKey): string {
 //   const dict = messages[locale] ?? messages.ru;
 //   return dict[key] ?? key;
 // }
-
-
-
-
 
 //--------добовляем словарь клиента-------
 // // src/i18n/messages.ts
@@ -11783,13 +12116,3 @@ export function translate(locale: Locale, key: MessageKey): string {
 //   const dict = messages[locale] ?? messages.ru;
 //   return dict[key] ?? key;
 // }
-
-
-
-
-
-
-
-
-
-
