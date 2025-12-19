@@ -1,14 +1,30 @@
--- Add customerName and birthday fields
--- Migration: add_customer_name_and_birthday
+-- CreateTable
+CREATE TABLE "GoogleQuickRegistration" (
+    "id" TEXT NOT NULL,
+    "state" TEXT NOT NULL,
+    "serviceId" TEXT NOT NULL,
+    "masterId" TEXT NOT NULL,
+    "startAt" TIMESTAMP(3) NOT NULL,
+    "endAt" TIMESTAMP(3) NOT NULL,
+    "email" TEXT,
+    "customerName" TEXT,
+    "birthday" TIMESTAMP(3),
+    "expiresAt" TIMESTAMP(3) NOT NULL,
+    "verified" BOOLEAN NOT NULL DEFAULT false,
+    "appointmentId" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
--- Обновляем GoogleQuickRegistration
-ALTER TABLE "GoogleQuickRegistration" ADD COLUMN "customerName" TEXT;
-ALTER TABLE "GoogleQuickRegistration" ADD COLUMN "birthday" TIMESTAMP(3);
+    CONSTRAINT "GoogleQuickRegistration_pkey" PRIMARY KEY ("id")
+);
 
--- Обновляем Appointment
-ALTER TABLE "Appointment" ADD COLUMN "birthday" TIMESTAMP(3);
+-- CreateIndex
+CREATE UNIQUE INDEX "GoogleQuickRegistration_state_key" ON "GoogleQuickRegistration"("state");
 
--- Update existing records with empty customerName
-UPDATE "GoogleQuickRegistration" 
-SET "customerName" = COALESCE(email, '')
-WHERE "customerName" IS NULL;
+-- CreateIndex
+CREATE INDEX "GoogleQuickRegistration_state_idx" ON "GoogleQuickRegistration"("state");
+
+-- CreateIndex
+CREATE INDEX "GoogleQuickRegistration_verified_idx" ON "GoogleQuickRegistration"("verified");
+
+-- CreateIndex
+CREATE INDEX "GoogleQuickRegistration_expiresAt_idx" ON "GoogleQuickRegistration"("expiresAt");

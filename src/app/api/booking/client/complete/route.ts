@@ -132,7 +132,7 @@ export async function POST(req: NextRequest) {
       data: {
         verified: true,
         appointmentId: appointment.id,
-        birthday: birthdayDate ?? quickReg.birthday ?? null,
+        birthDate: birthdayDate ?? quickReg.birthDate ?? null,
       },
     });
 
