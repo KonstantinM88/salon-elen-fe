@@ -566,6 +566,29 @@ export type BaseMessages = {
   booking_client_sms_benefit_4: string;
   booking_client_sms_button: string;
   booking_client_sms_security: string;
+
+  // STRIPE PAYMENT
+booking_payment_stripe_title: string;
+booking_payment_stripe_desc: string;
+booking_payment_stripe_benefit_1: string;
+booking_payment_stripe_benefit_2: string;
+booking_payment_stripe_benefit_3: string;
+booking_payment_stripe_amount: string;
+booking_payment_stripe_secure: string;
+booking_payment_stripe_processing: string;
+booking_payment_stripe_pay: string;
+booking_payment_stripe_note: string;
+
+// PAYPAL PAYMENT
+booking_payment_paypal_title: string;
+booking_payment_paypal_desc: string;
+booking_payment_paypal_benefit_1: string;
+booking_payment_paypal_benefit_2: string;
+booking_payment_paypal_benefit_3: string;
+booking_payment_paypal_amount: string;
+booking_payment_paypal_secure: string;
+booking_payment_paypal_note: string;
+booking_payment_paypal_footer: string;
 };
 
 export type MessageKey = keyof BaseMessages;
@@ -1170,6 +1193,30 @@ const ruMessages: BaseMessages = {
   booking_client_sms_benefit_4: "4-значный код",
   booking_client_sms_button: "Войти по SMS",
   booking_client_sms_security: "Infobip SMS",
+
+  // STRIPE PAYMENT
+booking_payment_stripe_title: "Оплата картой",
+booking_payment_stripe_desc: "Безопасная оплата через Stripe",
+booking_payment_stripe_benefit_1: "Все карты: Visa, MasterCard, AmEx",
+booking_payment_stripe_benefit_2: "Мгновенное подтверждение",
+booking_payment_stripe_benefit_3: "3D Secure защита",
+booking_payment_stripe_amount: "Сумма к оплате",
+booking_payment_stripe_secure: "Безопасно",
+booking_payment_stripe_processing: "Обработка платежа...",
+booking_payment_stripe_pay: "Оплатить",
+booking_payment_stripe_note: "Ваши платёжные данные защищены 256-битным шифрованием",
+
+// PAYPAL PAYMENT
+booking_payment_paypal_title: "PayPal",
+booking_payment_paypal_desc: "Оплата через PayPal аккаунт",
+booking_payment_paypal_benefit_1: "Быстрая оплата через PayPal",
+booking_payment_paypal_benefit_2: "Защита покупателя",
+booking_payment_paypal_benefit_3: "Без комиссий",
+booking_payment_paypal_amount: "Сумма к оплате",
+booking_payment_paypal_secure: "Безопасно",
+booking_payment_paypal_note: "После нажатия кнопки вы будете перенаправлены на безопасную страницу PayPal",
+booking_payment_paypal_footer: "Платежи обрабатываются через PayPal. Ваши данные защищены.",
+
 };
 
 /* ==================== GERMAN (DE) ==================== */
@@ -1785,6 +1832,30 @@ const deMessages: BaseMessages = {
   booking_client_sms_benefit_4: "4-stelliger Code",
   booking_client_sms_button: "Per SMS anmelden",
   booking_client_sms_security: "Infobip SMS",
+
+  // STRIPE PAYMENT
+  booking_payment_stripe_title: "Kartenzahlung",
+  booking_payment_stripe_desc: "Sichere Zahlung über Stripe",
+  booking_payment_stripe_benefit_1: "Alle Karten: Visa, MasterCard, AmEx",
+  booking_payment_stripe_benefit_2: "Sofortige Bestätigung",
+  booking_payment_stripe_benefit_3: "3D Secure Schutz",
+  booking_payment_stripe_amount: "Zu zahlender Betrag",
+  booking_payment_stripe_secure: "Sicher",
+  booking_payment_stripe_processing: "Zahlung wird verarbeitet...",
+  booking_payment_stripe_pay: "Bezahlen",
+  booking_payment_stripe_note: "Ihre Zahlungsdaten sind durch 256-Bit-Verschlüsselung geschützt",
+
+  // PAYPAL PAYMENT
+  booking_payment_paypal_title: "PayPal",
+  booking_payment_paypal_desc: "Zahlung über PayPal-Konto",
+  booking_payment_paypal_benefit_1: "Schnelle Zahlung über PayPal",
+  booking_payment_paypal_benefit_2: "Käuferschutz",
+  booking_payment_paypal_benefit_3: "Keine Gebühren",
+  booking_payment_paypal_amount: "Zu zahlender Betrag",
+  booking_payment_paypal_secure: "Sicher",
+  booking_payment_paypal_note: "Nach dem Klicken werden Sie zur sicheren PayPal-Seite weitergeleitet",
+  booking_payment_paypal_footer: "Zahlungen werden über PayPal verarbeitet. Ihre Daten sind geschützt.",
+
 };
 
 /* ==================== ENGLISH (EN) ==================== */
@@ -2376,6 +2447,31 @@ const enMessages: BaseMessages = {
   booking_client_sms_benefit_4: "4-digit code",
   booking_client_sms_button: "Sign in via SMS",
   booking_client_sms_security: "Infobip SMS",
+
+  // STRIPE PAYMENT
+  booking_payment_stripe_title: "Card Payment",
+  booking_payment_stripe_desc: "Secure payment via Stripe",
+  booking_payment_stripe_benefit_1: "All cards: Visa, MasterCard, AmEx",
+  booking_payment_stripe_benefit_2: "Instant confirmation",
+  booking_payment_stripe_benefit_3: "3D Secure protection",
+  booking_payment_stripe_amount: "Amount to pay",
+  booking_payment_stripe_secure: "Secure",
+  booking_payment_stripe_processing: "Processing payment...",
+  booking_payment_stripe_pay: "Pay",
+  booking_payment_stripe_note: "Your payment data is protected by 256-bit encryption",
+
+  // PAYPAL PAYMENT
+  booking_payment_paypal_title: "PayPal",
+  booking_payment_paypal_desc: "Pay with PayPal account",
+  booking_payment_paypal_benefit_1: "Fast payment via PayPal",
+  booking_payment_paypal_benefit_2: "Buyer protection",
+  booking_payment_paypal_benefit_3: "No fees",
+  booking_payment_paypal_amount: "Amount to pay",
+  booking_payment_paypal_secure: "Secure",
+  booking_payment_paypal_note: "After clicking, you will be redirected to the secure PayPal page",
+  booking_payment_paypal_footer: "Payments are processed through PayPal. Your data is protected.",
+
+
 };
 
 /* ==================== EXPORT ==================== */
