@@ -3,7 +3,7 @@
 // Используем appointmentId (реальная запись),
 // а не draftId (черновик)
 // ========================================
-
+// src/app/api/booking/payment/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
