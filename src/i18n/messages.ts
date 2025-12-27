@@ -406,14 +406,16 @@ export type BaseMessages = {
 
   booking_payment_online_title: string;
   booking_payment_online_desc: string;
-  booking_payment_online_benefit_1: string;
-  booking_payment_online_benefit_2: string;
-  booking_payment_online_benefit_3: string;
+  // booking_payment_online_benefit_1: string;
+  // booking_payment_online_benefit_2: string;
+  // booking_payment_online_benefit_3: string;
 
   booking_payment_info_title: string;
   booking_payment_info_desc: string;
   booking_payment_confirm_button: string;
   booking_payment_confirm_terms: string;
+  booking_payment_info_how_works_title: string;
+  booking_payment_info_how_works_desc: string;
 
   booking_payment_summary_title: string;
   booking_payment_summary_visit: string;
@@ -1022,12 +1024,15 @@ const ruMessages: BaseMessages = {
   booking_payment_onsite_benefit_3: "Оплата после услуги",
   booking_payment_online_title: "Онлайн-оплата",
   booking_payment_online_desc: "Скоро",
-  booking_payment_online_benefit_1: "Карта, Apple Pay, Google Pay",
-  booking_payment_online_benefit_2: "В разработке",
-  booking_payment_online_benefit_3: "Запись всё равно будет подтверждена",
+  // booking_payment_online_benefit_1: "Карта, Apple Pay, Google Pay",
+  // booking_payment_online_benefit_2: "В разработке",
+  // booking_payment_online_benefit_3: "Запись всё равно будет подтверждена",
   booking_payment_info_title: "Как это работает?",
   booking_payment_info_desc:
     "Система уже создала запись в расписании салона. Оплата фиксируется на стороне салона. Онлайн-оплата будет добавлена позже.",
+  // Инфо блок - АКТУАЛЬНЫЙ текст
+booking_payment_info_how_works_title: "Как это работает?",
+booking_payment_info_how_works_desc: "Система уже создала запись в расписании салона. Вы можете оплатить онлайн картой (Stripe) или через PayPal, либо оплатить наличными/картой в салоне после услуги.",
   booking_payment_confirm_button: "Подтвердить запись",
   booking_payment_confirm_terms:
     "Нажимая «Подтвердить запись», вы соглашаетесь с условиями салона",
@@ -1661,9 +1666,12 @@ const deMessages: BaseMessages = {
   booking_payment_onsite_benefit_3: "Zahlung nach der Dienstleistung",
   booking_payment_online_title: "Online-Zahlung",
   booking_payment_online_desc: "Bald verfügbar",
-  booking_payment_online_benefit_1: "Karte, Apple Pay, Google Pay",
-  booking_payment_online_benefit_2: "In Entwicklung",
-  booking_payment_online_benefit_3: "Buchung wird trotzdem bestätigt",
+  // booking_payment_online_benefit_1: "Karte, Apple Pay, Google Pay",
+  // booking_payment_online_benefit_2: "In Entwicklung",
+  // booking_payment_online_benefit_3: "Buchung wird trotzdem bestätigt",
+  // Infoblock - AKTUELLER Text
+  booking_payment_info_how_works_title: "Wie funktioniert das?",
+  booking_payment_info_how_works_desc: "Das System hat bereits einen Termin im Salon-Zeitplan erstellt. Sie können online mit Karte (Stripe) oder über PayPal bezahlen, oder bar/mit Karte im Salon nach der Dienstleistung.",
   booking_payment_info_title: "Wie funktioniert das?",
   booking_payment_info_desc:
     "Das System hat bereits einen Termin im Salon-Zeitplan erstellt. Die Zahlung wird auf der Seite des Salons erfasst. Online-Zahlung wird später hinzugefügt.",
@@ -2278,9 +2286,12 @@ const enMessages: BaseMessages = {
   booking_payment_onsite_benefit_3: "Pay after service",
   booking_payment_online_title: "Online Payment",
   booking_payment_online_desc: "Coming soon",
-  booking_payment_online_benefit_1: "Card, Apple Pay, Google Pay",
-  booking_payment_online_benefit_2: "In development",
-  booking_payment_online_benefit_3: "Booking will be confirmed anyway",
+  // booking_payment_online_benefit_1: "Card, Apple Pay, Google Pay",
+  // booking_payment_online_benefit_2: "In development",
+  // booking_payment_online_benefit_3: "Booking will be confirmed anyway",
+  // Info block - CURRENT text
+  booking_payment_info_how_works_title: "How does it work?",
+  booking_payment_info_how_works_desc: "The system has already created an appointment in the salon schedule. You can pay online with card (Stripe) or via PayPal, or pay cash/card at the salon after the service.",
   booking_payment_info_title: "How it works?",
   booking_payment_info_desc:
     "The system has already created an appointment in the salon schedule. Payment is recorded on the salon side. Online payment will be added later.",
