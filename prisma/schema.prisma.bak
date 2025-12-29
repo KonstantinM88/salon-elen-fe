@@ -6,12 +6,9 @@ datasource db {
   provider  = "postgresql"
   url       = env("DATABASE_URL")
   directUrl = env("DIRECT_URL")
-  
 }
 
-/**
- * ───────── Контент ─────────
- */
+// ───────── Контент ───────── 
 
 enum ArticleType {
   NEWS
@@ -37,9 +34,8 @@ model Article {
   @@index([expiresAt])
 }
 
-/**
- * ───────── Старая форма обратной связи ─────────
- */
+// ───────── Старая форма обратной связи ───────── 
+
 model Booking {
   id        String   @id @default(cuid())
   name      String
@@ -49,9 +45,7 @@ model Booking {
   createdAt DateTime @default(now())
 }
 
-/**
- * ───────── Онлайн-запись ─────────
- */
+// ───────── Онлайн-запись ───────── 
 
 model Service {
   id          String  @id @default(cuid())
@@ -62,6 +56,10 @@ model Service {
   priceCents  Int?
   isActive    Boolean @default(true)
 
+  /// Мягкое удаление: скрываем из интерфейса,
+  /// данные и связи остаются (для истории).
+  isArchived Boolean @default(false)
+
   parentId String?
   parent   Service?  @relation("ServiceChildren", fields: [parentId], references: [id])
   children Service[] @relation("ServiceChildren")
@@ -71,10 +69,17 @@ model Service {
   /// m:n с мастерами (implicit join table)
   masters Master[] @relation("MasterServices")
 
+  /// обратная сторона связи PromotionItem.service
+  promotionItems PromotionItem[]
+
+  /// обратная сторона связи SmsPhoneRegistration.service
+  smsPhoneRegistrations SmsPhoneRegistration[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([isActive])
+  @@index([isArchived])
   @@index([slug])
   @@index([parentId])
   @@map("Service")
@@ -87,9 +92,15 @@ enum AppointmentStatus {
   DONE
 }
 
-/**
- * ───────── Клиент ─────────
- */
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+}
+
+// ───────── Клиент ───────── 
+
 model Client {
   id        String   @id @default(cuid())
   name      String
@@ -108,12 +119,13 @@ model Client {
 
   appointments Appointment[]
 
+  /// обратная сторона связи ClientDiscount.client
+  discount ClientDiscount?
+
   @@map("Client")
 }
 
-/**
- * ───────── Мастера и их персональный график ─────────
- */
+// ───────── Мастера и их персональный график ───────── 
 
 model Master {
   id        String   @id @default(cuid())
@@ -135,6 +147,9 @@ model Master {
   services     Service[]            @relation("MasterServices")
   workingHours MasterWorkingHours[]
   timeOff      MasterTimeOff[]
+
+  /// обратная сторона связи SmsPhoneRegistration.master
+  smsPhoneRegistrations SmsPhoneRegistration[]
 }
 
 model MasterWorkingHours {
@@ -189,10 +204,16 @@ model Appointment {
   phone        String
   email        String?
   notes        String?
+  birthDate    DateTime?
+  referral     String?
 
-  status AppointmentStatus @default(PENDING)
+  status        AppointmentStatus @default(PENDING)
+  paymentStatus PaymentStatus     @default(PENDING)
 
   createdAt DateTime @default(now())
+
+  /// обратная сторона связи SmsPhoneRegistration.appointment
+  smsPhoneRegistration SmsPhoneRegistration?
 
   // Индексы для быстрого поиска и проверок пересечений:
   @@index([masterId])
@@ -201,12 +222,12 @@ model Appointment {
   @@index([clientId])
   @@index([startAt, endAt])
   @@index([masterId, startAt])
+  @@index([birthDate])
+  @@index([paymentStatus])
   @@map("Appointment")
 }
 
-/**
- * ───────── Глобальный график салона ─────────
- */
+// ───────── Глобальный график салона ───────── 
 
 model WorkingHours {
   id           String   @id @default(cuid())
@@ -230,9 +251,7 @@ model TimeOff {
   @@index([date])
 }
 
-/**
- * ───────── RBAC + NextAuth ─────────
- */
+// ───────── RBAC + NextAuth ───────── 
 
 enum Role {
   USER
@@ -297,11 +316,8 @@ model VerificationToken {
   @@unique([identifier, token])
 }
 
-/**
- * ───────── Архив удалённых логинов ─────────
- * Позволяет «удалять» пользователя, сохраняя его email/роль
- * для истории и предотвращения повторного конфликта уникальности.
- */
+// ───────── Архив удалённых логинов ───────── 
+
 model OrphanedUser {
   id           String   @id @default(cuid())
   email        String   @unique
@@ -311,4 +327,182 @@ model OrphanedUser {
   archivedAt   DateTime @default(now())
 
   @@index([archivedAt])
+}
+
+// ───────── Промоакции ───────── 
+
+model Promotion {
+  id        String   @id @default(cuid())
+  title     String
+  percent   Int
+  from      DateTime
+  to        DateTime
+  isGlobal  Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  items PromotionItem[]
+
+  @@index([from])
+  @@index([to])
+  @@index([isGlobal])
+}
+
+model PromotionItem {
+  id          String    @id @default(cuid())
+  promotionId String
+  serviceId   String
+  promotion   Promotion @relation(fields: [promotionId], references: [id], onDelete: Cascade)
+  service     Service   @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
+  @@unique([promotionId, serviceId])
+  @@index([serviceId])
+}
+
+model ClientDiscount {
+  id        String   @id @default(cuid())
+  clientId  String   @unique
+  percent   Int
+  createdAt DateTime @default(now())
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+}
+
+// ───────── Email верификация ───────── 
+
+model EmailVerification {
+  id        String   @id @default(cuid())
+  email     String
+  code      String
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([email])
+  @@index([expiresAt])
+  @@index([used])
+}
+
+// ───────── Черновики записи ───────── 
+
+model BookingDraft {
+  id           String    @id @default(cuid())
+  serviceId    String
+  masterId     String
+  startAt      DateTime
+  endAt        DateTime
+  customerName String
+  phone        String
+  email        String
+  birthDate    DateTime?
+  referral     String?
+  notes        String?
+  createdAt    DateTime  @default(now())
+
+  @@index([serviceId])
+  @@index([masterId])
+  @@index([startAt, endAt])
+}
+
+// ───────── Telegram интеграция ───────── 
+
+model TelegramUser {
+  id             String   @id @default(cuid())
+  email          String   @unique
+  telegramUserId BigInt   @unique
+  telegramChatId BigInt
+  firstName      String?
+  lastName       String?
+  username       String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([telegramChatId])
+}
+
+// ───────── Google OAuth ───────── 
+
+model GoogleUser {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  googleId  String   @unique
+  firstName String?
+  lastName  String?
+  picture   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([googleId])
+  @@index([email])
+}
+
+model GoogleVerificationRequest {
+  id            String   @id @default(cuid())
+  email         String
+  draftId       String
+  state         String   @unique
+  expiresAt     DateTime
+  verified      Boolean  @default(false)
+  appointmentId String?
+  createdAt     DateTime @default(now())
+
+  @@index([email, draftId])
+  @@index([state])
+  @@index([expiresAt])
+  @@index([verified])
+}
+
+model GoogleQuickRegistration {
+  id            String    @id @default(cuid())
+  state         String    @unique
+  serviceId     String
+  masterId      String
+  startAt       DateTime
+  endAt         DateTime
+  email         String?
+  customerName  String?
+  birthDate     DateTime?
+  expiresAt     DateTime
+  verified      Boolean   @default(false)
+  appointmentId String?
+  createdAt     DateTime  @default(now())
+
+  @@index([state])
+  @@index([verified])
+  @@index([expiresAt])
+}
+
+// ───────── SMS Phone регистрация (Infobip) ───────── 
+
+model SmsPhoneRegistration {
+  id           String   @id @default(cuid())
+  state        String   @unique
+  phone        String
+  pinCode      String // Хешированный PIN (bcrypt)
+  pinExpiresAt DateTime
+  attempts     Int      @default(0) // Счётчик попыток
+
+  serviceId String
+  service   Service @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
+  masterId String
+  master   Master @relation(fields: [masterId], references: [id], onDelete: Cascade)
+
+  startAt DateTime
+  endAt   DateTime
+
+  customerName String?
+  email        String?
+  birthDate    DateTime?
+
+  verified Boolean @default(false)
+
+  appointmentId String?      @unique
+  appointment   Appointment? @relation(fields: [appointmentId], references: [id])
+
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([phone])
+  @@index([verified])
+  @@index([expiresAt])
 }

@@ -591,6 +591,55 @@ booking_payment_paypal_amount: string;
 booking_payment_paypal_secure: string;
 booking_payment_paypal_note: string;
 booking_payment_paypal_footer: string;
+
+// ======= BOOKING - TELEGRAM CARD =======
+  booking_client_telegram_title: string;
+  booking_client_telegram_description: string;
+  booking_client_telegram_benefit_1: string;
+  booking_client_telegram_benefit_2: string;
+  booking_client_telegram_benefit_3: string;
+  booking_client_telegram_benefit_4: string;
+  booking_client_telegram_button: string;
+  booking_client_telegram_security: string;
+
+  // ======= BOOKING - TELEGRAM VERIFICATION PAGE =======
+  booking_telegram_verify_title: string;
+  booking_telegram_verify_subtitle: string;
+
+  booking_telegram_verify_step1_title: string;
+  booking_telegram_verify_step1_subtitle: string;
+  booking_telegram_verify_phone_label: string;
+  booking_telegram_verify_phone_placeholder: string;
+  booking_telegram_verify_phone_hint: string;
+  booking_telegram_verify_phone_required: string;
+  booking_telegram_verify_send_code: string;
+  booking_telegram_verify_sending: string;
+
+  booking_telegram_verify_step2_title: string;
+  booking_telegram_verify_step2_subtitle: string;
+  booking_telegram_verify_code_label: string;
+  booking_telegram_verify_code_placeholder: string;
+  booking_telegram_verify_code_hint: string;
+  booking_telegram_verify_code_required: string;
+  booking_telegram_verify_check_code: string;
+  booking_telegram_verify_checking: string;
+  booking_telegram_verify_resend: string;
+
+  booking_telegram_verify_step3_title: string;
+  booking_telegram_verify_step3_subtitle: string;
+  booking_telegram_verify_email_label: string;
+  booking_telegram_verify_email_placeholder: string;
+  booking_telegram_verify_email_hint: string;
+  booking_telegram_verify_birth_label: string;
+  booking_telegram_verify_birth_hint: string;
+  booking_telegram_verify_complete: string;
+  booking_telegram_verify_completing: string;
+
+  booking_telegram_verify_privacy: string;
+  booking_telegram_verify_error_title: string;
+  booking_telegram_verify_error_missing: string;
+  booking_telegram_verify_error_return: string;
+
 };
 
 export type MessageKey = keyof BaseMessages;
@@ -1221,6 +1270,54 @@ booking_payment_paypal_amount: "Сумма к оплате",
 booking_payment_paypal_secure: "Безопасно",
 booking_payment_paypal_note: "После нажатия кнопки вы будете перенаправлены на безопасную страницу PayPal",
 booking_payment_paypal_footer: "Платежи обрабатываются через PayPal. Ваши данные защищены.",
+
+// ======= BOOKING - TELEGRAM CARD =======
+  booking_client_telegram_title: "Telegram",
+  booking_client_telegram_description: "Быстрая регистрация через Telegram бота",
+  booking_client_telegram_benefit_1: "Код в Telegram",
+  booking_client_telegram_benefit_2: "Без email регистрации",
+  booking_client_telegram_benefit_3: "Быстро и безопасно",
+  booking_client_telegram_benefit_4: "6-значный код",
+  booking_client_telegram_button: "Войти через Telegram",
+  booking_client_telegram_security: "Telegram Bot верификация",
+
+  // ======= BOOKING - TELEGRAM VERIFICATION PAGE =======
+  booking_telegram_verify_title: "Регистрация через Telegram",
+  booking_telegram_verify_subtitle: "Пройдите 3 простых шага",
+
+  booking_telegram_verify_step1_title: "Шаг 1: Номер телефона",
+  booking_telegram_verify_step1_subtitle: "Укажите ваш номер телефона",
+  booking_telegram_verify_phone_label: "Номер телефона",
+  booking_telegram_verify_phone_placeholder: "+49 177 899 5106",
+  booking_telegram_verify_phone_hint: "Формат: +[код страны][номер]",
+  booking_telegram_verify_phone_required: "Введите номер телефона",
+  booking_telegram_verify_send_code: "Отправить код",
+  booking_telegram_verify_sending: "Отправка...",
+
+  booking_telegram_verify_step2_title: "Шаг 2: Код из Telegram",
+  booking_telegram_verify_step2_subtitle: "Введите код, который мы отправили в Telegram",
+  booking_telegram_verify_code_label: "Код подтверждения",
+  booking_telegram_verify_code_placeholder: "000000",
+  booking_telegram_verify_code_hint: "6-значный код из Telegram бота",
+  booking_telegram_verify_code_required: "Введите 6-значный код",
+  booking_telegram_verify_check_code: "Подтвердить код",
+  booking_telegram_verify_checking: "Проверка...",
+  booking_telegram_verify_resend: "Отправить код повторно",
+
+  booking_telegram_verify_step3_title: "Шаг 3: Дополнительная информация",
+  booking_telegram_verify_step3_subtitle: "Заполните ваши данные (необязательно)",
+  booking_telegram_verify_email_label: "Email",
+  booking_telegram_verify_email_placeholder: "your@email.com",
+  booking_telegram_verify_email_hint: "Для подтверждения и напоминаний",
+  booking_telegram_verify_birth_label: "Дата рождения",
+  booking_telegram_verify_birth_hint: "Для персональных скидок к вашему празднику",
+  booking_telegram_verify_complete: "Завершить регистрацию",
+  booking_telegram_verify_completing: "Сохранение...",
+
+  booking_telegram_verify_privacy: "Ваши данные защищены и не передаются третьим лицам",
+  booking_telegram_verify_error_title: "⚠️ Ошибка",
+  booking_telegram_verify_error_missing: "Недостаточно параметров. Пожалуйста, начните запись заново.",
+  booking_telegram_verify_error_return: "Вернуться к записи",
 
 };
 
@@ -1864,6 +1961,54 @@ const deMessages: BaseMessages = {
   booking_payment_paypal_note: "Nach dem Klicken werden Sie zur sicheren PayPal-Seite weitergeleitet",
   booking_payment_paypal_footer: "Zahlungen werden über PayPal verarbeitet. Ihre Daten sind geschützt.",
 
+   // ======= BOOKING - TELEGRAM CARD =======
+  booking_client_telegram_title: "Telegram",
+  booking_client_telegram_description: "Schnelle Registrierung über Telegram Bot",
+  booking_client_telegram_benefit_1: "Code in Telegram",
+  booking_client_telegram_benefit_2: "Keine E-Mail-Registrierung",
+  booking_client_telegram_benefit_3: "Schnell und sicher",
+  booking_client_telegram_benefit_4: "6-stelliger Code",
+  booking_client_telegram_button: "Über Telegram anmelden",
+  booking_client_telegram_security: "Telegram Bot Verifizierung",
+
+  // ======= BOOKING - TELEGRAM VERIFICATION PAGE =======
+  booking_telegram_verify_title: "Registrierung über Telegram",
+  booking_telegram_verify_subtitle: "Folgen Sie 3 einfachen Schritten",
+
+  booking_telegram_verify_step1_title: "Schritt 1: Telefonnummer",
+  booking_telegram_verify_step1_subtitle: "Geben Sie Ihre Telefonnummer an",
+  booking_telegram_verify_phone_label: "Telefonnummer",
+  booking_telegram_verify_phone_placeholder: "+49 177 899 5106",
+  booking_telegram_verify_phone_hint: "Format: +[Ländercode][Nummer]",
+  booking_telegram_verify_phone_required: "Telefonnummer eingeben",
+  booking_telegram_verify_send_code: "Code senden",
+  booking_telegram_verify_sending: "Wird gesendet...",
+
+  booking_telegram_verify_step2_title: "Schritt 2: Code aus Telegram",
+  booking_telegram_verify_step2_subtitle: "Geben Sie den Code ein, den wir Ihnen in Telegram gesendet haben",
+  booking_telegram_verify_code_label: "Bestätigungscode",
+  booking_telegram_verify_code_placeholder: "000000",
+  booking_telegram_verify_code_hint: "6-stelliger Code aus Telegram Bot",
+  booking_telegram_verify_code_required: "6-stelligen Code eingeben",
+  booking_telegram_verify_check_code: "Code bestätigen",
+  booking_telegram_verify_checking: "Wird überprüft...",
+  booking_telegram_verify_resend: "Code erneut senden",
+
+  booking_telegram_verify_step3_title: "Schritt 3: Zusätzliche Informationen",
+  booking_telegram_verify_step3_subtitle: "Füllen Sie Ihre Daten aus (optional)",
+  booking_telegram_verify_email_label: "E-Mail",
+  booking_telegram_verify_email_placeholder: "ihre@email.de",
+  booking_telegram_verify_email_hint: "Für Bestätigung und Erinnerungen",
+  booking_telegram_verify_birth_label: "Geburtsdatum",
+  booking_telegram_verify_birth_hint: "Für personalisierte Rabatte zu Ihrem Fest",
+  booking_telegram_verify_complete: "Registrierung abschließen",
+  booking_telegram_verify_completing: "Speichern...",
+
+  booking_telegram_verify_privacy: "Ihre Daten sind geschützt und werden nicht an Dritte weitergegeben",
+  booking_telegram_verify_error_title: "⚠️ Fehler",
+  booking_telegram_verify_error_missing: "Unzureichende Parameter. Bitte beginnen Sie die Buchung erneut.",
+  booking_telegram_verify_error_return: "Zurück zur Buchung",
+
 };
 
 /* ==================== ENGLISH (EN) ==================== */
@@ -2481,6 +2626,54 @@ const enMessages: BaseMessages = {
   booking_payment_paypal_secure: "Secure",
   booking_payment_paypal_note: "After clicking, you will be redirected to the secure PayPal page",
   booking_payment_paypal_footer: "Payments are processed through PayPal. Your data is protected.",
+
+  // ======= BOOKING - TELEGRAM CARD =======
+  booking_client_telegram_title: "Telegram",
+  booking_client_telegram_description: "Quick registration via Telegram bot",
+  booking_client_telegram_benefit_1: "Code in Telegram",
+  booking_client_telegram_benefit_2: "No email registration",
+  booking_client_telegram_benefit_3: "Fast and secure",
+  booking_client_telegram_benefit_4: "6-digit code",
+  booking_client_telegram_button: "Sign in via Telegram",
+  booking_client_telegram_security: "Telegram Bot verification",
+
+  // ======= BOOKING - TELEGRAM VERIFICATION PAGE =======
+  booking_telegram_verify_title: "Registration via Telegram",
+  booking_telegram_verify_subtitle: "Follow 3 simple steps",
+
+  booking_telegram_verify_step1_title: "Step 1: Phone number",
+  booking_telegram_verify_step1_subtitle: "Enter your phone number",
+  booking_telegram_verify_phone_label: "Phone number",
+  booking_telegram_verify_phone_placeholder: "+49 177 899 5106",
+  booking_telegram_verify_phone_hint: "Format: +[country code][number]",
+  booking_telegram_verify_phone_required: "Enter phone number",
+  booking_telegram_verify_send_code: "Send code",
+  booking_telegram_verify_sending: "Sending...",
+
+  booking_telegram_verify_step2_title: "Step 2: Code from Telegram",
+  booking_telegram_verify_step2_subtitle: "Enter the code we sent you in Telegram",
+  booking_telegram_verify_code_label: "Confirmation code",
+  booking_telegram_verify_code_placeholder: "000000",
+  booking_telegram_verify_code_hint: "6-digit code from Telegram bot",
+  booking_telegram_verify_code_required: "Enter 6-digit code",
+  booking_telegram_verify_check_code: "Confirm code",
+  booking_telegram_verify_checking: "Checking...",
+  booking_telegram_verify_resend: "Resend code",
+
+  booking_telegram_verify_step3_title: "Step 3: Additional information",
+  booking_telegram_verify_step3_subtitle: "Fill in your details (optional)",
+  booking_telegram_verify_email_label: "Email",
+  booking_telegram_verify_email_placeholder: "your@email.com",
+  booking_telegram_verify_email_hint: "For confirmation and reminders",
+  booking_telegram_verify_birth_label: "Date of birth",
+  booking_telegram_verify_birth_hint: "For personalized discounts for your celebration",
+  booking_telegram_verify_complete: "Complete registration",
+  booking_telegram_verify_completing: "Saving...",
+
+  booking_telegram_verify_privacy: "Your data is protected and not shared with third parties",
+  booking_telegram_verify_error_title: "⚠️ Error",
+  booking_telegram_verify_error_missing: "Insufficient parameters. Please start the booking again.",
+  booking_telegram_verify_error_return: "Return to booking",
 
 
 };

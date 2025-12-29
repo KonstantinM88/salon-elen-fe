@@ -8,14 +8,6 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
-// ───────── Контент ───────── 
-
-enum ArticleType {
-  NEWS
-  PROMO
-  ARTICLE
-}
-
 model Article {
   id          String      @id @default(cuid())
   slug        String      @unique
@@ -26,15 +18,12 @@ model Article {
   content     String?
   publishedAt DateTime?
   expiresAt   DateTime?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
 
   @@index([publishedAt])
   @@index([expiresAt])
 }
-
-// ───────── Старая форма обратной связи ───────── 
 
 model Booking {
   id        String   @id @default(cuid())
@@ -45,38 +34,26 @@ model Booking {
   createdAt DateTime @default(now())
 }
 
-// ───────── Онлайн-запись ───────── 
-
 model Service {
-  id          String  @id @default(cuid())
-  name        String  @map("title")
-  slug        String  @unique
-  description String?
-  durationMin Int
-  priceCents  Int?
-  isActive    Boolean @default(true)
-
+  id                    String                 @id @default(cuid())
+  slug                  String                 @unique
+  name                  String                 @map("title")
+  priceCents            Int?
+  durationMin           Int
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+  isActive              Boolean                @default(true)
+  description           String?
+  parentId              String?
   /// Мягкое удаление: скрываем из интерфейса,
   /// данные и связи остаются (для истории).
-  isArchived Boolean @default(false)
-
-  parentId String?
-  parent   Service?  @relation("ServiceChildren", fields: [parentId], references: [id])
-  children Service[] @relation("ServiceChildren")
-
-  appointments Appointment[]
-
-  /// m:n с мастерами (implicit join table)
-  masters Master[] @relation("MasterServices")
-
-  /// обратная сторона связи PromotionItem.service
-  promotionItems PromotionItem[]
-
-  /// обратная сторона связи SmsPhoneRegistration.service
+  isArchived            Boolean                @default(false)
+  appointments          Appointment[]
+  promotionItems        PromotionItem[]
+  parent                Service?               @relation("ServiceChildren", fields: [parentId], references: [id])
+  children              Service[]              @relation("ServiceChildren")
   smsPhoneRegistrations SmsPhoneRegistration[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  masters               Master[]               @relation("MasterServices")
 
   @@index([isActive])
   @@index([isArchived])
@@ -85,137 +62,95 @@ model Service {
   @@map("Service")
 }
 
-enum AppointmentStatus {
-  PENDING
-  CONFIRMED
-  CANCELED
-  DONE
-}
-
-enum PaymentStatus {
-  PENDING
-  PAID
-  FAILED
-  REFUNDED
-}
-
-// ───────── Клиент ───────── 
-
 model Client {
-  id        String   @id @default(cuid())
-  name      String
-  phone     String   @unique
-  email     String   @unique
-  birthDate DateTime
-  referral  String?
-  notes     String?
-
-  // связь с User (опционально, для личного кабинета)
-  userId String? @unique
-  user   User?   @relation(fields: [userId], references: [id])
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
+  id           String          @id @default(cuid())
+  name         String
+  phone        String          @unique
+  email        String          @unique
+  birthDate    DateTime
+  referral     String?
+  notes        String?
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+  userId       String?         @unique
   appointments Appointment[]
-
-  /// обратная сторона связи ClientDiscount.client
-  discount ClientDiscount?
+  user         User?           @relation(fields: [userId], references: [id])
+  discount     ClientDiscount?
 
   @@map("Client")
 }
 
-// ───────── Мастера и их персональный график ───────── 
-
 model Master {
-  id        String   @id @default(cuid())
-  name      String
-  email     String   @unique
-  phone     String   @unique
-  birthDate DateTime
-  bio       String?
-  avatarUrl String?
-
-  // связь 1:1 с User (мастер может логиниться)
-  userId String? @unique
-  user   User?   @relation(fields: [userId], references: [id])
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  appointments Appointment[]
-  services     Service[]            @relation("MasterServices")
-  workingHours MasterWorkingHours[]
-  timeOff      MasterTimeOff[]
-
-  /// обратная сторона связи SmsPhoneRegistration.master
+  id                    String                 @id @default(cuid())
+  name                  String
+  email                 String                 @unique
+  phone                 String                 @unique
+  birthDate             DateTime
+  bio                   String?
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+  avatarUrl             String?
+  userId                String?                @unique
+  appointments          Appointment[]
+  user                  User?                  @relation(fields: [userId], references: [id])
+  timeOff               MasterTimeOff[]
+  workingHours          MasterWorkingHours[]
   smsPhoneRegistrations SmsPhoneRegistration[]
+  services              Service[]              @relation("MasterServices")
 }
 
 model MasterWorkingHours {
-  id       String @id @default(cuid())
-  masterId String
-  master   Master @relation(fields: [masterId], references: [id], onDelete: Cascade)
-
+  id           String   @id @default(cuid())
+  masterId     String
   /// 0 = Sunday ... 6 = Saturday
   weekday      Int
   startMinutes Int
   endMinutes   Int
-  isClosed     Boolean @default(false)
-
-  createdAt DateTime @default(now())
+  isClosed     Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  master       Master   @relation(fields: [masterId], references: [id], onDelete: Cascade)
 
   @@unique([masterId, weekday])
 }
 
 model MasterTimeOff {
-  id       String @id @default(cuid())
-  masterId String
-  master   Master @relation(fields: [masterId], references: [id], onDelete: Cascade)
-
+  id           String   @id @default(cuid())
+  masterId     String
   /// Дата (обычно полночь локальной TZ) + интервал
   date         DateTime
   startMinutes Int
   endMinutes   Int
   reason       String?
-
-  createdAt DateTime @default(now())
+  createdAt    DateTime @default(now())
+  master       Master   @relation(fields: [masterId], references: [id], onDelete: Cascade)
 
   @@index([masterId, date])
 }
 
 model Appointment {
-  id String @id @default(cuid())
-
-  serviceId String
-  service   Service @relation(fields: [serviceId], references: [id])
-
-  clientId String?
-  client   Client? @relation(fields: [clientId], references: [id])
-
+  id                   String                @id @default(cuid())
+  serviceId            String
+  startAt              DateTime
+  endAt                DateTime
+  customerName         String
+  phone                String
+  email                String?
+  notes                String?
+  status               AppointmentStatus     @default(PENDING)
+  createdAt            DateTime              @default(now())
+  clientId             String?
   /// Связь с мастером (optional — для обратной совместимости)
-  masterId String?
-  master   Master? @relation(fields: [masterId], references: [id])
-
-  startAt DateTime
-  endAt   DateTime
-
-  customerName String
-  phone        String
-  email        String?
-  notes        String?
-  birthDate    DateTime?
-  referral     String?
-
-  status        AppointmentStatus @default(PENDING)
-  paymentStatus PaymentStatus     @default(PENDING)
-
-  createdAt DateTime @default(now())
-
-  /// обратная сторона связи SmsPhoneRegistration.appointment
+  masterId             String?
+  birthDate            DateTime?
+  referral             String?
+  paymentStatus        PaymentStatus         @default(PENDING)
+  client               Client?               @relation(fields: [clientId], references: [id])
+  master               Master?               @relation(fields: [masterId], references: [id])
+  service              Service               @relation(fields: [serviceId], references: [id])
   smsPhoneRegistration SmsPhoneRegistration?
 
-  // Индексы для быстрого поиска и проверок пересечений:
+  telegramVerification TelegramVerification?
+
   @@index([masterId])
   @@index([serviceId])
   @@index([status])
@@ -224,20 +159,17 @@ model Appointment {
   @@index([masterId, startAt])
   @@index([birthDate])
   @@index([paymentStatus])
+  @@index([masterId, startAt], map: "appointment_master_time_idx")
   @@map("Appointment")
 }
 
-// ───────── Глобальный график салона ───────── 
-
 model WorkingHours {
   id           String   @id @default(cuid())
-  weekday      Int
+  weekday      Int      @unique
   startMinutes Int
   endMinutes   Int
   isClosed     Boolean  @default(false)
   createdAt    DateTime @default(now())
-
-  @@unique([weekday])
 }
 
 model TimeOff {
@@ -251,33 +183,20 @@ model TimeOff {
   @@index([date])
 }
 
-// ───────── RBAC + NextAuth ───────── 
-
-enum Role {
-  USER
-  MASTER
-  ADMIN
-}
-
 model User {
-  id           String  @id @default(cuid())
+  id           String    @id @default(cuid())
   name         String?
-  email        String  @unique
+  email        String    @unique
   phone        String?
   image        String?
-  role         Role    @default(USER)
+  role         Role      @default(USER)
   passwordHash String?
-
-  // связи 1:1 обратно из Master/Client
-  master Master?
-  client Client?
-
-  // next-auth
-  accounts Account[]
-  sessions Session[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  accounts     Account[]
+  client       Client?
+  master       Master?
+  sessions     Session[]
 }
 
 model Account {
@@ -293,8 +212,7 @@ model Account {
   scope             String?
   id_token          String?
   session_state     String?
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
 }
@@ -304,8 +222,7 @@ model Session {
   sessionToken String   @unique
   userId       String
   expires      DateTime
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model VerificationToken {
@@ -315,8 +232,6 @@ model VerificationToken {
 
   @@unique([identifier, token])
 }
-
-// ───────── Архив удалённых логинов ───────── 
 
 model OrphanedUser {
   id           String   @id @default(cuid())
@@ -329,18 +244,15 @@ model OrphanedUser {
   @@index([archivedAt])
 }
 
-// ───────── Промоакции ───────── 
-
 model Promotion {
-  id        String   @id @default(cuid())
+  id        String          @id @default(cuid())
   title     String
   percent   Int
   from      DateTime
   to        DateTime
-  isGlobal  Boolean  @default(false)
-  createdAt DateTime @default(now())
-
-  items PromotionItem[]
+  isGlobal  Boolean         @default(false)
+  createdAt DateTime        @default(now())
+  items     PromotionItem[]
 
   @@index([from])
   @@index([to])
@@ -363,11 +275,8 @@ model ClientDiscount {
   clientId  String   @unique
   percent   Int
   createdAt DateTime @default(now())
-
-  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  client    Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
 }
-
-// ───────── Email верификация ───────── 
 
 model EmailVerification {
   id        String   @id @default(cuid())
@@ -381,8 +290,6 @@ model EmailVerification {
   @@index([expiresAt])
   @@index([used])
 }
-
-// ───────── Черновики записи ───────── 
 
 model BookingDraft {
   id           String    @id @default(cuid())
@@ -402,24 +309,6 @@ model BookingDraft {
   @@index([masterId])
   @@index([startAt, endAt])
 }
-
-// ───────── Telegram интеграция ───────── 
-
-model TelegramUser {
-  id             String   @id @default(cuid())
-  email          String   @unique
-  telegramUserId BigInt   @unique
-  telegramChatId BigInt
-  firstName      String?
-  lastName       String?
-  username       String?
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-
-  @@index([telegramChatId])
-}
-
-// ───────── Google OAuth ───────── 
 
 model GoogleUser {
   id        String   @id @default(cuid())
@@ -459,50 +348,111 @@ model GoogleQuickRegistration {
   startAt       DateTime
   endAt         DateTime
   email         String?
-  customerName  String?
-  birthDate     DateTime?
   expiresAt     DateTime
   verified      Boolean   @default(false)
   appointmentId String?
   createdAt     DateTime  @default(now())
+  birthDate     DateTime?
+  customerName  String?
 
   @@index([state])
   @@index([verified])
   @@index([expiresAt])
 }
 
-// ───────── SMS Phone регистрация (Infobip) ───────── 
-
 model SmsPhoneRegistration {
-  id           String   @id @default(cuid())
-  state        String   @unique
-  phone        String
-  pinCode      String // Хешированный PIN (bcrypt)
-  pinExpiresAt DateTime
-  attempts     Int      @default(0) // Счётчик попыток
-
-  serviceId String
-  service   Service @relation(fields: [serviceId], references: [id], onDelete: Cascade)
-
-  masterId String
-  master   Master @relation(fields: [masterId], references: [id], onDelete: Cascade)
-
-  startAt DateTime
-  endAt   DateTime
-
-  customerName String?
-  email        String?
-  birthDate    DateTime?
-
-  verified Boolean @default(false)
-
+  id            String       @id @default(cuid())
+  state         String       @unique
+  phone         String
+  pinCode       String
+  pinExpiresAt  DateTime
+  attempts      Int          @default(0)
+  serviceId     String
+  masterId      String
+  startAt       DateTime
+  endAt         DateTime
+  customerName  String?
+  email         String?
+  birthDate     DateTime?
+  verified      Boolean      @default(false)
   appointmentId String?      @unique
+  expiresAt     DateTime
+  createdAt     DateTime     @default(now())
   appointment   Appointment? @relation(fields: [appointmentId], references: [id])
-
-  expiresAt DateTime
-  createdAt DateTime @default(now())
+  master        Master       @relation(fields: [masterId], references: [id], onDelete: Cascade)
+  service       Service      @relation(fields: [serviceId], references: [id], onDelete: Cascade)
 
   @@index([phone])
   @@index([verified])
   @@index([expiresAt])
+}
+
+model TelegramVerification {
+  id            String   @id @default(cuid())
+  phone         String
+  telegramUserId BigInt?
+  code          String
+  sessionId     String   @unique
+  verified      Boolean  @default(false)
+  
+  serviceId     String
+  masterId      String
+  startAt       String
+  endAt         String
+  
+  email         String?
+  birthDate     DateTime?
+  
+  appointmentId String?  @unique
+  appointment   Appointment? @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
+  
+  createdAt     DateTime @default(now())
+  expiresAt     DateTime
+  
+  @@index([sessionId])
+  @@index([phone])
+  @@index([telegramUserId])
+}
+
+
+model TelegramUser {
+  id             String   @id
+  email          String?  @unique
+  phone          String   @unique        // ← Должен быть unique
+  telegramUserId BigInt   @unique
+  telegramChatId BigInt   @unique        // ← Должен быть unique
+  firstName      String?
+  lastName       String?
+  username       String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([telegramChatId])
+  @@index([phone])                      // ← Должен быть индекс
+}
+
+enum ArticleType {
+  NEWS
+  PROMO
+  ARTICLE
+}
+
+enum AppointmentStatus {
+  PENDING
+  CONFIRMED
+  CANCELED
+  DONE
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+}
+
+enum Role {
+  USER
+  MASTER
+  ADMIN
 }
