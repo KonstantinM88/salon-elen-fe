@@ -1,9 +1,11 @@
 // src/app/api/telegram/complete-registration/route.ts
-// ✅ ИСПРАВЛЕНО: Добавлено детальное логирование
-// ✅ БЕЗ ANY: Все типы явно указаны
+// ✅ ИСПРАВЛЕНО: 
+// 1. Использует firstName из TelegramUser для customerName
+// 2. Fallback на email только если firstName отсутствует
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { sendAdminNotification } from '@/lib/send-admin-notification';
 
 // Определяем тип транзакции Prisma
 type PrismaTransactionClient = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
@@ -19,7 +21,7 @@ interface AppointmentResponse {
   id: string;
   serviceId: string;
   serviceName: string;
-  masterId: string | null;  // ✅ Изменено на | null
+  masterId: string | null;
   masterName: string;
   startAt: Date;
   endAt: Date;
@@ -32,85 +34,6 @@ interface CompleteRegistrationResponse {
   appointmentId: string;
   appointment: AppointmentResponse;
   message: string;
-}
-
-/**
- * Отправляет уведомление администратору о новой заявке
- */
-async function sendAdminNotification(appointment: {
-  id: string;
-  customerName: string;
-  phone: string;
-  email: string | null;
-  serviceName: string;
-  masterName: string;
-  masterId: string | null;  // ✅ Добавлен | null
-  startAt: Date;
-  endAt: Date;
-  paymentStatus: string;
-}) {
-  try {
-    const adminChatId = process.env.TELEGRAM_ADMIN_CHAT_ID;
-    
-    if (!adminChatId) {
-      console.log('[Admin Notification] TELEGRAM_ADMIN_CHAT_ID not configured, skipping');
-      return;
-    }
-
-    // Форматируем дату и время
-    const dateFormatter = new Intl.DateTimeFormat('ru-RU', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-    });
-    
-    const timeFormatter = new Intl.DateTimeFormat('ru-RU', {
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-
-    const date = dateFormatter.format(appointment.startAt);
-    const startTime = timeFormatter.format(appointment.startAt);
-    const endTime = timeFormatter.format(appointment.endAt);
-
-    // Формируем сообщение
-    const message = `
-🎉 *НОВАЯ ОНЛАЙН ЗАЯВКА*
-
-👤 *Клиент:* ${appointment.customerName}
-📞 *Телефон:* ${appointment.phone}
-${appointment.email ? `📧 *Email:* ${appointment.email}\n` : ''}✂️ *Услуга:* ${appointment.serviceName}
-👩‍💼 *Мастер:* ${appointment.masterName}
-
-📅 *Дата:* ${date}
-🕐 *Время:* ${startTime} - ${endTime}
-
-💳 *Оплата:* ${appointment.paymentStatus === 'PAID' ? '✅ Оплачено' : '⏳ Ожидает оплаты'}
-
-🆔 ID: \`${appointment.id}\`
-`.trim();
-
-    console.log('[Admin Notification] Sending to admin:', adminChatId);
-
-    // Отправляем через webhook
-    const webhookUrl = `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/telegram/webhook`;
-    const response = await fetch(`${webhookUrl}?action=notify&chatId=${adminChatId}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ message }),
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      console.error('[Admin Notification] Failed:', errorData);
-      return;
-    }
-
-    console.log('[Admin Notification] ✅ Sent successfully');
-  } catch (error) {
-    console.error('[Admin Notification] Error:', error);
-    // Не прерываем процесс
-  }
 }
 
 export async function POST(request: NextRequest) {
@@ -181,30 +104,31 @@ export async function POST(request: NextRequest) {
 
     console.log('[Complete Registration] Looking up TelegramUser:', verification.phone);
 
-    if (!finalEmail || !finalTelegramUserId) {
-      const existingUser = await prisma.telegramUser.findUnique({
-        where: { phone: verification.phone },
-        select: {
-          email: true,
-          telegramUserId: true,
-        },
-      });
+    // ✅ ИСПРАВЛЕНО: Получаем ВСЕ данные включая firstName, lastName
+    const existingUser = await prisma.telegramUser.findUnique({
+      where: { phone: verification.phone },
+      select: {
+        email: true,
+        telegramUserId: true,
+        firstName: true,     // ✅ ДОБАВЛЕНО
+        lastName: true,      // ✅ ДОБАВЛЕНО
+      },
+    });
 
-      if (existingUser) {
-        console.log('[Complete Registration] Existing user found:', existingUser);
-        
-        if (!finalEmail && existingUser.email) {
-          finalEmail = existingUser.email;
-          console.log('[Complete Registration] Using email from TelegramUser:', finalEmail);
-        }
-
-        if (!finalTelegramUserId && existingUser.telegramUserId) {
-          finalTelegramUserId = Number(existingUser.telegramUserId);
-          console.log('[Complete Registration] Using telegramUserId:', finalTelegramUserId);
-        }
-      } else {
-        console.log('[Complete Registration] No existing TelegramUser found');
+    if (existingUser) {
+      console.log('[Complete Registration] Existing user found:', existingUser);
+      
+      if (!finalEmail && existingUser.email) {
+        finalEmail = existingUser.email;
+        console.log('[Complete Registration] Using email from TelegramUser:', finalEmail);
       }
+
+      if (!finalTelegramUserId && existingUser.telegramUserId) {
+        finalTelegramUserId = Number(existingUser.telegramUserId);
+        console.log('[Complete Registration] Using telegramUserId:', finalTelegramUserId);
+      }
+    } else {
+      console.log('[Complete Registration] No existing TelegramUser found');
     }
 
     if (finalEmail) {
@@ -223,6 +147,27 @@ export async function POST(request: NextRequest) {
       birthDate: finalBirthDate,
       telegramUserId: finalTelegramUserId,
     });
+
+    // ✅ ИСПРАВЛЕНО: Определяем customerName с приоритетом firstName
+    let customerName = 'Telegram User';
+    
+    if (existingUser) {
+      if (existingUser.firstName) {
+        // Используем firstName + lastName если есть
+        customerName = existingUser.lastName 
+          ? `${existingUser.firstName} ${existingUser.lastName}`.trim()
+          : existingUser.firstName;
+        console.log('[Complete Registration] Using name from TelegramUser:', customerName);
+      } else if (finalEmail) {
+        // Fallback на email только если firstName нет
+        customerName = finalEmail.split('@')[0];
+        console.log('[Complete Registration] Using email as name:', customerName);
+      }
+    } else if (finalEmail) {
+      // Если пользователя нет вообще - используем email
+      customerName = finalEmail.split('@')[0];
+      console.log('[Complete Registration] Using email as name (no user):', customerName);
+    }
 
     console.log('[Complete Registration] Starting transaction...');
 
@@ -246,7 +191,7 @@ export async function POST(request: NextRequest) {
           masterId: verification.masterId,
           startAt: new Date(verification.startAt),
           endAt: new Date(verification.endAt),
-          customerName: finalEmail ? finalEmail.split('@')[0] : 'Telegram User',
+          customerName: customerName,  // ✅ ИСПРАВЛЕНО: используем вычисленное имя
           phone: verification.phone,
           email: finalEmail || null,
           birthDate: finalBirthDate ? new Date(finalBirthDate) : null,
@@ -286,17 +231,16 @@ export async function POST(request: NextRequest) {
     // 📢 Отправляем уведомление администратору
     sendAdminNotification({
       id: result.appointment.id,
-      customerName: result.appointment.customerName,
+      customerName: result.appointment.customerName,  // ✅ Теперь будет "Константин"
       phone: result.appointment.phone,
       email: result.appointment.email,
       serviceName: result.appointment.service.name,
-      masterName: result.appointment.master?.name || 'Unknown Master',
-      masterId: result.appointment.masterId,  // ✅ Добавлено
+      masterName: result.appointment.master?.name || 'Не указан',
+      masterId: result.appointment.masterId,
       startAt: result.appointment.startAt,
       endAt: result.appointment.endAt,
       paymentStatus: result.appointment.paymentStatus,
     }).catch(err => {
-      // Логируем, но не прерываем процесс
       console.error('[Complete Registration] Notification error:', err);
     });
 
@@ -336,6 +280,616 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+
+
+
+
+
+
+//-----------работает добовляем предупреждение о не правильном введение кода-----
+// // src/app/api/telegram/complete-registration/route.ts
+// // ✅ ОБНОВЛЕНО: Использует общую функцию sendAdminNotification из @/lib
+
+// import { NextRequest, NextResponse } from 'next/server';
+// import { prisma } from '@/lib/prisma';
+// import { sendAdminNotification } from '@/lib/send-admin-notification';
+
+// // Определяем тип транзакции Prisma
+// type PrismaTransactionClient = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
+
+// interface CompleteRegistrationRequest {
+//   sessionId: string;
+//   email?: string | null;
+//   birthDate?: string | null;
+//   telegramUserId?: number | null;
+// }
+
+// interface AppointmentResponse {
+//   id: string;
+//   serviceId: string;
+//   serviceName: string;
+//   masterId: string | null;
+//   masterName: string;
+//   startAt: Date;
+//   endAt: Date;
+//   status: string;
+//   paymentStatus: string;
+// }
+
+// interface CompleteRegistrationResponse {
+//   success: boolean;
+//   appointmentId: string;
+//   appointment: AppointmentResponse;
+//   message: string;
+// }
+
+// export async function POST(request: NextRequest) {
+//   console.log('=== [Complete Registration] START ===');
+  
+//   try {
+//     const body: CompleteRegistrationRequest = await request.json();
+//     console.log('[Complete Registration] Request body:', JSON.stringify(body, null, 2));
+    
+//     const { sessionId, email, birthDate, telegramUserId } = body;
+
+//     if (!sessionId) {
+//       console.log('[Complete Registration] ERROR: Missing sessionId');
+//       return NextResponse.json(
+//         { error: 'Missing sessionId' },
+//         { status: 400 }
+//       );
+//     }
+
+//     console.log('[Complete Registration] Looking up verification:', sessionId);
+    
+//     const verification = await prisma.telegramVerification.findUnique({
+//       where: { sessionId },
+//     });
+
+//     if (!verification) {
+//       console.log('[Complete Registration] ERROR: Session not found');
+//       return NextResponse.json(
+//         { error: 'Session not found' },
+//         { status: 404 }
+//       );
+//     }
+
+//     console.log('[Complete Registration] Verification found:', {
+//       id: verification.id,
+//       phone: verification.phone,
+//       verified: verification.verified,
+//       appointmentId: verification.appointmentId,
+//     });
+
+//     if (!verification.verified) {
+//       console.log('[Complete Registration] ERROR: Session not verified');
+//       return NextResponse.json(
+//         { error: 'Session not verified. Please verify code first.' },
+//         { status: 400 }
+//       );
+//     }
+
+//     if (verification.appointmentId) {
+//       console.log('[Complete Registration] ERROR: Appointment already created:', verification.appointmentId);
+//       return NextResponse.json(
+//         { error: 'Appointment already created' },
+//         { status: 400 }
+//       );
+//     }
+
+//     if (new Date() > verification.expiresAt) {
+//       console.log('[Complete Registration] ERROR: Session expired');
+//       return NextResponse.json(
+//         { error: 'Session expired' },
+//         { status: 400 }
+//       );
+//     }
+
+//     let finalEmail = email;
+//     const finalBirthDate = birthDate;
+//     let finalTelegramUserId = telegramUserId;
+
+//     console.log('[Complete Registration] Looking up TelegramUser:', verification.phone);
+
+//     if (!finalEmail || !finalTelegramUserId) {
+//       const existingUser = await prisma.telegramUser.findUnique({
+//         where: { phone: verification.phone },
+//         select: {
+//           email: true,
+//           telegramUserId: true,
+//         },
+//       });
+
+//       if (existingUser) {
+//         console.log('[Complete Registration] Existing user found:', existingUser);
+        
+//         if (!finalEmail && existingUser.email) {
+//           finalEmail = existingUser.email;
+//           console.log('[Complete Registration] Using email from TelegramUser:', finalEmail);
+//         }
+
+//         if (!finalTelegramUserId && existingUser.telegramUserId) {
+//           finalTelegramUserId = Number(existingUser.telegramUserId);
+//           console.log('[Complete Registration] Using telegramUserId:', finalTelegramUserId);
+//         }
+//       } else {
+//         console.log('[Complete Registration] No existing TelegramUser found');
+//       }
+//     }
+
+//     if (finalEmail) {
+//       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+//       if (!emailRegex.test(finalEmail)) {
+//         console.log('[Complete Registration] ERROR: Invalid email:', finalEmail);
+//         return NextResponse.json(
+//           { error: 'Invalid email format' },
+//           { status: 400 }
+//         );
+//       }
+//     }
+
+//     console.log('[Complete Registration] Final data:', {
+//       email: finalEmail,
+//       birthDate: finalBirthDate,
+//       telegramUserId: finalTelegramUserId,
+//     });
+
+//     console.log('[Complete Registration] Starting transaction...');
+
+//     const result = await prisma.$transaction(async (tx: PrismaTransactionClient) => {
+//       console.log('[Complete Registration] Transaction: Updating verification...');
+      
+//       const updatedVerification = await tx.telegramVerification.update({
+//         where: { id: verification.id },
+//         data: {
+//           email: finalEmail || null,
+//           birthDate: finalBirthDate ? new Date(finalBirthDate) : null,
+//           telegramUserId: finalTelegramUserId ? BigInt(finalTelegramUserId) : null,
+//         },
+//       });
+
+//       console.log('[Complete Registration] Transaction: Creating appointment...');
+
+//       const appointment = await tx.appointment.create({
+//         data: {
+//           serviceId: verification.serviceId,
+//           masterId: verification.masterId,
+//           startAt: new Date(verification.startAt),
+//           endAt: new Date(verification.endAt),
+//           customerName: finalEmail ? finalEmail.split('@')[0] : 'Telegram User',
+//           phone: verification.phone,
+//           email: finalEmail || null,
+//           birthDate: finalBirthDate ? new Date(finalBirthDate) : null,
+//           status: 'PENDING',
+//           paymentStatus: 'PENDING',
+//         },
+//         include: {
+//           service: true,
+//           master: true,
+//         },
+//       });
+
+//       console.log('[Complete Registration] Transaction: Appointment created:', appointment.id);
+
+//       console.log('[Complete Registration] Transaction: Linking appointment...');
+
+//       await tx.telegramVerification.update({
+//         where: { id: verification.id },
+//         data: { appointmentId: appointment.id },
+//       });
+
+//       if (finalEmail) {
+//         console.log('[Complete Registration] Transaction: Updating TelegramUser email...');
+//         await tx.telegramUser.update({
+//           where: { phone: verification.phone },
+//           data: { email: finalEmail },
+//         });
+//         console.log('[Complete Registration] Transaction: TelegramUser updated');
+//       }
+
+//       return { appointment, verification: updatedVerification };
+//     });
+
+//     console.log('[Complete Registration] Transaction completed!');
+//     console.log('[Complete Registration] Created appointment:', result.appointment.id);
+
+//     // 📢 Отправляем уведомление администратору (используем общую функцию)
+//     sendAdminNotification({
+//       id: result.appointment.id,
+//       customerName: result.appointment.customerName,
+//       phone: result.appointment.phone,
+//       email: result.appointment.email,
+//       serviceName: result.appointment.service.name,
+//       masterName: result.appointment.master?.name || 'Не указан',
+//       masterId: result.appointment.masterId,
+//       startAt: result.appointment.startAt,
+//       endAt: result.appointment.endAt,
+//       paymentStatus: result.appointment.paymentStatus,
+//     }).catch(err => {
+//       // Логируем, но не прерываем процесс
+//       console.error('[Complete Registration] Notification error:', err);
+//     });
+
+//     const response: CompleteRegistrationResponse = {
+//       success: true,
+//       appointmentId: result.appointment.id,
+//       appointment: {
+//         id: result.appointment.id,
+//         serviceId: result.appointment.serviceId,
+//         serviceName: result.appointment.service.name,
+//         masterId: result.appointment.masterId,
+//         masterName: result.appointment.master?.name || 'Unknown Master',
+//         startAt: result.appointment.startAt,
+//         endAt: result.appointment.endAt,
+//         status: result.appointment.status,
+//         paymentStatus: result.appointment.paymentStatus,
+//       },
+//       message: 'Appointment created successfully',
+//     };
+
+//     console.log('[Complete Registration] Response:', JSON.stringify(response, null, 2));
+//     console.log('=== [Complete Registration] SUCCESS ===');
+
+//     return NextResponse.json(response);
+//   } catch (error) {
+//     console.error('=== [Complete Registration] ERROR ===');
+//     console.error('Error details:', error);
+//     console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace');
+//     console.log('=== [Complete Registration] END (with error) ===');
+    
+//     return NextResponse.json(
+//       { 
+//         error: 'Internal server error',
+//         details: error instanceof Error ? error.message : 'Unknown error'
+//       },
+//       { status: 500 }
+//     );
+//   }
+// }
+
+
+
+
+
+//--------исправлено с общей доработкой уведомления администратору-------
+// // src/app/api/telegram/complete-registration/route.ts
+// // ✅ ИСПРАВЛЕНО: Добавлено детальное логирование
+// // ✅ БЕЗ ANY: Все типы явно указаны
+
+// import { NextRequest, NextResponse } from 'next/server';
+// import { prisma } from '@/lib/prisma';
+
+// // Определяем тип транзакции Prisma
+// type PrismaTransactionClient = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
+
+// interface CompleteRegistrationRequest {
+//   sessionId: string;
+//   email?: string | null;
+//   birthDate?: string | null;
+//   telegramUserId?: number | null;
+// }
+
+// interface AppointmentResponse {
+//   id: string;
+//   serviceId: string;
+//   serviceName: string;
+//   masterId: string | null;  // ✅ Изменено на | null
+//   masterName: string;
+//   startAt: Date;
+//   endAt: Date;
+//   status: string;
+//   paymentStatus: string;
+// }
+
+// interface CompleteRegistrationResponse {
+//   success: boolean;
+//   appointmentId: string;
+//   appointment: AppointmentResponse;
+//   message: string;
+// }
+
+// /**
+//  * Отправляет уведомление администратору о новой заявке
+//  */
+// async function sendAdminNotification(appointment: {
+//   id: string;
+//   customerName: string;
+//   phone: string;
+//   email: string | null;
+//   serviceName: string;
+//   masterName: string;
+//   masterId: string | null;  // ✅ Добавлен | null
+//   startAt: Date;
+//   endAt: Date;
+//   paymentStatus: string;
+// }) {
+//   try {
+//     const adminChatId = process.env.TELEGRAM_ADMIN_CHAT_ID;
+    
+//     if (!adminChatId) {
+//       console.log('[Admin Notification] TELEGRAM_ADMIN_CHAT_ID not configured, skipping');
+//       return;
+//     }
+
+//     // Форматируем дату и время
+//     const dateFormatter = new Intl.DateTimeFormat('ru-RU', {
+//       day: '2-digit',
+//       month: '2-digit',
+//       year: 'numeric',
+//     });
+    
+//     const timeFormatter = new Intl.DateTimeFormat('ru-RU', {
+//       hour: '2-digit',
+//       minute: '2-digit',
+//     });
+
+//     const date = dateFormatter.format(appointment.startAt);
+//     const startTime = timeFormatter.format(appointment.startAt);
+//     const endTime = timeFormatter.format(appointment.endAt);
+
+//     // Формируем сообщение
+//     const message = `
+// 🎉 *НОВАЯ ОНЛАЙН ЗАЯВКА*
+
+// 👤 *Клиент:* ${appointment.customerName}
+// 📞 *Телефон:* ${appointment.phone}
+// ${appointment.email ? `📧 *Email:* ${appointment.email}\n` : ''}✂️ *Услуга:* ${appointment.serviceName}
+// 👩‍💼 *Мастер:* ${appointment.masterName}
+
+// 📅 *Дата:* ${date}
+// 🕐 *Время:* ${startTime} - ${endTime}
+
+// 💳 *Оплата:* ${appointment.paymentStatus === 'PAID' ? '✅ Оплачено' : '⏳ Ожидает оплаты'}
+
+// 🆔 ID: \`${appointment.id}\`
+// `.trim();
+
+//     console.log('[Admin Notification] Sending to admin:', adminChatId);
+
+//     // Отправляем через webhook
+//     const webhookUrl = `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/telegram/webhook`;
+//     const response = await fetch(`${webhookUrl}?action=notify&chatId=${adminChatId}`, {
+//       method: 'POST',
+//       headers: { 'Content-Type': 'application/json' },
+//       body: JSON.stringify({ message }),
+//     });
+
+//     if (!response.ok) {
+//       const errorData = await response.json();
+//       console.error('[Admin Notification] Failed:', errorData);
+//       return;
+//     }
+
+//     console.log('[Admin Notification] ✅ Sent successfully');
+//   } catch (error) {
+//     console.error('[Admin Notification] Error:', error);
+//     // Не прерываем процесс
+//   }
+// }
+
+// export async function POST(request: NextRequest) {
+//   console.log('=== [Complete Registration] START ===');
+  
+//   try {
+//     const body: CompleteRegistrationRequest = await request.json();
+//     console.log('[Complete Registration] Request body:', JSON.stringify(body, null, 2));
+    
+//     const { sessionId, email, birthDate, telegramUserId } = body;
+
+//     if (!sessionId) {
+//       console.log('[Complete Registration] ERROR: Missing sessionId');
+//       return NextResponse.json(
+//         { error: 'Missing sessionId' },
+//         { status: 400 }
+//       );
+//     }
+
+//     console.log('[Complete Registration] Looking up verification:', sessionId);
+    
+//     const verification = await prisma.telegramVerification.findUnique({
+//       where: { sessionId },
+//     });
+
+//     if (!verification) {
+//       console.log('[Complete Registration] ERROR: Session not found');
+//       return NextResponse.json(
+//         { error: 'Session not found' },
+//         { status: 404 }
+//       );
+//     }
+
+//     console.log('[Complete Registration] Verification found:', {
+//       id: verification.id,
+//       phone: verification.phone,
+//       verified: verification.verified,
+//       appointmentId: verification.appointmentId,
+//     });
+
+//     if (!verification.verified) {
+//       console.log('[Complete Registration] ERROR: Session not verified');
+//       return NextResponse.json(
+//         { error: 'Session not verified. Please verify code first.' },
+//         { status: 400 }
+//       );
+//     }
+
+//     if (verification.appointmentId) {
+//       console.log('[Complete Registration] ERROR: Appointment already created:', verification.appointmentId);
+//       return NextResponse.json(
+//         { error: 'Appointment already created' },
+//         { status: 400 }
+//       );
+//     }
+
+//     if (new Date() > verification.expiresAt) {
+//       console.log('[Complete Registration] ERROR: Session expired');
+//       return NextResponse.json(
+//         { error: 'Session expired' },
+//         { status: 400 }
+//       );
+//     }
+
+//     let finalEmail = email;
+//     const finalBirthDate = birthDate;
+//     let finalTelegramUserId = telegramUserId;
+
+//     console.log('[Complete Registration] Looking up TelegramUser:', verification.phone);
+
+//     if (!finalEmail || !finalTelegramUserId) {
+//       const existingUser = await prisma.telegramUser.findUnique({
+//         where: { phone: verification.phone },
+//         select: {
+//           email: true,
+//           telegramUserId: true,
+//         },
+//       });
+
+//       if (existingUser) {
+//         console.log('[Complete Registration] Existing user found:', existingUser);
+        
+//         if (!finalEmail && existingUser.email) {
+//           finalEmail = existingUser.email;
+//           console.log('[Complete Registration] Using email from TelegramUser:', finalEmail);
+//         }
+
+//         if (!finalTelegramUserId && existingUser.telegramUserId) {
+//           finalTelegramUserId = Number(existingUser.telegramUserId);
+//           console.log('[Complete Registration] Using telegramUserId:', finalTelegramUserId);
+//         }
+//       } else {
+//         console.log('[Complete Registration] No existing TelegramUser found');
+//       }
+//     }
+
+//     if (finalEmail) {
+//       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+//       if (!emailRegex.test(finalEmail)) {
+//         console.log('[Complete Registration] ERROR: Invalid email:', finalEmail);
+//         return NextResponse.json(
+//           { error: 'Invalid email format' },
+//           { status: 400 }
+//         );
+//       }
+//     }
+
+//     console.log('[Complete Registration] Final data:', {
+//       email: finalEmail,
+//       birthDate: finalBirthDate,
+//       telegramUserId: finalTelegramUserId,
+//     });
+
+//     console.log('[Complete Registration] Starting transaction...');
+
+//     const result = await prisma.$transaction(async (tx: PrismaTransactionClient) => {
+//       console.log('[Complete Registration] Transaction: Updating verification...');
+      
+//       const updatedVerification = await tx.telegramVerification.update({
+//         where: { id: verification.id },
+//         data: {
+//           email: finalEmail || null,
+//           birthDate: finalBirthDate ? new Date(finalBirthDate) : null,
+//           telegramUserId: finalTelegramUserId ? BigInt(finalTelegramUserId) : null,
+//         },
+//       });
+
+//       console.log('[Complete Registration] Transaction: Creating appointment...');
+
+//       const appointment = await tx.appointment.create({
+//         data: {
+//           serviceId: verification.serviceId,
+//           masterId: verification.masterId,
+//           startAt: new Date(verification.startAt),
+//           endAt: new Date(verification.endAt),
+//           customerName: finalEmail ? finalEmail.split('@')[0] : 'Telegram User',
+//           phone: verification.phone,
+//           email: finalEmail || null,
+//           birthDate: finalBirthDate ? new Date(finalBirthDate) : null,
+//           status: 'PENDING',
+//           paymentStatus: 'PENDING',
+//         },
+//         include: {
+//           service: true,
+//           master: true,
+//         },
+//       });
+
+//       console.log('[Complete Registration] Transaction: Appointment created:', appointment.id);
+
+//       console.log('[Complete Registration] Transaction: Linking appointment...');
+
+//       await tx.telegramVerification.update({
+//         where: { id: verification.id },
+//         data: { appointmentId: appointment.id },
+//       });
+
+//       if (finalEmail) {
+//         console.log('[Complete Registration] Transaction: Updating TelegramUser email...');
+//         await tx.telegramUser.update({
+//           where: { phone: verification.phone },
+//           data: { email: finalEmail },
+//         });
+//         console.log('[Complete Registration] Transaction: TelegramUser updated');
+//       }
+
+//       return { appointment, verification: updatedVerification };
+//     });
+
+//     console.log('[Complete Registration] Transaction completed!');
+//     console.log('[Complete Registration] Created appointment:', result.appointment.id);
+
+//     // 📢 Отправляем уведомление администратору
+//     sendAdminNotification({
+//       id: result.appointment.id,
+//       customerName: result.appointment.customerName,
+//       phone: result.appointment.phone,
+//       email: result.appointment.email,
+//       serviceName: result.appointment.service.name,
+//       masterName: result.appointment.master?.name || 'Unknown Master',
+//       masterId: result.appointment.masterId,  // ✅ Добавлено
+//       startAt: result.appointment.startAt,
+//       endAt: result.appointment.endAt,
+//       paymentStatus: result.appointment.paymentStatus,
+//     }).catch(err => {
+//       // Логируем, но не прерываем процесс
+//       console.error('[Complete Registration] Notification error:', err);
+//     });
+
+//     const response: CompleteRegistrationResponse = {
+//       success: true,
+//       appointmentId: result.appointment.id,
+//       appointment: {
+//         id: result.appointment.id,
+//         serviceId: result.appointment.serviceId,
+//         serviceName: result.appointment.service.name,
+//         masterId: result.appointment.masterId,
+//         masterName: result.appointment.master?.name || 'Unknown Master',
+//         startAt: result.appointment.startAt,
+//         endAt: result.appointment.endAt,
+//         status: result.appointment.status,
+//         paymentStatus: result.appointment.paymentStatus,
+//       },
+//       message: 'Appointment created successfully',
+//     };
+
+//     console.log('[Complete Registration] Response:', JSON.stringify(response, null, 2));
+//     console.log('=== [Complete Registration] SUCCESS ===');
+
+//     return NextResponse.json(response);
+//   } catch (error) {
+//     console.error('=== [Complete Registration] ERROR ===');
+//     console.error('Error details:', error);
+//     console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace');
+//     console.log('=== [Complete Registration] END (with error) ===');
+    
+//     return NextResponse.json(
+//       { 
+//         error: 'Internal server error',
+//         details: error instanceof Error ? error.message : 'Unknown error'
+//       },
+//       { status: 500 }
+//     );
+//   }
+// }
 
 
 
