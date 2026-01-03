@@ -5,7 +5,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { sendAdminNotification } from '@/lib/send-admin-notification';
+// import { sendAdminNotification } from '@/lib/send-admin-notification';
 
 // Определяем тип транзакции Prisma
 type PrismaTransactionClient = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
@@ -228,21 +228,21 @@ export async function POST(request: NextRequest) {
     console.log('[Complete Registration] Transaction completed!');
     console.log('[Complete Registration] Created appointment:', result.appointment.id);
 
-    // 📢 Отправляем уведомление администратору
-    sendAdminNotification({
-      id: result.appointment.id,
-      customerName: result.appointment.customerName,  // ✅ Теперь будет "Константин"
-      phone: result.appointment.phone,
-      email: result.appointment.email,
-      serviceName: result.appointment.service.name,
-      masterName: result.appointment.master?.name || 'Не указан',
-      masterId: result.appointment.masterId,
-      startAt: result.appointment.startAt,
-      endAt: result.appointment.endAt,
-      paymentStatus: result.appointment.paymentStatus,
-    }).catch(err => {
-      console.error('[Complete Registration] Notification error:', err);
-    });
+    // // 📢 Отправляем уведомление администратору
+    // sendAdminNotification({
+    //   id: result.appointment.id,
+    //   customerName: result.appointment.customerName,  // ✅ Теперь будет "Константин"
+    //   phone: result.appointment.phone,
+    //   email: result.appointment.email,
+    //   serviceName: result.appointment.service.name,
+    //   masterName: result.appointment.master?.name || 'Не указан',
+    //   masterId: result.appointment.masterId,
+    //   startAt: result.appointment.startAt,
+    //   endAt: result.appointment.endAt,
+    //   paymentStatus: result.appointment.paymentStatus,
+    // }).catch(err => {
+    //   console.error('[Complete Registration] Notification error:', err);
+    // });
 
     const response: CompleteRegistrationResponse = {
       success: true,

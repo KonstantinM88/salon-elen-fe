@@ -368,15 +368,41 @@ export default function PaymentPageClient(): React.JSX.Element {
     }
   };
 
-  const handleConfirm = (): void => {
-    if (!appointmentId) {
-      setError(t("booking_payment_error_missing"));
-      return;
+ const handleConfirm = async (): Promise<void> => {
+  if (!appointmentId) {
+    setError(t("booking_payment_error_missing"));
+    return;
+  }
+
+  setError(null);
+  setIsCreatingPayment(true);
+
+  try {
+    const response = await fetch('/api/booking/confirm-onsite-payment', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ appointmentId }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok || !data.success) {
+      throw new Error(data.error || 'Failed to confirm payment');
     }
 
-    setError(null);
+    console.log('✅ [Onsite Payment] Confirmed successfully');
     setShowModal(true);
-  };
+  } catch (error) {
+    console.error('❌ [Onsite Payment] Error:', error);
+    setError(
+      error instanceof Error 
+        ? error.message 
+        : 'Failed to confirm payment. Please try again.'
+    );
+  } finally {
+    setIsCreatingPayment(false);
+  }
+};
 
   if (!appointmentId) {
     return (
