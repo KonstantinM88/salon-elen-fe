@@ -1,6 +1,8 @@
 // src/lib/telegram-bot.ts
 // ИСПРАВЛЕНО: Убраны все `any`, добавлены правильные типы
 
+import { ORG_TZ } from "@/lib/orgTime";
+
 const TELEGRAM_API_URL = "https://api.telegram.org";
 
 // ===== ТИПЫ TELEGRAM API =====
@@ -100,6 +102,7 @@ function formatDate(date: Date): string {
     day: "numeric",
     month: "long",
     year: "numeric",
+    timeZone: ORG_TZ,
   }).format(date);
 }
 
@@ -110,6 +113,7 @@ function formatTime(date: Date): string {
   return new Intl.DateTimeFormat("ru-RU", {
     hour: "2-digit",
     minute: "2-digit",
+    timeZone: ORG_TZ,
   }).format(date);
 }
 

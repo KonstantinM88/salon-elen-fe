@@ -1,6 +1,8 @@
 // src/lib/send-admin-notification.ts
 // Универсальная функция для отправки уведомлений администратору
 
+import { ORG_TZ } from "@/lib/orgTime";
+
 interface AppointmentData {
   id: string;
   customerName: string;
@@ -33,16 +35,19 @@ export async function sendAdminNotification(appointment: AppointmentData): Promi
       day: 'numeric',
       month: 'long',
       year: 'numeric',
+      timeZone: ORG_TZ,
     }).format(appointment.startAt);
 
     const startTime = new Intl.DateTimeFormat('ru-RU', {
       hour: '2-digit',
       minute: '2-digit',
+      timeZone: ORG_TZ,
     }).format(appointment.startAt);
 
     const endTime = new Intl.DateTimeFormat('ru-RU', {
       hour: '2-digit',
       minute: '2-digit',
+      timeZone: ORG_TZ,
     }).format(appointment.endAt);
 
     // Эмодзи статуса оплаты
