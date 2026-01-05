@@ -2,7 +2,7 @@
 'use client';
 
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useTranslations } from '@/i18n/useTranslations';
 
 export default function PhoneInputForm() {
@@ -17,7 +17,89 @@ export default function PhoneInputForm() {
 
   const registrationId = searchParams.get('registrationId');
 
-  // Если нет registrationId - показываем ошибку
+  type QuickRegDetailsResponse = {
+    ok: boolean;
+    serviceId?: string;
+    masterId?: string;
+    dateISO?: string;
+    error?: string;
+  };
+
+  const fallbackBasePath = '/booking/calendar';
+
+  const buildFallbackUrl = useCallback(async (): Promise<string> => {
+    if (!registrationId) {
+      return fallbackBasePath;
+    }
+
+    try {
+      const res = await fetch(
+        `/api/booking/client/google-quick/details?registrationId=${encodeURIComponent(
+          registrationId
+        )}`,
+        { cache: 'no-store' }
+      );
+
+      if (!res.ok) {
+        return fallbackBasePath;
+      }
+
+      const data = (await res.json()) as QuickRegDetailsResponse;
+
+      if (!data.serviceId) {
+        return fallbackBasePath;
+      }
+
+      const qs = new URLSearchParams();
+      qs.append('s', data.serviceId);
+      if (data.masterId) qs.set('m', data.masterId);
+      if (data.dateISO) qs.set('d', data.dateISO);
+
+      const query = qs.toString();
+      return query ? `${fallbackBasePath}?${query}` : fallbackBasePath;
+    } catch {
+      return fallbackBasePath;
+    }
+  }, [registrationId, fallbackBasePath]);
+
+  const navigateToFallback = useCallback(
+    async (delayMs: number): Promise<void> => {
+      if (typeof window === 'undefined') {
+        return;
+      }
+
+      const target = await buildFallbackUrl();
+
+      if (window.opener && window.opener !== window) {
+        try {
+          window.opener.location.href = target;
+          window.opener.focus();
+          window.close();
+          return;
+        } catch {
+          // Ignore and fallback to local redirect.
+        }
+      }
+
+      if (delayMs <= 0) {
+        router.push(target);
+        return;
+      }
+
+      window.setTimeout(() => {
+        router.push(target);
+      }, delayMs);
+    },
+    [buildFallbackUrl, router]
+  );
+
+  useEffect(() => {
+    if (!registrationId) {
+      void navigateToFallback(1500);
+    }
+  }, [registrationId, navigateToFallback]);
+
+  // Если нет registrationId - показываем ошибку и автоперенаправляем
   if (!registrationId) {
     return (
       <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-[#0A0A0A] via-[#1a1a2e] to-[#0A0A0A]">
@@ -29,7 +111,9 @@ export default function PhoneInputForm() {
             {t('booking_client_form_invalid_params')}
           </p>
           <button
-            onClick={() => router.push('/booking/client')}
+            onClick={() => {
+              void navigateToFallback(0);
+            }}
             className="px-6 py-3 bg-[#D4AF37] text-[#0A0A0A] font-semibold rounded-xl hover:bg-[#FFD700] transition-all"
           >
             {t('booking_client_form_invalid_return')}
@@ -66,8 +150,16 @@ export default function PhoneInputForm() {
 
       const data = await response.json();
 
-      if (!data.ok) {
-        throw new Error(data.error || t('booking_error_title'));
+      if (!response.ok || !data.ok) {
+        const message = data?.error || t('booking_error_title');
+        setError(message);
+        setLoading(false);
+
+        if (response.status === 409 || response.status === 410 || response.status === 404) {
+          void navigateToFallback(1500);
+        }
+
+        return;
       }
 
       console.log('✅ Registration completed:', data.appointmentId);

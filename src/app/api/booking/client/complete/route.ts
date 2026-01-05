@@ -286,8 +286,11 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const customerEmail = quickReg.email;
+    const customerName = quickReg.customerName;
+
     // Проверка наличия email и customerName
-    if (!quickReg.email || !quickReg.customerName) {
+    if (!customerEmail || !customerName) {
       return NextResponse.json(
         {
           ok: false,
@@ -313,32 +316,52 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Создание Appointment с полными данными
-    const appointment = await prisma.appointment.create({
-      data: {
-        serviceId: quickReg.serviceId,
-        masterId: quickReg.masterId,
-        startAt: quickReg.startAt,
-        endAt: quickReg.endAt,
-        customerName: quickReg.customerName,
-        email: quickReg.email,
-        phone: phone.trim(), // ✅ Номер телефона от пользователя (обязательный)!
-        birthDate: birthdayDate, // ✅ Дата рождения (опциональная) — поле модели Appointment
-        status: "PENDING",
-      },
+    const conflictError = 'SLOT_TAKEN';
+
+    const appointment = await prisma.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT 1 FROM "Master" WHERE "id" = ${quickReg.masterId} FOR UPDATE`;
+
+      const conflicting = await tx.appointment.findFirst({
+        where: {
+          masterId: quickReg.masterId,
+          status: { not: 'CANCELED' },
+          startAt: { lt: quickReg.endAt },
+          endAt: { gt: quickReg.startAt },
+        },
+        select: { id: true },
+      });
+
+      if (conflicting) {
+        throw new Error(conflictError);
+      }
+
+      const created = await tx.appointment.create({
+        data: {
+          serviceId: quickReg.serviceId,
+          masterId: quickReg.masterId,
+          startAt: quickReg.startAt,
+          endAt: quickReg.endAt,
+          customerName,
+          email: customerEmail,
+          phone: phone.trim(), // ✅ Номер телефона от пользователя (обязательный)!
+          birthDate: birthdayDate, // ✅ Дата рождения (опциональная) — поле модели Appointment
+          status: "PENDING",
+        },
+      });
+
+      await tx.googleQuickRegistration.update({
+        where: { id: quickReg.id },
+        data: {
+          verified: true,
+          appointmentId: created.id,
+          birthDate: birthdayDate ?? quickReg.birthDate ?? null,
+        },
+      });
+
+      return created;
     });
 
     console.log("[Complete Registration] Appointment created:", appointment.id);
-
-    // Обновление статуса регистрации
-    await prisma.googleQuickRegistration.update({
-      where: { id: quickReg.id },
-      data: {
-        verified: true,
-        appointmentId: appointment.id,
-        birthDate: birthdayDate ?? quickReg.birthDate ?? null,
-      },
-    });
 
     console.log("[Complete Registration] ✅ SUCCESS!");
 
@@ -348,6 +371,12 @@ export async function POST(req: NextRequest) {
       message: "Registration completed successfully",
     });
   } catch (error) {
+    if (error instanceof Error && error.message === 'SLOT_TAKEN') {
+      return NextResponse.json(
+        { ok: false, error: 'Time slot is no longer available' },
+        { status: 409 }
+      );
+    }
     console.error("[Complete Registration] Error:", error);
     return NextResponse.json(
       {

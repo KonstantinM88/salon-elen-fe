@@ -41,25 +41,6 @@ async function ensureMasterCoversAll(
   return cnt === serviceIds.length;
 }
 
-// проверка пересечений по мастеру
-async function hasOverlap(
-  masterId: string | undefined,
-  startAt: Date,
-  endAt: Date
-): Promise<boolean> {
-  if (!masterId) return false;
-  const overlap = await prisma.appointment.findFirst({
-    where: {
-      masterId,
-      status: { in: ["PENDING", "CONFIRMED"] },
-      startAt: { lt: endAt },
-      endAt: { gt: startAt },
-    },
-    select: { id: true },
-  });
-  return Boolean(overlap);
-}
-
 export async function POST(req: Request) {
   try {
     const body = (await req.json()) as CreatePayload;
@@ -124,64 +105,83 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "split_required" }, { status: 400 });
     }
 
-    // проверка пересечений
-    const overlapping = await hasOverlap(masterId, startAt, endAt);
-    if (overlapping) {
-      return NextResponse.json({ error: "time_overlaps" }, { status: 409 });
-    }
+    const conflictError = "SLOT_TAKEN";
 
-    // клиент по телефону/почте, если есть — БЕЗ any
-    let clientId: string | undefined = undefined;
-    if (phone || email) {
-      const or: Prisma.ClientWhereInput[] = [];
-      if (phone) or.push({ phone });
-      if (email) or.push({ email });
+    const created = await prisma.$transaction(async (tx) => {
+      if (masterId) {
+        await tx.$queryRaw`SELECT 1 FROM "Master" WHERE "id" = ${masterId} FOR UPDATE`;
 
-      const existing = await prisma.client.findFirst({
-        where: or.length > 0 ? { OR: or } : undefined,
-        select: { id: true },
-      });
+        const overlapping = await tx.appointment.findFirst({
+          where: {
+            masterId,
+            status: { in: ["PENDING", "CONFIRMED"] },
+            startAt: { lt: endAt },
+            endAt: { gt: startAt },
+          },
+          select: { id: true },
+        });
 
-      if (existing?.id) {
-        clientId = existing.id;
+        if (overlapping) {
+          throw new Error(conflictError);
+        }
       }
-    }
 
-    // primary service для совместимости со схемой
-    const primaryServiceId = serviceIds[0];
+      // клиент по телефону/почте, если есть — БЕЗ any
+      let clientId: string | undefined = undefined;
+      if (phone || email) {
+        const or: Prisma.ClientWhereInput[] = [];
+        if (phone) or.push({ phone });
+        if (email) or.push({ email });
 
-    // сохраняем состав услуг в notes
-    const extraNote =
-      serviceIds.length > 1 ? `Набор услуг: ${serviceIds.join(", ")}` : null;
-    const composedNotes = [notes, extraNote]
-      .filter((v): v is string => Boolean(v))
-      .join("\n");
+        const existing = await tx.client.findFirst({
+          where: or.length > 0 ? { OR: or } : undefined,
+          select: { id: true },
+        });
 
-    const created = await prisma.appointment.create({
-      data: {
-        serviceId: primaryServiceId,
-        clientId,
-        masterId: masterId || null,
-        startAt,
-        endAt,
-        customerName,
-        phone,
-        email,
-        notes: composedNotes || null,
-        status: "PENDING",
-      },
-      select: {
-        id: true,
-        startAt: true,
-        endAt: true,
-        status: true,
-        masterId: true,
-        serviceId: true,
-      },
+        if (existing?.id) {
+          clientId = existing.id;
+        }
+      }
+
+      // primary service для совместимости со схемой
+      const primaryServiceId = serviceIds[0];
+
+      // сохраняем состав услуг в notes
+      const extraNote =
+        serviceIds.length > 1 ? `Набор услуг: ${serviceIds.join(", ")}` : null;
+      const composedNotes = [notes, extraNote]
+        .filter((v): v is string => Boolean(v))
+        .join("\n");
+
+      return tx.appointment.create({
+        data: {
+          serviceId: primaryServiceId,
+          clientId,
+          masterId: masterId || null,
+          startAt,
+          endAt,
+          customerName,
+          phone,
+          email,
+          notes: composedNotes || null,
+          status: "PENDING",
+        },
+        select: {
+          id: true,
+          startAt: true,
+          endAt: true,
+          status: true,
+          masterId: true,
+          serviceId: true,
+        },
+      });
     });
 
     return NextResponse.json(created);
   } catch (e) {
+    if (e instanceof Error && e.message === "SLOT_TAKEN") {
+      return NextResponse.json({ error: "time_overlaps" }, { status: 409 });
+    }
     // при необходимости подключите централизованное логирование
     console.error(e);
     return NextResponse.json({ error: "internal_error" }, { status: 500 });

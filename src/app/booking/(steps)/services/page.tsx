@@ -1,4 +1,5 @@
 // src/app/booking/(steps)/services/page.tsx
+// страница выбора услуг в многошаговом бронировании
 "use client";
 
 import React, { useState, useEffect, useMemo } from "react";

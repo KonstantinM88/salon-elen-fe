@@ -127,72 +127,80 @@ export async function POST(req: Request): Promise<Response> {
     }
     const endAt = new Date(startAt.getTime() + durationMin * 60_000);
 
-    // проверяем коллизию корректно (без any)
-    const conflicting = await prisma.appointment.findFirst({
-      where: {
-        masterId,
-        status: { in: ["PENDING", "CONFIRMED"] },
-        startAt: { lt: endAt }, // есть пересечение, если (startAt < newEnd)
-        endAt: { gt: startAt }, // и (endAt > newStart)
-      },
-      select: { id: true, startAt: true, endAt: true },
+    const conflictError = "SLOT_TAKEN";
+
+    const created = await prisma.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT 1 FROM "Master" WHERE "id" = ${masterId} FOR UPDATE`;
+
+      const conflicting = await tx.appointment.findFirst({
+        where: {
+          masterId,
+          status: { in: ["PENDING", "CONFIRMED"] },
+          startAt: { lt: endAt },
+          endAt: { gt: startAt },
+        },
+        select: { id: true },
+      });
+      if (conflicting) {
+        throw new Error(conflictError);
+      }
+
+      // клиент
+      const phoneStr = norm(o.phone as string | null | undefined);
+      const emailStr = norm(o.email as string | null | undefined);
+
+      let clientId: string | null = null;
+      if (phoneStr || emailStr) {
+        const existing = await tx.client.findFirst({
+          where: {
+            OR: [
+              ...(phoneStr ? [{ phone: phoneStr }] : []),
+              ...(emailStr ? [{ email: emailStr }] : []),
+            ],
+          },
+          select: { id: true },
+        });
+        if (existing) clientId = existing.id;
+      }
+      if (!clientId) {
+        const createdClient = await tx.client.create({
+          data: {
+            name: norm(o.customerName as string),
+            phone: phoneStr,
+            email: emailStr,
+            // храним полночь по UTC для birthDate
+            birthDate: new Date(`${o.birthDate as string}T00:00:00Z`),
+          },
+          select: { id: true },
+        });
+        clientId = createdClient.id;
+      }
+
+      return tx.appointment.create({
+        data: {
+          serviceId: service.id,
+          clientId,
+          masterId,
+          startAt,
+          endAt,
+          customerName: norm(o.customerName as string),
+          phone: phoneStr,
+          email: emailStr,
+          notes: norm(o.notes as string | null | undefined),
+          status: "PENDING",
+        },
+        select: { id: true, startAt: true, endAt: true, status: true },
+      });
     });
-    if (conflicting) {
+
+    return NextResponse.json(created, { status: 200 });
+  } catch (e) {
+    if (e instanceof Error && e.message === "SLOT_TAKEN") {
       return NextResponse.json(
         { error: "Этот слот уже занят у мастера" },
         { status: 409 }
       );
     }
-
-    // клиент
-    const phoneStr = norm(o.phone as string | null | undefined);
-    const emailStr = norm(o.email as string | null | undefined);
-
-    let clientId: string | null = null;
-    if (phoneStr || emailStr) {
-      const existing = await prisma.client.findFirst({
-        where: {
-          OR: [
-            ...(phoneStr ? [{ phone: phoneStr }] : []),
-            ...(emailStr ? [{ email: emailStr }] : []),
-          ],
-        },
-        select: { id: true },
-      });
-      if (existing) clientId = existing.id;
-    }
-    if (!clientId) {
-      const created = await prisma.client.create({
-        data: {
-          name: norm(o.customerName as string),
-          phone: phoneStr,
-          email: emailStr,
-          // храним полночь по UTC для birthDate
-          birthDate: new Date(`${o.birthDate as string}T00:00:00Z`),
-        },
-        select: { id: true },
-      });
-      clientId = created.id;
-    }
-
-    const created = await prisma.appointment.create({
-      data: {
-        serviceId: service.id,
-        clientId,
-        masterId,
-        startAt,
-        endAt,
-        customerName: norm(o.customerName as string),
-        phone: phoneStr,
-        email: emailStr,
-        notes: norm(o.notes as string | null | undefined),
-        status: "PENDING",
-      },
-      select: { id: true, startAt: true, endAt: true, status: true },
-    });
-
-    return NextResponse.json(created, { status: 200 });
-  } catch (e) {
     const msg =
       process.env.NODE_ENV === "development"
         ? `booking error: ${String(e)}`

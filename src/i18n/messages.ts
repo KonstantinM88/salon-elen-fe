@@ -204,6 +204,8 @@ export type BaseMessages = {
   booking_calendar_try_another_day: string;
   booking_calendar_vip_badge: string;
   booking_calendar_available_slots: string;
+  booking_calendar_slot_taken: string;
+  booking_calendar_reserve_error: string;
 
   // ======= BOOKING - CLIENT CHOICE PAGE =======
   booking_client_choice_title: string;
@@ -854,6 +856,8 @@ const ruMessages: BaseMessages = {
   booking_calendar_try_another_day: "Попробуйте выбрать соседний день.",
   booking_calendar_vip_badge: "VIP",
   booking_calendar_available_slots: "Доступно слотов:",
+  booking_calendar_slot_taken: "Этот слот только что забронировал другой клиент. Пожалуйста, выберите другое время.",
+  booking_calendar_reserve_error: "Ошибка резервирования. Попробуйте еще раз.",
 
   // ======= BOOKING - CLIENT CHOICE PAGE =======
   booking_client_choice_title: "Как вы хотите продолжить?",
@@ -1529,6 +1533,8 @@ const deMessages: BaseMessages = {
   booking_calendar_try_another_day: "Versuchen Sie einen anderen Tag.",
   booking_calendar_vip_badge: "VIP",
   booking_calendar_available_slots: "Verfügbare Termine:",
+  booking_calendar_slot_taken: "Dieser Termin wurde gerade von einem anderen Kunden gebucht. Bitte wählen Sie eine andere Zeit.",
+  booking_calendar_reserve_error: "Reservierungsfehler. Bitte versuchen Sie es erneut.",
 
   // ======= BOOKING - CLIENT CHOICE PAGE =======
   booking_client_choice_title: "Wie möchten Sie fortfahren?",
@@ -2212,6 +2218,8 @@ const enMessages: BaseMessages = {
   booking_calendar_try_another_day: "Try selecting a nearby day.",
   booking_calendar_vip_badge: "VIP",
   booking_calendar_available_slots: "Available slots:",
+  booking_calendar_slot_taken: "This slot was just booked by another client. Please select a different time.",
+  booking_calendar_reserve_error: "Reservation error. Please try again.",
 
   // ======= BOOKING - CLIENT CHOICE PAGE =======
   booking_client_choice_title: "How would you like to proceed?",
@@ -2690,6 +2698,9 @@ export function translate(locale: Locale, key: MessageKey): string {
   const dict = messages[locale] ?? messages.ru;
   return dict[key] ?? key;
 }
+
+
+
 
 //----------добавляю страницу регистрации через гугл------------
 // // src/i18n/messages.ts

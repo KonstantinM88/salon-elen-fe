@@ -186,46 +186,75 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    // Создаём Appointment
-    const appointment = await prisma.appointment.create({
-      data: {
-        serviceId: draft.serviceId,
-        masterId: draft.masterId,
-        startAt: draft.startAt,
-        endAt: draft.endAt,
-        customerName: draft.customerName,
-        phone: draft.phone,
-        email: draft.email,
-        birthDate: draft.birthDate,
-        referral: draft.referral,
-        notes: draft.notes,
-        status: "PENDING",
-      },
-    });
+    const conflictError = "SLOT_TAKEN";
 
-    console.log("[Google Callback] Appointment created:", appointment.id);
+    try {
+      const appointment = await prisma.$transaction(async (tx) => {
+        await tx.$queryRaw`SELECT 1 FROM "Master" WHERE "id" = ${draft.masterId} FOR UPDATE`;
 
-    // Удаляем draft
-    await prisma.bookingDraft.delete({
-      where: { id: draft.id },
-    });
+        const conflicting = await tx.appointment.findFirst({
+          where: {
+            masterId: draft.masterId,
+            status: { not: "CANCELED" },
+            startAt: { lt: draft.endAt },
+            endAt: { gt: draft.startAt },
+          },
+          select: { id: true },
+        });
 
-    console.log("[Google Callback] Draft deleted");
+        if (conflicting) {
+          throw new Error(conflictError);
+        }
 
-    // Помечаем верификацию как завершённую
-    await prisma.googleVerificationRequest.update({
-      where: { state },
-      data: {
-        verified: true,
-        appointmentId: appointment.id,
-      },
-    });
+        const created = await tx.appointment.create({
+          data: {
+            serviceId: draft.serviceId,
+            masterId: draft.masterId,
+            startAt: draft.startAt,
+            endAt: draft.endAt,
+            customerName: draft.customerName,
+            phone: draft.phone,
+            email: draft.email,
+            birthDate: draft.birthDate,
+            referral: draft.referral,
+            notes: draft.notes,
+            status: "PENDING",
+          },
+        });
 
-    console.log("[Google Callback] Verification marked as complete");
-    console.log("[Google Callback] ✅ SUCCESS! Appointment:", appointment.id);
+        await tx.bookingDraft.delete({
+          where: { id: draft.id },
+        });
 
-    // Редиректим обратно на страницу верификации с успехом
-    return redirectToVerifyPage(draft.email, draft.id, null, appointment.id);
+        await tx.googleVerificationRequest.update({
+          where: { state },
+          data: {
+            verified: true,
+            appointmentId: created.id,
+          },
+        });
+
+        return created;
+      });
+
+      console.log("[Google Callback] Appointment created:", appointment.id);
+      console.log("[Google Callback] Draft deleted");
+
+      console.log("[Google Callback] Verification marked as complete");
+      console.log("[Google Callback] ✅ SUCCESS! Appointment:", appointment.id);
+
+      // Редиректим обратно на страницу верификации с успехом
+      return redirectToVerifyPage(draft.email, draft.id, null, appointment.id);
+    } catch (error) {
+      if (error instanceof Error && error.message === conflictError) {
+        return redirectToVerifyPage(
+          verificationRequest.email,
+          verificationRequest.draftId,
+          "Выбранное время уже занято"
+        );
+      }
+      throw error;
+    }
   } catch (error) {
     console.error("[Google Callback] Error:", error);
 

@@ -456,3 +456,16 @@ enum Role {
   MASTER
   ADMIN
 }
+
+model TemporarySlotReservation {
+  id          String   @id @default(cuid())
+  masterId    String
+  startAt     DateTime
+  endAt       DateTime
+  sessionId   String   @unique  // для идентификации клиента
+  createdAt   DateTime @default(now())
+  expiresAt   DateTime // createdAt + 5 минут
+
+  @@index([masterId, startAt, endAt])
+  @@index([expiresAt])
+}

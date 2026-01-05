@@ -171,30 +171,6 @@ type VerifyResponse =
 // ---------- Вспомогательные функции ----------
 
 /**
- * Проверяет что слот всё ещё свободен
- */
-async function checkSlotConflict(
-  masterId: string,
-  startAt: Date,
-  endAt: Date
-): Promise<boolean> {
-  const conflict = await prisma.appointment.findFirst({
-    where: {
-      masterId,
-      status: { in: ['PENDING', 'CONFIRMED'] },
-      OR: [
-        {
-          startAt: { lt: endAt },
-          endAt: { gt: startAt },
-        },
-      ],
-    },
-  });
-
-  return !!conflict;
-}
-
-/**
  * Создаёт Appointment из BookingDraft
  */
 async function createAppointmentFromDraft(draftId: string) {
@@ -206,37 +182,46 @@ async function createAppointmentFromDraft(draftId: string) {
     throw new Error('Черновик не найден');
   }
 
-  // Проверяем конфликт слота
-  const hasConflict = await checkSlotConflict(
-    draft.masterId,
-    draft.startAt,
-    draft.endAt
-  );
+  const conflictError = 'SLOT_TAKEN';
 
-  if (hasConflict) {
-    throw new Error('Выбранное время уже занято. Пожалуйста, выберите другое время.');
-  }
+  const appointment = await prisma.$transaction(async (tx) => {
+    await tx.$queryRaw`SELECT 1 FROM "Master" WHERE "id" = ${draft.masterId} FOR UPDATE`;
 
-  // Создаём Appointment с правильной обработкой nullable полей
-  const appointment = await prisma.appointment.create({
-    data: {
-      serviceId: draft.serviceId,
-      masterId: draft.masterId,
-      startAt: draft.startAt,
-      endAt: draft.endAt,
-      customerName: draft.customerName,
-      phone: draft.phone,
-      email: draft.email,
-      birthDate: draft.birthDate || null,  // ✅ Правильная обработка nullable
-      referral: draft.referral || null,     // ✅ Правильная обработка nullable
-      notes: draft.notes || null,           // ✅ Правильная обработка nullable
-      status: 'PENDING',
-    },
-  });
+    const conflicting = await tx.appointment.findFirst({
+      where: {
+        masterId: draft.masterId,
+        status: { not: 'CANCELED' },
+        startAt: { lt: draft.endAt },
+        endAt: { gt: draft.startAt },
+      },
+      select: { id: true },
+    });
 
-  // Удаляем черновик
-  await prisma.bookingDraft.delete({
-    where: { id: draftId },
+    if (conflicting) {
+      throw new Error(conflictError);
+    }
+
+    const created = await tx.appointment.create({
+      data: {
+        serviceId: draft.serviceId,
+        masterId: draft.masterId,
+        startAt: draft.startAt,
+        endAt: draft.endAt,
+        customerName: draft.customerName,
+        phone: draft.phone,
+        email: draft.email,
+        birthDate: draft.birthDate || null,  // ✅ Правильная обработка nullable
+        referral: draft.referral || null,     // ✅ Правильная обработка nullable
+        notes: draft.notes || null,           // ✅ Правильная обработка nullable
+        status: 'PENDING',
+      },
+    });
+
+    await tx.bookingDraft.delete({
+      where: { id: draftId },
+    });
+
+    return created;
   });
 
   return appointment;
@@ -288,6 +273,12 @@ export async function POST(
       appointmentId: appointment.id,
     });
   } catch (error) {
+    if (error instanceof Error && error.message === 'SLOT_TAKEN') {
+      return NextResponse.json(
+        { ok: false, error: 'Выбранное время уже занято. Пожалуйста, выберите другое время.' },
+        { status: 409 }
+      );
+    }
     console.error('[OTP Verify Error]:', error);
 
     const errorMessage =

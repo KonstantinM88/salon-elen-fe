@@ -1,4 +1,5 @@
 // src/app/booking/success/SuccessClient.tsx
+// страница успешного бронирования - клиентский компонент
 'use client';
 
 import { useEffect, useState } from 'react';

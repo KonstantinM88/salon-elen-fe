@@ -6,7 +6,11 @@
 import { Temporal } from "@js-temporal/polyfill";
 
 /** Часовой пояс салона. Можно переопределить через SALON_TZ. */
-export const ORG_TZ: string = (process.env.SALON_TZ || "Europe/Berlin") as string;
+export const ORG_TZ: string = (
+  process.env.SALON_TZ ||
+  process.env.NEXT_PUBLIC_ORG_TZ ||
+  "Europe/Berlin"
+) as string;
 
 /** YYYY-MM-DD */
 export function isYmd(d: string): boolean {

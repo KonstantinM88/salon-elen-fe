@@ -1,3 +1,6 @@
+// src/app/booking/(steps)/client/ClientStep.tsx
+// страница ввода данных клиента в многошаговом бронировании
+
 'use client';
 
 import * as React from 'react';

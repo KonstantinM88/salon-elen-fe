@@ -228,34 +228,54 @@ export async function POST(req: NextRequest) {
     // Подготовка данных
     const finalBirthDate = birthDate ? new Date(birthDate) : null;
 
-    // Создание appointment
-    const appointment = await prisma.appointment.create({
-      data: {
-        serviceId: registration.serviceId,
-        masterId: registration.masterId,
-        startAt: registration.startAt,
-        endAt: registration.endAt,
-        customerName: customerName.trim(),
-        phone: registration.phone,
-        email: email ? email.trim() : null,
-        birthDate: finalBirthDate,
-        status: 'PENDING',
-        paymentStatus: 'PENDING',
-      },
+    const conflictError = 'SLOT_TAKEN';
+
+    const appointment = await prisma.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT 1 FROM "Master" WHERE "id" = ${registration.masterId} FOR UPDATE`;
+
+      const conflicting = await tx.appointment.findFirst({
+        where: {
+          masterId: registration.masterId,
+          status: { not: 'CANCELED' },
+          startAt: { lt: registration.endAt },
+          endAt: { gt: registration.startAt },
+        },
+        select: { id: true },
+      });
+
+      if (conflicting) {
+        throw new Error(conflictError);
+      }
+
+      const created = await tx.appointment.create({
+        data: {
+          serviceId: registration.serviceId,
+          masterId: registration.masterId,
+          startAt: registration.startAt,
+          endAt: registration.endAt,
+          customerName: customerName.trim(),
+          phone: registration.phone,
+          email: email ? email.trim() : null,
+          birthDate: finalBirthDate,
+          status: 'PENDING',
+          paymentStatus: 'PENDING',
+        },
+      });
+
+      await tx.smsPhoneRegistration.update({
+        where: { id: registration.id },
+        data: {
+          customerName: customerName.trim(),
+          email: email ? email.trim() : null,
+          birthDate: finalBirthDate,
+          appointmentId: created.id,
+        },
+      });
+
+      return created;
     });
 
     console.log('[SMS Phone Complete] ✅ Appointment created:', appointment.id);
-
-    // Обновление registration с данными пользователя
-    await prisma.smsPhoneRegistration.update({
-      where: { id: registration.id },
-      data: {
-        customerName: customerName.trim(),
-        email: email ? email.trim() : null,
-        birthDate: finalBirthDate,
-        appointmentId: appointment.id,
-      },
-    });
 
     console.log('[SMS Phone Complete] ✅ Registration completed');
 
@@ -264,6 +284,12 @@ export async function POST(req: NextRequest) {
       appointmentId: appointment.id,
     });
   } catch (error) {
+    if (error instanceof Error && error.message === 'SLOT_TAKEN') {
+      return NextResponse.json(
+        { ok: false, error: 'Time slot is no longer available' },
+        { status: 409 }
+      );
+    }
     console.error('[SMS Phone Complete] Error:', error);
     return NextResponse.json(
       {

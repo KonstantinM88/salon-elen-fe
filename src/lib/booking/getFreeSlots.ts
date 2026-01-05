@@ -1,279 +1,419 @@
 // src/lib/booking/getFreeSlots.ts
-import { prisma } from "@/lib/prisma";
-import { AppointmentStatus } from "@prisma/client";
+// ✅ БЕЗ any типов
 
-const ORG_TZ = process.env.NEXT_PUBLIC_ORG_TZ || "Europe/Berlin";
-const SLOT_STEP_MIN = 5;
+type Iso = string;
 
-/* =========================
-   TZ utils
-========================= */
-
-function tzOffsetMs(zone: string, d: Date): number {
-  const dtf = new Intl.DateTimeFormat("en-US", {
-    timeZone: zone,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-    hour12: false,
-  });
-  
-  const parts = Object.fromEntries(
-    dtf.formatToParts(d).map(p => [p.type, p.value])
-  );
-  
-  const asUTC = Date.UTC(
-    Number(parts.year),
-    Number(parts.month) - 1,
-    Number(parts.day),
-    Number(parts.hour),
-    Number(parts.minute),
-    Number(parts.second),
-  );
-  
-  return asUTC - d.getTime();
-}
-
-function zonedMidnightUTC(dateISO: string, zone: string): Date {
-  const localMidnight = new Date(`${dateISO}T00:00:00.000Z`);
-  const off = tzOffsetMs(zone, localMidnight);
-  return new Date(localMidnight.getTime() - off);
-}
-
-function getWeekdayInOrgTZ(dateISO: string): number {
-  const dUTC = zonedMidnightUTC(dateISO, ORG_TZ);
-  const shown = new Intl.DateTimeFormat("en-US", { 
-    timeZone: ORG_TZ, 
-    weekday: "short" 
-  }).format(dUTC).toLowerCase();
-  
-  const weekdayMap: Record<string, number> = {
-    sun: 0,
-    mon: 1,
-    tue: 2,
-    wed: 3,
-    thu: 4,
-    fri: 5,
-    sat: 6,
-  };
-  
-  return weekdayMap[shown] ?? new Date(dUTC).getUTCDay();
-}
-
-function ceilToStep(mins: number, step: number): number {
-  return Math.ceil(mins / step) * step;
-}
-
-function addMinutesFromZonedMidnight(dateISO: string, mins: number): Date {
-  const base = zonedMidnightUTC(dateISO, ORG_TZ);
-  return new Date(base.getTime() + mins * 60000);
-}
-
-function minutesFromStart(dayStartUTC: Date, dt: Date): number {
-  const diff = (dt.getTime() - dayStartUTC.getTime()) / 60000;
-  return Math.floor(diff);
-}
-
-function minutesFromEnd(dayStartUTC: Date, dt: Date): number {
-  const diff = (dt.getTime() - dayStartUTC.getTime()) / 60000;
-  return Math.ceil(diff);
-}
-
-/* =========================
-   Типы
-========================= */
+export type WindowUtc = {
+  start: Iso;
+  end: Iso;
+};
 
 export type GetFreeSlotsArgs = {
-  dateISO: string;
-  masterId: string;
-  durationMin?: number;
-  serviceIds?: string[];
+  dayStartUtcISO: Iso;
+  dayEndUtcISO: Iso;
+  workingWindowsUtc: WindowUtc[];
+  timeOffWindowsUtc: WindowUtc[];
+  busyWindowsUtc: WindowUtc[];
+  durationMin: number;
+  stepMin: number;
+  tz: string;
+  nowUtcISO: Iso;
 };
 
-export type SlotDTO = {
-  startAt: string;
-  endAt: string;
-  startMinutes: number;
-  endMinutes: number;
-};
+export type SlotISO = Iso;
 
-type Interval = { 
-  a: number; 
-  b: number; 
-};
+export function getFreeSlots(args: GetFreeSlotsArgs): SlotISO[] {
+  const {
+    dayStartUtcISO,
+    dayEndUtcISO,
+    workingWindowsUtc,
+    timeOffWindowsUtc,
+    busyWindowsUtc,
+    durationMin,
+    stepMin,
+    nowUtcISO,
+  } = args;
 
-type WorkingHours = {
-  isClosed: boolean;
-  startMinutes: number;
-  endMinutes: number;
-};
+  const toMs = (iso: Iso): number => new Date(iso).getTime();
 
-type TimeOffRecord = {
-  startMinutes: number;
-  endMinutes: number;
-};
+  const dayStart = toMs(dayStartUtcISO);
+  const dayEnd = toMs(dayEndUtcISO);
 
-type AppointmentRecord = {
-  startAt: Date;
-  endAt: Date;
-};
+  const nowRaw = toMs(nowUtcISO);
+  const useNow = nowRaw >= dayStart && nowRaw < dayEnd;
+  const stepMs = stepMin * 60_000;
+  const durationMs = durationMin * 60_000;
 
-type ServiceRecord = {
-  durationMin: number | null;
-  isActive: boolean;
-  isArchived: boolean;
-};
+  const work = normalizeWindows(workingWindowsUtc, dayStart, dayEnd, toMs);
+  const busy = normalizeWindows(
+    [...busyWindowsUtc, ...timeOffWindowsUtc],
+    dayStart,
+    dayEnd,
+    toMs,
+  );
 
-/* =========================
-   Основная функция
-========================= */
+  const busyUnion = unionIntervals(busy);
+  const allowed = subtractMany(work, busyUnion);
 
-export async function getFreeSlots(args: GetFreeSlotsArgs): Promise<SlotDTO[]> {
-  const { dateISO, masterId } = args;
+  const slots: SlotISO[] = [];
+  for (const [aStart, aEnd] of allowed) {
+    const scanStart = useNow ? Math.max(aStart, alignUp(nowRaw, stepMs)) : aStart;
 
-  // 1) Вычисляем итоговую длительность
-  let totalDuration = args.durationMin ?? 0;
-  
-  if (args.serviceIds && args.serviceIds.length > 0) {
-    const services = await prisma.service.findMany({
-      where: { id: { in: args.serviceIds } },
-      select: { durationMin: true, isActive: true, isArchived: true },
-    });
-    
-    const active = services
-      .filter((s: ServiceRecord) => s.isActive && !s.isArchived);
-    
-    totalDuration = active.reduce((acc, s) => acc + (s.durationMin ?? 0), 0);
-  }
-  
-  if (!Number.isFinite(totalDuration) || totalDuration <= 0) {
-    return [];
+    for (let t = alignUp(scanStart, stepMs); t + durationMs <= aEnd; t += stepMs) {
+      slots.push(new Date(t).toISOString());
+    }
   }
 
-  // 2) Получаем рабочие часы мастера
-  const weekday = getWeekdayInOrgTZ(dateISO);
-  const wh = await prisma.masterWorkingHours.findUnique({
-    where: { masterId_weekday: { masterId, weekday } },
-    select: { isClosed: true, startMinutes: true, endMinutes: true },
-  });
-  
-  if (!wh || wh.isClosed) {
-    return [];
+  return slots;
+}
+
+function alignUp(x: number, step: number): number {
+  const r = x % step;
+  return r === 0 ? x : x + (step - r);
+}
+
+function normalizeWindows(
+  list: WindowUtc[],
+  dayStart: number,
+  dayEnd: number,
+  toMs: (iso: Iso) => number
+): Array<[number, number]> {
+  const out: Array<[number, number]> = [];
+  for (const w of list) {
+    const s = Math.max(dayStart, toMs(w.start));
+    const e = Math.min(dayEnd, toMs(w.end));
+    if (Number.isFinite(s) && Number.isFinite(e) && e > s) {
+      out.push([s, e]);
+    }
   }
-
-  const workStart = wh.startMinutes;
-  const workEnd = wh.endMinutes;
-
-  // 3) Локальная «рамка» дня в UTC
-  const dayStartUTC = zonedMidnightUTC(dateISO, ORG_TZ);
-  const dayEndUTC = addMinutesFromZonedMidnight(dateISO, 24 * 60);
-
-  // 4) Персональные отгулы мастера
-  const timeOff = await prisma.masterTimeOff.findMany({
-    where: {
-      masterId,
-      date: { gte: dayStartUTC, lt: dayEndUTC },
-    },
-    select: { startMinutes: true, endMinutes: true },
-  });
-
-  // 5) Уже занятые интервалы
-  const busyStatuses: AppointmentStatus[] = [
-    AppointmentStatus.PENDING,
-    AppointmentStatus.CONFIRMED,
-  ];
-
-  const taken = await prisma.appointment.findMany({
-    where: {
-      masterId,
-      status: { in: busyStatuses },
-      startAt: { lt: dayEndUTC },
-      endAt: { gt: dayStartUTC },
-    },
-    select: { startAt: true, endAt: true },
-    orderBy: { startAt: "asc" },
-  });
-
-  // 6) Строим занятые минутные интервалы
-  const busy: Interval[] = [];
-
-  // Переводим отгулы в интервалы
-  timeOff.forEach((t: TimeOffRecord) => {
-    const a = Math.max(t.startMinutes, workStart);
-    const b = Math.min(t.endMinutes, workEnd);
-    if (a < b) {
-      busy.push({ a, b });
-    }
-  });
-
-  // Переводим существующие записи
-  taken.forEach((appt: AppointmentRecord) => {
-    const a0 = minutesFromStart(dayStartUTC, appt.startAt);
-    const b0 = minutesFromEnd(dayStartUTC, appt.endAt);
-    const a = Math.max(a0, workStart);
-    const b = Math.min(b0, workEnd);
-    if (a < b) {
-      busy.push({ a, b });
-    }
-  });
-
-  // 7) Сливаем пересекающиеся busy интервалы
-  busy.sort((x, y) => x.a - y.a);
-  
-  const merged: Interval[] = [];
-  busy.forEach(cur => {
-    const last = merged[merged.length - 1];
-    if (!last || last.b <= cur.a) {
-      merged.push({ ...cur });
-    } else {
-      last.b = Math.max(last.b, cur.b);
-    }
-  });
-
-  // 8) Свободные интервалы
-  const free: Interval[] = [];
-  let cursor = workStart;
-  
-  merged.forEach(blk => {
-    if (cursor < blk.a) {
-      free.push({ a: cursor, b: blk.a });
-    }
-    cursor = Math.max(cursor, blk.b);
-  });
-  
-  if (cursor < workEnd) {
-    free.push({ a: cursor, b: workEnd });
-  }
-
-  // 9) Генерация слотов
-  const out: SlotDTO[] = [];
-  
-  free.forEach(f => {
-    let start = ceilToStep(f.a, SLOT_STEP_MIN);
-    
-    while (start + totalDuration <= f.b) {
-      const end = start + totalDuration;
-      const startAtUTC = addMinutesFromZonedMidnight(dateISO, start);
-      const endAtUTC = addMinutesFromZonedMidnight(dateISO, end);
-      
-      out.push({
-        startAt: startAtUTC.toISOString(),
-        endAt: endAtUTC.toISOString(),
-        startMinutes: start,
-        endMinutes: end,
-      });
-      
-      start += SLOT_STEP_MIN;
-    }
-  });
-
+  out.sort((a, b) => a[0] - b[0]);
   return out;
 }
 
-export default getFreeSlots;
+function unionIntervals(list: Array<[number, number]>): Array<[number, number]> {
+  if (list.length <= 1) return list.slice();
+
+  const sorted = list.slice().sort((a, b) => a[0] - b[0]);
+  const res: Array<[number, number]> = [];
+  let [cs, ce] = sorted[0];
+
+  for (let i = 1; i < sorted.length; i++) {
+    const [s, e] = sorted[i];
+    if (s <= ce) {
+      ce = Math.max(ce, e);
+    } else {
+      res.push([cs, ce]);
+      [cs, ce] = [s, e];
+    }
+  }
+  res.push([cs, ce]);
+  return res;
+}
+
+function subtractMany(
+  positives: Array<[number, number]>,
+  negatives: Array<[number, number]>
+): Array<[number, number]> {
+  if (negatives.length === 0) return positives.slice();
+
+  const out: Array<[number, number]> = [];
+  for (const [ps, pe] of positives) {
+    let curStart = ps;
+    const curEnd = pe;
+
+    for (const [ns, ne] of negatives) {
+      if (ne <= curStart || ns >= curEnd) continue;
+
+      if (ns > curStart) out.push([curStart, Math.min(ns, curEnd)]);
+      curStart = Math.max(curStart, ne);
+      if (curStart >= curEnd) break;
+    }
+
+    if (curStart < curEnd) out.push([curStart, curEnd]);
+  }
+  return out.filter(([s, e]) => e > s);
+}
+
+
+
+
+//-------работало до 04.01 добавляем резервацию слота--------
+// // src/lib/booking/getFreeSlots.ts
+// import { prisma } from "@/lib/prisma";
+// import { AppointmentStatus } from "@prisma/client";
+
+// const ORG_TZ = process.env.NEXT_PUBLIC_ORG_TZ || "Europe/Berlin";
+// const SLOT_STEP_MIN = 5;
+
+// /* =========================
+//    TZ utils
+// ========================= */
+
+// function tzOffsetMs(zone: string, d: Date): number {
+//   const dtf = new Intl.DateTimeFormat("en-US", {
+//     timeZone: zone,
+//     year: "numeric",
+//     month: "2-digit",
+//     day: "2-digit",
+//     hour: "2-digit",
+//     minute: "2-digit",
+//     second: "2-digit",
+//     hour12: false,
+//   });
+  
+//   const parts = Object.fromEntries(
+//     dtf.formatToParts(d).map(p => [p.type, p.value])
+//   );
+  
+//   const asUTC = Date.UTC(
+//     Number(parts.year),
+//     Number(parts.month) - 1,
+//     Number(parts.day),
+//     Number(parts.hour),
+//     Number(parts.minute),
+//     Number(parts.second),
+//   );
+  
+//   return asUTC - d.getTime();
+// }
+
+// function zonedMidnightUTC(dateISO: string, zone: string): Date {
+//   const localMidnight = new Date(`${dateISO}T00:00:00.000Z`);
+//   const off = tzOffsetMs(zone, localMidnight);
+//   return new Date(localMidnight.getTime() - off);
+// }
+
+// function getWeekdayInOrgTZ(dateISO: string): number {
+//   const dUTC = zonedMidnightUTC(dateISO, ORG_TZ);
+//   const shown = new Intl.DateTimeFormat("en-US", { 
+//     timeZone: ORG_TZ, 
+//     weekday: "short" 
+//   }).format(dUTC).toLowerCase();
+  
+//   const weekdayMap: Record<string, number> = {
+//     sun: 0,
+//     mon: 1,
+//     tue: 2,
+//     wed: 3,
+//     thu: 4,
+//     fri: 5,
+//     sat: 6,
+//   };
+  
+//   return weekdayMap[shown] ?? new Date(dUTC).getUTCDay();
+// }
+
+// function ceilToStep(mins: number, step: number): number {
+//   return Math.ceil(mins / step) * step;
+// }
+
+// function addMinutesFromZonedMidnight(dateISO: string, mins: number): Date {
+//   const base = zonedMidnightUTC(dateISO, ORG_TZ);
+//   return new Date(base.getTime() + mins * 60000);
+// }
+
+// function minutesFromStart(dayStartUTC: Date, dt: Date): number {
+//   const diff = (dt.getTime() - dayStartUTC.getTime()) / 60000;
+//   return Math.floor(diff);
+// }
+
+// function minutesFromEnd(dayStartUTC: Date, dt: Date): number {
+//   const diff = (dt.getTime() - dayStartUTC.getTime()) / 60000;
+//   return Math.ceil(diff);
+// }
+
+// /* =========================
+//    Типы
+// ========================= */
+
+// export type GetFreeSlotsArgs = {
+//   dateISO: string;
+//   masterId: string;
+//   durationMin?: number;
+//   serviceIds?: string[];
+// };
+
+// export type SlotDTO = {
+//   startAt: string;
+//   endAt: string;
+//   startMinutes: number;
+//   endMinutes: number;
+// };
+
+// type Interval = { 
+//   a: number; 
+//   b: number; 
+// };
+
+// type WorkingHours = {
+//   isClosed: boolean;
+//   startMinutes: number;
+//   endMinutes: number;
+// };
+
+// type TimeOffRecord = {
+//   startMinutes: number;
+//   endMinutes: number;
+// };
+
+// type AppointmentRecord = {
+//   startAt: Date;
+//   endAt: Date;
+// };
+
+// type ServiceRecord = {
+//   durationMin: number | null;
+//   isActive: boolean;
+//   isArchived: boolean;
+// };
+
+// /* =========================
+//    Основная функция
+// ========================= */
+
+// export async function getFreeSlots(args: GetFreeSlotsArgs): Promise<SlotDTO[]> {
+//   const { dateISO, masterId } = args;
+
+//   // 1) Вычисляем итоговую длительность
+//   let totalDuration = args.durationMin ?? 0;
+  
+//   if (args.serviceIds && args.serviceIds.length > 0) {
+//     const services = await prisma.service.findMany({
+//       where: { id: { in: args.serviceIds } },
+//       select: { durationMin: true, isActive: true, isArchived: true },
+//     });
+    
+//     const active = services
+//       .filter((s: ServiceRecord) => s.isActive && !s.isArchived);
+    
+//     totalDuration = active.reduce((acc, s) => acc + (s.durationMin ?? 0), 0);
+//   }
+  
+//   if (!Number.isFinite(totalDuration) || totalDuration <= 0) {
+//     return [];
+//   }
+
+//   // 2) Получаем рабочие часы мастера
+//   const weekday = getWeekdayInOrgTZ(dateISO);
+//   const wh = await prisma.masterWorkingHours.findUnique({
+//     where: { masterId_weekday: { masterId, weekday } },
+//     select: { isClosed: true, startMinutes: true, endMinutes: true },
+//   });
+  
+//   if (!wh || wh.isClosed) {
+//     return [];
+//   }
+
+//   const workStart = wh.startMinutes;
+//   const workEnd = wh.endMinutes;
+
+//   // 3) Локальная «рамка» дня в UTC
+//   const dayStartUTC = zonedMidnightUTC(dateISO, ORG_TZ);
+//   const dayEndUTC = addMinutesFromZonedMidnight(dateISO, 24 * 60);
+
+//   // 4) Персональные отгулы мастера
+//   const timeOff = await prisma.masterTimeOff.findMany({
+//     where: {
+//       masterId,
+//       date: { gte: dayStartUTC, lt: dayEndUTC },
+//     },
+//     select: { startMinutes: true, endMinutes: true },
+//   });
+
+//   // 5) Уже занятые интервалы
+//   const busyStatuses: AppointmentStatus[] = [
+//     AppointmentStatus.PENDING,
+//     AppointmentStatus.CONFIRMED,
+//   ];
+
+//   const taken = await prisma.appointment.findMany({
+//     where: {
+//       masterId,
+//       status: { in: busyStatuses },
+//       startAt: { lt: dayEndUTC },
+//       endAt: { gt: dayStartUTC },
+//     },
+//     select: { startAt: true, endAt: true },
+//     orderBy: { startAt: "asc" },
+//   });
+
+//   // 6) Строим занятые минутные интервалы
+//   const busy: Interval[] = [];
+
+//   // Переводим отгулы в интервалы
+//   timeOff.forEach((t: TimeOffRecord) => {
+//     const a = Math.max(t.startMinutes, workStart);
+//     const b = Math.min(t.endMinutes, workEnd);
+//     if (a < b) {
+//       busy.push({ a, b });
+//     }
+//   });
+
+//   // Переводим существующие записи
+//   taken.forEach((appt: AppointmentRecord) => {
+//     const a0 = minutesFromStart(dayStartUTC, appt.startAt);
+//     const b0 = minutesFromEnd(dayStartUTC, appt.endAt);
+//     const a = Math.max(a0, workStart);
+//     const b = Math.min(b0, workEnd);
+//     if (a < b) {
+//       busy.push({ a, b });
+//     }
+//   });
+
+//   // 7) Сливаем пересекающиеся busy интервалы
+//   busy.sort((x, y) => x.a - y.a);
+  
+//   const merged: Interval[] = [];
+//   busy.forEach(cur => {
+//     const last = merged[merged.length - 1];
+//     if (!last || last.b <= cur.a) {
+//       merged.push({ ...cur });
+//     } else {
+//       last.b = Math.max(last.b, cur.b);
+//     }
+//   });
+
+//   // 8) Свободные интервалы
+//   const free: Interval[] = [];
+//   let cursor = workStart;
+  
+//   merged.forEach(blk => {
+//     if (cursor < blk.a) {
+//       free.push({ a: cursor, b: blk.a });
+//     }
+//     cursor = Math.max(cursor, blk.b);
+//   });
+  
+//   if (cursor < workEnd) {
+//     free.push({ a: cursor, b: workEnd });
+//   }
+
+//   // 9) Генерация слотов
+//   const out: SlotDTO[] = [];
+  
+//   free.forEach(f => {
+//     let start = ceilToStep(f.a, SLOT_STEP_MIN);
+    
+//     while (start + totalDuration <= f.b) {
+//       const end = start + totalDuration;
+//       const startAtUTC = addMinutesFromZonedMidnight(dateISO, start);
+//       const endAtUTC = addMinutesFromZonedMidnight(dateISO, end);
+      
+//       out.push({
+//         startAt: startAtUTC.toISOString(),
+//         endAt: endAtUTC.toISOString(),
+//         startMinutes: start,
+//         endMinutes: end,
+//       });
+      
+//       start += SLOT_STEP_MIN;
+//     }
+//   });
+
+//   return out;
+// }
+
+// export default getFreeSlots;
 
 
 

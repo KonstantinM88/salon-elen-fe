@@ -286,7 +286,20 @@ export async function GET(req: NextRequest) {
     
     // Автоматический редирект через 1 секунду
     setTimeout(() => {
-      window.location.href = '${redirectUrl.toString()}';
+      const redirectUrl = '${redirectUrl.toString()}';
+
+      if (window.opener && !window.opener.closed) {
+        try {
+          window.opener.location.href = redirectUrl;
+          window.opener.focus();
+          window.close();
+          return;
+        } catch (e) {
+          console.warn('[Google OAuth] opener redirect failed, fallback to self:', e);
+        }
+      }
+
+      window.location.href = redirectUrl;
     }, 1000);
   </script>
 </body>
