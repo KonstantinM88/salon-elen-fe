@@ -148,7 +148,17 @@ export async function POST(request: NextRequest) {
 
     console.log('[Verify Code] Existing user:', existingUser);
 
-    const hasUserData = Boolean(existingUser?.telegramUserId);
+    const userData: UserData | null =
+      existingUser && existingUser.telegramUserId
+        ? {
+            email: existingUser.email,
+            firstName: existingUser.firstName,
+            lastName: existingUser.lastName,
+            telegramUserId: Number(existingUser.telegramUserId),
+          }
+        : null;
+
+    const hasUserData = Boolean(userData);
 
     console.log('[Verify Code] Has user data?', hasUserData);
 
@@ -163,12 +173,7 @@ export async function POST(request: NextRequest) {
       verified: true,
       sessionId: updated.sessionId,
       message: 'Code verified successfully',
-      userData: hasUserData ? {
-        email: existingUser.email,
-        firstName: existingUser.firstName,
-        lastName: existingUser.lastName,
-        telegramUserId: existingUser.telegramUserId ? Number(existingUser.telegramUserId) : null,
-      } : null,
+      userData,
     };
 
     console.log('[Verify Code] Response:', JSON.stringify(response, null, 2));
