@@ -6,6 +6,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { normalizePhoneDigits } from '@/lib/phone';
 
 interface VerifyCodeDraftRequest {
   sessionId: string;
@@ -15,6 +16,11 @@ interface VerifyCodeDraftRequest {
 
 // ✅ Определяем тип транзакции Prisma
 type PrismaTransactionClient = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
+
+type TelegramUserMatch = {
+  firstName: string | null;
+  lastName: string | null;
+};
 
 export async function POST(request: NextRequest) {
   console.log('=== [Telegram Verify Code Draft] START ===');
@@ -109,13 +115,32 @@ export async function POST(request: NextRequest) {
     });
 
     // Получить данные пользователя из TelegramUser
-    const telegramUser = await prisma.telegramUser.findUnique({
-      where: { phone: verification.phone },
-      select: {
-        firstName: true,
-        lastName: true,
-      },
-    });
+    let telegramUser: TelegramUserMatch | null = null;
+
+    if (verification.telegramUserId) {
+      telegramUser = await prisma.telegramUser.findUnique({
+        where: { telegramUserId: verification.telegramUserId },
+        select: {
+          firstName: true,
+          lastName: true,
+        },
+      });
+    }
+
+    if (!telegramUser) {
+      const phoneDigits = normalizePhoneDigits(verification.phone);
+      const matches = await prisma.telegramUser.findMany({
+        where: { phone: { endsWith: phoneDigits } },
+        select: {
+          firstName: true,
+          lastName: true,
+        },
+      });
+
+      if (matches.length === 1) {
+        telegramUser = matches[0];
+      }
+    }
 
     console.log('[Telegram Verify Code Draft] Telegram user:', telegramUser);
 

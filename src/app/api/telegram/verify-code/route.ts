@@ -4,6 +4,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { normalizePhoneDigits } from '@/lib/phone';
 
 interface VerifyCodeRequest {
   sessionId: string;
@@ -24,6 +25,14 @@ interface VerifyCodeResponse {
   message: string;
   userData: UserData | null;
 }
+
+type TelegramUserMatch = {
+  email: string | null;
+  firstName: string | null;
+  lastName: string | null;
+  telegramUserId: bigint | null;
+  telegramChatId: bigint | null;
+};
 
 export async function POST(request: NextRequest) {
   console.log('=== [Verify Code] START ===');
@@ -104,20 +113,42 @@ export async function POST(request: NextRequest) {
 
     console.log('[Verify Code] Checking for existing user...');
 
-    const existingUser = await prisma.telegramUser.findUnique({
-      where: { phone: verification.phone },
-      select: {
-        email: true,
-        firstName: true,
-        lastName: true,
-        telegramUserId: true,
-        telegramChatId: true,
-      },
-    });
+    let existingUser: TelegramUserMatch | null = null;
+
+    if (verification.telegramUserId) {
+      existingUser = await prisma.telegramUser.findUnique({
+        where: { telegramUserId: verification.telegramUserId },
+        select: {
+          email: true,
+          firstName: true,
+          lastName: true,
+          telegramUserId: true,
+          telegramChatId: true,
+        },
+      });
+    }
+
+    if (!existingUser) {
+      const phoneDigits = normalizePhoneDigits(verification.phone);
+      const matches = await prisma.telegramUser.findMany({
+        where: { phone: { endsWith: phoneDigits } },
+        select: {
+          email: true,
+          firstName: true,
+          lastName: true,
+          telegramUserId: true,
+          telegramChatId: true,
+        },
+      });
+
+      if (matches.length === 1) {
+        existingUser = matches[0];
+      }
+    }
 
     console.log('[Verify Code] Existing user:', existingUser);
 
-    const hasUserData = existingUser && existingUser.email;
+    const hasUserData = Boolean(existingUser?.telegramUserId);
 
     console.log('[Verify Code] Has user data?', hasUserData);
 

@@ -2,6 +2,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { isPhoneDigitsValid, normalizePhoneDigits } from '@/lib/phone';
 
 export async function GET(request: NextRequest) {
   try {
@@ -15,11 +16,19 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    const phoneDigits = normalizePhoneDigits(phone);
+    if (!isPhoneDigitsValid(phoneDigits)) {
+      return NextResponse.json(
+        { error: 'Invalid phone format. Use format: +380679014039' },
+        { status: 400 }
+      );
+    }
+
     console.log('[Check Registration] Checking phone:', phone);
 
     // Проверить есть ли пользователь в БД
-    const user = await prisma.telegramUser.findUnique({
-      where: { phone },
+    const matches = await prisma.telegramUser.findMany({
+      where: { phone: { endsWith: phoneDigits } },
       select: {
         id: true,
         phone: true,
@@ -28,6 +37,12 @@ export async function GET(request: NextRequest) {
         username: true,
       },
     });
+
+    if (matches.length > 1) {
+      console.log('[Check Registration] Multiple matches found, using first');
+    }
+
+    const user = matches[0];
 
     if (user) {
       console.log('[Check Registration] User found:', user.id);

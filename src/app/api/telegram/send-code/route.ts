@@ -2,6 +2,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { isPhoneDigitsValid, normalizePhoneDigits } from '@/lib/phone';
 
 export async function POST(request: NextRequest) {
   try {
@@ -18,15 +19,39 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Валидация телефона (базовая)
-    const phoneRegex = /^\+\d{10,15}$/;
-    if (!phoneRegex.test(phone)) {
+    const phoneDigits = normalizePhoneDigits(phone);
+    if (!isPhoneDigitsValid(phoneDigits)) {
       console.log('[Telegram Send Code] Invalid phone format:', phone);
       return NextResponse.json(
         { error: 'Invalid phone format. Use format: +4917789951064' },
         { status: 400 }
       );
     }
+
+    const matches = await prisma.telegramUser.findMany({
+      where: { phone: { endsWith: phoneDigits } },
+      select: {
+        phone: true,
+        telegramUserId: true,
+      },
+    });
+
+    if (matches.length === 0) {
+      return NextResponse.json(
+        { error: 'Phone not registered in Telegram bot' },
+        { status: 404 }
+      );
+    }
+
+    if (matches.length > 1) {
+      return NextResponse.json(
+        { error: 'Multiple users found. Use full phone number with country code.' },
+        { status: 409 }
+      );
+    }
+
+    const matchedUser = matches[0];
+    const resolvedPhone = matchedUser.phone;
 
     // Генерация 6-значного кода
     const code = Math.floor(100000 + Math.random() * 900000).toString();
@@ -42,14 +67,14 @@ export async function POST(request: NextRequest) {
     // Удалить старые неверифицированные записи для этого телефона
     await prisma.telegramVerification.deleteMany({
       where: {
-        phone,
+        phone: resolvedPhone,
         verified: false,
         expiresAt: { lt: new Date() }, // Только истёкшие
       },
     });
 
     console.log('[Telegram Send Code] Creating verification with data:', {
-      phone,
+      phone: resolvedPhone,
       code,
       sessionId,
       serviceId,
@@ -58,6 +83,7 @@ export async function POST(request: NextRequest) {
       endAt,
       expiresAt,
       verified: false,
+      telegramUserId: matchedUser.telegramUserId,
     });
 
     // Создать новую верификацию
@@ -82,7 +108,7 @@ export async function POST(request: NextRequest) {
     
     try {
       console.log('[Telegram Send Code] Sending to Telegram via webhook');
-      const response = await fetch(`${baseUrl}/api/telegram/webhook?phone=${encodeURIComponent(phone)}&code=${code}`);
+      const response = await fetch(`${baseUrl}/api/telegram/webhook?phone=${encodeURIComponent(resolvedPhone)}&code=${code}`);
       const data = await response.json();
       
       if (!response.ok) {

@@ -3,6 +3,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { isPhoneDigitsValid, normalizePhoneDigits } from '@/lib/phone';
 
 interface SendCodeDraftRequest {
   phone: string;
@@ -28,15 +29,39 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Валидация телефона
-    const phoneRegex = /^\+\d{10,15}$/;
-    if (!phoneRegex.test(phone)) {
+    const phoneDigits = normalizePhoneDigits(phone);
+    if (!isPhoneDigitsValid(phoneDigits)) {
       console.log('[Telegram Send Code Draft] ERROR: Invalid phone format:', phone);
       return NextResponse.json(
         { error: 'Invalid phone format. Use format: +380679014039' },
         { status: 400 }
       );
     }
+
+    const matches = await prisma.telegramUser.findMany({
+      where: { phone: { endsWith: phoneDigits } },
+      select: {
+        phone: true,
+        telegramUserId: true,
+      },
+    });
+
+    if (matches.length === 0) {
+      return NextResponse.json(
+        { error: 'Phone not registered in Telegram bot' },
+        { status: 404 }
+      );
+    }
+
+    if (matches.length > 1) {
+      return NextResponse.json(
+        { error: 'Multiple users found. Use full phone number with country code.' },
+        { status: 409 }
+      );
+    }
+
+    const matchedUser = matches[0];
+    const resolvedPhone = matchedUser.phone;
 
     // Загрузить BookingDraft
     console.log('[Telegram Send Code Draft] Loading draft:', draftId);
@@ -71,7 +96,7 @@ export async function POST(request: NextRequest) {
     // Удалить старые неверифицированные записи для этого телефона
     await prisma.telegramVerification.deleteMany({
       where: {
-        phone,
+        phone: resolvedPhone,
         verified: false,
         expiresAt: { lt: new Date() },
       },
@@ -80,7 +105,7 @@ export async function POST(request: NextRequest) {
     // Создать новую верификацию с данными из draft
     const verification = await prisma.telegramVerification.create({
       data: {
-        phone,
+        phone: resolvedPhone,
         code,
         sessionId,
         serviceId: draft.serviceId,
@@ -91,6 +116,7 @@ export async function POST(request: NextRequest) {
         birthDate: draft.birthDate || null,
         expiresAt,
         verified: false,
+        telegramUserId: matchedUser.telegramUserId,
       },
     });
 
@@ -102,7 +128,7 @@ export async function POST(request: NextRequest) {
     try {
       console.log('[Telegram Send Code Draft] Sending to Telegram via webhook');
       const response = await fetch(
-        `${baseUrl}/api/telegram/webhook?phone=${encodeURIComponent(phone)}&code=${code}`
+        `${baseUrl}/api/telegram/webhook?phone=${encodeURIComponent(resolvedPhone)}&code=${code}`
       );
       const data = await response.json();
       

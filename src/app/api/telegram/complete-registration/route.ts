@@ -5,6 +5,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { normalizePhoneDigits } from '@/lib/phone';
 // import { sendAdminNotification } from '@/lib/send-admin-notification';
 
 // Определяем тип транзакции Prisma
@@ -35,6 +36,14 @@ interface CompleteRegistrationResponse {
   appointment: AppointmentResponse;
   message: string;
 }
+
+type TelegramUserMatch = {
+  id: string;
+  email: string | null;
+  telegramUserId: bigint | null;
+  firstName: string | null;
+  lastName: string | null;
+};
 
 export async function POST(request: NextRequest) {
   console.log('=== [Complete Registration] START ===');
@@ -105,15 +114,38 @@ export async function POST(request: NextRequest) {
     console.log('[Complete Registration] Looking up TelegramUser:', verification.phone);
 
     // ✅ ИСПРАВЛЕНО: Получаем ВСЕ данные включая firstName, lastName
-    const existingUser = await prisma.telegramUser.findUnique({
-      where: { phone: verification.phone },
-      select: {
-        email: true,
-        telegramUserId: true,
-        firstName: true,     // ✅ ДОБАВЛЕНО
-        lastName: true,      // ✅ ДОБАВЛЕНО
-      },
-    });
+    let existingUser: TelegramUserMatch | null = null;
+
+    if (verification.telegramUserId) {
+      existingUser = await prisma.telegramUser.findUnique({
+        where: { telegramUserId: verification.telegramUserId },
+        select: {
+          id: true,
+          email: true,
+          telegramUserId: true,
+          firstName: true,
+          lastName: true,
+        },
+      });
+    }
+
+    if (!existingUser) {
+      const phoneDigits = normalizePhoneDigits(verification.phone);
+      const matches = await prisma.telegramUser.findMany({
+        where: { phone: { endsWith: phoneDigits } },
+        select: {
+          id: true,
+          email: true,
+          telegramUserId: true,
+          firstName: true,
+          lastName: true,
+        },
+      });
+
+      if (matches.length === 1) {
+        existingUser = matches[0];
+      }
+    }
 
     if (existingUser) {
       console.log('[Complete Registration] Existing user found:', existingUser);
@@ -129,6 +161,11 @@ export async function POST(request: NextRequest) {
       }
     } else {
       console.log('[Complete Registration] No existing TelegramUser found');
+    }
+
+    if (!finalTelegramUserId && verification.telegramUserId) {
+      finalTelegramUserId = Number(verification.telegramUserId);
+      console.log('[Complete Registration] Using telegramUserId from verification:', finalTelegramUserId);
     }
 
     if (finalEmail) {
@@ -170,6 +207,26 @@ export async function POST(request: NextRequest) {
     }
 
     console.log('[Complete Registration] Starting transaction...');
+
+    let shouldUpdateTelegramEmail = Boolean(finalEmail && existingUser);
+
+    if (shouldUpdateTelegramEmail && finalEmail && existingUser) {
+      if (existingUser.email && existingUser.email !== finalEmail) {
+        shouldUpdateTelegramEmail = false;
+      }
+    }
+
+    if (shouldUpdateTelegramEmail && finalEmail && existingUser) {
+      const emailOwner = await prisma.telegramUser.findUnique({
+        where: { email: finalEmail },
+        select: { id: true },
+      });
+
+      if (emailOwner && emailOwner.id !== existingUser.id) {
+        shouldUpdateTelegramEmail = false;
+        console.log('[Complete Registration] Email already in use, skipping TelegramUser update');
+      }
+    }
 
     const result = await prisma.$transaction(async (tx: PrismaTransactionClient) => {
       console.log('[Complete Registration] Transaction: Updating verification...');
@@ -213,10 +270,10 @@ export async function POST(request: NextRequest) {
         data: { appointmentId: appointment.id },
       });
 
-      if (finalEmail) {
+      if (shouldUpdateTelegramEmail && finalEmail && existingUser) {
         console.log('[Complete Registration] Transaction: Updating TelegramUser email...');
         await tx.telegramUser.update({
-          where: { phone: verification.phone },
+          where: { id: existingUser.id },
           data: { email: finalEmail },
         });
         console.log('[Complete Registration] Transaction: TelegramUser updated');
