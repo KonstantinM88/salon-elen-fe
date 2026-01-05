@@ -93,6 +93,24 @@ interface PageShellProps {
 }
 
 function PageShell({ children, bookingSteps }: PageShellProps): React.JSX.Element {
+  const [isFooterVisible, setIsFooterVisible] = React.useState(false);
+
+  React.useEffect(() => {
+    const footer = document.querySelector("footer");
+    if (!footer) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setIsFooterVisible(entry.isIntersecting);
+      },
+      { threshold: 0 }
+    );
+
+    observer.observe(footer);
+
+    return () => observer.disconnect();
+  }, []);
+
   return (
     <div className="relative min-h-screen overflow-hidden bg-gradient-to-b from-slate-950/40 via-slate-950 to-black/95 text-white">
       <BookingAnimatedBackground />
@@ -107,6 +125,9 @@ function PageShell({ children, bookingSteps }: PageShellProps): React.JSX.Elemen
       </div>
 
       <Ballpit
+        className={`pointer-events-none transition-opacity duration-500 ${
+          isFooterVisible ? "opacity-0" : "opacity-100"
+        }`}
         count={50}
         gravity={0}
         friction={0.9995}
