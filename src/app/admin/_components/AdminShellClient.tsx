@@ -2,7 +2,7 @@
 
 import { useState, type ReactNode } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Menu, ChevronLeft } from "lucide-react";
+import { Menu, X } from "lucide-react";
 import type { Role } from "@prisma/client";
 
 import AdminNav from "@/components/admin/AdminNav";
@@ -11,7 +11,7 @@ import AdminFooter from "../_components/AdminFooter";
 type AdminShellClientProps = {
   children: ReactNode;
   bookingsBadge: number;
-  role: Role; // ← добавили
+  role: Role;
 };
 
 export default function AdminShellClient({
@@ -19,75 +19,196 @@ export default function AdminShellClient({
   bookingsBadge,
   role,
 }: AdminShellClientProps) {
-  const [open, setOpen] = useState<boolean>(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState<boolean>(false);
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[260px_1fr]">
-      {/* Сайдбар */}
-      <aside className="rounded-2xl border border-slate-800 bg-slate-950/60 p-4">
-        {/* Хедер сайдбара */}
-        <div className="mb-3 flex items-center justify-between">
-          <div className="text-xs uppercase tracking-wider text-slate-400">
-            Admin
-          </div>
+    <>
+      {/* 🔥 МОБИЛЬНОЕ МЕНЮ - Полноэкранный оверлей */}
+      <AnimatePresence>
+        {mobileMenuOpen && (
+          <>
+            {/* Затемнение фона */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setMobileMenuOpen(false)}
+              className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 lg:hidden"
+            />
 
-          {/* Тогглер (мобилка) */}
-          <div className="flex items-center gap-2 lg:hidden">
-            {!open ? (
+            {/* Панель меню */}
+            <motion.aside
+              initial={{ x: "-100%" }}
+              animate={{ x: 0 }}
+              exit={{ x: "-100%" }}
+              transition={{ type: "spring", damping: 30, stiffness: 300 }}
+              className="fixed left-0 top-0 bottom-0 w-[280px] max-w-[85vw] 
+                         bg-slate-950 border-r border-slate-800 z-50 overflow-y-auto lg:hidden
+                         shadow-2xl shadow-black/50"
+            >
+              <div className="p-4">
+                {/* Хедер с кнопкой закрытия */}
+                <div className="flex items-center justify-between mb-6">
+                  <div className="text-sm uppercase tracking-wider text-slate-400">
+                    Admin Menu
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setMobileMenuOpen(false)}
+                    aria-label="Закрыть меню"
+                    className="inline-flex h-10 w-10 items-center justify-center rounded-xl 
+                               border border-white/10 bg-white/5 hover:bg-white/10 transition"
+                  >
+                    <X className="h-5 w-5 text-slate-200" />
+                  </button>
+                </div>
+
+                {/* Навигация */}
+                <AdminNav role={role} bookingsBadge={bookingsBadge} />
+              </div>
+            </motion.aside>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* 🖥️ ОСНОВНОЙ LAYOUT */}
+      <div className="admin-shell min-h-screen p-3 sm:p-4 lg:p-6">
+        <div className="grid gap-4 lg:gap-6 lg:grid-cols-[260px_1fr]">
+          {/* 📱 МОБИЛЬНАЯ ШАПКА (только на мобильных) */}
+          <div className="lg:hidden">
+            <div className="card-glass card-glass-accent card-glow p-4 flex items-center justify-between">
+              <div className="text-sm uppercase tracking-wider text-slate-400">
+                Admin Panel
+              </div>
               <button
                 type="button"
-                onClick={() => setOpen(true)}
+                onClick={() => setMobileMenuOpen(true)}
                 aria-label="Открыть меню"
-                title="Открыть меню"
-                className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-white/10 bg-white/5"
+                className="inline-flex h-10 w-10 items-center justify-center rounded-xl 
+                           border border-white/10 bg-white/5 hover:bg-white/10 transition-all
+                           hover:scale-105 active:scale-95"
               >
                 <Menu className="h-5 w-5 text-slate-200" />
-                <span className="sr-only">Открыть меню</span>
               </button>
-            ) : (
-              <button
-                type="button"
-                onClick={() => setOpen(false)}
-                aria-label="Свернуть меню"
-                title="Свернуть меню"
-                className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-white/10 bg-white/5"
-              >
-                <ChevronLeft className="h-5 w-5 text-slate-200" />
-                <span className="sr-only">Свернуть меню</span>
-              </button>
-            )}
+            </div>
           </div>
-        </div>
 
-        {/* Навигация */}
-        <div className="lg:block">
-          <AnimatePresence>
-            {open && (
-              <motion.div
-                initial={{ height: 0, opacity: 0 }}
-                animate={{ height: "auto", opacity: 1 }}
-                exit={{ height: 0, opacity: 0 }}
-                transition={{ type: "spring", stiffness: 260, damping: 28 }}
-                className="overflow-hidden lg:hidden"
-              >
-                <AdminNav role={role} bookingsBadge={bookingsBadge} />
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          {/* Десктоп */}
-          <div className="hidden lg:block">
+          {/* 🖥️ ДЕСКТОПНЫЙ САЙДБАР (скрыт на мобильных) */}
+          <aside className="hidden lg:block card-glass card-glass-accent card-glow p-4 h-fit sticky top-6">
+            <div className="mb-4 flex items-center justify-between">
+              <div className="text-xs uppercase tracking-wider text-slate-400">
+                Admin
+              </div>
+            </div>
             <AdminNav role={role} bookingsBadge={bookingsBadge} />
-          </div>
-        </div>
-      </aside>
+          </aside>
 
-      {/* Контент */}
-      <section className="rounded-2xl border border-slate-800 bg-slate-950/40 p-4 lg:p-6">
-        {children}
-        <AdminFooter />
-      </section>
-    </div>
+          {/* 📄 КОНТЕНТ */}
+          <section className="card-glass card-glass-accent card-glow p-4 sm:p-5 lg:p-6 overflow-x-auto overflow-y-visible">
+            {children}
+            <AdminFooter />
+          </section>
+        </div>
+      </div>
+    </>
   );
 }
+
+
+
+
+
+//--------работало до 05.01.25 делаем адаптацию----------
+// "use client";
+
+// import { useState, type ReactNode } from "react";
+// import { motion, AnimatePresence } from "framer-motion";
+// import { Menu, ChevronLeft } from "lucide-react";
+// import type { Role } from "@prisma/client";
+
+// import AdminNav from "@/components/admin/AdminNav";
+// import AdminFooter from "../_components/AdminFooter";
+
+// type AdminShellClientProps = {
+//   children: ReactNode;
+//   bookingsBadge: number;
+//   role: Role; // ← добавили
+// };
+
+// export default function AdminShellClient({
+//   children,
+//   bookingsBadge,
+//   role,
+// }: AdminShellClientProps) {
+//   const [open, setOpen] = useState<boolean>(false);
+
+//   return (
+//     <div className="grid gap-6 lg:grid-cols-[260px_1fr]">
+//       {/* Сайдбар */}
+//       <aside className="rounded-2xl border border-slate-800 bg-slate-950/60 p-4">
+//         {/* Хедер сайдбара */}
+//         <div className="mb-3 flex items-center justify-between">
+//           <div className="text-xs uppercase tracking-wider text-slate-400">
+//             Admin
+//           </div>
+
+//           {/* Тогглер (мобилка) */}
+//           <div className="flex items-center gap-2 lg:hidden">
+//             {!open ? (
+//               <button
+//                 type="button"
+//                 onClick={() => setOpen(true)}
+//                 aria-label="Открыть меню"
+//                 title="Открыть меню"
+//                 className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-white/10 bg-white/5"
+//               >
+//                 <Menu className="h-5 w-5 text-slate-200" />
+//                 <span className="sr-only">Открыть меню</span>
+//               </button>
+//             ) : (
+//               <button
+//                 type="button"
+//                 onClick={() => setOpen(false)}
+//                 aria-label="Свернуть меню"
+//                 title="Свернуть меню"
+//                 className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-white/10 bg-white/5"
+//               >
+//                 <ChevronLeft className="h-5 w-5 text-slate-200" />
+//                 <span className="sr-only">Свернуть меню</span>
+//               </button>
+//             )}
+//           </div>
+//         </div>
+
+//         {/* Навигация */}
+//         <div className="lg:block">
+//           <AnimatePresence>
+//             {open && (
+//               <motion.div
+//                 initial={{ height: 0, opacity: 0 }}
+//                 animate={{ height: "auto", opacity: 1 }}
+//                 exit={{ height: 0, opacity: 0 }}
+//                 transition={{ type: "spring", stiffness: 260, damping: 28 }}
+//                 className="overflow-hidden lg:hidden"
+//               >
+//                 <AdminNav role={role} bookingsBadge={bookingsBadge} />
+//               </motion.div>
+//             )}
+//           </AnimatePresence>
+
+//           {/* Десктоп */}
+//           <div className="hidden lg:block">
+//             <AdminNav role={role} bookingsBadge={bookingsBadge} />
+//           </div>
+//         </div>
+//       </aside>
+
+//       {/* Контент */}
+//       <section className="rounded-2xl border border-slate-800 bg-slate-950/40 p-4 lg:p-6">
+//         {children}
+//         <AdminFooter />
+//       </section>
+//     </div>
+//   );
+// }
 

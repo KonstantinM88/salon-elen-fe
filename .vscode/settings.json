@@ -4,6 +4,9 @@
     "less.lint.unknownAtRules": "ignore",
     "typescript.tsdk": "node_modules/typescript/lib",
     "typescript.enablePromptUseWorkspaceTsdk": true,
-    "files.associations": { "*.tsx": "typescriptreact" }
+    "files.associations": {
+      "*.tsx": "typescriptreact"
+    },
+    "claudeCode.useTerminal": true
   }
   
