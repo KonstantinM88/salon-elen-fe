@@ -139,6 +139,7 @@ model Appointment {
   status               AppointmentStatus     @default(PENDING)
   createdAt            DateTime              @default(now())
   clientId             String?
+  statusLogs AppointmentStatusLog[]
   /// Связь с мастером (optional — для обратной совместимости)
   masterId             String?
   birthDate            DateTime?
@@ -468,4 +469,21 @@ model TemporarySlotReservation {
 
   @@index([masterId, startAt, endAt])
   @@index([expiresAt])
+}
+
+/// История изменений статуса заявок
+model AppointmentStatusLog {
+  id            String            @id @default(cuid())
+  appointmentId String
+  status        AppointmentStatus
+  previousStatus AppointmentStatus?
+  changedAt     DateTime          @default(now())
+  changedBy     String?           // ID пользователя или "system"
+  reason        String?           // Причина изменения (опционально)
+  
+  appointment   Appointment       @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  
+  @@index([appointmentId])
+  @@index([changedAt])
+  @@map("appointment_status_logs")
 }
