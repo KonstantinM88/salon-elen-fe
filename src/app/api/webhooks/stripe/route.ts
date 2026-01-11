@@ -4,7 +4,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { prisma } from '@/lib/prisma';
+import { sendStatusChangeEmail } from '@/lib/email';
 import { sendAdminNotification } from '@/lib/send-admin-notification';
+import { notifyClientAppointmentStatus } from '@/lib/telegram-bot';
 
 // Инициализация Stripe
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
@@ -61,6 +63,11 @@ export async function POST(request: NextRequest) {
             service: {
               select: {
                 name: true,
+                parent: {
+                  select: {
+                    name: true,
+                  },
+                },
               },
             },
             master: {
@@ -92,6 +99,40 @@ export async function POST(request: NextRequest) {
         }).catch((err) => {
           console.error('❌ [Stripe Webhook] Failed to send Telegram notification:', err);
         });
+
+        const serviceName = updated.service?.parent?.name
+          ? `${updated.service.parent.name} / ${updated.service.name}`
+          : updated.service?.name || '—';
+        const masterName = updated.master?.name || '—';
+
+        if (updated.email) {
+          sendStatusChangeEmail({
+            customerName: updated.customerName,
+            email: updated.email,
+            serviceName,
+            masterName,
+            startAt: updated.startAt,
+            endAt: updated.endAt,
+            status: 'PENDING',
+          }).catch((err) => {
+            console.error('❌ [Stripe Webhook] Email send error:', err);
+          });
+        }
+
+        if (updated.phone) {
+          notifyClientAppointmentStatus({
+            customerName: updated.customerName,
+            email: updated.email,
+            phone: updated.phone,
+            serviceName,
+            masterName,
+            startAt: updated.startAt,
+            endAt: updated.endAt,
+            status: 'PENDING',
+          }).catch((err) => {
+            console.error('❌ [Stripe Webhook] Telegram send error:', err);
+          });
+        }
 
       } catch (error) {
         console.error('❌ [Stripe Webhook] Error updating appointment:', error);

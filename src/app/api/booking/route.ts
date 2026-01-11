@@ -87,7 +87,13 @@ export async function POST(req: Request): Promise<Response> {
     // услуга
     const service = await prisma.service.findUnique({
       where: { slug: serviceSlug },
-      select: { id: true, isActive: true, durationMin: true },
+      select: {
+        id: true,
+        isActive: true,
+        durationMin: true,
+        name: true,
+        parent: { select: { name: true } },
+      },
     });
     if (!service || !service.isActive || !Number.isFinite(service.durationMin)) {
       return NextResponse.json(
@@ -100,7 +106,7 @@ export async function POST(req: Request): Promise<Response> {
     // мастер
     const master = await prisma.master.findUnique({
       where: { id: masterId },
-      select: { id: true, services: { select: { id: true } } },
+      select: { id: true, name: true, services: { select: { id: true } } },
     });
     if (!master) {
       return NextResponse.json({ error: "Мастер не найден" }, { status: 404 });
@@ -126,6 +132,10 @@ export async function POST(req: Request): Promise<Response> {
       );
     }
     const endAt = new Date(startAt.getTime() + durationMin * 60_000);
+    const customerName = norm(o.customerName as string);
+    const phoneStr = norm(o.phone as string | null | undefined);
+    const emailStr = norm(o.email as string | null | undefined);
+    const notes = norm(o.notes as string | null | undefined);
 
     const conflictError = "SLOT_TAKEN";
 
@@ -145,10 +155,6 @@ export async function POST(req: Request): Promise<Response> {
         throw new Error(conflictError);
       }
 
-      // клиент
-      const phoneStr = norm(o.phone as string | null | undefined);
-      const emailStr = norm(o.email as string | null | undefined);
-
       let clientId: string | null = null;
       if (phoneStr || emailStr) {
         const existing = await tx.client.findFirst({
@@ -165,7 +171,7 @@ export async function POST(req: Request): Promise<Response> {
       if (!clientId) {
         const createdClient = await tx.client.create({
           data: {
-            name: norm(o.customerName as string),
+            name: customerName,
             phone: phoneStr,
             email: emailStr,
             // храним полночь по UTC для birthDate
@@ -183,10 +189,10 @@ export async function POST(req: Request): Promise<Response> {
           masterId,
           startAt,
           endAt,
-          customerName: norm(o.customerName as string),
+          customerName,
           phone: phoneStr,
           email: emailStr,
-          notes: norm(o.notes as string | null | undefined),
+          notes,
           status: "PENDING",
         },
         select: { id: true, startAt: true, endAt: true, status: true },

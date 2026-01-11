@@ -1,10 +1,29 @@
   // src/app/api/telegram/webhook/route.ts
 
   import { NextRequest, NextResponse } from 'next/server';
-  import { prisma } from '@/lib/prisma';
+import { prisma } from '@/lib/prisma';
+import { isPhoneDigitsValid, normalizePhoneDigits } from '@/lib/phone';
 
-  const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '';
-  const TELEGRAM_API_URL = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}`;
+const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '';
+const TELEGRAM_API_URL = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}`;
+
+const formatDeepLinkPhone = (value: string): string | null => {
+  const digits = normalizePhoneDigits(value);
+  if (!digits) {
+    return null;
+  }
+
+  let normalizedDigits = digits;
+  if (digits.length === 10 && digits.startsWith('0')) {
+    normalizedDigits = `38${digits}`;
+  }
+
+  if (!isPhoneDigitsValid(normalizedDigits)) {
+    return null;
+  }
+
+  return `+${normalizedDigits}`;
+};
 
   // Хранилище для связи телефон ↔ chat_id
   // В продакшене используй TelegramUser из БД!
@@ -129,13 +148,15 @@
         
         if (startParam && startParam.startsWith('phone_')) {
           // Извлечь номер телефона
-          const phoneFromParam = '+' + startParam.replace('phone_', '');
+          const phoneFromParam = formatDeepLinkPhone(
+            startParam.replace('phone_', '')
+          );
           
           console.log('[Telegram Webhook] Deep link registration:', phoneFromParam);
           
           // Валидация номера
           const phoneRegex = /^\+\d{10,15}$/;
-          if (phoneRegex.test(phoneFromParam)) {
+          if (phoneFromParam && phoneRegex.test(phoneFromParam)) {
             // Автоматически зарегистрировать номер
             try {
               await prisma.telegramUser.upsert({

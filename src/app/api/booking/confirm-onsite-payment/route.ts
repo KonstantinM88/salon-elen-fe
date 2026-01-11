@@ -3,7 +3,9 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { sendStatusChangeEmail } from '@/lib/email';
 import { sendAdminNotification } from '@/lib/send-admin-notification';
+import { notifyClientAppointmentStatus } from '@/lib/telegram-bot';
 
 type ConfirmOnsiteRequest = {
   appointmentId: string;
@@ -43,6 +45,11 @@ export async function POST(
         service: {
           select: {
             name: true,
+            parent: {
+              select: {
+                name: true,
+              },
+            },
           },
         },
         master: {
@@ -77,6 +84,11 @@ export async function POST(
         service: {
           select: {
             name: true,
+            parent: {
+              select: {
+                name: true,
+              },
+            },
           },
         },
         master: {
@@ -104,6 +116,40 @@ export async function POST(
     }).catch((err) => {
       console.error('❌ [Onsite Payment] Failed to send Telegram notification:', err);
     });
+
+    const serviceName = updated.service?.parent?.name
+      ? `${updated.service.parent.name} / ${updated.service.name}`
+      : updated.service?.name || '—';
+    const masterName = updated.master?.name || '—';
+
+    if (updated.email) {
+      sendStatusChangeEmail({
+        customerName: updated.customerName,
+        email: updated.email,
+        serviceName,
+        masterName,
+        startAt: updated.startAt,
+        endAt: updated.endAt,
+        status: 'PENDING',
+      }).catch((err) => {
+        console.error('❌ [Onsite Payment] Email send error:', err);
+      });
+    }
+
+    if (updated.phone) {
+      notifyClientAppointmentStatus({
+        customerName: updated.customerName,
+        email: updated.email,
+        phone: updated.phone,
+        serviceName,
+        masterName,
+        startAt: updated.startAt,
+        endAt: updated.endAt,
+        status: 'PENDING',
+      }).catch((err) => {
+        console.error('❌ [Onsite Payment] Telegram send error:', err);
+      });
+    }
 
     return NextResponse.json({
       success: true,

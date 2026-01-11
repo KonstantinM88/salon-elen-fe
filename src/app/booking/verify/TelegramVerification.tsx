@@ -1,7 +1,7 @@
 // src/app/booking/verify/TelegramVerification.tsx
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { FaTelegram } from 'react-icons/fa';
 import { Send, CheckCircle, Clock, AlertCircle } from 'lucide-react';
@@ -38,6 +38,42 @@ export function TelegramVerification({
   const [sessionId, setSessionId] = useState('');
   const [step, setStep] = useState(1); // 1: phone, 2: code
   const [showRegistrationModal, setShowRegistrationModal] = useState(false);
+
+  useEffect(() => {
+    if (!draftId || phone) {
+      return;
+    }
+
+    let isActive = true;
+
+    const loadDraftPhone = async () => {
+      try {
+        const res = await fetch(
+          `/api/booking/draft?draft=${encodeURIComponent(draftId)}`
+        );
+
+        if (!res.ok) {
+          return;
+        }
+
+        const data = await res.json();
+        const draftPhone =
+          typeof data.phone === 'string' ? data.phone.trim() : '';
+
+        if (isActive && draftPhone) {
+          setPhone(draftPhone);
+        }
+      } catch (err) {
+        console.error('[Telegram Verify] Load draft phone error:', err);
+      }
+    };
+
+    loadDraftPhone();
+
+    return () => {
+      isActive = false;
+    };
+  }, [draftId, phone]);
 
   // Шаг 1: Отправка кода в Telegram
   const handleSendCode = async (e: React.FormEvent) => {

@@ -97,6 +97,10 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const customerEmailStr = customerEmail.trim();
+    const customerNameStr = customerName.trim();
+    const phoneStr = phone.trim();
+
     console.log("[Complete Registration] Creating appointment...");
 
     // Парсим дату рождения если она есть
@@ -133,8 +137,7 @@ export async function POST(req: NextRequest) {
       }
 
       // ✅ СОЗДАНИЕ/ПОИСК КЛИЕНТА
-      const phoneStr = phone.trim();
-      const emailStr = customerEmail.trim();
+      const emailStr = customerEmailStr;
 
       let clientId: string | null = null;
 
@@ -159,7 +162,7 @@ export async function POST(req: NextRequest) {
       if (!clientId && (phoneStr || emailStr)) {
         const newClient = await tx.client.create({
           data: {
-            name: customerName,
+            name: customerNameStr,
             phone: phoneStr,
             email: emailStr,
             birthDate: birthdayDate || new Date('1990-01-01'),
@@ -178,9 +181,9 @@ export async function POST(req: NextRequest) {
           masterId: quickReg.masterId,
           startAt: quickReg.startAt,
           endAt: quickReg.endAt,
-          customerName,
-          email: customerEmail,
-          phone: phone.trim(), // ✅ Номер телефона от пользователя (обязательный)!
+          customerName: customerNameStr,
+          email: customerEmailStr,
+          phone: phoneStr, // ✅ Номер телефона от пользователя (обязательный)!
           birthDate: birthdayDate, // ✅ Дата рождения (опциональная) — поле модели Appointment
           status: "PENDING",
         },

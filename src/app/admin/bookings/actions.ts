@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { AppointmentStatus } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { sendStatusChangeEmail } from "@/lib/email";
+import { notifyClientAppointmentStatus } from "@/lib/telegram-bot";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 
@@ -70,6 +71,7 @@ export async function setStatus(
         id: true,
         status: true,
         customerName: true,
+        phone: true,
         email: true,
         startAt: true,
         endAt: true,
@@ -115,17 +117,18 @@ export async function setStatus(
     });
 
     // 4. Отправляем email уведомление (если есть email)
-    if (appointment.email) {
-      const serviceName = appointment.service?.parent?.name
-        ? `${appointment.service.parent.name} / ${appointment.service.name}`
-        : appointment.service?.name || '—';
+    const serviceName = appointment.service?.parent?.name
+      ? `${appointment.service.parent.name} / ${appointment.service.name}`
+      : appointment.service?.name || '—';
+    const masterName = appointment.master?.name || '—';
 
+    if (appointment.email) {
       // Отправляем асинхронно, не ждём результата
       sendStatusChangeEmail({
         customerName: appointment.customerName,
         email: appointment.email,
         serviceName,
-        masterName: appointment.master?.name || '—',
+        masterName,
         startAt: appointment.startAt,
         endAt: appointment.endAt,
         status,
@@ -135,6 +138,21 @@ export async function setStatus(
       });
 
       console.log(`📧 Email queued for ${appointment.email}`);
+    }
+
+    if (appointment.phone) {
+      notifyClientAppointmentStatus({
+        customerName: appointment.customerName,
+        email: appointment.email,
+        phone: appointment.phone,
+        serviceName,
+        masterName,
+        startAt: appointment.startAt,
+        endAt: appointment.endAt,
+        status,
+      }).catch((error) => {
+        console.error("❌ Telegram send error:", error);
+      });
     }
 
     // 5. Ревалидация

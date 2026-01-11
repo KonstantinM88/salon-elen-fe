@@ -1,7 +1,9 @@
 // src/lib/telegram-bot.ts
 // ИСПРАВЛЕНО: Убраны все `any`, добавлены правильные типы
 
+import { AppointmentStatus } from "@prisma/client";
 import { ORG_TZ } from "@/lib/orgTime";
+import { isPhoneDigitsValid, normalizePhoneDigits } from "@/lib/phone";
 
 const TELEGRAM_API_URL = "https://api.telegram.org";
 
@@ -92,6 +94,17 @@ interface MasterData {
   name: string;
 }
 
+interface ClientAppointmentStatusData {
+  email?: string | null;
+  phone: string;
+  customerName: string;
+  serviceName: string;
+  masterName: string;
+  startAt: Date;
+  endAt: Date;
+  status: AppointmentStatus;
+}
+
 // ===== УТИЛИТЫ =====
 
 /**
@@ -151,6 +164,15 @@ function getPaymentStatusText(status: string): string {
     default:
       return "Неизвестно";
   }
+}
+
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
 }
 
 // ===== ОСНОВНЫЕ ФУНКЦИИ =====
@@ -326,6 +348,167 @@ export async function notifyAdminNewAppointment(
     return true;
   } catch (error) {
     console.error("[Telegram Bot] Ошибка отправки уведомления админу:", error);
+    return false;
+  }
+}
+
+/**
+ * Уведомление клиента о статусе записи через Telegram
+ */
+export async function notifyClientAppointmentStatus(
+  data: ClientAppointmentStatusData
+): Promise<boolean> {
+  try {
+    const token = process.env.TELEGRAM_BOT_TOKEN;
+    if (!token) {
+      console.error("[Telegram Bot] TELEGRAM_BOT_TOKEN не установлен");
+      return false;
+    }
+
+    const { prisma } = await import("@/lib/prisma");
+    const emailRaw = data.email?.trim();
+    const phoneRaw = data.phone.trim();
+
+    if (!emailRaw && !phoneRaw) {
+      console.warn("[Telegram Bot] Contact not provided for client notification");
+      return false;
+    }
+
+    let telegramUser = null;
+    let matchReason: "email" | "phone" | "suffix" | null = null;
+
+    if (emailRaw) {
+      telegramUser = await prisma.telegramUser.findFirst({
+        where: {
+          email: {
+            equals: emailRaw,
+            mode: "insensitive",
+          },
+        },
+      });
+      if (telegramUser) {
+        matchReason = "email";
+      }
+    }
+
+    if (!telegramUser && phoneRaw) {
+      const digits = normalizePhoneDigits(phoneRaw);
+      const phoneVariants = Array.from(
+        new Set([phoneRaw, digits, digits ? `+${digits}` : ""])
+      ).filter(Boolean);
+
+      telegramUser = await prisma.telegramUser.findFirst({
+        where: { phone: { in: phoneVariants } },
+      });
+      if (telegramUser) {
+        matchReason = "phone";
+      }
+
+      if (!telegramUser && digits && isPhoneDigitsValid(digits)) {
+        const matches = await prisma.telegramUser.findMany({
+          where: { phone: { endsWith: digits } },
+          take: 2,
+        });
+
+        if (matches.length === 1) {
+          telegramUser = matches[0];
+          matchReason = "suffix";
+        } else if (matches.length > 1) {
+          console.warn(
+            "[Telegram Bot] Multiple users matched by phone suffix:",
+            digits
+          );
+          return false;
+        }
+      }
+    }
+
+    if (!telegramUser) {
+      console.warn("[Telegram Bot] Telegram user not found", {
+        email: emailRaw || null,
+        phone: phoneRaw || null,
+      });
+      return false;
+    }
+
+    const chatId = Number(telegramUser.telegramChatId);
+    console.log("[Telegram Bot] Telegram user matched", {
+      reason: matchReason ?? "unknown",
+      email: emailRaw || null,
+      phone: phoneRaw || null,
+      chatId,
+      telegramUserId: telegramUser.id,
+    });
+
+    const dateStr = formatDate(data.startAt);
+    const startTime = formatTime(data.startAt);
+    const endTime = formatTime(data.endAt);
+
+    const statusTitle: Record<AppointmentStatus, string> = {
+      PENDING: "🔔 Заявка принята",
+      CONFIRMED: "✅ Запись подтверждена",
+      DONE: "🎉 Спасибо за визит",
+      CANCELED: "❌ Запись отменена",
+    };
+
+    const statusText: Record<AppointmentStatus, string> = {
+      PENDING: "Ожидает подтверждения",
+      CONFIRMED: "Подтверждена",
+      DONE: "Выполнена",
+      CANCELED: "Отменена",
+    };
+
+    const statusMessage: Record<AppointmentStatus, string> = {
+      PENDING:
+        "Мы получили вашу заявку. Администратор свяжется с вами в ближайшее время.",
+      CONFIRMED: "Ждём вас! Пожалуйста, приходите за 5 минут до записи.",
+      DONE: "Спасибо, что выбрали Salon Elen! Будем рады видеть вас снова.",
+      CANCELED:
+        "Если хотите перенести запись, пожалуйста, свяжитесь с нами.",
+    };
+
+    const message =
+      `<b>${escapeHtml(statusTitle[data.status])}</b>\n\n` +
+      `Здравствуйте, <b>${escapeHtml(data.customerName)}</b>!\n\n` +
+      `📅 Дата: ${escapeHtml(dateStr)}\n` +
+      `🕐 Время: ${escapeHtml(startTime)} - ${escapeHtml(endTime)}\n` +
+      `✂️ Услуга: ${escapeHtml(data.serviceName)}\n` +
+      `👩‍💼 Мастер: ${escapeHtml(data.masterName)}\n` +
+      `📌 Статус: <b>${escapeHtml(statusText[data.status])}</b>\n\n` +
+      `${escapeHtml(statusMessage[data.status])}`;
+
+    const response = await fetch(
+      `${TELEGRAM_API_URL}/bot${token}/sendMessage`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          chat_id: chatId,
+          text: message,
+          parse_mode: "HTML",
+        }),
+      }
+    );
+
+    const result =
+      (await response.json()) as TelegramApiResponse<TelegramMessage>;
+
+    if (!result.ok) {
+      console.error(
+        "[Telegram Bot] Ошибка отправки сообщения клиенту:",
+        result.description
+      );
+      return false;
+    }
+
+    console.log(
+      `[Telegram Bot] ✅ Уведомление отправлено клиенту (chatId: ${chatId})`
+    );
+    return true;
+  } catch (error) {
+    console.error("[Telegram Bot] Ошибка отправки клиенту:", error);
     return false;
   }
 }

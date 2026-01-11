@@ -30,8 +30,8 @@ export async function POST(req: NextRequest) {
     const registration = await prisma.smsPhoneRegistration.findUnique({
       where: { id: registrationId },
       include: {
-        service: true,
-        master: true,
+        service: { select: { name: true, parent: { select: { name: true } } } },
+        master: { select: { name: true } },
       },
     });
 
@@ -71,6 +71,9 @@ export async function POST(req: NextRequest) {
 
     // Подготовка данных
     const finalBirthDate = birthDate ? new Date(birthDate) : null;
+    const customerNameStr = customerName.trim();
+    const emailStr = email ? email.trim() : '';
+    const phoneStr = registration.phone.trim();
 
     const conflictError = 'SLOT_TAKEN';
 
@@ -92,9 +95,6 @@ export async function POST(req: NextRequest) {
       }
 
       // ✅ СОЗДАНИЕ/ПОИСК КЛИЕНТА
-      const phoneStr = registration.phone.trim();
-      const emailStr = email ? email.trim() : '';
-
       let clientId: string | null = null;
 
       // Ищем существующего клиента
@@ -118,7 +118,7 @@ export async function POST(req: NextRequest) {
       if (!clientId && (phoneStr || emailStr)) {
         const newClient = await tx.client.create({
           data: {
-            name: customerName.trim(),
+            name: customerNameStr,
             phone: phoneStr,
             email: emailStr,
             birthDate: finalBirthDate || new Date('1990-01-01'),
@@ -137,9 +137,9 @@ export async function POST(req: NextRequest) {
           masterId: registration.masterId,
           startAt: registration.startAt,
           endAt: registration.endAt,
-          customerName: customerName.trim(),
-          phone: registration.phone,
-          email: email ? email.trim() : null,
+          customerName: customerNameStr,
+          phone: phoneStr,
+          email: emailStr || null,
           birthDate: finalBirthDate,
           status: 'PENDING',
           paymentStatus: 'PENDING',
@@ -149,8 +149,8 @@ export async function POST(req: NextRequest) {
       await tx.smsPhoneRegistration.update({
         where: { id: registration.id },
         data: {
-          customerName: customerName.trim(),
-          email: email ? email.trim() : null,
+          customerName: customerNameStr,
+          email: emailStr || null,
           birthDate: finalBirthDate,
           appointmentId: created.id,
         },

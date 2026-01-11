@@ -18,7 +18,14 @@ export function TelegramRegistrationModal({
   botUsername,
   phone,
 }: TelegramRegistrationModalProps) {
-  const telegramUrl = `https://t.me/${botUsername}?start=phone_${phone.replace('+', '')}`;
+  const rawDigits = phone.replace(/\D/g, '');
+  const normalizedDigits =
+    rawDigits.length === 10 && rawDigits.startsWith('0')
+      ? `38${rawDigits}`
+      : rawDigits;
+  const telegramUrl = normalizedDigits
+    ? `https://t.me/${botUsername}?start=phone_${normalizedDigits}`
+    : `https://t.me/${botUsername}`;
 
   return (
     <AnimatePresence>
