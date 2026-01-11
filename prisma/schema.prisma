@@ -488,3 +488,21 @@ enum Role {
   MASTER
   ADMIN
 }
+
+model AdminOTP {
+  id           String    @id @default(cuid())
+  code         String
+  action       String
+  resourceId   String
+  resourceType String
+  adminEmail   String
+  expiresAt    DateTime
+  verified     Boolean   @default(false)
+  createdAt    DateTime  @default(now())
+  usedAt       DateTime?
+
+  @@index([code])
+  @@index([adminEmail])
+  @@index([expiresAt])
+  @@map("admin_otp")
+}
