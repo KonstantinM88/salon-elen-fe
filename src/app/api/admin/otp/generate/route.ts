@@ -158,7 +158,7 @@ ${resourceName ? `👤 <b>Имя:</b> ${resourceName}\n` : ''}
           expiresAt: otp.expiresAt,
           message: 'OTP generated (Telegram send failed)',
           warning: 'Check server logs for code',
-          code: code, // ⚠️ ВРЕМЕННО для отладки - удали в продакшене!
+          // code: code, // ⚠️ ВРЕМЕННО для отладки - удали в продакшене!
         });
       }
     }
