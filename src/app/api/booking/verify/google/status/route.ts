@@ -8,6 +8,8 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { DEFAULT_LOCALE, LOCALES, type Locale } from '@/i18n/locales';
+import { translate, type MessageKey } from '@/i18n/messages';
 
 type SuccessResponse = {
   verified: boolean;
@@ -32,6 +34,9 @@ type ResponseData = SuccessResponse | ErrorResponse;
 export async function GET(
   req: NextRequest
 ): Promise<NextResponse<ResponseData>> {
+  const locale = resolveLocale(req);
+  const t = (key: MessageKey) => translate(locale, key);
+
   try {
     const searchParams = req.nextUrl.searchParams;
     const email = searchParams.get('email');
@@ -40,7 +45,7 @@ export async function GET(
     // Валидация параметров
     if (!email || !draftId) {
       return NextResponse.json(
-        { error: 'Email и draftId обязательны' },
+        { error: t('api_google_status_missing_params') },
         { status: 400 }
       );
     }
@@ -103,11 +108,29 @@ export async function GET(
     console.error('[Google Status] Error:', error);
 
     const errorMessage =
-      error instanceof Error ? error.message : 'Ошибка проверки статуса';
+      error instanceof Error ? error.message : t('api_google_status_error');
 
     return NextResponse.json(
       { error: errorMessage },
       { status: 500 }
     );
   }
+}
+
+function resolveLocale(req: NextRequest): Locale {
+  const cookieLocale = req.cookies.get('locale')?.value as Locale | undefined;
+  if (cookieLocale && LOCALES.includes(cookieLocale)) {
+    return cookieLocale;
+  }
+
+  const header = req.headers.get('accept-language') ?? '';
+  const match = header.match(/\b(de|en|ru)\b/i);
+  if (match) {
+    const value = match[1].toLowerCase() as Locale;
+    if (LOCALES.includes(value)) {
+      return value;
+    }
+  }
+
+  return DEFAULT_LOCALE;
 }

@@ -15,6 +15,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { GoogleOAuth } from "@/lib/google-oauth";
+import { DEFAULT_LOCALE, LOCALES, type Locale } from "@/i18n/locales";
+import { translate, type MessageKey } from "@/i18n/messages";
 
 /**
  * GET handler
@@ -25,6 +27,9 @@ import { GoogleOAuth } from "@/lib/google-oauth";
  * - error: (опционально) если пользователь отклонил доступ
  */
 export async function GET(req: NextRequest) {
+  const locale = resolveLocale(req);
+  const t = (key: MessageKey) => translate(locale, key);
+
   try {
     const searchParams = req.nextUrl.searchParams;
     const code = searchParams.get("code");
@@ -39,13 +44,13 @@ export async function GET(req: NextRequest) {
     // Если пользователь отклонил доступ
     if (error) {
       console.error("[Google Callback] User denied access:", error);
-      return redirectToVerifyPage(null, null, "Доступ отклонён");
+      return redirectToVerifyPage(null, null, t("api_google_callback_access_denied"));
     }
 
     // Валидация параметров
     if (!code || !state) {
       console.error("[Google Callback] Missing code or state");
-      return redirectToVerifyPage(null, null, "Некорректные параметры");
+      return redirectToVerifyPage(null, null, t("api_google_callback_invalid_params"));
     }
 
     // Проверяем state токен в БД
@@ -64,7 +69,7 @@ export async function GET(req: NextRequest) {
 
     if (!verificationRequest) {
       console.error("[Google Callback] State not found in DB");
-      return redirectToVerifyPage(null, null, "Неверный токен верификации");
+      return redirectToVerifyPage(null, null, t("api_google_callback_invalid_state"));
     }
 
     // Проверяем, что запрос не истёк
@@ -76,7 +81,7 @@ export async function GET(req: NextRequest) {
       return redirectToVerifyPage(
         null,
         null,
-        "Запрос истёк, попробуйте снова"
+        t("api_google_callback_expired")
       );
     }
 
@@ -86,7 +91,7 @@ export async function GET(req: NextRequest) {
       return redirectToVerifyPage(
         verificationRequest.email,
         verificationRequest.draftId,
-        "Уже подтверждено"
+        t("api_google_callback_already_verified")
       );
     }
 
@@ -108,7 +113,7 @@ export async function GET(req: NextRequest) {
       return redirectToVerifyPage(
         verificationRequest.email,
         verificationRequest.draftId,
-        "Google не вернул e-mail"
+        t("api_google_callback_missing_email")
       );
     }
 
@@ -122,7 +127,7 @@ export async function GET(req: NextRequest) {
       return redirectToVerifyPage(
         verificationRequest.email,
         verificationRequest.draftId,
-        "Email не совпадает с email бронирования"
+        t("api_google_callback_email_mismatch")
       );
     }
 
@@ -182,7 +187,7 @@ export async function GET(req: NextRequest) {
       return redirectToVerifyPage(
         verificationRequest.email,
         verificationRequest.draftId,
-        "Черновик бронирования не найден"
+        t("api_google_callback_draft_not_found")
       );
     }
 
@@ -290,7 +295,7 @@ export async function GET(req: NextRequest) {
         return redirectToVerifyPage(
           verificationRequest.email,
           verificationRequest.draftId,
-          "Выбранное время уже занято"
+          t("api_google_callback_slot_taken")
         );
       }
       throw error;
@@ -298,8 +303,7 @@ export async function GET(req: NextRequest) {
   } catch (error) {
     console.error("[Google Callback] Error:", error);
 
-    const errorMessage =
-      error instanceof Error ? error.message : "Ошибка обработки callback";
+    const errorMessage = t("api_google_callback_error");
 
     // Пытаемся получить параметры для редиректа
     const searchParams = req.nextUrl.searchParams;
@@ -354,6 +358,24 @@ function redirectToVerifyPage(
   console.log("[Google Callback] Redirecting to:", redirectUrl);
 
   return NextResponse.redirect(redirectUrl);
+}
+
+function resolveLocale(req: NextRequest): Locale {
+  const cookieLocale = req.cookies.get("locale")?.value as Locale | undefined;
+  if (cookieLocale && LOCALES.includes(cookieLocale)) {
+    return cookieLocale;
+  }
+
+  const header = req.headers.get("accept-language") ?? "";
+  const match = header.match(/\b(de|en|ru)\b/i);
+  if (match) {
+    const value = match[1].toLowerCase() as Locale;
+    if (LOCALES.includes(value)) {
+      return value;
+    }
+  }
+
+  return DEFAULT_LOCALE;
 }
 
 

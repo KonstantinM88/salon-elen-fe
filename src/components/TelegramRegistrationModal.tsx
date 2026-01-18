@@ -4,6 +4,7 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, ExternalLink, Check } from 'lucide-react';
+import { useTranslations } from '@/i18n/useTranslations';
 
 interface TelegramRegistrationModalProps {
   isOpen: boolean;
@@ -18,6 +19,7 @@ export function TelegramRegistrationModal({
   botUsername,
   phone,
 }: TelegramRegistrationModalProps) {
+  const t = useTranslations();
   const rawDigits = phone.replace(/\D/g, '');
   const normalizedDigits =
     rawDigits.length === 10 && rawDigits.startsWith('0')
@@ -79,17 +81,17 @@ export function TelegramRegistrationModal({
                   </motion.div>
 
                   <h2 className="mb-2 text-xl font-bold text-white sm:text-2xl">
-                    Регистрация в Telegram боте
+                    {t('booking_telegram_modal_title')}
                   </h2>
                   <p className="text-sm text-slate-300 sm:text-base">
-                    Для получения кодов подтверждения необходимо зарегистрироваться в нашем Telegram боте
+                    {t('booking_telegram_modal_subtitle')}
                   </p>
                 </div>
 
                 {/* Phone info */}
                 <div className="rounded-xl border border-sky-400/30 bg-sky-500/10 p-4 backdrop-blur-xl">
                   <p className="text-center text-sm text-sky-100">
-                    Ваш номер:{' '}
+                    {t('booking_telegram_modal_phone_label')}{' '}
                     <span className="font-bold text-sky-300">{phone}</span>
                   </p>
                 </div>
@@ -97,7 +99,7 @@ export function TelegramRegistrationModal({
                 {/* Instructions */}
                 <div className="space-y-3">
                   <p className="text-sm font-semibold text-white">
-                    Как зарегистрироваться:
+                    {t('booking_telegram_modal_how_title')}
                   </p>
 
                   <div className="space-y-3">
@@ -106,7 +108,7 @@ export function TelegramRegistrationModal({
                         1
                       </div>
                       <p className="flex-1 text-sm text-slate-200">
-                        Нажмите кнопку ниже, чтобы открыть Telegram бота
+                        {t('booking_telegram_modal_step_open_bot')}
                       </p>
                     </div>
 
@@ -115,7 +117,7 @@ export function TelegramRegistrationModal({
                         2
                       </div>
                       <p className="flex-1 text-sm text-slate-200">
-                        Бот автоматически зарегистрирует ваш номер{' '}
+                        {t('booking_telegram_modal_step_register')}{' '}
                         <span className="font-semibold text-sky-300">{phone}</span>
                       </p>
                     </div>
@@ -125,9 +127,9 @@ export function TelegramRegistrationModal({
                         <Check className="h-4 w-4" />
                       </div>
                       <p className="flex-1 text-sm text-slate-200">
-                        Вернитесь сюда и нажмите{' '}
+                        {t('booking_telegram_modal_step_done')}{' '}
                         <span className="font-semibold text-emerald-300">
-                          Я зарегистрировался
+                          {t('booking_telegram_modal_button_done')}
                         </span>
                       </p>
                     </div>
@@ -152,7 +154,7 @@ export function TelegramRegistrationModal({
                     >
                       <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69a.2.2 0 00-.05-.18c-.06-.05-.14-.03-.21-.02-.09.02-1.49.95-4.22 2.79-.4.27-.76.41-1.08.4-.36-.01-1.04-.2-1.55-.37-.63-.2-1.12-.31-1.08-.66.02-.18.27-.36.74-.55 2.92-1.27 4.86-2.11 5.83-2.51 2.78-1.16 3.35-1.36 3.73-1.36.08 0 .27.02.39.12.1.08.13.19.14.27-.01.06.01.24 0 .38z"/>
                     </svg>
-                    <span>Открыть Telegram бота</span>
+                    <span>{t('booking_telegram_modal_button_open')}</span>
                     <ExternalLink className="h-4 w-4" />
                   </motion.a>
 
@@ -164,14 +166,14 @@ export function TelegramRegistrationModal({
                     whileTap={{ scale: 0.98 }}
                     className="w-full rounded-xl border-2 border-emerald-400/50 bg-emerald-500/10 px-6 py-3.5 text-base font-bold text-emerald-300 transition-all hover:border-emerald-400/70 hover:bg-emerald-500/20"
                   >
-                    ✓ Я зарегистрировался
+                    ✓ {t('booking_telegram_modal_button_done')}
                   </motion.button>
                 </div>
 
                 {/* Info */}
                 <div className="rounded-xl border border-white/10 bg-white/5 p-3 backdrop-blur-xl">
                   <p className="text-center text-xs text-slate-400">
-                    Код подтверждения придёт в Telegram бот в течение нескольких секунд
+                    {t('booking_telegram_modal_note')}
                   </p>
                 </div>
               </div>

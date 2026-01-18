@@ -1,6 +1,8 @@
 // src/lib/email.ts
 import { Resend } from 'resend';
 import { AppointmentStatus } from '@prisma/client';
+import { DEFAULT_LOCALE, LOCALES, type Locale } from '@/i18n/locales';
+import { translate, type MessageKey } from '@/i18n/messages';
 
 /**
  * Интерфейс данных для email уведомления
@@ -14,6 +16,7 @@ interface AppointmentEmailData {
   endAt: Date;
   status: AppointmentStatus;
   previousStatus?: AppointmentStatus;
+  locale?: Locale;
 }
 
 /**
@@ -36,24 +39,45 @@ function getResendClient(): Resend | null {
   }
 }
 
+function resolveLocale(locale?: Locale): Locale {
+  if (locale && LOCALES.includes(locale)) {
+    return locale;
+  }
+  return DEFAULT_LOCALE;
+}
+
+function getIntlLocale(locale: Locale): string {
+  switch (locale) {
+    case 'de':
+      return 'de-DE';
+    case 'en':
+      return 'en-US';
+    default:
+      return 'ru-RU';
+  }
+}
+
 /**
  * Отправка email уведомления клиенту о изменении статуса
  */
 export async function sendStatusChangeEmail(
   data: AppointmentEmailData
 ): Promise<{ ok: boolean; error?: string }> {
+  const locale = resolveLocale(data.locale);
+  const t = (key: MessageKey) => translate(locale, key);
+
   try {
     // Получаем клиента Resend
     const resend = getResendClient();
     
     if (!resend) {
       console.warn('⚠️ Email service not configured, skipping email');
-      return { ok: false, error: 'Email service not configured' };
+      return { ok: false, error: t('email_service_not_configured') };
     }
 
     // Формируем письмо
-    const subject = getEmailSubject(data.status);
-    const html = getEmailBody(data);
+    const subject = getEmailSubject(data.status, t);
+    const html = getEmailBody(data, t, locale);
 
     // Отправляем через Resend
     const result = await resend.emails.send({
@@ -74,7 +98,7 @@ export async function sendStatusChangeEmail(
     console.error('❌ Email send error:', error);
     return { 
       ok: false, 
-      error: error instanceof Error ? error.message : 'Unknown error' 
+      error: error instanceof Error ? error.message : t('email_send_unknown_error') 
     };
   }
 }
@@ -82,21 +106,28 @@ export async function sendStatusChangeEmail(
 /**
  * Получить тему письма в зависимости от статуса
  */
-function getEmailSubject(status: AppointmentStatus): string {
-  const subjects: Record<AppointmentStatus, string> = {
-    PENDING: '🔔 Новая запись - Ожидает подтверждения',
-    CONFIRMED: '✅ Запись подтверждена - Salon Elen',
-    DONE: '🎉 Спасибо за визит - Salon Elen',
-    CANCELED: '❌ Запись отменена - Salon Elen',
+function getEmailSubject(
+  status: AppointmentStatus,
+  t: (key: MessageKey) => string
+): string {
+  const subjects: Record<AppointmentStatus, MessageKey> = {
+    PENDING: 'email_status_subject_pending',
+    CONFIRMED: 'email_status_subject_confirmed',
+    DONE: 'email_status_subject_done',
+    CANCELED: 'email_status_subject_canceled',
   };
   
-  return subjects[status];
+  return t(subjects[status]);
 }
 
 /**
  * Получить HTML тело письма
  */
-function getEmailBody(data: AppointmentEmailData): string {
+function getEmailBody(
+  data: AppointmentEmailData,
+  t: (key: MessageKey) => string,
+  locale: Locale
+): string {
   const statusEmoji: Record<AppointmentStatus, string> = {
     PENDING: '🔔',
     CONFIRMED: '✅',
@@ -104,15 +135,15 @@ function getEmailBody(data: AppointmentEmailData): string {
     CANCELED: '❌',
   };
 
-  const statusText: Record<AppointmentStatus, string> = {
-    PENDING: 'В ожидании подтверждения',
-    CONFIRMED: 'Подтверждена',
-    DONE: 'Выполнена',
-    CANCELED: 'Отменена',
+  const statusText: Record<AppointmentStatus, MessageKey> = {
+    PENDING: 'email_status_text_pending',
+    CONFIRMED: 'email_status_text_confirmed',
+    DONE: 'email_status_text_done',
+    CANCELED: 'email_status_text_canceled',
   };
 
   const formatDateTime = (date: Date) => {
-    return new Intl.DateTimeFormat('ru-RU', {
+    return new Intl.DateTimeFormat(getIntlLocale(locale), {
       day: '2-digit',
       month: 'long',
       year: 'numeric',
@@ -128,7 +159,7 @@ function getEmailBody(data: AppointmentEmailData): string {
     case 'PENDING':
       message = `
         <p style="font-size: 16px; color: #374151; line-height: 1.6;">
-          Мы получили вашу заявку на запись. Наш администратор свяжется с вами в ближайшее время для подтверждения.
+          ${t('email_status_message_pending')}
         </p>
       `;
       break;
@@ -136,14 +167,14 @@ function getEmailBody(data: AppointmentEmailData): string {
     case 'CONFIRMED':
       message = `
         <p style="font-size: 16px; color: #374151; line-height: 1.6;">
-          Отличные новости! Ваша запись подтверждена.
+          ${t('email_status_message_confirmed_intro')}
         </p>
         <p style="font-size: 18px; color: #111827; font-weight: 600; margin: 20px 0;">
-          Ждём вас <strong>${formatDateTime(data.startAt)}</strong>
+          ${t('email_status_message_confirmed_wait').replace('{date}', formatDateTime(data.startAt))}
         </p>
         <div style="background: #dcfce7; border-left: 4px solid #16a34a; padding: 15px; border-radius: 8px; margin: 20px 0;">
           <p style="color: #166534; margin: 0; font-size: 15px;">
-            <strong>✨ Важно:</strong> Пожалуйста, приходите за 5 минут до начала записи.
+            <strong>${t('email_status_message_confirmed_notice_title')}</strong> ${t('email_status_message_confirmed_notice_text')}
           </p>
         </div>
       `;
@@ -152,14 +183,14 @@ function getEmailBody(data: AppointmentEmailData): string {
     case 'DONE':
       message = `
         <p style="font-size: 16px; color: #374151; line-height: 1.6;">
-          Спасибо, что выбрали Salon Elen! 💖
+          ${t('email_status_message_done_intro')}
         </p>
         <p style="font-size: 16px; color: #374151; line-height: 1.6;">
-          Надеемся, вам понравился результат. Будем рады видеть вас снова!
+          ${t('email_status_message_done_outro')}
         </p>
         <div style="background: #f0f9ff; border-left: 4px solid #0ea5e9; padding: 15px; border-radius: 8px; margin: 20px 0;">
           <p style="color: #075985; margin: 0; font-size: 15px;">
-            <strong>📅 Совет:</strong> Для поддержания результата рекомендуем записаться через 3-4 недели.
+            <strong>${t('email_status_message_done_tip_title')}</strong> ${t('email_status_message_done_tip_text')}
           </p>
         </div>
       `;
@@ -168,15 +199,14 @@ function getEmailBody(data: AppointmentEmailData): string {
     case 'CANCELED':
       message = `
         <p style="font-size: 16px; color: #374151; line-height: 1.6;">
-          К сожалению, ваша запись была отменена.
+          ${t('email_status_message_canceled_intro')}
         </p>
         <p style="font-size: 16px; color: #374151; line-height: 1.6;">
-          Если это произошло по ошибке или вы хотите записаться на другое время, свяжитесь с нами:
+          ${t('email_status_message_canceled_contact_intro')}
         </p>
         <div style="background: #fef2f2; border-left: 4px solid #ef4444; padding: 15px; border-radius: 8px; margin: 20px 0;">
           <p style="color: #991b1b; margin: 0; font-size: 15px; line-height: 1.6;">
-            📞 <strong>Телефон:</strong> +38 (000) 000-00-00<br>
-            💬 <strong>Telegram:</strong> @salon_elen
+            ${t('email_status_message_canceled_contact')}
           </p>
         </div>
       `;
@@ -187,11 +217,11 @@ function getEmailBody(data: AppointmentEmailData): string {
 
   return `
     <!DOCTYPE html>
-    <html lang="ru">
+    <html lang="${locale}">
     <head>
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>Salon Elen - Уведомление</title>
+      <title>${t('email_status_html_title')}</title>
     </head>
     <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f3f4f6;">
       <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
@@ -202,7 +232,7 @@ function getEmailBody(data: AppointmentEmailData): string {
             ${statusEmoji[data.status]} Salon Elen
           </h1>
           <p style="color: rgba(255,255,255,0.9); margin: 10px 0 0 0; font-size: 16px;">
-            Уведомление о записи
+            ${t('email_status_header_subtitle')}
           </p>
         </div>
         
@@ -210,7 +240,7 @@ function getEmailBody(data: AppointmentEmailData): string {
         <div style="background: white; padding: 30px; border-radius: 0 0 12px 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
           
           <p style="font-size: 16px; color: #374151; margin-bottom: 20px;">
-            Здравствуйте, <strong>${data.customerName}</strong>!
+            ${t('email_status_greeting').replace('{name}', data.customerName)}
           </p>
           
           ${message}
@@ -218,26 +248,26 @@ function getEmailBody(data: AppointmentEmailData): string {
           <!-- Booking Details -->
           <div style="background: #f9fafb; border-radius: 8px; padding: 20px; margin: 25px 0;">
             <h3 style="margin: 0 0 15px 0; color: #111827; font-size: 18px; font-weight: 600;">
-              📋 Детали записи
+              ${t('email_status_details_title')}
             </h3>
             
             <table style="width: 100%; border-collapse: collapse;">
               <tr>
-                <td style="padding: 8px 0; color: #6b7280; width: 120px; font-size: 14px;">Статус:</td>
+                <td style="padding: 8px 0; color: #6b7280; width: 120px; font-size: 14px;">${t('email_status_details_status_label')}</td>
                 <td style="padding: 8px 0; color: #111827; font-weight: 600; font-size: 14px;">
-                  ${statusEmoji[data.status]} ${statusText[data.status]}
+                  ${statusEmoji[data.status]} ${t(statusText[data.status])}
                 </td>
               </tr>
               <tr>
-                <td style="padding: 8px 0; color: #6b7280; font-size: 14px;">Услуга:</td>
+                <td style="padding: 8px 0; color: #6b7280; font-size: 14px;">${t('email_status_details_service_label')}</td>
                 <td style="padding: 8px 0; color: #111827; font-size: 14px;">${data.serviceName}</td>
               </tr>
               <tr>
-                <td style="padding: 8px 0; color: #6b7280; font-size: 14px;">Мастер:</td>
+                <td style="padding: 8px 0; color: #6b7280; font-size: 14px;">${t('email_status_details_master_label')}</td>
                 <td style="padding: 8px 0; color: #111827; font-size: 14px;">${data.masterName}</td>
               </tr>
               <tr>
-                <td style="padding: 8px 0; color: #6b7280; font-size: 14px;">Дата и время:</td>
+                <td style="padding: 8px 0; color: #6b7280; font-size: 14px;">${t('email_status_details_datetime_label')}</td>
                 <td style="padding: 8px 0; color: #111827; font-size: 14px;">${formatDateTime(data.startAt)}</td>
               </tr>
             </table>
@@ -246,16 +276,16 @@ function getEmailBody(data: AppointmentEmailData): string {
           <!-- CTA Button (for CONFIRMED status) -->
           ${data.status === 'CONFIRMED' ? `
             <div style="text-align: center; margin: 25px 0;">
-              <a href="${baseUrl}/booking" 
-                 style="display: inline-block; 
-                        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
-                        color: white; 
-                        text-decoration: none; 
-                        padding: 14px 28px; 
-                        border-radius: 8px; 
-                        font-weight: 600; 
-                        font-size: 16px;">
-                📅 Записаться снова
+                <a href="${baseUrl}/booking" 
+                   style="display: inline-block; 
+                          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+                          color: white; 
+                          text-decoration: none; 
+                          padding: 14px 28px; 
+                          border-radius: 8px; 
+                          font-weight: 600; 
+                          font-size: 16px;">
+                ${t('email_status_cta_button')}
               </a>
             </div>
           ` : ''}
@@ -263,14 +293,14 @@ function getEmailBody(data: AppointmentEmailData): string {
           <!-- Footer -->
           <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb; text-align: center;">
             <p style="color: #6b7280; font-size: 14px; margin: 5px 0;">
-              Salon Elen - Ваша красота, наша забота 💖
+              ${t('email_status_footer_tagline')}
             </p>
             <p style="color: #9ca3af; font-size: 12px; margin: 5px 0; line-height: 1.6;">
-              ул. Примерная, 10, Киев<br>
-              📞 +38 (000) 000-00-00 | 📧 hello@salon-elen.com
+              ${t('email_status_footer_address')}<br>
+              ${t('email_status_footer_contacts')}
             </p>
             <p style="color: #d1d5db; font-size: 11px; margin: 15px 0 0 0;">
-              Это автоматическое уведомление. Пожалуйста, не отвечайте на это письмо.
+              ${t('email_status_footer_note')}
             </p>
           </div>
           
@@ -285,24 +315,28 @@ function getEmailBody(data: AppointmentEmailData): string {
  * Тестовая отправка email (для проверки настройки)
  */
 export async function sendTestEmail(
-  to: string
+  to: string,
+  locale?: Locale
 ): Promise<{ ok: boolean; error?: string }> {
   try {
+    const resolvedLocale = resolveLocale(locale);
+    const t = (key: MessageKey) => translate(resolvedLocale, key);
+
     const resend = getResendClient();
     
     if (!resend) {
-      return { ok: false, error: 'RESEND_API_KEY not configured' };
+      return { ok: false, error: t('email_service_not_configured') };
     }
 
     const result = await resend.emails.send({
       from: process.env.RESEND_FROM || 'Salon Elen <onboarding@resend.dev>',
       to,
-      subject: '🧪 Тестовое письмо - Salon Elen',
+      subject: t('email_test_subject'),
       html: `
         <div style="font-family: Arial, sans-serif; padding: 20px; max-width: 600px; margin: 0 auto;">
-          <h1 style="color: #667eea;">✅ Email настроен правильно!</h1>
-          <p>Если вы видите это письмо, значит Resend работает корректно.</p>
-          <p style="color: #666; font-size: 14px;">Отправлено из Salon Elen</p>
+          <h1 style="color: #667eea;">${t('email_test_title')}</h1>
+          <p>${t('email_test_body')}</p>
+          <p style="color: #666; font-size: 14px;">${t('email_test_footer')}</p>
         </div>
       `,
     });

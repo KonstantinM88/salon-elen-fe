@@ -3,6 +3,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import axios from 'axios';
+import { DEFAULT_LOCALE, LOCALES, type Locale } from '@/i18n/locales';
+import { translate, type MessageKey } from '@/i18n/messages';
 
 type SendToRegisteredRequest = {
   email: string;
@@ -28,13 +30,16 @@ type SendToRegisteredResponse =
 export async function POST(
   req: NextRequest
 ): Promise<NextResponse<SendToRegisteredResponse>> {
+  const locale = resolveLocale(req);
+  const t = (key: MessageKey) => translate(locale, key);
+
   try {
     const body = (await req.json()) as SendToRegisteredRequest;
     const { email, draftId } = body;
 
     if (!email || !draftId) {
       return NextResponse.json(
-        { success: false, error: 'Email и draftId обязательны' },
+        { success: false, error: t('api_telegram_send_to_registered_missing_params') },
         { status: 400 }
       );
     }
@@ -50,7 +55,7 @@ export async function POST(
 
     if (!telegramUser) {
       return NextResponse.json(
-        { success: false, error: 'Пользователь не найден' },
+        { success: false, error: t('api_telegram_send_to_registered_user_not_found') },
         { status: 404 }
       );
     }
@@ -61,7 +66,7 @@ export async function POST(
 
     if (!otpEntry) {
       return NextResponse.json(
-        { success: false, error: 'Код не найден' },
+        { success: false, error: t('api_telegram_send_to_registered_code_not_found') },
         { status: 404 }
       );
     }
@@ -97,17 +102,37 @@ export async function POST(
 
     return NextResponse.json({
       success: true,
-      message: 'Код отправлен',
+      message: t('api_telegram_send_to_registered_success'),
     });
   } catch (error) {
     console.error('[Send to Registered Error]:', error);
 
     const errorMessage =
-      error instanceof Error ? error.message : 'Ошибка отправки кода';
+      error instanceof Error
+        ? error.message
+        : t('api_telegram_send_to_registered_error');
 
     return NextResponse.json(
       { success: false, error: errorMessage },
       { status: 500 }
     );
   }
+}
+
+function resolveLocale(req: NextRequest): Locale {
+  const cookieLocale = req.cookies.get('locale')?.value as Locale | undefined;
+  if (cookieLocale && LOCALES.includes(cookieLocale)) {
+    return cookieLocale;
+  }
+
+  const header = req.headers.get('accept-language') ?? '';
+  const match = header.match(/\b(de|en|ru)\b/i);
+  if (match) {
+    const value = match[1].toLowerCase() as Locale;
+    if (LOCALES.includes(value)) {
+      return value;
+    }
+  }
+
+  return DEFAULT_LOCALE;
 }

@@ -7,10 +7,12 @@ import * as React from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { JSX } from 'react';
+import { useTranslations } from '@/i18n/useTranslations';
 
 export default function ClientStep(): JSX.Element {
   const router = useRouter();
   const params = useSearchParams();
+  const t = useTranslations();
 
   const serviceIds: string[] = React.useMemo(
     () => params.getAll('s').filter(Boolean),
@@ -53,53 +55,63 @@ export default function ClientStep(): JSX.Element {
       }}
     >
       <div className="rounded-xl border border-border bg-card p-4 text-sm text-muted-foreground">
-        {startISO ? <>Начало: <span className="font-medium text-foreground">{startISO}</span>. </> : null}
-        {endISO ? <>Окончание: <span className="font-medium text-foreground">{endISO}</span>.</> : null}
+        {startISO ? (
+          <>
+            {t('booking_client_step_start_label')}{' '}
+            <span className="font-medium text-foreground">{startISO}</span>.{' '}
+          </>
+        ) : null}
+        {endISO ? (
+          <>
+            {t('booking_client_step_end_label')}{' '}
+            <span className="font-medium text-foreground">{endISO}</span>.
+          </>
+        ) : null}
       </div>
 
       <div className="space-y-2">
-        <label className="text-sm">Ваше имя</label>
+        <label className="text-sm">{t('booking_client_step_name_label')}</label>
         <input
           type="text"
           value={name}
           onChange={(e) => setName(e.target.value)}
           className="w-full rounded-xl border border-border bg-background px-3 py-2 outline-none"
-          placeholder="Например, Анна"
+          placeholder={t('booking_client_step_name_placeholder')}
           required
         />
       </div>
 
       <div className="space-y-2">
-        <label className="text-sm">Телефон</label>
+        <label className="text-sm">{t('booking_client_step_phone_label')}</label>
         <input
           type="tel"
           value={phone}
           onChange={(e) => setPhone(e.target.value)}
           className="w-full rounded-xl border border-border bg-background px-3 py-2 outline-none"
-          placeholder="+49…"
+          placeholder={t('booking_client_step_phone_placeholder')}
           required
         />
       </div>
 
       <div className="space-y-2">
-        <label className="text-sm">E-mail (необязательно)</label>
+        <label className="text-sm">{t('booking_client_step_email_label')}</label>
         <input
           type="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           className="w-full rounded-xl border border-border bg-background px-3 py-2 outline-none"
-          placeholder="name@example.com"
+          placeholder={t('booking_client_step_email_placeholder')}
         />
       </div>
 
       <div className="space-y-2">
-        <label className="text-sm">Пожелания (необязательно)</label>
+        <label className="text-sm">{t('booking_client_step_notes_label')}</label>
         <textarea
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
           className="w-full rounded-xl border border-border bg-background px-3 py-2 outline-none"
           rows={4}
-          placeholder="Комментарий к записи"
+          placeholder={t('booking_client_step_notes_placeholder')}
         />
       </div>
 
@@ -112,7 +124,7 @@ export default function ClientStep(): JSX.Element {
           }
           className="rounded-xl px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground"
         >
-          Назад
+          {t('booking_client_step_back')}
         </Link>
 
         <button
@@ -124,7 +136,7 @@ export default function ClientStep(): JSX.Element {
               : 'cursor-not-allowed bg-muted text-muted-foreground'
           }`}
         >
-          Продолжить
+          {t('booking_client_step_continue')}
         </button>
       </div>
     </form>

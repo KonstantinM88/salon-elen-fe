@@ -122,18 +122,20 @@ export default function TelegramVerifyPage() {
       const data = await res.json();
 
       if (!res.ok) {
-        throw new Error(data.error || 'Ошибка отправки кода');
+        throw new Error(data.error || t('booking_telegram_verify_error_send'));
       }
 
       setSessionId(data.sessionId);
-      setSuccess('✓ Код отправлен в Telegram!');
+      setSuccess(t('booking_telegram_verify_success_sent'));
       
       setTimeout(() => {
         setStep(2);
         setSuccess(null);
       }, 1000);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Ошибка отправки кода');
+      setError(
+        err instanceof Error ? err.message : t('booking_telegram_verify_error_send')
+      );
     } finally {
       setLoading(false);
     }
@@ -162,24 +164,24 @@ export default function TelegramVerifyPage() {
 
       if (!res.ok) {
         if (data.error?.includes('expired')) {
-          throw new Error('Код истёк. Запросите новый код.');
+          throw new Error(t('booking_telegram_verify_error_expired'));
         }
         if (data.error?.includes('Invalid code')) {
-          throw new Error('Неверный код. Проверьте код в Telegram и попробуйте снова.');
+          throw new Error(t('booking_telegram_verify_error_invalid_code'));
         }
         if (data.error?.includes('Session not found')) {
-          throw new Error('Сессия не найдена. Начните заново.');
+          throw new Error(t('booking_telegram_verify_error_session'));
         }
-        throw new Error(data.error || 'Неверный код');
+        throw new Error(data.error || t('booking_telegram_verify_error_invalid_code'));
       }
 
-      setSuccess('✓ Код подтверждён!');
+      setSuccess(t('booking_telegram_verify_success_verified'));
 
       if (data.userData && data.userData.email) {
         console.log('[Frontend] Existing user detected, auto-creating appointment');
 
         setTimeout(async () => {
-          setSuccess('Создание записи...');
+          setSuccess(t('booking_telegram_verify_success_creating'));
           
           try {
             const completeRes = await fetch('/api/telegram/complete-registration', {
@@ -191,14 +193,20 @@ export default function TelegramVerifyPage() {
             const completeData = await completeRes.json();
 
             if (!completeRes.ok) {
-              throw new Error(completeData.error || 'Ошибка создания записи');
+              throw new Error(
+                completeData.error || t('booking_telegram_verify_error_create')
+              );
             }
 
             console.log('[Frontend] Redirecting to payment:', completeData.appointmentId);
             router.push(`/booking/payment?appointment=${completeData.appointmentId}`);
           } catch (err) {
             console.error('[Frontend] Auto-complete error:', err);
-            setError(err instanceof Error ? err.message : 'Ошибка завершения регистрации');
+            setError(
+              err instanceof Error
+                ? err.message
+                : t('booking_telegram_verify_error_complete')
+            );
             setLoading(false);
           }
         }, 1000);
@@ -212,7 +220,9 @@ export default function TelegramVerifyPage() {
       }
     } catch (err) {
       console.error('[Frontend] Verify error:', err);
-      setError(err instanceof Error ? err.message : 'Ошибка проверки кода');
+      setError(
+        err instanceof Error ? err.message : t('booking_telegram_verify_error_check')
+      );
       setLoading(false);
     }
   };
@@ -237,12 +247,14 @@ export default function TelegramVerifyPage() {
       const data = await res.json();
 
       if (!res.ok) {
-        throw new Error(data.error || 'Ошибка завершения регистрации');
+        throw new Error(data.error || t('booking_telegram_verify_error_complete'));
       }
 
       router.push(`/booking/payment?appointment=${data.appointmentId}`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Ошибка завершения регистрации');
+      setError(
+        err instanceof Error ? err.message : t('booking_telegram_verify_error_complete')
+      );
     } finally {
       setLoading(false);
     }
@@ -274,10 +286,10 @@ export default function TelegramVerifyPage() {
               </div>
               <div>
                 <span className="block font-serif text-2xl font-bold tracking-wide text-[#FACC15]">
-                  Salon Elen
+                  {t('site_name')}
                 </span>
                 <span className="block text-xs text-cyan-400/85">
-                  Premium Beauty Experience
+                  {t('booking_header_subtitle')}
                 </span>
               </div>
             </Link>
@@ -474,7 +486,7 @@ export default function TelegramVerifyPage() {
                         className="flex items-center justify-center gap-2 rounded-xl border-2 border-slate-700 bg-slate-800/50 px-4 py-3 font-medium text-slate-300 transition-colors hover:border-slate-600"
                       >
                         <ArrowLeft className="h-5 w-5" />
-                        Назад
+                        {t('booking_telegram_verify_back')}
                       </button>
 
                       <button
@@ -579,7 +591,7 @@ export default function TelegramVerifyPage() {
                         className="flex items-center justify-center gap-2 rounded-xl border-2 border-slate-700 bg-slate-800/50 px-4 py-3 font-medium text-slate-300 transition-colors hover:border-slate-600"
                       >
                         <ArrowLeft className="h-5 w-5" />
-                        Назад
+                        {t('booking_telegram_verify_back')}
                       </button>
 
                       <button

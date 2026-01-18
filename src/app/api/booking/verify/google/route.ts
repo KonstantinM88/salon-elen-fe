@@ -9,6 +9,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { GoogleOAuth } from '@/lib/google-oauth';
+import { DEFAULT_LOCALE, LOCALES, type Locale } from '@/i18n/locales';
+import { translate, type MessageKey } from '@/i18n/messages';
 
 type RequestBody = {
   email: string;
@@ -37,6 +39,9 @@ type ResponseData = SuccessResponse | ErrorResponse;
 export async function POST(
   req: NextRequest
 ): Promise<NextResponse<ResponseData>> {
+  const locale = resolveLocale(req);
+  const t = (key: MessageKey) => translate(locale, key);
+
   try {
     // Валидация конфигурации
     try {
@@ -46,7 +51,7 @@ export async function POST(
       return NextResponse.json(
         {
           ok: false,
-          error: 'Google OAuth не настроен. Обратитесь к администратору.',
+          error: t('api_google_oauth_not_configured'),
         },
         { status: 500 }
       );
@@ -61,7 +66,7 @@ export async function POST(
       return NextResponse.json(
         {
           ok: false,
-          error: 'Email и draftId обязательны',
+          error: t('api_google_oauth_missing_params'),
         },
         { status: 400 }
       );
@@ -80,7 +85,7 @@ export async function POST(
       return NextResponse.json(
         {
           ok: false,
-          error: 'Черновик бронирования не найден',
+          error: t('api_google_oauth_draft_not_found'),
         },
         { status: 404 }
       );
@@ -90,7 +95,7 @@ export async function POST(
       return NextResponse.json(
         {
           ok: false,
-          error: 'Email не совпадает с email в черновике',
+          error: t('api_google_oauth_email_mismatch'),
         },
         { status: 400 }
       );
@@ -139,15 +144,13 @@ export async function POST(
       ok: true,
       authUrl,
       state,
-      message: 'OAuth URL сгенерирован',
+      message: t('api_google_oauth_generated'),
     });
   } catch (error) {
     console.error('[Google OAuth API] Error:', error);
 
     const errorMessage =
-      error instanceof Error
-        ? error.message
-        : 'Ошибка генерации OAuth URL';
+      error instanceof Error ? error.message : t('api_google_oauth_error');
 
     return NextResponse.json(
       {
@@ -157,4 +160,22 @@ export async function POST(
       { status: 500 }
     );
   }
+}
+
+function resolveLocale(req: NextRequest): Locale {
+  const cookieLocale = req.cookies.get('locale')?.value as Locale | undefined;
+  if (cookieLocale && LOCALES.includes(cookieLocale)) {
+    return cookieLocale;
+  }
+
+  const header = req.headers.get('accept-language') ?? '';
+  const match = header.match(/\b(de|en|ru)\b/i);
+  if (match) {
+    const value = match[1].toLowerCase() as Locale;
+    if (LOCALES.includes(value)) {
+      return value;
+    }
+  }
+
+  return DEFAULT_LOCALE;
 }

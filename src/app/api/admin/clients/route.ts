@@ -5,13 +5,21 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { auth } from "@/auth";
 import { checkClientDuplicates } from "@/lib/client-duplicate-check";
+import { DEFAULT_LOCALE, LOCALES, type Locale } from "@/i18n/locales";
+import { translate, type MessageKey } from "@/i18n/messages";
 
 export async function POST(request: NextRequest) {
+  const locale = resolveLocale(request);
+  const t = (key: MessageKey) => translate(locale, key);
+
   try {
     const session = await auth();
     
     if (!session?.user || session.user.role !== "ADMIN") {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json(
+        { error: t("api_admin_clients_unauthorized") },
+        { status: 401 }
+      );
     }
 
     const body = await request.json();
@@ -20,7 +28,7 @@ export async function POST(request: NextRequest) {
     // Валидация
     if (!name || !phone || !email || !birthDate) {
       return NextResponse.json(
-        { error: "Missing required fields" },
+        { error: t("api_admin_clients_missing_fields") },
         { status: 400 }
       );
     }
@@ -32,7 +40,7 @@ export async function POST(request: NextRequest) {
     if (duplicateCheck.hasActiveDuplicate) {
       return NextResponse.json({
         error: "duplicate",
-        message: "Клиент с таким телефоном или email уже существует",
+        message: t("api_admin_clients_duplicate_active"),
         duplicateType: "active",
         conflictType: duplicateCheck.conflictType,
         existingClient: duplicateCheck.activeClient,
@@ -43,11 +51,11 @@ export async function POST(request: NextRequest) {
     if (duplicateCheck.hasDeletedDuplicate) {
       return NextResponse.json({
         error: "duplicate",
-        message: "Найден удалённый клиент с таким телефоном или email",
+        message: t("api_admin_clients_duplicate_deleted"),
         duplicateType: "deleted",
         conflictType: duplicateCheck.conflictType,
         deletedClient: duplicateCheck.deletedClient,
-        suggestion: "Вы можете восстановить удалённого клиента вместо создания нового",
+        suggestion: t("api_admin_clients_duplicate_suggestion"),
       }, { status: 409 });
     }
 
@@ -67,15 +75,33 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: "Client created successfully",
+      message: t("api_admin_clients_created"),
       client,
     });
 
   } catch (error) {
     console.error("Error creating client:", error);
     return NextResponse.json(
-      { error: "Failed to create client" },
+      { error: t("api_admin_clients_error") },
       { status: 500 }
     );
   }
+}
+
+function resolveLocale(req: NextRequest): Locale {
+  const cookieLocale = req.cookies.get("locale")?.value as Locale | undefined;
+  if (cookieLocale && LOCALES.includes(cookieLocale)) {
+    return cookieLocale;
+  }
+
+  const header = req.headers.get("accept-language") ?? "";
+  const match = header.match(/\b(de|en|ru)\b/i);
+  if (match) {
+    const value = match[1].toLowerCase() as Locale;
+    if (LOCALES.includes(value)) {
+      return value;
+    }
+  }
+
+  return DEFAULT_LOCALE;
 }

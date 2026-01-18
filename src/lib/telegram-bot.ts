@@ -4,6 +4,8 @@
 import { AppointmentStatus } from "@prisma/client";
 import { ORG_TZ } from "@/lib/orgTime";
 import { isPhoneDigitsValid, normalizePhoneDigits } from "@/lib/phone";
+import { DEFAULT_LOCALE, LOCALES, type Locale } from "@/i18n/locales";
+import { translate, type MessageKey } from "@/i18n/messages";
 
 const TELEGRAM_API_URL = "https://api.telegram.org";
 
@@ -103,6 +105,7 @@ interface ClientAppointmentStatusData {
   startAt: Date;
   endAt: Date;
   status: AppointmentStatus;
+  locale?: Locale;
 }
 
 // ===== УТИЛИТЫ =====
@@ -110,8 +113,26 @@ interface ClientAppointmentStatusData {
 /**
  * Форматирование даты для уведомлений
  */
-function formatDate(date: Date): string {
-  return new Intl.DateTimeFormat("ru-RU", {
+function resolveLocale(locale?: Locale): Locale {
+  if (locale && LOCALES.includes(locale)) {
+    return locale;
+  }
+  return DEFAULT_LOCALE;
+}
+
+function getIntlLocale(locale: Locale): string {
+  switch (locale) {
+    case "de":
+      return "de-DE";
+    case "en":
+      return "en-US";
+    default:
+      return "ru-RU";
+  }
+}
+
+function formatDate(date: Date, locale: Locale): string {
+  return new Intl.DateTimeFormat(getIntlLocale(locale), {
     day: "numeric",
     month: "long",
     year: "numeric",
@@ -122,8 +143,8 @@ function formatDate(date: Date): string {
 /**
  * Форматирование времени
  */
-function formatTime(date: Date): string {
-  return new Intl.DateTimeFormat("ru-RU", {
+function formatTime(date: Date, locale: Locale): string {
+  return new Intl.DateTimeFormat(getIntlLocale(locale), {
     hour: "2-digit",
     minute: "2-digit",
     timeZone: ORG_TZ,
@@ -151,18 +172,21 @@ function getPaymentStatusEmoji(status: string): string {
 /**
  * Текст статуса оплаты
  */
-function getPaymentStatusText(status: string): string {
+function getPaymentStatusText(
+  status: string,
+  t: (key: MessageKey) => string
+): string {
   switch (status) {
     case "PAID":
-      return "Оплачено";
+      return t("telegram_payment_status_paid");
     case "PENDING":
-      return "Ожидает оплаты";
+      return t("telegram_payment_status_pending");
     case "FAILED":
-      return "Ошибка оплаты";
+      return t("telegram_payment_status_failed");
     case "REFUNDED":
-      return "Возврат средств";
+      return t("telegram_payment_status_refunded");
     default:
-      return "Неизвестно";
+      return t("telegram_payment_status_unknown");
   }
 }
 
@@ -182,9 +206,12 @@ function escapeHtml(value: string): string {
  */
 export async function sendTelegramCode(
   phone: string,
-  code: string
+  code: string,
+  locale?: Locale
 ): Promise<boolean> {
   try {
+    const resolvedLocale = resolveLocale(locale);
+    const t = (key: MessageKey) => translate(resolvedLocale, key);
     const token = process.env.TELEGRAM_BOT_TOKEN;
     if (!token) {
       console.error("[Telegram Bot] TELEGRAM_BOT_TOKEN не установлен");
@@ -207,7 +234,11 @@ export async function sendTelegramCode(
     const chatId = Number(telegramUser.telegramChatId);
 
     // Формируем сообщение
-    const message = `💎 *Salon Elen - Код верификации*\n\nВаш код подтверждения:\n\n*${code}*\n\nКод действителен 10 минут.`;
+    const message =
+      `💎 *${t("telegram_code_title")}*\n\n` +
+      `${t("telegram_code_intro")}\n\n` +
+      `*${code}*\n\n` +
+      `${t("telegram_code_expires").replace("{minutes}", "10")}`;
 
     const options: TelegramSendMessageOptions = {
       parse_mode: "Markdown",
@@ -257,9 +288,12 @@ export async function notifyAdminNewAppointment(
   appointment: AppointmentData,
   user: { name: string; phone: string; email?: string | null },
   service: ServiceData,
-  master: MasterData
+  master: MasterData,
+  locale?: Locale
 ): Promise<boolean> {
   try {
+    const resolvedLocale = resolveLocale(locale);
+    const t = (key: MessageKey) => translate(resolvedLocale, key);
     const token = process.env.TELEGRAM_BOT_TOKEN;
     const adminChatId = process.env.TELEGRAM_ADMIN_CHAT_ID;
 
@@ -274,27 +308,27 @@ export async function notifyAdminNewAppointment(
     }
 
     // Форматируем дату и время
-    const dateStr = formatDate(appointment.startAt);
-    const timeStr = formatTime(appointment.startAt);
+    const dateStr = formatDate(appointment.startAt, resolvedLocale);
+    const timeStr = formatTime(appointment.startAt, resolvedLocale);
 
     // Эмодзи и текст статуса оплаты
     const paymentEmoji = getPaymentStatusEmoji(appointment.paymentStatus);
-    const paymentText = getPaymentStatusText(appointment.paymentStatus);
+    const paymentText = getPaymentStatusText(appointment.paymentStatus, t);
 
     // Формируем сообщение
     const message =
-      `🎉 *НОВАЯ ЗАПИСЬ!*\n\n` +
+      `🎉 *${t("telegram_admin_new_title")}*\n\n` +
       `━━━━━━━━━━━━━━━━━━━━━\n` +
-      `📅 *Дата:* ${dateStr}\n` +
-      `🕐 *Время:* ${timeStr}\n\n` +
-      `👤 *Клиент:* ${user.name}\n` +
-      `📱 *Телефон:* ${user.phone}\n` +
-      (user.email ? `📧 *Email:* ${user.email}\n` : "") +
-      `\n✨ *Услуга:* ${service.name}\n` +
-      `💆‍♀️ *Мастер:* ${master.name}\n\n` +
-      `💳 *Оплата:* ${paymentEmoji} ${paymentText}\n\n` +
+      `📅 *${t("telegram_admin_label_date")}:* ${dateStr}\n` +
+      `🕐 *${t("telegram_admin_label_time")}:* ${timeStr}\n\n` +
+      `👤 *${t("telegram_admin_label_client")}:* ${user.name}\n` +
+      `📱 *${t("telegram_admin_label_phone")}:* ${user.phone}\n` +
+      (user.email ? `📧 *${t("telegram_admin_label_email")}:* ${user.email}\n` : "") +
+      `\n✨ *${t("telegram_admin_label_service")}:* ${service.name}\n` +
+      `💆‍♀️ *${t("telegram_admin_label_master")}:* ${master.name}\n\n` +
+      `💳 *${t("telegram_admin_label_payment")}:* ${paymentEmoji} ${paymentText}\n\n` +
       `━━━━━━━━━━━━━━━━━━━━━\n` +
-      `🆔 *ID записи:* \`${appointment.id}\``;
+      `🆔 *${t("telegram_admin_label_id")}:* \`${appointment.id}\``;
 
     // URL для админ-панели
     const baseUrl =
@@ -307,7 +341,7 @@ export async function notifyAdminNewAppointment(
         inline_keyboard: [
           [
             {
-              text: "📊 Открыть в админке",
+              text: t("telegram_admin_open_button"),
               url: adminUrl,
             },
           ],
@@ -359,6 +393,8 @@ export async function notifyClientAppointmentStatus(
   data: ClientAppointmentStatusData
 ): Promise<boolean> {
   try {
+    const resolvedLocale = resolveLocale(data.locale);
+    const t = (key: MessageKey) => translate(resolvedLocale, key);
     const token = process.env.TELEGRAM_BOT_TOKEN;
     if (!token) {
       console.error("[Telegram Bot] TELEGRAM_BOT_TOKEN не установлен");
@@ -440,42 +476,45 @@ export async function notifyClientAppointmentStatus(
       telegramUserId: telegramUser.id,
     });
 
-    const dateStr = formatDate(data.startAt);
-    const startTime = formatTime(data.startAt);
-    const endTime = formatTime(data.endAt);
+    const dateStr = formatDate(data.startAt, resolvedLocale);
+    const startTime = formatTime(data.startAt, resolvedLocale);
+    const endTime = formatTime(data.endAt, resolvedLocale);
 
-    const statusTitle: Record<AppointmentStatus, string> = {
-      PENDING: "🔔 Заявка принята",
-      CONFIRMED: "✅ Запись подтверждена",
-      DONE: "🎉 Спасибо за визит",
-      CANCELED: "❌ Запись отменена",
+    const statusTitle: Record<AppointmentStatus, MessageKey> = {
+      PENDING: "telegram_client_status_title_pending",
+      CONFIRMED: "telegram_client_status_title_confirmed",
+      DONE: "telegram_client_status_title_done",
+      CANCELED: "telegram_client_status_title_canceled",
     };
 
-    const statusText: Record<AppointmentStatus, string> = {
-      PENDING: "Ожидает подтверждения",
-      CONFIRMED: "Подтверждена",
-      DONE: "Выполнена",
-      CANCELED: "Отменена",
+    const statusText: Record<AppointmentStatus, MessageKey> = {
+      PENDING: "telegram_client_status_text_pending",
+      CONFIRMED: "telegram_client_status_text_confirmed",
+      DONE: "telegram_client_status_text_done",
+      CANCELED: "telegram_client_status_text_canceled",
     };
 
-    const statusMessage: Record<AppointmentStatus, string> = {
-      PENDING:
-        "Мы получили вашу заявку. Администратор свяжется с вами в ближайшее время.",
-      CONFIRMED: "Ждём вас! Пожалуйста, приходите за 5 минут до записи.",
-      DONE: "Спасибо, что выбрали Salon Elen! Будем рады видеть вас снова.",
-      CANCELED:
-        "Если хотите перенести запись, пожалуйста, свяжитесь с нами.",
+    const statusMessage: Record<AppointmentStatus, MessageKey> = {
+      PENDING: "telegram_client_status_message_pending",
+      CONFIRMED: "telegram_client_status_message_confirmed",
+      DONE: "telegram_client_status_message_done",
+      CANCELED: "telegram_client_status_message_canceled",
     };
+
+    const greeting = t("telegram_client_greeting").replace(
+      "{name}",
+      `<b>${escapeHtml(data.customerName)}</b>`
+    );
 
     const message =
-      `<b>${escapeHtml(statusTitle[data.status])}</b>\n\n` +
-      `Здравствуйте, <b>${escapeHtml(data.customerName)}</b>!\n\n` +
-      `📅 Дата: ${escapeHtml(dateStr)}\n` +
-      `🕐 Время: ${escapeHtml(startTime)} - ${escapeHtml(endTime)}\n` +
-      `✂️ Услуга: ${escapeHtml(data.serviceName)}\n` +
-      `👩‍💼 Мастер: ${escapeHtml(data.masterName)}\n` +
-      `📌 Статус: <b>${escapeHtml(statusText[data.status])}</b>\n\n` +
-      `${escapeHtml(statusMessage[data.status])}`;
+      `<b>${escapeHtml(t(statusTitle[data.status]))}</b>\n\n` +
+      `${greeting}\n\n` +
+      `📅 ${escapeHtml(t("telegram_client_label_date"))}: ${escapeHtml(dateStr)}\n` +
+      `🕐 ${escapeHtml(t("telegram_client_label_time"))}: ${escapeHtml(startTime)} - ${escapeHtml(endTime)}\n` +
+      `✂️ ${escapeHtml(t("telegram_client_label_service"))}: ${escapeHtml(data.serviceName)}\n` +
+      `👩‍💼 ${escapeHtml(t("telegram_client_label_master"))}: ${escapeHtml(data.masterName)}\n` +
+      `📌 ${escapeHtml(t("telegram_client_label_status"))}: <b>${escapeHtml(t(statusText[data.status]))}</b>\n\n` +
+      `${escapeHtml(t(statusMessage[data.status]))}`;
 
     const response = await fetch(
       `${TELEGRAM_API_URL}/bot${token}/sendMessage`,
@@ -518,6 +557,8 @@ export async function notifyClientAppointmentStatus(
  */
 async function handleStartCommand(chatId: number): Promise<void> {
   try {
+    const locale = DEFAULT_LOCALE;
+    const t = (key: MessageKey) => translate(locale, key);
     const token = process.env.TELEGRAM_BOT_TOKEN;
     if (!token) {
       console.error("[Telegram Bot] TELEGRAM_BOT_TOKEN не установлен");
@@ -525,9 +566,9 @@ async function handleStartCommand(chatId: number): Promise<void> {
     }
 
     const message =
-      `👋 *Добро пожаловать в Salon Elen!*\n\n` +
-      `Для использования бота отправьте ваш номер телефона, нажав кнопку ниже.\n\n` +
-      `После этого вы сможете получать коды подтверждения для онлайн-записи.`;
+      `👋 *${t("telegram_start_title")}*\n\n` +
+      `${t("telegram_start_prompt")}\n\n` +
+      `${t("telegram_start_after")}`;
 
     const options: TelegramSendMessageOptions = {
       parse_mode: "Markdown",
@@ -535,7 +576,7 @@ async function handleStartCommand(chatId: number): Promise<void> {
         inline_keyboard: [
           [
             {
-              text: "📱 Отправить номер телефона",
+              text: t("telegram_button_send_phone"),
               callback_data: "request_contact",
             },
           ],
@@ -572,6 +613,8 @@ async function handleContactReceived(
   username?: string
 ): Promise<void> {
   try {
+    const locale = DEFAULT_LOCALE;
+    const t = (key: MessageKey) => translate(locale, key);
     const { prisma } = await import("@/lib/prisma");
 
     // Проверяем существует ли пользователь
@@ -618,7 +661,10 @@ async function handleContactReceived(
     const token = process.env.TELEGRAM_BOT_TOKEN;
     if (!token) return;
 
-    const message = `✅ *Номер телефона сохранён!*\n\nВаш номер: ${phone}\n\nТеперь вы можете использовать Telegram для подтверждения записей на сайте.`;
+    const message =
+      `✅ *${t("telegram_contact_saved_title")}*\n\n` +
+      `${t("telegram_contact_saved_phone").replace("{phone}", phone)}\n\n` +
+      `${t("telegram_contact_saved_ready")}`;
 
     const options: TelegramSendMessageOptions = {
       parse_mode: "Markdown",
@@ -688,13 +734,13 @@ export async function handleTelegramWebhook(
         const token = process.env.TELEGRAM_BOT_TOKEN;
         if (!token) return;
 
-        const message = "Пожалуйста, отправьте ваш номер телефона:";
+        const message = translate(DEFAULT_LOCALE, "telegram_request_contact_prompt");
 
         const replyMarkup = {
           keyboard: [
             [
               {
-                text: "📱 Отправить номер телефона",
+                text: translate(DEFAULT_LOCALE, "telegram_button_send_phone"),
                 request_contact: true,
               },
             ],

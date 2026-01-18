@@ -659,6 +659,206 @@ booking_payment_paypal_footer: string;
   booking_telegram_verify_error_missing: string;
   booking_telegram_verify_error_return: string;
 
+  // ======= BOOKING - TELEGRAM REGISTRATION MODAL =======
+  booking_telegram_modal_title: string;
+  booking_telegram_modal_subtitle: string;
+  booking_telegram_modal_phone_label: string;
+  booking_telegram_modal_how_title: string;
+  booking_telegram_modal_step_open_bot: string;
+  booking_telegram_modal_step_register: string;
+  booking_telegram_modal_step_done: string;
+  booking_telegram_modal_button_open: string;
+  booking_telegram_modal_button_done: string;
+  booking_telegram_modal_note: string;
+
+  // ======= BOOKING - TELEGRAM VERIFY MESSAGES =======
+  booking_telegram_verify_error_send: string;
+  booking_telegram_verify_error_expired: string;
+  booking_telegram_verify_error_invalid_code: string;
+  booking_telegram_verify_error_session: string;
+  booking_telegram_verify_error_create: string;
+  booking_telegram_verify_error_complete: string;
+  booking_telegram_verify_error_check: string;
+  booking_telegram_verify_success_sent: string;
+  booking_telegram_verify_success_verified: string;
+  booking_telegram_verify_success_creating: string;
+  booking_telegram_verify_back: string;
+
+  // ======= BOOKING - CONFIRMATION PAGE =======
+  booking_confirmation_error_title: string;
+  booking_confirmation_error_missing_id: string;
+  booking_confirmation_error_cta: string;
+  booking_confirmation_title: string;
+  booking_confirmation_subtitle: string;
+  booking_confirmation_details_number_label: string;
+  booking_confirmation_details_status_label: string;
+  booking_confirmation_status_pending: string;
+  booking_confirmation_action_home: string;
+  booking_confirmation_action_new: string;
+  booking_confirmation_notice_title: string;
+  booking_confirmation_notice_body: string;
+  booking_confirmation_loading: string;
+
+  // ======= BOOKING - CLIENT PAGE =======
+  booking_client_page_title: string;
+  booking_client_page_description: string;
+  booking_client_params_error_title: string;
+  booking_client_params_error_text: string;
+  booking_client_params_error_return: string;
+
+  // ======= BOOKING - CLIENT STEP =======
+  booking_client_step_start_label: string;
+  booking_client_step_end_label: string;
+  booking_client_step_name_label: string;
+  booking_client_step_name_placeholder: string;
+  booking_client_step_phone_label: string;
+  booking_client_step_phone_placeholder: string;
+  booking_client_step_email_label: string;
+  booking_client_step_email_placeholder: string;
+  booking_client_step_notes_label: string;
+  booking_client_step_notes_placeholder: string;
+  booking_client_step_back: string;
+  booking_client_step_continue: string;
+
+  // ======= EMAIL NOTIFICATIONS =======
+  email_service_not_configured: string;
+  email_send_unknown_error: string;
+  email_status_subject_pending: string;
+  email_status_subject_confirmed: string;
+  email_status_subject_done: string;
+  email_status_subject_canceled: string;
+  email_status_text_pending: string;
+  email_status_text_confirmed: string;
+  email_status_text_done: string;
+  email_status_text_canceled: string;
+  email_status_message_pending: string;
+  email_status_message_confirmed_intro: string;
+  email_status_message_confirmed_wait: string;
+  email_status_message_confirmed_notice_title: string;
+  email_status_message_confirmed_notice_text: string;
+  email_status_message_done_intro: string;
+  email_status_message_done_outro: string;
+  email_status_message_done_tip_title: string;
+  email_status_message_done_tip_text: string;
+  email_status_message_canceled_intro: string;
+  email_status_message_canceled_contact_intro: string;
+  email_status_message_canceled_contact: string;
+  email_status_html_title: string;
+  email_status_header_subtitle: string;
+  email_status_greeting: string;
+  email_status_details_title: string;
+  email_status_details_status_label: string;
+  email_status_details_service_label: string;
+  email_status_details_master_label: string;
+  email_status_details_datetime_label: string;
+  email_status_cta_button: string;
+  email_status_footer_tagline: string;
+  email_status_footer_address: string;
+  email_status_footer_contacts: string;
+  email_status_footer_note: string;
+  email_test_subject: string;
+  email_test_title: string;
+  email_test_body: string;
+  email_test_footer: string;
+
+  // ======= TELEGRAM BOT =======
+  telegram_code_title: string;
+  telegram_code_intro: string;
+  telegram_code_expires: string;
+  telegram_payment_status_paid: string;
+  telegram_payment_status_pending: string;
+  telegram_payment_status_failed: string;
+  telegram_payment_status_refunded: string;
+  telegram_payment_status_unknown: string;
+  telegram_admin_new_title: string;
+  telegram_admin_label_date: string;
+  telegram_admin_label_time: string;
+  telegram_admin_label_client: string;
+  telegram_admin_label_phone: string;
+  telegram_admin_label_email: string;
+  telegram_admin_label_service: string;
+  telegram_admin_label_master: string;
+  telegram_admin_label_payment: string;
+  telegram_admin_label_id: string;
+  telegram_admin_open_button: string;
+  telegram_client_status_title_pending: string;
+  telegram_client_status_title_confirmed: string;
+  telegram_client_status_title_done: string;
+  telegram_client_status_title_canceled: string;
+  telegram_client_status_text_pending: string;
+  telegram_client_status_text_confirmed: string;
+  telegram_client_status_text_done: string;
+  telegram_client_status_text_canceled: string;
+  telegram_client_status_message_pending: string;
+  telegram_client_status_message_confirmed: string;
+  telegram_client_status_message_done: string;
+  telegram_client_status_message_canceled: string;
+  telegram_client_greeting: string;
+  telegram_client_label_date: string;
+  telegram_client_label_time: string;
+  telegram_client_label_service: string;
+  telegram_client_label_master: string;
+  telegram_client_label_status: string;
+  telegram_start_title: string;
+  telegram_start_prompt: string;
+  telegram_start_after: string;
+  telegram_button_send_phone: string;
+  telegram_contact_saved_title: string;
+  telegram_contact_saved_phone: string;
+  telegram_contact_saved_ready: string;
+  telegram_request_contact_prompt: string;
+
+  // ======= API MESSAGES =======
+  api_telegram_send_to_registered_missing_params: string;
+  api_telegram_send_to_registered_user_not_found: string;
+  api_telegram_send_to_registered_code_not_found: string;
+  api_telegram_send_to_registered_success: string;
+  api_telegram_send_to_registered_error: string;
+  api_email_check_missing: string;
+  api_email_check_invalid: string;
+  api_email_check_too_long: string;
+  api_email_check_error: string;
+  api_google_oauth_not_configured: string;
+  api_google_oauth_missing_params: string;
+  api_google_oauth_draft_not_found: string;
+  api_google_oauth_email_mismatch: string;
+  api_google_oauth_generated: string;
+  api_google_oauth_error: string;
+  api_google_status_missing_params: string;
+  api_google_status_error: string;
+  api_google_callback_access_denied: string;
+  api_google_callback_invalid_params: string;
+  api_google_callback_invalid_state: string;
+  api_google_callback_expired: string;
+  api_google_callback_already_verified: string;
+  api_google_callback_missing_email: string;
+  api_google_callback_email_mismatch: string;
+  api_google_callback_draft_not_found: string;
+  api_google_callback_slot_taken: string;
+  api_google_callback_error: string;
+  api_email_confirm_missing_fields: string;
+  api_email_confirm_invalid_code: string;
+  api_email_confirm_draft_not_found: string;
+  api_email_confirm_success: string;
+  api_email_confirm_slot_taken: string;
+  api_email_confirm_error: string;
+  api_payment_missing_params: string;
+  api_payment_invalid_method: string;
+  api_payment_not_found: string;
+  api_payment_unknown_service: string;
+  api_payment_note_prefix: string;
+  api_payment_card_redirect: string;
+  api_payment_paypal_redirect: string;
+  api_payment_cash: string;
+  api_payment_unknown_method: string;
+  api_payment_error: string;
+  api_admin_clients_unauthorized: string;
+  api_admin_clients_missing_fields: string;
+  api_admin_clients_duplicate_active: string;
+  api_admin_clients_duplicate_deleted: string;
+  api_admin_clients_duplicate_suggestion: string;
+  api_admin_clients_created: string;
+  api_admin_clients_error: string;
 };
 
 export type MessageKey = keyof BaseMessages;
@@ -1358,6 +1558,230 @@ booking_payment_paypal_footer: "Платежи обрабатываются че
   booking_telegram_verify_error_missing: "Недостаточно параметров. Пожалуйста, начните запись заново.",
   booking_telegram_verify_error_return: "Вернуться к записи",
 
+  booking_telegram_modal_title: "Регистрация в Telegram боте",
+  booking_telegram_modal_subtitle:
+    "Для получения кодов подтверждения необходимо зарегистрироваться в нашем Telegram боте",
+  booking_telegram_modal_phone_label: "Ваш номер:",
+  booking_telegram_modal_how_title: "Как зарегистрироваться:",
+  booking_telegram_modal_step_open_bot:
+    "Нажмите кнопку ниже, чтобы открыть Telegram бота",
+  booking_telegram_modal_step_register:
+    "Бот автоматически зарегистрирует ваш номер",
+  booking_telegram_modal_step_done: "Вернитесь сюда и нажмите",
+  booking_telegram_modal_button_open: "Открыть Telegram бота",
+  booking_telegram_modal_button_done: "Я зарегистрировался",
+  booking_telegram_modal_note:
+    "Код подтверждения придёт в Telegram бот в течение нескольких секунд",
+
+  booking_telegram_verify_error_send: "Ошибка отправки кода",
+  booking_telegram_verify_error_expired: "Код истёк. Запросите новый код.",
+  booking_telegram_verify_error_invalid_code:
+    "Неверный код. Проверьте код в Telegram и попробуйте снова.",
+  booking_telegram_verify_error_session: "Сессия не найдена. Начните заново.",
+  booking_telegram_verify_error_create: "Ошибка создания записи",
+  booking_telegram_verify_error_complete: "Ошибка завершения регистрации",
+  booking_telegram_verify_error_check: "Ошибка проверки кода",
+  booking_telegram_verify_success_sent: "Код отправлен в Telegram!",
+  booking_telegram_verify_success_verified: "Код подтверждён!",
+  booking_telegram_verify_success_creating: "Создание записи...",
+  booking_telegram_verify_back: "Назад",
+
+  booking_confirmation_error_title: "Ошибка",
+  booking_confirmation_error_missing_id: "ID записи не указан",
+  booking_confirmation_error_cta: "Создать новую запись",
+  booking_confirmation_title: "Запись создана!",
+  booking_confirmation_subtitle:
+    "Ваша запись успешно создана. Мы свяжемся с вами для подтверждения.",
+  booking_confirmation_details_number_label: "Номер записи",
+  booking_confirmation_details_status_label: "Статус",
+  booking_confirmation_status_pending: "Ожидает подтверждения",
+  booking_confirmation_action_home: "Вернуться на главную",
+  booking_confirmation_action_new: "Создать новую запись",
+  booking_confirmation_notice_title: "Обратите внимание:",
+  booking_confirmation_notice_body:
+    "Мы свяжемся с вами в ближайшее время для подтверждения записи. Если у вас возникнут вопросы, пожалуйста, позвоните нам или напишите на электронную почту.",
+  booking_confirmation_loading: "Загрузка...",
+
+  booking_client_page_title: "Выбор регистрации | Salon Elen",
+  booking_client_page_description:
+    "Выберите способ регистрации для завершения бронирования",
+  booking_client_params_error_title: "Ошибка параметров",
+  booking_client_params_error_text: "Отсутствуют необходимые параметры бронирования",
+  booking_client_params_error_return: "Вернуться к началу",
+
+  booking_client_step_start_label: "Начало:",
+  booking_client_step_end_label: "Окончание:",
+  booking_client_step_name_label: "Ваше имя",
+  booking_client_step_name_placeholder: "Например, Анна",
+  booking_client_step_phone_label: "Телефон",
+  booking_client_step_phone_placeholder: "+49…",
+  booking_client_step_email_label: "E-mail (необязательно)",
+  booking_client_step_email_placeholder: "name@example.com",
+  booking_client_step_notes_label: "Пожелания (необязательно)",
+  booking_client_step_notes_placeholder: "Комментарий к записи",
+  booking_client_step_back: "Назад",
+  booking_client_step_continue: "Продолжить",
+
+  email_service_not_configured: "Сервис email не настроен",
+  email_send_unknown_error: "Неизвестная ошибка отправки email",
+  email_status_subject_pending: "🔔 Новая запись - Ожидает подтверждения",
+  email_status_subject_confirmed: "✅ Запись подтверждена - Salon Elen",
+  email_status_subject_done: "🎉 Спасибо за визит - Salon Elen",
+  email_status_subject_canceled: "❌ Запись отменена - Salon Elen",
+  email_status_text_pending: "В ожидании подтверждения",
+  email_status_text_confirmed: "Подтверждена",
+  email_status_text_done: "Выполнена",
+  email_status_text_canceled: "Отменена",
+  email_status_message_pending:
+    "Мы получили вашу заявку на запись. Наш администратор свяжется с вами в ближайшее время для подтверждения.",
+  email_status_message_confirmed_intro:
+    "Отличные новости! Ваша запись подтверждена.",
+  email_status_message_confirmed_wait:
+    "Ждём вас <strong>{date}</strong>",
+  email_status_message_confirmed_notice_title: "✨ Важно:",
+  email_status_message_confirmed_notice_text:
+    "Пожалуйста, приходите за 5 минут до начала записи.",
+  email_status_message_done_intro:
+    "Спасибо, что выбрали Salon Elen! 💖",
+  email_status_message_done_outro:
+    "Надеемся, вам понравился результат. Будем рады видеть вас снова!",
+  email_status_message_done_tip_title: "📅 Совет:",
+  email_status_message_done_tip_text:
+    "Для поддержания результата рекомендуем записаться через 3-4 недели.",
+  email_status_message_canceled_intro:
+    "К сожалению, ваша запись была отменена.",
+  email_status_message_canceled_contact_intro:
+    "Если это произошло по ошибке или вы хотите записаться на другое время, свяжитесь с нами:",
+  email_status_message_canceled_contact:
+    "📞 <strong>Телефон:</strong> +38 (000) 000-00-00<br>💬 <strong>Telegram:</strong> @salon_elen",
+  email_status_html_title: "Salon Elen - Уведомление",
+  email_status_header_subtitle: "Уведомление о записи",
+  email_status_greeting: "Здравствуйте, <strong>{name}</strong>!",
+  email_status_details_title: "📋 Детали записи",
+  email_status_details_status_label: "Статус:",
+  email_status_details_service_label: "Услуга:",
+  email_status_details_master_label: "Мастер:",
+  email_status_details_datetime_label: "Дата и время:",
+  email_status_cta_button: "📅 Записаться снова",
+  email_status_footer_tagline: "Salon Elen - Ваша красота, наша забота 💖",
+  email_status_footer_address: "ул. Примерная, 10, Киев",
+  email_status_footer_contacts: "📞 +38 (000) 000-00-00 | 📧 hello@salon-elen.com",
+  email_status_footer_note:
+    "Это автоматическое уведомление. Пожалуйста, не отвечайте на это письмо.",
+  email_test_subject: "🧪 Тестовое письмо - Salon Elen",
+  email_test_title: "✅ Email настроен правильно!",
+  email_test_body:
+    "Если вы видите это письмо, значит Resend работает корректно.",
+  email_test_footer: "Отправлено из Salon Elen",
+
+  telegram_code_title: "Salon Elen - Код верификации",
+  telegram_code_intro: "Ваш код подтверждения:",
+  telegram_code_expires: "Код действителен {minutes} минут.",
+  telegram_payment_status_paid: "Оплачено",
+  telegram_payment_status_pending: "Ожидает оплаты",
+  telegram_payment_status_failed: "Ошибка оплаты",
+  telegram_payment_status_refunded: "Возврат средств",
+  telegram_payment_status_unknown: "Неизвестно",
+  telegram_admin_new_title: "НОВАЯ ЗАПИСЬ!",
+  telegram_admin_label_date: "Дата",
+  telegram_admin_label_time: "Время",
+  telegram_admin_label_client: "Клиент",
+  telegram_admin_label_phone: "Телефон",
+  telegram_admin_label_email: "Email",
+  telegram_admin_label_service: "Услуга",
+  telegram_admin_label_master: "Мастер",
+  telegram_admin_label_payment: "Оплата",
+  telegram_admin_label_id: "ID записи",
+  telegram_admin_open_button: "📊 Открыть в админке",
+  telegram_client_status_title_pending: "🔔 Заявка принята",
+  telegram_client_status_title_confirmed: "✅ Запись подтверждена",
+  telegram_client_status_title_done: "🎉 Спасибо за визит",
+  telegram_client_status_title_canceled: "❌ Запись отменена",
+  telegram_client_status_text_pending: "Ожидает подтверждения",
+  telegram_client_status_text_confirmed: "Подтверждена",
+  telegram_client_status_text_done: "Выполнена",
+  telegram_client_status_text_canceled: "Отменена",
+  telegram_client_status_message_pending:
+    "Мы получили вашу заявку. Администратор свяжется с вами в ближайшее время.",
+  telegram_client_status_message_confirmed:
+    "Ждём вас! Пожалуйста, приходите за 5 минут до записи.",
+  telegram_client_status_message_done:
+    "Спасибо, что выбрали Salon Elen! Будем рады видеть вас снова.",
+  telegram_client_status_message_canceled:
+    "Если хотите перенести запись, пожалуйста, свяжитесь с нами.",
+  telegram_client_greeting: "Здравствуйте, {name}!",
+  telegram_client_label_date: "Дата",
+  telegram_client_label_time: "Время",
+  telegram_client_label_service: "Услуга",
+  telegram_client_label_master: "Мастер",
+  telegram_client_label_status: "Статус",
+  telegram_start_title: "Добро пожаловать в Salon Elen!",
+  telegram_start_prompt:
+    "Для использования бота отправьте ваш номер телефона, нажав кнопку ниже.",
+  telegram_start_after:
+    "После этого вы сможете получать коды подтверждения для онлайн-записи.",
+  telegram_button_send_phone: "📱 Отправить номер телефона",
+  telegram_contact_saved_title: "Номер телефона сохранён!",
+  telegram_contact_saved_phone: "Ваш номер: {phone}",
+  telegram_contact_saved_ready:
+    "Теперь вы можете использовать Telegram для подтверждения записей на сайте.",
+  telegram_request_contact_prompt: "Пожалуйста, отправьте ваш номер телефона:",
+
+  api_telegram_send_to_registered_missing_params: "Email и draftId обязательны",
+  api_telegram_send_to_registered_user_not_found: "Пользователь не найден",
+  api_telegram_send_to_registered_code_not_found: "Код не найден",
+  api_telegram_send_to_registered_success: "Код отправлен",
+  api_telegram_send_to_registered_error: "Ошибка отправки кода",
+  api_email_check_missing: "Email не указан",
+  api_email_check_invalid: "Некорректный формат email",
+  api_email_check_too_long: "Email слишком длинный",
+  api_email_check_error: "Ошибка проверки email",
+  api_google_oauth_not_configured:
+    "Google OAuth не настроен. Обратитесь к администратору.",
+  api_google_oauth_missing_params: "Email и draftId обязательны",
+  api_google_oauth_draft_not_found: "Черновик бронирования не найден",
+  api_google_oauth_email_mismatch: "Email не совпадает с email в черновике",
+  api_google_oauth_generated: "OAuth URL сгенерирован",
+  api_google_oauth_error: "Ошибка генерации OAuth URL",
+  api_google_status_missing_params: "Email и draftId обязательны",
+  api_google_status_error: "Ошибка проверки статуса",
+  api_google_callback_access_denied: "Доступ отклонён",
+  api_google_callback_invalid_params: "Некорректные параметры",
+  api_google_callback_invalid_state: "Неверный токен верификации",
+  api_google_callback_expired: "Запрос истёк, попробуйте снова",
+  api_google_callback_already_verified: "Уже подтверждено",
+  api_google_callback_missing_email: "Google не вернул e-mail",
+  api_google_callback_email_mismatch: "Email не совпадает с email бронирования",
+  api_google_callback_draft_not_found: "Черновик бронирования не найден",
+  api_google_callback_slot_taken: "Выбранное время уже занято",
+  api_google_callback_error: "Ошибка обработки callback",
+  api_email_confirm_missing_fields: "Все поля обязательны",
+  api_email_confirm_invalid_code: "Неверный код или email",
+  api_email_confirm_draft_not_found: "Черновик не найден",
+  api_email_confirm_success: "Запись подтверждена",
+  api_email_confirm_slot_taken:
+    "Выбранное время уже занято. Пожалуйста, выберите другое время.",
+  api_email_confirm_error: "Ошибка подтверждения кода",
+  api_payment_missing_params: "appointmentId и paymentMethod обязательны",
+  api_payment_invalid_method: "Некорректный способ оплаты",
+  api_payment_not_found: "Запись не найдена",
+  api_payment_unknown_service: "неизвестная услуга",
+  api_payment_note_prefix: "Способ оплаты",
+  api_payment_card_redirect: "Переход к оплате картой",
+  api_payment_paypal_redirect: "Переход к оплате через PayPal",
+  api_payment_cash: "Оплата наличными в салоне",
+  api_payment_unknown_method: "Неизвестный способ оплаты",
+  api_payment_error: "Ошибка обработки оплаты",
+  api_admin_clients_unauthorized: "Недостаточно прав",
+  api_admin_clients_missing_fields: "Заполните обязательные поля",
+  api_admin_clients_duplicate_active:
+    "Клиент с таким телефоном или email уже существует",
+  api_admin_clients_duplicate_deleted:
+    "Найден удалённый клиент с таким телефоном или email",
+  api_admin_clients_duplicate_suggestion:
+    "Вы можете восстановить удалённого клиента вместо создания нового",
+  api_admin_clients_created: "Клиент успешно создан",
+  api_admin_clients_error: "Ошибка создания клиента",
 };
 
 /* ==================== GERMAN (DE) ==================== */
@@ -2068,6 +2492,238 @@ const deMessages: BaseMessages = {
   booking_telegram_verify_error_missing: "Unzureichende Parameter. Bitte beginnen Sie die Buchung erneut.",
   booking_telegram_verify_error_return: "Zurück zur Buchung",
 
+  booking_telegram_modal_title: "Registrierung im Telegram-Bot",
+  booking_telegram_modal_subtitle:
+    "Um Bestätigungscodes zu erhalten, müssen Sie sich in unserem Telegram-Bot registrieren",
+  booking_telegram_modal_phone_label: "Ihre Nummer:",
+  booking_telegram_modal_how_title: "So registrieren Sie sich:",
+  booking_telegram_modal_step_open_bot:
+    "Klicken Sie unten, um den Telegram-Bot zu öffnen",
+  booking_telegram_modal_step_register:
+    "Der Bot registriert automatisch Ihre Nummer",
+  booking_telegram_modal_step_done: "Kehren Sie hierher zurück und klicken Sie",
+  booking_telegram_modal_button_open: "Telegram-Bot öffnen",
+  booking_telegram_modal_button_done: "Ich bin registriert",
+  booking_telegram_modal_note:
+    "Der Bestätigungscode kommt innerhalb weniger Sekunden im Telegram-Bot an",
+
+  booking_telegram_verify_error_send: "Fehler beim Senden des Codes",
+  booking_telegram_verify_error_expired:
+    "Code abgelaufen. Fordern Sie einen neuen Code an.",
+  booking_telegram_verify_error_invalid_code:
+    "Ungültiger Code. Prüfen Sie den Code in Telegram und versuchen Sie es erneut.",
+  booking_telegram_verify_error_session:
+    "Sitzung nicht gefunden. Bitte starten Sie erneut.",
+  booking_telegram_verify_error_create: "Fehler beim Erstellen der Buchung",
+  booking_telegram_verify_error_complete:
+    "Fehler beim Abschluss der Registrierung",
+  booking_telegram_verify_error_check: "Fehler bei der Codeprüfung",
+  booking_telegram_verify_success_sent: "Code an Telegram gesendet!",
+  booking_telegram_verify_success_verified: "Code bestätigt!",
+  booking_telegram_verify_success_creating: "Buchung wird erstellt...",
+  booking_telegram_verify_back: "Zurück",
+
+  booking_confirmation_error_title: "Fehler",
+  booking_confirmation_error_missing_id: "Buchungs-ID fehlt",
+  booking_confirmation_error_cta: "Neue Buchung erstellen",
+  booking_confirmation_title: "Buchung erstellt!",
+  booking_confirmation_subtitle:
+    "Ihre Buchung wurde erfolgreich erstellt. Wir kontaktieren Sie zur Bestätigung.",
+  booking_confirmation_details_number_label: "Buchungsnummer",
+  booking_confirmation_details_status_label: "Status",
+  booking_confirmation_status_pending: "Wartet auf Bestätigung",
+  booking_confirmation_action_home: "Zur Startseite",
+  booking_confirmation_action_new: "Neue Buchung erstellen",
+  booking_confirmation_notice_title: "Bitte beachten:",
+  booking_confirmation_notice_body:
+    "Wir werden Sie in Kürze kontaktieren, um die Buchung zu bestätigen. Wenn Sie Fragen haben, rufen Sie uns an oder schreiben Sie uns eine E-Mail.",
+  booking_confirmation_loading: "Laden...",
+
+  booking_client_page_title: "Registrierung wählen | Salon Elen",
+  booking_client_page_description:
+    "Wählen Sie die Registrierungsmethode, um die Buchung abzuschließen",
+  booking_client_params_error_title: "Parameterfehler",
+  booking_client_params_error_text: "Erforderliche Buchungsparameter fehlen",
+  booking_client_params_error_return: "Zum Anfang zurück",
+
+  booking_client_step_start_label: "Beginn:",
+  booking_client_step_end_label: "Ende:",
+  booking_client_step_name_label: "Ihr Name",
+  booking_client_step_name_placeholder: "Zum Beispiel Anna",
+  booking_client_step_phone_label: "Telefon",
+  booking_client_step_phone_placeholder: "+49…",
+  booking_client_step_email_label: "E-Mail (optional)",
+  booking_client_step_email_placeholder: "name@example.com",
+  booking_client_step_notes_label: "Wünsche (optional)",
+  booking_client_step_notes_placeholder: "Kommentar zur Buchung",
+  booking_client_step_back: "Zurück",
+  booking_client_step_continue: "Weiter",
+
+  email_service_not_configured: "E-Mail-Dienst ist nicht konfiguriert",
+  email_send_unknown_error: "Unbekannter E-Mail-Fehler",
+  email_status_subject_pending: "🔔 Neue Buchung - Wartet auf Bestätigung",
+  email_status_subject_confirmed: "✅ Buchung bestätigt - Salon Elen",
+  email_status_subject_done: "🎉 Danke für Ihren Besuch - Salon Elen",
+  email_status_subject_canceled: "❌ Buchung storniert - Salon Elen",
+  email_status_text_pending: "Wartet auf Bestätigung",
+  email_status_text_confirmed: "Bestätigt",
+  email_status_text_done: "Abgeschlossen",
+  email_status_text_canceled: "Storniert",
+  email_status_message_pending:
+    "Wir haben Ihre Buchungsanfrage erhalten. Unser Administrator wird Sie in Kürze zur Bestätigung kontaktieren.",
+  email_status_message_confirmed_intro:
+    "Gute Nachrichten! Ihre Buchung ist bestätigt.",
+  email_status_message_confirmed_wait:
+    "Wir erwarten Sie <strong>{date}</strong>",
+  email_status_message_confirmed_notice_title: "✨ Wichtig:",
+  email_status_message_confirmed_notice_text:
+    "Bitte kommen Sie 5 Minuten vor Beginn.",
+  email_status_message_done_intro:
+    "Danke, dass Sie Salon Elen gewählt haben! 💖",
+  email_status_message_done_outro:
+    "Wir hoffen, Ihnen hat das Ergebnis gefallen. Wir freuen uns, Sie wiederzusehen!",
+  email_status_message_done_tip_title: "📅 Tipp:",
+  email_status_message_done_tip_text:
+    "Für ein dauerhaftes Ergebnis empfehlen wir eine neue Buchung in 3-4 Wochen.",
+  email_status_message_canceled_intro:
+    "Leider wurde Ihre Buchung storniert.",
+  email_status_message_canceled_contact_intro:
+    "Wenn dies ein Fehler war oder Sie einen neuen Termin möchten, kontaktieren Sie uns:",
+  email_status_message_canceled_contact:
+    "📞 <strong>Telefon:</strong> +38 (000) 000-00-00<br>💬 <strong>Telegram:</strong> @salon_elen",
+  email_status_html_title: "Salon Elen - Benachrichtigung",
+  email_status_header_subtitle: "Buchungsbenachrichtigung",
+  email_status_greeting: "Hallo, <strong>{name}</strong>!",
+  email_status_details_title: "📋 Buchungsdetails",
+  email_status_details_status_label: "Status:",
+  email_status_details_service_label: "Leistung:",
+  email_status_details_master_label: "Spezialist:",
+  email_status_details_datetime_label: "Datum und Uhrzeit:",
+  email_status_cta_button: "📅 Erneut buchen",
+  email_status_footer_tagline: "Salon Elen - Ihre Schönheit, unsere Fürsorge 💖",
+  email_status_footer_address: "Beispielstraße 10, Kiew",
+  email_status_footer_contacts: "📞 +38 (000) 000-00-00 | 📧 hello@salon-elen.com",
+  email_status_footer_note:
+    "Dies ist eine automatische Benachrichtigung. Bitte antworten Sie nicht auf diese E-Mail.",
+  email_test_subject: "🧪 Test-E-Mail - Salon Elen",
+  email_test_title: "✅ E-Mail ist korrekt eingerichtet!",
+  email_test_body:
+    "Wenn Sie diese E-Mail sehen, funktioniert Resend korrekt.",
+  email_test_footer: "Gesendet von Salon Elen",
+
+  telegram_code_title: "Salon Elen - Verifizierungscode",
+  telegram_code_intro: "Ihr Bestätigungscode:",
+  telegram_code_expires: "Der Code ist {minutes} Minuten gültig.",
+  telegram_payment_status_paid: "Bezahlt",
+  telegram_payment_status_pending: "Zahlung ausstehend",
+  telegram_payment_status_failed: "Zahlungsfehler",
+  telegram_payment_status_refunded: "Erstattung",
+  telegram_payment_status_unknown: "Unbekannt",
+  telegram_admin_new_title: "NEUE BUCHUNG!",
+  telegram_admin_label_date: "Datum",
+  telegram_admin_label_time: "Uhrzeit",
+  telegram_admin_label_client: "Kunde",
+  telegram_admin_label_phone: "Telefon",
+  telegram_admin_label_email: "E-Mail",
+  telegram_admin_label_service: "Leistung",
+  telegram_admin_label_master: "Spezialist",
+  telegram_admin_label_payment: "Zahlung",
+  telegram_admin_label_id: "Buchungs-ID",
+  telegram_admin_open_button: "📊 In Admin öffnen",
+  telegram_client_status_title_pending: "🔔 Anfrage erhalten",
+  telegram_client_status_title_confirmed: "✅ Buchung bestätigt",
+  telegram_client_status_title_done: "🎉 Danke für Ihren Besuch",
+  telegram_client_status_title_canceled: "❌ Buchung storniert",
+  telegram_client_status_text_pending: "Wartet auf Bestätigung",
+  telegram_client_status_text_confirmed: "Bestätigt",
+  telegram_client_status_text_done: "Abgeschlossen",
+  telegram_client_status_text_canceled: "Storniert",
+  telegram_client_status_message_pending:
+    "Wir haben Ihre Anfrage erhalten. Ein Administrator wird Sie in Kürze kontaktieren.",
+  telegram_client_status_message_confirmed:
+    "Wir erwarten Sie! Bitte kommen Sie 5 Minuten vor dem Termin.",
+  telegram_client_status_message_done:
+    "Danke, dass Sie Salon Elen gewählt haben! Wir freuen uns auf Ihren nächsten Besuch.",
+  telegram_client_status_message_canceled:
+    "Wenn Sie den Termin verschieben möchten, kontaktieren Sie uns bitte.",
+  telegram_client_greeting: "Hallo, {name}!",
+  telegram_client_label_date: "Datum",
+  telegram_client_label_time: "Uhrzeit",
+  telegram_client_label_service: "Leistung",
+  telegram_client_label_master: "Spezialist",
+  telegram_client_label_status: "Status",
+  telegram_start_title: "Willkommen bei Salon Elen!",
+  telegram_start_prompt:
+    "Um den Bot zu nutzen, senden Sie Ihre Telefonnummer, indem Sie die Schaltfläche unten drücken.",
+  telegram_start_after:
+    "Danach erhalten Sie Bestätigungscodes für die Online-Buchung.",
+  telegram_button_send_phone: "📱 Telefonnummer senden",
+  telegram_contact_saved_title: "Telefonnummer gespeichert!",
+  telegram_contact_saved_phone: "Ihre Nummer: {phone}",
+  telegram_contact_saved_ready:
+    "Jetzt können Sie Telegram zur Bestätigung von Buchungen verwenden.",
+  telegram_request_contact_prompt: "Bitte senden Sie Ihre Telefonnummer:",
+
+  api_telegram_send_to_registered_missing_params:
+    "E-Mail und draftId sind erforderlich",
+  api_telegram_send_to_registered_user_not_found: "Benutzer nicht gefunden",
+  api_telegram_send_to_registered_code_not_found: "Code nicht gefunden",
+  api_telegram_send_to_registered_success: "Code gesendet",
+  api_telegram_send_to_registered_error: "Fehler beim Senden des Codes",
+  api_email_check_missing: "E-Mail fehlt",
+  api_email_check_invalid: "Ungültiges E-Mail-Format",
+  api_email_check_too_long: "E-Mail ist zu lang",
+  api_email_check_error: "Fehler bei der E-Mail-Prüfung",
+  api_google_oauth_not_configured:
+    "Google OAuth ist nicht konfiguriert. Bitte kontaktieren Sie den Administrator.",
+  api_google_oauth_missing_params: "E-Mail und draftId sind erforderlich",
+  api_google_oauth_draft_not_found: "Buchungsentwurf nicht gefunden",
+  api_google_oauth_email_mismatch:
+    "E-Mail stimmt nicht mit dem Entwurf überein",
+  api_google_oauth_generated: "OAuth-URL generiert",
+  api_google_oauth_error: "Fehler beim Generieren der OAuth-URL",
+  api_google_status_missing_params: "E-Mail und draftId sind erforderlich",
+  api_google_status_error: "Fehler beim Prüfen des Status",
+  api_google_callback_access_denied: "Zugriff abgelehnt",
+  api_google_callback_invalid_params: "Ungültige Parameter",
+  api_google_callback_invalid_state: "Ungültiger Verifizierungstoken",
+  api_google_callback_expired:
+    "Anfrage ist abgelaufen, bitte erneut versuchen",
+  api_google_callback_already_verified: "Bereits bestätigt",
+  api_google_callback_missing_email: "Google hat keine E-Mail zurückgegeben",
+  api_google_callback_email_mismatch:
+    "E-Mail stimmt nicht mit der Buchung überein",
+  api_google_callback_draft_not_found: "Buchungsentwurf nicht gefunden",
+  api_google_callback_slot_taken: "Die gewählte Zeit ist bereits belegt",
+  api_google_callback_error: "Fehler bei der Callback-Verarbeitung",
+  api_email_confirm_missing_fields: "Alle Felder sind erforderlich",
+  api_email_confirm_invalid_code: "Ungültiger Code oder E-Mail",
+  api_email_confirm_draft_not_found: "Entwurf nicht gefunden",
+  api_email_confirm_success: "Buchung bestätigt",
+  api_email_confirm_slot_taken:
+    "Die gewählte Zeit ist bereits belegt. Bitte wählen Sie eine andere Zeit.",
+  api_email_confirm_error: "Fehler bei der Codebestätigung",
+  api_payment_missing_params: "appointmentId und paymentMethod sind erforderlich",
+  api_payment_invalid_method: "Ungültige Zahlungsmethode",
+  api_payment_not_found: "Buchung nicht gefunden",
+  api_payment_unknown_service: "unbekannte Leistung",
+  api_payment_note_prefix: "Zahlungsmethode",
+  api_payment_card_redirect: "Weiterleitung zur Kartenzahlung",
+  api_payment_paypal_redirect: "Weiterleitung zu PayPal",
+  api_payment_cash: "Barzahlung im Salon",
+  api_payment_unknown_method: "Unbekannte Zahlungsmethode",
+  api_payment_error: "Fehler bei der Zahlungsabwicklung",
+  api_admin_clients_unauthorized: "Keine Berechtigung",
+  api_admin_clients_missing_fields: "Pflichtfelder fehlen",
+  api_admin_clients_duplicate_active:
+    "Ein Kunde mit dieser Telefonnummer oder E-Mail existiert bereits",
+  api_admin_clients_duplicate_deleted:
+    "Ein gelöschter Kunde mit dieser Telefonnummer oder E-Mail wurde gefunden",
+  api_admin_clients_duplicate_suggestion:
+    "Sie können den gelöschten Kunden wiederherstellen, statt einen neuen zu erstellen",
+  api_admin_clients_created: "Kunde erfolgreich erstellt",
+  api_admin_clients_error: "Fehler beim Erstellen des Kunden",
+
 };
 
 /* ==================== ENGLISH (EN) ==================== */
@@ -2754,6 +3410,232 @@ const enMessages: BaseMessages = {
   booking_telegram_verify_error_title: "⚠️ Error",
   booking_telegram_verify_error_missing: "Insufficient parameters. Please start the booking again.",
   booking_telegram_verify_error_return: "Return to booking",
+
+  booking_telegram_modal_title: "Telegram bot registration",
+  booking_telegram_modal_subtitle:
+    "To receive verification codes, you need to register in our Telegram bot",
+  booking_telegram_modal_phone_label: "Your number:",
+  booking_telegram_modal_how_title: "How to register:",
+  booking_telegram_modal_step_open_bot:
+    "Click the button below to open the Telegram bot",
+  booking_telegram_modal_step_register:
+    "The bot will automatically register your number",
+  booking_telegram_modal_step_done: "Return here and click",
+  booking_telegram_modal_button_open: "Open Telegram bot",
+  booking_telegram_modal_button_done: "I'm registered",
+  booking_telegram_modal_note:
+    "The verification code will arrive in the Telegram bot within a few seconds",
+
+  booking_telegram_verify_error_send: "Failed to send code",
+  booking_telegram_verify_error_expired: "Code expired. Request a new code.",
+  booking_telegram_verify_error_invalid_code:
+    "Invalid code. Check the code in Telegram and try again.",
+  booking_telegram_verify_error_session: "Session not found. Please start over.",
+  booking_telegram_verify_error_create: "Failed to create booking",
+  booking_telegram_verify_error_complete: "Failed to complete registration",
+  booking_telegram_verify_error_check: "Failed to verify code",
+  booking_telegram_verify_success_sent: "Code sent to Telegram!",
+  booking_telegram_verify_success_verified: "Code verified!",
+  booking_telegram_verify_success_creating: "Creating booking...",
+  booking_telegram_verify_back: "Back",
+
+  booking_confirmation_error_title: "Error",
+  booking_confirmation_error_missing_id: "Booking ID is missing",
+  booking_confirmation_error_cta: "Create a new booking",
+  booking_confirmation_title: "Booking created!",
+  booking_confirmation_subtitle:
+    "Your booking was created successfully. We'll contact you to confirm.",
+  booking_confirmation_details_number_label: "Booking number",
+  booking_confirmation_details_status_label: "Status",
+  booking_confirmation_status_pending: "Pending confirmation",
+  booking_confirmation_action_home: "Back to home",
+  booking_confirmation_action_new: "Create a new booking",
+  booking_confirmation_notice_title: "Please note:",
+  booking_confirmation_notice_body:
+    "We will contact you shortly to confirm the booking. If you have questions, please call us or email us.",
+  booking_confirmation_loading: "Loading...",
+
+  booking_client_page_title: "Choose registration | Salon Elen",
+  booking_client_page_description:
+    "Choose a registration method to complete booking",
+  booking_client_params_error_title: "Parameter error",
+  booking_client_params_error_text: "Required booking parameters are missing",
+  booking_client_params_error_return: "Back to start",
+
+  booking_client_step_start_label: "Start:",
+  booking_client_step_end_label: "End:",
+  booking_client_step_name_label: "Your name",
+  booking_client_step_name_placeholder: "For example, Anna",
+  booking_client_step_phone_label: "Phone",
+  booking_client_step_phone_placeholder: "+49…",
+  booking_client_step_email_label: "Email (optional)",
+  booking_client_step_email_placeholder: "name@example.com",
+  booking_client_step_notes_label: "Notes (optional)",
+  booking_client_step_notes_placeholder: "Booking comment",
+  booking_client_step_back: "Back",
+  booking_client_step_continue: "Continue",
+
+  email_service_not_configured: "Email service is not configured",
+  email_send_unknown_error: "Unknown email error",
+  email_status_subject_pending: "🔔 New booking - Pending confirmation",
+  email_status_subject_confirmed: "✅ Booking confirmed - Salon Elen",
+  email_status_subject_done: "🎉 Thank you for your visit - Salon Elen",
+  email_status_subject_canceled: "❌ Booking canceled - Salon Elen",
+  email_status_text_pending: "Pending confirmation",
+  email_status_text_confirmed: "Confirmed",
+  email_status_text_done: "Completed",
+  email_status_text_canceled: "Canceled",
+  email_status_message_pending:
+    "We received your booking request. Our administrator will contact you shortly to confirm.",
+  email_status_message_confirmed_intro:
+    "Great news! Your booking is confirmed.",
+  email_status_message_confirmed_wait:
+    "We look forward to seeing you on <strong>{date}</strong>",
+  email_status_message_confirmed_notice_title: "✨ Important:",
+  email_status_message_confirmed_notice_text:
+    "Please arrive 5 minutes before your appointment.",
+  email_status_message_done_intro:
+    "Thank you for choosing Salon Elen! 💖",
+  email_status_message_done_outro:
+    "We hope you loved the result. We'd be happy to see you again!",
+  email_status_message_done_tip_title: "📅 Tip:",
+  email_status_message_done_tip_text:
+    "To maintain results, we recommend booking again in 3-4 weeks.",
+  email_status_message_canceled_intro:
+    "Unfortunately, your booking was canceled.",
+  email_status_message_canceled_contact_intro:
+    "If this was a mistake or you want to reschedule, please contact us:",
+  email_status_message_canceled_contact:
+    "📞 <strong>Phone:</strong> +38 (000) 000-00-00<br>💬 <strong>Telegram:</strong> @salon_elen",
+  email_status_html_title: "Salon Elen - Notification",
+  email_status_header_subtitle: "Booking notification",
+  email_status_greeting: "Hello, <strong>{name}</strong>!",
+  email_status_details_title: "📋 Booking details",
+  email_status_details_status_label: "Status:",
+  email_status_details_service_label: "Service:",
+  email_status_details_master_label: "Master:",
+  email_status_details_datetime_label: "Date and time:",
+  email_status_cta_button: "📅 Book again",
+  email_status_footer_tagline: "Salon Elen - Your beauty, our care 💖",
+  email_status_footer_address: "Example St 10, Kyiv",
+  email_status_footer_contacts: "📞 +38 (000) 000-00-00 | 📧 hello@salon-elen.com",
+  email_status_footer_note:
+    "This is an automated notification. Please do not reply to this email.",
+  email_test_subject: "🧪 Test email - Salon Elen",
+  email_test_title: "✅ Email is set up correctly!",
+  email_test_body:
+    "If you can see this email, Resend is working correctly.",
+  email_test_footer: "Sent from Salon Elen",
+
+  telegram_code_title: "Salon Elen - Verification code",
+  telegram_code_intro: "Your confirmation code:",
+  telegram_code_expires: "The code is valid for {minutes} minutes.",
+  telegram_payment_status_paid: "Paid",
+  telegram_payment_status_pending: "Payment pending",
+  telegram_payment_status_failed: "Payment failed",
+  telegram_payment_status_refunded: "Refunded",
+  telegram_payment_status_unknown: "Unknown",
+  telegram_admin_new_title: "NEW BOOKING!",
+  telegram_admin_label_date: "Date",
+  telegram_admin_label_time: "Time",
+  telegram_admin_label_client: "Client",
+  telegram_admin_label_phone: "Phone",
+  telegram_admin_label_email: "Email",
+  telegram_admin_label_service: "Service",
+  telegram_admin_label_master: "Master",
+  telegram_admin_label_payment: "Payment",
+  telegram_admin_label_id: "Booking ID",
+  telegram_admin_open_button: "📊 Open in admin",
+  telegram_client_status_title_pending: "🔔 Request received",
+  telegram_client_status_title_confirmed: "✅ Booking confirmed",
+  telegram_client_status_title_done: "🎉 Thank you for your visit",
+  telegram_client_status_title_canceled: "❌ Booking canceled",
+  telegram_client_status_text_pending: "Pending confirmation",
+  telegram_client_status_text_confirmed: "Confirmed",
+  telegram_client_status_text_done: "Completed",
+  telegram_client_status_text_canceled: "Canceled",
+  telegram_client_status_message_pending:
+    "We received your request. An administrator will contact you shortly.",
+  telegram_client_status_message_confirmed:
+    "We look forward to seeing you! Please arrive 5 minutes early.",
+  telegram_client_status_message_done:
+    "Thank you for choosing Salon Elen! We'd love to see you again.",
+  telegram_client_status_message_canceled:
+    "If you'd like to reschedule, please contact us.",
+  telegram_client_greeting: "Hello, {name}!",
+  telegram_client_label_date: "Date",
+  telegram_client_label_time: "Time",
+  telegram_client_label_service: "Service",
+  telegram_client_label_master: "Master",
+  telegram_client_label_status: "Status",
+  telegram_start_title: "Welcome to Salon Elen!",
+  telegram_start_prompt:
+    "To use the bot, send your phone number using the button below.",
+  telegram_start_after:
+    "After that, you will receive confirmation codes for online booking.",
+  telegram_button_send_phone: "📱 Send phone number",
+  telegram_contact_saved_title: "Phone number saved!",
+  telegram_contact_saved_phone: "Your number: {phone}",
+  telegram_contact_saved_ready:
+    "Now you can use Telegram to confirm bookings on the website.",
+  telegram_request_contact_prompt: "Please send your phone number:",
+
+  api_telegram_send_to_registered_missing_params:
+    "Email and draftId are required",
+  api_telegram_send_to_registered_user_not_found: "User not found",
+  api_telegram_send_to_registered_code_not_found: "Code not found",
+  api_telegram_send_to_registered_success: "Code sent",
+  api_telegram_send_to_registered_error: "Failed to send code",
+  api_email_check_missing: "Email is missing",
+  api_email_check_invalid: "Invalid email format",
+  api_email_check_too_long: "Email is too long",
+  api_email_check_error: "Email validation error",
+  api_google_oauth_not_configured:
+    "Google OAuth is not configured. Please contact the administrator.",
+  api_google_oauth_missing_params: "Email and draftId are required",
+  api_google_oauth_draft_not_found: "Booking draft not found",
+  api_google_oauth_email_mismatch: "Email does not match the draft",
+  api_google_oauth_generated: "OAuth URL generated",
+  api_google_oauth_error: "Failed to generate OAuth URL",
+  api_google_status_missing_params: "Email and draftId are required",
+  api_google_status_error: "Failed to check status",
+  api_google_callback_access_denied: "Access denied",
+  api_google_callback_invalid_params: "Invalid parameters",
+  api_google_callback_invalid_state: "Invalid verification token",
+  api_google_callback_expired: "Request expired, please try again",
+  api_google_callback_already_verified: "Already verified",
+  api_google_callback_missing_email: "Google did not return an email",
+  api_google_callback_email_mismatch: "Email does not match the booking",
+  api_google_callback_draft_not_found: "Booking draft not found",
+  api_google_callback_slot_taken: "Selected time is already taken",
+  api_google_callback_error: "Callback processing error",
+  api_email_confirm_missing_fields: "All fields are required",
+  api_email_confirm_invalid_code: "Invalid code or email",
+  api_email_confirm_draft_not_found: "Draft not found",
+  api_email_confirm_success: "Booking confirmed",
+  api_email_confirm_slot_taken:
+    "Selected time is already taken. Please choose another time.",
+  api_email_confirm_error: "Code confirmation error",
+  api_payment_missing_params: "appointmentId and paymentMethod are required",
+  api_payment_invalid_method: "Invalid payment method",
+  api_payment_not_found: "Booking not found",
+  api_payment_unknown_service: "unknown service",
+  api_payment_note_prefix: "Payment method",
+  api_payment_card_redirect: "Redirecting to card payment",
+  api_payment_paypal_redirect: "Redirecting to PayPal",
+  api_payment_cash: "Cash payment at the salon",
+  api_payment_unknown_method: "Unknown payment method",
+  api_payment_error: "Payment processing error",
+  api_admin_clients_unauthorized: "Unauthorized",
+  api_admin_clients_missing_fields: "Missing required fields",
+  api_admin_clients_duplicate_active:
+    "A client with this phone or email already exists",
+  api_admin_clients_duplicate_deleted:
+    "A deleted client with this phone or email was found",
+  api_admin_clients_duplicate_suggestion:
+    "You can restore the deleted client instead of creating a new one",
+  api_admin_clients_created: "Client created successfully",
+  api_admin_clients_error: "Failed to create client",
 
 
 };

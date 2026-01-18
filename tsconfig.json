@@ -47,6 +47,7 @@
     "node_modules",
     ".next",
     "prisma/seed.ts",
-    "scripts/**/*"
+    "scripts/**/*",
+    "Downloads/**/*"
   ]
 }
