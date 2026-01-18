@@ -336,6 +336,12 @@ export type BaseMessages = {
   booking_verify_email_confirm_code: string;
   booking_verify_email_checking: string;
   booking_verify_email_resend: string;
+  booking_verify_email_sent_message: string;
+  booking_verify_email_api_missing_params: string;
+  booking_verify_email_api_draft_not_found: string;
+  booking_verify_email_api_email_mismatch: string;
+  booking_verify_email_api_send_failed: string;
+  booking_verify_email_api_error: string;
 
   booking_verify_info_title: string;
   booking_verify_info_desc: string;
@@ -392,6 +398,17 @@ export type BaseMessages = {
 
   booking_verify_error_enter_code: string;
   booking_verify_success_redirect: string;
+  booking_email_otp_subject: string;
+  booking_email_otp_title: string;
+  booking_email_otp_header_subtitle: string;
+  booking_email_otp_greeting: string;
+  booking_email_otp_code_intro: string;
+  booking_email_otp_expires_label: string;
+  booking_email_otp_expires_text: string;
+  booking_email_otp_ignore: string;
+  booking_email_otp_footer_tagline: string;
+  booking_email_otp_footer_contact: string;
+  booking_email_otp_footer_note: string;
 
   // ======= BOOKING - PAYMENT PAGE =======
   booking_payment_badge: string;
@@ -649,6 +666,24 @@ export type MessageKey = keyof BaseMessages;
 /* ==================== RUSSIAN (RU) ==================== */
 
 const ruMessages: BaseMessages = {
+  booking_verify_email_sent_message: "Код отправлен на email",
+  booking_verify_email_api_missing_params: "Email и draftId обязательны",
+  booking_verify_email_api_draft_not_found: "Черновик записи не найден",
+  booking_verify_email_api_email_mismatch: "E-mail не совпадает с данными черновика",
+  booking_verify_email_api_send_failed: "Ошибка отправки кода на email",
+  booking_verify_email_api_error: "Ошибка отправки кода",
+  booking_email_otp_subject: "Код подтверждения записи - Salon Elen",
+  booking_email_otp_title: "Код подтверждения",
+  booking_email_otp_header_subtitle: "Подтверждение записи",
+  booking_email_otp_greeting: "Здравствуйте!",
+  booking_email_otp_code_intro: "Ваш код подтверждения для завершения записи:",
+  booking_email_otp_expires_label: "Важно:",
+  booking_email_otp_expires_text: "Код действителен в течение {minutes} минут.",
+  booking_email_otp_ignore:
+    "Если вы не оформляли запись в Salon Elen, просто проигнорируйте это письмо.",
+  booking_email_otp_footer_tagline: "Salon Elen - Ваша красота, наша забота 💖",
+  booking_email_otp_footer_contact: "📧 booking@news.permanent-halle.de",
+  booking_email_otp_footer_note: "Это автоматическое письмо. Пожалуйста, не отвечайте на него.",
   // Навигация
   nav_home: "Главная",
   nav_services: "Услуги",
@@ -1328,6 +1363,24 @@ booking_payment_paypal_footer: "Платежи обрабатываются че
 /* ==================== GERMAN (DE) ==================== */
 
 const deMessages: BaseMessages = {
+  booking_verify_email_sent_message: "Code wurde per E-Mail gesendet",
+  booking_verify_email_api_missing_params: "E-Mail und draftId sind erforderlich",
+  booking_verify_email_api_draft_not_found: "Buchungsentwurf nicht gefunden",
+  booking_verify_email_api_email_mismatch: "E-Mail stimmt nicht mit dem Entwurf überein",
+  booking_verify_email_api_send_failed: "Fehler beim Senden des Codes per E-Mail",
+  booking_verify_email_api_error: "Fehler beim Senden des Codes",
+  booking_email_otp_subject: "Bestätigungscode für die Buchung - Salon Elen",
+  booking_email_otp_title: "Bestätigungscode",
+  booking_email_otp_header_subtitle: "Buchungsbestätigung",
+  booking_email_otp_greeting: "Hallo!",
+  booking_email_otp_code_intro: "Ihr Bestätigungscode zum Abschließen der Buchung:",
+  booking_email_otp_expires_label: "Wichtig:",
+  booking_email_otp_expires_text: "Der Code ist {minutes} Minuten gültig.",
+  booking_email_otp_ignore:
+    "Wenn Sie keine Buchung bei Salon Elen vorgenommen haben, ignorieren Sie diese E-Mail.",
+  booking_email_otp_footer_tagline: "Salon Elen – Ihre Schönheit, unser Anliegen 💖",
+  booking_email_otp_footer_contact: "📧 booking@news.permanent-halle.de",
+  booking_email_otp_footer_note: "Dies ist eine automatische E-Mail. Bitte nicht antworten.",
   // Navigation
   nav_home: "Startseite",
   nav_services: "Leistungen",
@@ -2358,6 +2411,12 @@ const enMessages: BaseMessages = {
   booking_verify_email_confirm_code: "Confirm code",
   booking_verify_email_checking: "Checking…",
   booking_verify_email_resend: "Resend code",
+  booking_verify_email_sent_message: "Code sent to email",
+  booking_verify_email_api_missing_params: "Email and draftId are required",
+  booking_verify_email_api_draft_not_found: "Booking draft not found",
+  booking_verify_email_api_email_mismatch: "Email does not match the draft",
+  booking_verify_email_api_send_failed: "Failed to send code to email",
+  booking_verify_email_api_error: "Failed to send code",
   booking_verify_info_title: "Secure Confirmation",
   booking_verify_info_desc:
     "We use a one-time code to protect your data and salon schedule",
@@ -2425,6 +2484,19 @@ const enMessages: BaseMessages = {
   booking_verify_error_enter_code: "Enter 6-digit code",
   booking_verify_success_redirect:
     "Verification successful! Redirecting to payment...",
+  booking_email_otp_subject: "Booking confirmation code - Salon Elen",
+  booking_email_otp_title: "Confirmation code",
+  booking_email_otp_header_subtitle: "Booking confirmation",
+  booking_email_otp_greeting: "Hello!",
+  booking_email_otp_code_intro: "Your confirmation code to complete the booking:",
+  booking_email_otp_expires_label: "Important:",
+  booking_email_otp_expires_text: "The code is valid for {minutes} minutes.",
+  booking_email_otp_ignore:
+    "If you did not make a booking at Salon Elen, please ignore this email.",
+  booking_email_otp_footer_tagline: "Salon Elen - Your beauty, our care 💖",
+  booking_email_otp_footer_contact: "📧 booking@news.permanent-halle.de",
+  booking_email_otp_footer_note:
+    "This is an automated email. Please do not reply.",
 
   booking_payment_badge: "Step 6 — Payment and Final Confirmation",
   booking_payment_hero_title: "Complete Booking",

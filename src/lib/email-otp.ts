@@ -4,6 +4,8 @@
  */
 
 import { Resend } from 'resend';
+import { DEFAULT_LOCALE, type Locale } from '@/i18n/locales';
+import { translate, type MessageKey } from '@/i18n/messages';
 
 /**
  * Получить экземпляр Resend
@@ -33,6 +35,7 @@ export async function sendOTPEmail(
   options?: {
     expiryMinutes?: number;
     subject?: string;
+    locale?: Locale;
   }
 ): Promise<{ ok: boolean; error?: string; messageId?: string }> {
   try {
@@ -48,17 +51,23 @@ export async function sendOTPEmail(
       return { ok: false, error: 'Email service not configured' };
     }
 
+    const locale = options?.locale ?? DEFAULT_LOCALE;
+    const t = (key: MessageKey) => translate(locale, key);
     const expiryMinutes = options?.expiryMinutes || 10;
-    const subject = options?.subject || 'Код подтверждения - Salon Elen';
+    const subject = options?.subject || t('booking_email_otp_subject');
+    const expiresText = t('booking_email_otp_expires_text').replace(
+      '{minutes}',
+      String(expiryMinutes)
+    );
 
     // HTML шаблон письма
     const html = `
       <!DOCTYPE html>
-      <html lang="ru">
+      <html lang="${locale}">
       <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Код подтверждения</title>
+        <title>${t('booking_email_otp_title')}</title>
       </head>
       <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f3f4f6;">
         <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
@@ -69,7 +78,7 @@ export async function sendOTPEmail(
               🔐 Salon Elen
             </h1>
             <p style="color: rgba(255,255,255,0.9); margin: 10px 0 0 0; font-size: 16px;">
-              Подтверждение записи
+              ${t('booking_email_otp_header_subtitle')}
             </p>
           </div>
           
@@ -77,11 +86,11 @@ export async function sendOTPEmail(
           <div style="background: white; padding: 40px 30px; border-radius: 0 0 12px 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
             
             <p style="font-size: 16px; color: #374151; margin-bottom: 20px; line-height: 1.6;">
-              Здравствуйте!
+              ${t('booking_email_otp_greeting')}
             </p>
             
             <p style="font-size: 16px; color: #374151; margin-bottom: 30px; line-height: 1.6;">
-              Ваш код подтверждения для завершения записи:
+              ${t('booking_email_otp_code_intro')}
             </p>
             
             <!-- OTP Code -->
@@ -107,24 +116,24 @@ export async function sendOTPEmail(
                         border-radius: 8px; 
                         margin: 25px 0;">
               <p style="color: #92400e; margin: 0; font-size: 14px; line-height: 1.6;">
-                <strong>⏱️ Важно:</strong> Код действителен в течение <strong>${expiryMinutes} минут</strong>.
+                <strong>⏱️ ${t('booking_email_otp_expires_label')}</strong> ${expiresText}
               </p>
             </div>
             
             <p style="font-size: 14px; color: #6b7280; margin-top: 25px; line-height: 1.6;">
-              Если вы не оформляли запись в Salon Elen, просто проигнорируйте это письмо.
+              ${t('booking_email_otp_ignore')}
             </p>
             
             <!-- Footer -->
             <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #e5e7eb; text-align: center;">
               <p style="color: #6b7280; font-size: 14px; margin: 5px 0;">
-                Salon Elen - Ваша красота, наша забота 💖
+                ${t('booking_email_otp_footer_tagline')}
               </p>
               <p style="color: #9ca3af; font-size: 12px; margin: 10px 0;">
-                📧 booking@news.permanent-halle.de
+                ${t('booking_email_otp_footer_contact')}
               </p>
               <p style="color: #d1d5db; font-size: 11px; margin: 15px 0 0 0;">
-                Это автоматическое письмо. Пожалуйста, не отвечайте на него.
+                ${t('booking_email_otp_footer_note')}
               </p>
             </div>
             
