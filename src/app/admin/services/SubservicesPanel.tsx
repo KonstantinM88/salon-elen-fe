@@ -1,10 +1,20 @@
+// src/app/admin/services/SubservicesPanel.tsx
+// ИНСТРУКЦИЯ: Переименуйте этот файл в SubservicesPanel.tsx после backup старого файла
+
 "use client";
 
-import React, { useMemo, useState, ChangeEvent } from "react";
-import { useActionState } from "react";
-import type { ActionResult } from "./actions"; // ← единый тип
+import React, { useMemo, useState } from "react";
+import type { ActionResult } from "./actions";
+import { TranslationButton } from './ServicesPageClient';
+import { ServiceEditButton } from './EditButtons';
 
 type ParentOption = { id: string; name: string };
+
+type Translation = {
+  locale: string;
+  name: string;
+  description: string | null;
+};
 
 type Sub = {
   id: string;
@@ -18,6 +28,7 @@ type Sub = {
   parentName: string;
   createdAt: string;
   updatedAt: string;
+  translations: Translation[];
 };
 
 type ViewMode = "cards" | "table";
@@ -26,8 +37,8 @@ type SortKey = "name" | "price" | "minutes";
 type Props = {
   parentOptions: ParentOption[];
   subservices: Sub[];
-  updateAction: (formData: FormData) => Promise<ActionResult>;
-  deleteAction: (formData: FormData) => Promise<ActionResult>;
+  updateSubservice: (formData: FormData) => Promise<ActionResult>;
+  deleteSubservice: (formData: FormData) => Promise<ActionResult>;
 };
 
 function euro(cents: number | null): string {
@@ -36,34 +47,11 @@ function euro(cents: number | null): string {
     .format((cents ?? 0) / 100);
 }
 
-/** адаптер под server action */
-function useServerAction(
-  action: (fd: FormData) => Promise<ActionResult>,
-  initial: ActionResult = { ok: true }
-) {
-  const [state, formAction] = useActionState(
-    async (_prev: ActionResult, formData: FormData) => {
-      try {
-        const res = await action(formData);
-        return res ?? { ok: true };
-      } catch (e) {
-        const msg =
-          e instanceof Error ? e.message : "Произошла неизвестная ошибка";
-        return { ok: false, message: msg };
-      }
-    },
-    initial
-  );
-  return { state, formAction };
-}
-
-/* ======================= ГЛАВНАЯ ПАНЕЛЬ ======================= */
-
 export default function SubservicesPanel({
   parentOptions,
   subservices,
-  updateAction,
-  deleteAction,
+  updateSubservice,
+  deleteSubservice,
 }: Props) {
   const [q, setQ] = useState("");
   const [onlyActive, setOnlyActive] = useState(false);
@@ -165,155 +153,30 @@ export default function SubservicesPanel({
         <CardsView
           items={filtered}
           parentOptions={parentOptions}
-          updateAction={updateAction}
-          deleteAction={deleteAction}
+          updateSubservice={updateSubservice}
+          deleteSubservice={deleteSubservice}
         />
       ) : (
         <TableView
           items={filtered}
           parentOptions={parentOptions}
-          updateAction={updateAction}
-          deleteAction={deleteAction}
+          updateSubservice={updateSubservice}
+          deleteSubservice={deleteSubservice}
         />
       )}
     </section>
   );
 }
 
-/* ===================== УТИЛИТНЫЕ ФОРМЫ ===================== */
-
-function UpdateServiceForm({
-  s,
-  parentOptions,
-  updateAction,
-  layout = "grid",
-}: {
-  s: Sub;
-  parentOptions: ParentOption[];
-  updateAction: (fd: FormData) => Promise<ActionResult>;
-  layout?: "grid" | "stack";
-}) {
-  const { state, formAction } = useServerAction(updateAction, { ok: true });
-  const grid =
-    layout === "grid" ? "grid grid-cols-2 gap-2" : "grid grid-cols-1 gap-2";
-
-  return (
-    <>
-      <form action={formAction} className={grid}>
-        <input type="hidden" name="id" value={s.id} />
-        <input type="hidden" name="kind" value="service" />
-
-        <div className="col-span-2">
-          <label className="mb-1 block text-xs opacity-70">Название</label>
-          <input name="name" defaultValue={s.name} className="admin-input" />
-        </div>
-
-        <div>
-          <label className="mb-1 block text-xs opacity-70">Минуты</label>
-          <input
-            name="durationMin"
-            type="number"
-            min={0}
-            step={5}
-            defaultValue={s.durationMin ?? 0}
-            className="admin-input"
-          />
-        </div>
-
-        <div>
-          <label className="mb-1 block text-xs opacity-70">Цена (€)</label>
-          <input
-            name="price"
-            inputMode="decimal"
-            defaultValue={s.priceCents ? String(s.priceCents / 100) : ""}
-            className="admin-input"
-          />
-        </div>
-
-        <div>
-          <label className="mb-1 block text-xs opacity-70">Категория</label>
-          <select
-            name="parentId"
-            defaultValue={s.parentId ?? ""}
-            className="admin-select"
-          >
-            <option value="">— без категории —</option>
-            {parentOptions.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.name}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <input
-            id={`active-${s.id}`}
-            name="isActive"
-            type="checkbox"
-            defaultChecked={s.isActive}
-            className="admin-switch"
-          />
-          <label htmlFor={`active-${s.id}`} className="text-sm">
-            Активна
-          </label>
-        </div>
-
-        <div className="col-span-2">
-          <label className="mb-1 block text-xs opacity-70">Описание</label>
-          <textarea
-            name="description"
-            defaultValue={s.description ?? ""}
-            rows={2}
-            className="admin-textarea"
-          />
-        </div>
-
-        <div className="col-span-2 mt-1">
-          <button className="btn-primary">Сохранить</button>
-        </div>
-      </form>
-
-      {!state.ok && state.message && (
-        <p className="mt-2 text-sm text-rose-300/90">{state.message}</p>
-      )}
-    </>
-  );
-}
-
-function DeleteServiceForm({
-  id,
-  deleteAction,
-  compact = false,
-}: {
-  id: string;
-  deleteAction: (fd: FormData) => Promise<ActionResult>;
-  compact?: boolean;
-}) {
-  const { state, formAction } = useServerAction(deleteAction, { ok: true });
-
-  return (
-    <>
-      <form action={formAction} className={compact ? "inline-block" : ""}>
-        <input type="hidden" name="id" value={id} />
-        <button className="btn-danger">Удалить</button>
-      </form>
-      {!state.ok && state.message && (
-        <p className="mt-2 text-sm text-rose-300/90">{state.message}</p>
-      )}
-    </>
-  );
-}
-
-/* ===================== ВИД: КАРТОЧКИ ===================== */
+/* =================== CARDS VIEW =================== */
 
 function CardsView(props: {
   items: Sub[];
   parentOptions: ParentOption[];
-  updateAction: (formData: FormData) => Promise<ActionResult>;
-  deleteAction: (formData: FormData) => Promise<ActionResult>;
+  updateSubservice: (formData: FormData) => Promise<ActionResult>;
+  deleteSubservice: (formData: FormData) => Promise<ActionResult>;
 }) {
-  const { items, parentOptions, updateAction, deleteAction } = props;
+  const { items, parentOptions, updateSubservice, deleteSubservice } = props;
 
   if (items.length === 0) {
     return (
@@ -326,33 +189,58 @@ function CardsView(props: {
   return (
     <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
       {items.map((s) => (
-        <article key={s.id} className="admin-card p-4">
-          <div className="mb-3 flex items-start justify-between gap-3">
-            <div>
-              <div className="text-base font-medium">{s.name}</div>
-              <div className="text-xs text-white/50">{s.parentName}</div>
+        <article 
+          key={s.id} 
+          className="admin-card p-5 space-y-3"
+          style={{
+            background: 'linear-gradient(to bottom right, rgba(15, 23, 42, 0.8), rgba(30, 41, 59, 0.6))',
+          }}
+        >
+          {/* Header */}
+          <div className="flex items-start justify-between gap-3 pb-3" style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.1)' }}>
+            <div className="flex-1">
+              <div className="text-base font-semibold text-white">{s.name}</div>
+              <div className="text-xs text-white/50 mt-0.5">{s.parentName}</div>
+              <div className="text-xs font-mono text-white/40 mt-0.5">{s.slug}</div>
             </div>
             {s.isActive ? (
-              <span className="tag-active">активна</span>
+              <span className="tag-active flex-shrink-0">активна</span>
             ) : (
-              <span className="inline-flex items-center gap-1 rounded-full border border-white/15 px-2 py-0.5 text-xs text-white/60">
+              <span className="inline-flex items-center gap-1 rounded-full border border-white/15 px-2 py-0.5 text-xs text-white/60 flex-shrink-0">
                 выкл
               </span>
             )}
           </div>
 
-          <UpdateServiceForm
-            s={s}
-            parentOptions={parentOptions}
-            updateAction={updateAction}
-            layout="grid"
-          />
+          {/* Description */}
+          {s.description && (
+            <p className="text-sm text-white/70 line-clamp-2">{s.description}</p>
+          )}
 
-          <div className="mt-2 flex items-center justify-between">
-            <span className="text-xs text-white/45">
-              Цена: {euro(s.priceCents)} · Мин: {s.durationMin ?? 0}
-            </span>
-            <DeleteServiceForm id={s.id} deleteAction={deleteAction} compact />
+          {/* Price & Duration */}
+          <div 
+            className="flex items-center justify-between px-3 py-2 rounded-lg"
+            style={{ backgroundColor: 'rgba(255, 255, 255, 0.03)' }}
+          >
+            <div>
+              <div className="text-xs text-white/50">Цена</div>
+              <div className="font-semibold text-amber-400">{euro(s.priceCents)}</div>
+            </div>
+            <div className="text-right">
+              <div className="text-xs text-white/50">Длительность</div>
+              <div className="font-semibold text-cyan-400">{s.durationMin ?? 0} мин</div>
+            </div>
+          </div>
+
+          {/* Actions */}
+          <div className="flex gap-2 pt-2">
+            <TranslationButton service={s} categoryName={s.parentName} />
+            <ServiceEditButton
+              service={s}
+              parentOptions={parentOptions}
+              onUpdate={updateSubservice}
+              onDelete={deleteSubservice}
+            />
           </div>
         </article>
       ))}
@@ -360,15 +248,15 @@ function CardsView(props: {
   );
 }
 
-/* ===================== ВИД: ТАБЛИЦА ===================== */
+/* =================== TABLE VIEW =================== */
 
 function TableView(props: {
   items: Sub[];
   parentOptions: ParentOption[];
-  updateAction: (formData: FormData) => Promise<ActionResult>;
-  deleteAction: (formData: FormData) => Promise<ActionResult>;
+  updateSubservice: (formData: FormData) => Promise<ActionResult>;
+  deleteSubservice: (formData: FormData) => Promise<ActionResult>;
 }) {
-  const { items, parentOptions, updateAction, deleteAction } = props;
+  const { items, parentOptions, updateSubservice, deleteSubservice } = props;
 
   return (
     <div className="overflow-x-auto rounded-xl border border-white/10">
@@ -377,21 +265,24 @@ function TableView(props: {
           <tr>
             <th className="th">Название</th>
             <th className="th">Категория</th>
-            <th className="th">Цена</th>
-            <th className="th">Мин</th>
-            <th className="th">Активна</th>
+            <th className="th text-right">Цена</th>
+            <th className="th text-right">Мин</th>
+            <th className="th text-center">Активна</th>
             <th className="th">Описание</th>
-            <th className="th" style={{ width: 220 }} />
+            <th className="th text-right" style={{ width: 320 }} />
           </tr>
         </thead>
         <tbody>
           {items.map((s) => (
             <tr key={s.id} className="row">
-              <td className="td font-medium">{s.name}</td>
-              <td className="td">{s.parentName || "—"}</td>
-              <td className="td">{euro(s.priceCents)}</td>
-              <td className="td">{s.durationMin ?? 0}</td>
               <td className="td">
+                <div className="font-medium">{s.name}</div>
+                <div className="text-xs font-mono text-white/40 mt-0.5">{s.slug}</div>
+              </td>
+              <td className="td">{s.parentName || "—"}</td>
+              <td className="td text-right font-semibold text-amber-400">{euro(s.priceCents)}</td>
+              <td className="td text-right font-semibold text-cyan-400">{s.durationMin ?? 0}</td>
+              <td className="td text-center">
                 {s.isActive ? (
                   <span className="tag-active">Да</span>
                 ) : (
@@ -401,36 +292,18 @@ function TableView(props: {
                 )}
               </td>
               <td className="td max-w-[32rem]">
-                <span className="block truncate">{s.description ?? "—"}</span>
+                <span className="block truncate text-white/70">{s.description ?? "—"}</span>
               </td>
               <td className="td">
-                <details className="relative">
-                  <summary className="btn-secondary cursor-pointer list-none">
-                    Редактировать
-                  </summary>
-
-                  <div className="popover">
-                    <UpdateServiceForm
-                      s={s}
-                      parentOptions={parentOptions}
-                      updateAction={updateAction}
-                      layout="grid"
-                    />
-                    <div className="mt-2 flex items-center justify-between">
-                      <span className="text-xs text-white/45">
-                        ID: {s.id.slice(0, 8)}… · Slug:{" "}
-                        <span className="font-mono opacity-80">
-                          {s.slug ?? "—"}
-                        </span>
-                      </span>
-                      <DeleteServiceForm
-                        id={s.id}
-                        deleteAction={deleteAction}
-                        compact
-                      />
-                    </div>
-                  </div>
-                </details>
+                <div className="flex items-center justify-end gap-2">
+                  <TranslationButton service={s} categoryName={s.parentName} />
+                  <ServiceEditButton
+                    service={s}
+                    parentOptions={parentOptions}
+                    onUpdate={updateSubservice}
+                    onDelete={deleteSubservice}
+                  />
+                </div>
               </td>
             </tr>
           ))}
@@ -447,6 +320,948 @@ function TableView(props: {
     </div>
   );
 }
+
+
+
+
+// // src/app/admin/services/SubservicesPanel.tsx
+// "use client";
+
+// import React, { useMemo, useState } from "react";
+// import { useActionState } from "react";
+// import type { ActionResult } from "./actions";
+// import { TranslationButton } from './ServicesPageClient';  // ✅ ДОБАВЛЕНО
+
+// type ParentOption = { id: string; name: string };
+
+// // ✅ ДОБАВЛЕНО: тип для переводов
+// type Translation = {
+//   locale: string;
+//   name: string;
+//   description: string | null;
+// };
+
+// // ✅ ОБНОВЛЕНО: добавлено поле translations
+// type Sub = {
+//   id: string;
+//   name: string;
+//   slug: string | null;
+//   description: string | null;
+//   durationMin: number | null;
+//   priceCents: number | null;
+//   isActive: boolean;
+//   parentId: string | null;
+//   parentName: string;
+//   createdAt: string;
+//   updatedAt: string;
+//   translations: Translation[];  // ✅ ДОБАВЛЕНО
+// };
+
+// type ViewMode = "cards" | "table";
+// type SortKey = "name" | "price" | "minutes";
+
+// // ✅ ОБНОВЛЕНО: переименовали props
+// type Props = {
+//   parentOptions: ParentOption[];
+//   subservices: Sub[];
+//   updateSubservice: (formData: FormData) => Promise<ActionResult>;  // ✅ было updateAction
+//   deleteSubservice: (formData: FormData) => Promise<ActionResult>;  // ✅ было deleteAction
+// };
+
+// function euro(cents: number | null): string {
+//   if (cents === null) return "—";
+//   return new Intl.NumberFormat("ru-RU", { style: "currency", currency: "EUR" })
+//     .format((cents ?? 0) / 100);
+// }
+
+// /** адаптер под server action */
+// function useServerAction(
+//   action: (fd: FormData) => Promise<ActionResult>,
+//   initial: ActionResult = { ok: true }
+// ) {
+//   const [state, formAction] = useActionState(
+//     async (_prev: ActionResult, formData: FormData) => {
+//       try {
+//         const res = await action(formData);
+//         return res ?? { ok: true };
+//       } catch (e) {
+//         const msg =
+//           e instanceof Error ? e.message : "Произошла неизвестная ошибка";
+//         return { ok: false, message: msg };
+//       }
+//     },
+//     initial
+//   );
+//   return { state, formAction };
+// }
+
+// /* ======================= ГЛАВНАЯ ПАНЕЛЬ ======================= */
+
+// export default function SubservicesPanel({
+//   parentOptions,
+//   subservices,
+//   updateSubservice,  // ✅ ОБНОВЛЕНО
+//   deleteSubservice,  // ✅ ОБНОВЛЕНО
+// }: Props) {
+//   const [q, setQ] = useState("");
+//   const [onlyActive, setOnlyActive] = useState(false);
+//   const [sort, setSort] = useState<SortKey>("name");
+//   const [view, setView] = useState<ViewMode>("cards");
+//   const [filterParent, setFilterParent] = useState("all");
+
+//   const filtered = useMemo<Sub[]>(() => {
+//     const query = q.trim().toLowerCase();
+//     const list = subservices.filter((s) => {
+//       if (onlyActive && !s.isActive) return false;
+//       if (filterParent !== "all" && s.parentId !== filterParent) return false;
+//       if (!query) return true;
+//       const hay = `${s.name} ${s.slug ?? ""} ${s.parentName} ${
+//         s.description ?? ""
+//       }`.toLowerCase();
+//       return hay.includes(query);
+//     });
+
+//     list.sort((a, b) => {
+//       if (sort === "name") return a.name.localeCompare(b.name);
+//       if (sort === "price") return (a.priceCents ?? 0) - (b.priceCents ?? 0);
+//       return (a.durationMin ?? 0) - (b.durationMin ?? 0);
+//     });
+
+//     return list;
+//   }, [subservices, onlyActive, filterParent, q, sort]);
+
+//   return (
+//     <section className="admin-section space-y-4">
+//       <header className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+//         <h2 className="text-lg font-medium">Подуслуги</h2>
+
+//         <div className="flex flex-wrap items-center gap-2">
+//           <input
+//             value={q}
+//             onChange={(e) => setQ(e.target.value)}
+//             placeholder="Поиск по названию, описанию…"
+//             className="admin-input min-w-[14rem]"
+//           />
+
+//           <select
+//             value={filterParent}
+//             onChange={(e) => setFilterParent(e.target.value)}
+//             className="admin-select"
+//           >
+//             <option value="all">Все категории</option>
+//             {parentOptions.map((p) => (
+//               <option key={p.id} value={p.id}>
+//                 {p.name}
+//               </option>
+//             ))}
+//           </select>
+
+//           <select
+//             value={sort}
+//             onChange={(e) => setSort(e.target.value as SortKey)}
+//             className="admin-select"
+//           >
+//             <option value="name">Сортировать: имя</option>
+//             <option value="price">Сортировать: цена</option>
+//             <option value="minutes">Сортировать: минуты</option>
+//           </select>
+
+//           <label className="inline-flex select-none items-center gap-2 rounded-full border border-white/15 px-3 py-2">
+//             <input
+//               type="checkbox"
+//               checked={onlyActive}
+//               onChange={(e) => setOnlyActive(e.target.checked)}
+//               className="admin-switch"
+//             />
+//             Только активные
+//           </label>
+
+//           <div className="ml-1 inline-flex rounded-full border border-white/15 p-1">
+//             <button
+//               type="button"
+//               onClick={() => setView("cards")}
+//               className={`rounded-full px-3 py-1.5 text-sm transition ${
+//                 view === "cards" ? "bg-white/10" : "hover:bg-white/5"
+//               }`}
+//             >
+//               Карточки
+//             </button>
+//             <button
+//               type="button"
+//               onClick={() => setView("table")}
+//               className={`rounded-full px-3 py-1.5 text-sm transition ${
+//                 view === "table" ? "bg-white/10" : "hover:bg-white/5"
+//               }`}
+//             >
+//               Таблица
+//             </button>
+//           </div>
+//         </div>
+//       </header>
+
+//       {view === "cards" ? (
+//         <CardsView
+//           items={filtered}
+//           parentOptions={parentOptions}
+//           updateSubservice={updateSubservice}  // ✅ ОБНОВЛЕНО
+//           deleteSubservice={deleteSubservice}  // ✅ ОБНОВЛЕНО
+//         />
+//       ) : (
+//         <TableView
+//           items={filtered}
+//           parentOptions={parentOptions}
+//           updateSubservice={updateSubservice}  // ✅ ОБНОВЛЕНО
+//           deleteSubservice={deleteSubservice}  // ✅ ОБНОВЛЕНО
+//         />
+//       )}
+//     </section>
+//   );
+// }
+
+// /* ===================== УТИЛИТНЫЕ ФОРМЫ ===================== */
+
+// function UpdateServiceForm({
+//   s,
+//   parentOptions,
+//   updateSubservice,  // ✅ ОБНОВЛЕНО
+//   layout = "grid",
+// }: {
+//   s: Sub;
+//   parentOptions: ParentOption[];
+//   updateSubservice: (fd: FormData) => Promise<ActionResult>;  // ✅ ОБНОВЛЕНО
+//   layout?: "grid" | "stack";
+// }) {
+//   const { state, formAction } = useServerAction(updateSubservice, { ok: true });
+//   const grid =
+//     layout === "grid" ? "grid grid-cols-2 gap-2" : "grid grid-cols-1 gap-2";
+
+//   return (
+//     <>
+//       <form action={formAction} className={grid}>
+//         <input type="hidden" name="id" value={s.id} />
+//         <input type="hidden" name="kind" value="service" />
+
+//         <div className="col-span-2">
+//           <label className="mb-1 block text-xs opacity-70">Название</label>
+//           <input
+//             name="name"
+//             defaultValue={s.name}
+//             className="admin-input"
+//             required
+//           />
+//         </div>
+
+//         <div>
+//           <label className="mb-1 block text-xs opacity-70">Минуты</label>
+//           <input
+//             name="durationMin"
+//             type="number"
+//             defaultValue={s.durationMin ?? 0}
+//             className="admin-input"
+//             min={0}
+//             step={5}
+//             required
+//           />
+//         </div>
+
+//         <div>
+//           <label className="mb-1 block text-xs opacity-70">Цена (€)</label>
+//           <input
+//             name="price"
+//             type="number"
+//             defaultValue={((s.priceCents ?? 0) / 100).toFixed(2)}
+//             className="admin-input"
+//             min={0}
+//             step={0.01}
+//             required
+//           />
+//         </div>
+
+//         <div className="col-span-2">
+//           <label className="mb-1 block text-xs opacity-70">Категория</label>
+//           <select
+//             name="parentId"
+//             defaultValue={s.parentId ?? ""}
+//             className="admin-select w-full"
+//           >
+//             <option value="">Без категории</option>
+//             {parentOptions.map((p) => (
+//               <option key={p.id} value={p.id}>
+//                 {p.name}
+//               </option>
+//             ))}
+//           </select>
+//         </div>
+
+//         <div className="col-span-2 flex items-center gap-2">
+//           <input
+//             id={`active-${s.id}`}
+//             name="isActive"
+//             type="checkbox"
+//             defaultChecked={s.isActive}
+//             className="admin-switch"
+//           />
+//           <label htmlFor={`active-${s.id}`} className="text-sm">
+//             Активна
+//           </label>
+//         </div>
+
+//         <div className="col-span-2">
+//           <label className="mb-1 block text-xs opacity-70">Описание</label>
+//           <textarea
+//             name="description"
+//             defaultValue={s.description ?? ""}
+//             rows={3}
+//             className="admin-textarea"
+//           />
+//         </div>
+
+//         <button className="col-span-2 btn-primary">Сохранить</button>
+//       </form>
+//       {!state.ok && state.message && (
+//         <p className="mt-2 text-sm text-rose-300/90">{state.message}</p>
+//       )}
+//     </>
+//   );
+// }
+
+// function DeleteServiceForm({
+//   id,
+//   deleteSubservice,  // ✅ ОБНОВЛЕНО
+//   compact = false,
+// }: {
+//   id: string;
+//   deleteSubservice: (fd: FormData) => Promise<ActionResult>;  // ✅ ОБНОВЛЕНО
+//   compact?: boolean;
+// }) {
+//   const { state, formAction } = useServerAction(deleteSubservice, { ok: true });
+
+//   return (
+//     <>
+//       <form action={formAction}>
+//         <input type="hidden" name="id" value={id} />
+//         <button
+//           className={
+//             compact ? "btn-danger btn-sm" : "btn-danger w-full"
+//           }
+//         >
+//           Удалить
+//         </button>
+//       </form>
+//       {!state.ok && state.message && (
+//         <p className="mt-2 text-sm text-rose-300/90">{state.message}</p>
+//       )}
+//     </>
+//   );
+// }
+
+// /* ===================== ВИД: КАРТОЧКИ ===================== */
+
+// function CardsView(props: {
+//   items: Sub[];
+//   parentOptions: ParentOption[];
+//   updateSubservice: (formData: FormData) => Promise<ActionResult>;  // ✅ ОБНОВЛЕНО
+//   deleteSubservice: (formData: FormData) => Promise<ActionResult>;  // ✅ ОБНОВЛЕНО
+// }) {
+//   const { items, parentOptions, updateSubservice, deleteSubservice } = props;
+
+//   if (items.length === 0) {
+//     return (
+//       <div className="rounded-xl border border-white/10 p-6 text-center text-white/60">
+//         Ничего не найдено
+//       </div>
+//     );
+//   }
+
+//   return (
+//     <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+//       {items.map((s) => (
+//         <article key={s.id} className="admin-card p-4">
+//           <div className="mb-3 flex items-start justify-between gap-3">
+//             <div>
+//               <div className="text-base font-medium">{s.name}</div>
+//               <div className="text-xs text-white/50">{s.parentName}</div>
+//             </div>
+//             {s.isActive ? (
+//               <span className="tag-active">активна</span>
+//             ) : (
+//               <span className="inline-flex items-center gap-1 rounded-full border border-white/15 px-2 py-0.5 text-xs text-white/60">
+//                 выкл
+//               </span>
+//             )}
+//           </div>
+
+//           {/* ✅ ДОБАВЛЕНО: кнопка переводов */}
+//           <div className="mb-3">
+//             <TranslationButton service={s} categoryName={s.parentName} />
+//           </div>
+
+//           <UpdateServiceForm
+//             s={s}
+//             parentOptions={parentOptions}
+//             updateSubservice={updateSubservice}  // ✅ ОБНОВЛЕНО
+//             layout="grid"
+//           />
+
+//           <div className="mt-2 flex items-center justify-between">
+//             <span className="text-xs text-white/45">
+//               Цена: {euro(s.priceCents)} · Мин: {s.durationMin ?? 0}
+//             </span>
+//             <DeleteServiceForm id={s.id} deleteSubservice={deleteSubservice} compact />  {/* ✅ ОБНОВЛЕНО */}
+//           </div>
+//         </article>
+//       ))}
+//     </div>
+//   );
+// }
+
+// /* ===================== ВИД: ТАБЛИЦА ===================== */
+
+// function TableView(props: {
+//   items: Sub[];
+//   parentOptions: ParentOption[];
+//   updateSubservice: (formData: FormData) => Promise<ActionResult>;  // ✅ ОБНОВЛЕНО
+//   deleteSubservice: (formData: FormData) => Promise<ActionResult>;  // ✅ ОБНОВЛЕНО
+// }) {
+//   const { items, parentOptions, updateSubservice, deleteSubservice } = props;
+
+//   return (
+//     <div className="overflow-x-auto rounded-xl border border-white/10">
+//       <table className="table">
+//         <thead className="thead">
+//           <tr>
+//             <th className="th">Название</th>
+//             <th className="th">Категория</th>
+//             <th className="th">Цена</th>
+//             <th className="th">Мин</th>
+//             <th className="th">Активна</th>
+//             <th className="th">Описание</th>
+//             <th className="th" style={{ width: 280 }} />  {/* ✅ УВЕЛИЧИЛИ ширину */}
+//           </tr>
+//         </thead>
+//         <tbody>
+//           {items.map((s) => (
+//             <tr key={s.id} className="row">
+//               <td className="td font-medium">{s.name}</td>
+//               <td className="td">{s.parentName || "—"}</td>
+//               <td className="td">{euro(s.priceCents)}</td>
+//               <td className="td">{s.durationMin ?? 0}</td>
+//               <td className="td">
+//                 {s.isActive ? (
+//                   <span className="tag-active">Да</span>
+//                 ) : (
+//                   <span className="inline-flex items-center gap-1 rounded-full border border-white/15 px-2 py-0.5 text-xs text-white/60">
+//                     Нет
+//                   </span>
+//                 )}
+//               </td>
+//               <td className="td max-w-[32rem]">
+//                 <span className="block truncate">{s.description ?? "—"}</span>
+//               </td>
+//               {/* ✅ ОБНОВЛЕНО: добавлена кнопка переводов */}
+//               <td className="td">
+//                 <div className="flex items-center justify-end gap-2">
+//                   <TranslationButton service={s} categoryName={s.parentName} />
+                  
+//                   <details className="relative">
+//                     <summary className="btn-secondary cursor-pointer list-none">
+//                       Редактировать
+//                     </summary>
+
+//                     <div className="popover">
+//                       <UpdateServiceForm
+//                         s={s}
+//                         parentOptions={parentOptions}
+//                         updateSubservice={updateSubservice}  // ✅ ОБНОВЛЕНО
+//                         layout="grid"
+//                       />
+//                       <div className="mt-2 flex items-center justify-between">
+//                         <span className="text-xs text-white/45">
+//                           ID: {s.id.slice(0, 8)}… · Slug:{" "}
+//                           <span className="font-mono opacity-80">
+//                             {s.slug ?? "—"}
+//                           </span>
+//                         </span>
+//                         <DeleteServiceForm
+//                           id={s.id}
+//                           deleteSubservice={deleteSubservice}  // ✅ ОБНОВЛЕНО
+//                           compact
+//                         />
+//                       </div>
+//                     </div>
+//                   </details>
+//                 </div>
+//               </td>
+//             </tr>
+//           ))}
+
+//           {items.length === 0 && (
+//             <tr>
+//               <td className="td py-6 text-center text-white/50" colSpan={7}>
+//                 Ничего не найдено
+//               </td>
+//             </tr>
+//           )}
+//         </tbody>
+//       </table>
+//     </div>
+//   );
+// }
+
+
+
+
+
+//-----------работал добавляем возможность редактировать с 3мя языками перевода---------------- 
+// "use client";
+
+// import React, { useMemo, useState, ChangeEvent } from "react";
+// import { useActionState } from "react";
+// import type { ActionResult } from "./actions"; // ← единый тип
+
+// type ParentOption = { id: string; name: string };
+
+// type Sub = {
+//   id: string;
+//   name: string;
+//   slug: string | null;
+//   description: string | null;
+//   durationMin: number | null;
+//   priceCents: number | null;
+//   isActive: boolean;
+//   parentId: string | null;
+//   parentName: string;
+//   createdAt: string;
+//   updatedAt: string;
+// };
+
+// type ViewMode = "cards" | "table";
+// type SortKey = "name" | "price" | "minutes";
+
+// type Props = {
+//   parentOptions: ParentOption[];
+//   subservices: Sub[];
+//   updateAction: (formData: FormData) => Promise<ActionResult>;
+//   deleteAction: (formData: FormData) => Promise<ActionResult>;
+// };
+
+// function euro(cents: number | null): string {
+//   if (cents === null) return "—";
+//   return new Intl.NumberFormat("ru-RU", { style: "currency", currency: "EUR" })
+//     .format((cents ?? 0) / 100);
+// }
+
+// /** адаптер под server action */
+// function useServerAction(
+//   action: (fd: FormData) => Promise<ActionResult>,
+//   initial: ActionResult = { ok: true }
+// ) {
+//   const [state, formAction] = useActionState(
+//     async (_prev: ActionResult, formData: FormData) => {
+//       try {
+//         const res = await action(formData);
+//         return res ?? { ok: true };
+//       } catch (e) {
+//         const msg =
+//           e instanceof Error ? e.message : "Произошла неизвестная ошибка";
+//         return { ok: false, message: msg };
+//       }
+//     },
+//     initial
+//   );
+//   return { state, formAction };
+// }
+
+// /* ======================= ГЛАВНАЯ ПАНЕЛЬ ======================= */
+
+// export default function SubservicesPanel({
+//   parentOptions,
+//   subservices,
+//   updateAction,
+//   deleteAction,
+// }: Props) {
+//   const [q, setQ] = useState("");
+//   const [onlyActive, setOnlyActive] = useState(false);
+//   const [sort, setSort] = useState<SortKey>("name");
+//   const [view, setView] = useState<ViewMode>("cards");
+//   const [filterParent, setFilterParent] = useState("all");
+
+//   const filtered = useMemo<Sub[]>(() => {
+//     const query = q.trim().toLowerCase();
+//     const list = subservices.filter((s) => {
+//       if (onlyActive && !s.isActive) return false;
+//       if (filterParent !== "all" && s.parentId !== filterParent) return false;
+//       if (!query) return true;
+//       const hay = `${s.name} ${s.slug ?? ""} ${s.parentName} ${
+//         s.description ?? ""
+//       }`.toLowerCase();
+//       return hay.includes(query);
+//     });
+
+//     list.sort((a, b) => {
+//       if (sort === "name") return a.name.localeCompare(b.name);
+//       if (sort === "price") return (a.priceCents ?? 0) - (b.priceCents ?? 0);
+//       return (a.durationMin ?? 0) - (b.durationMin ?? 0);
+//     });
+
+//     return list;
+//   }, [subservices, onlyActive, filterParent, q, sort]);
+
+//   return (
+//     <section className="admin-section space-y-4">
+//       <header className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+//         <h2 className="text-lg font-medium">Подуслуги</h2>
+
+//         <div className="flex flex-wrap items-center gap-2">
+//           <input
+//             value={q}
+//             onChange={(e) => setQ(e.target.value)}
+//             placeholder="Поиск по названию, описанию…"
+//             className="admin-input min-w-[14rem]"
+//           />
+
+//           <select
+//             value={filterParent}
+//             onChange={(e) => setFilterParent(e.target.value)}
+//             className="admin-select"
+//           >
+//             <option value="all">Все категории</option>
+//             {parentOptions.map((p) => (
+//               <option key={p.id} value={p.id}>
+//                 {p.name}
+//               </option>
+//             ))}
+//           </select>
+
+//           <select
+//             value={sort}
+//             onChange={(e) => setSort(e.target.value as SortKey)}
+//             className="admin-select"
+//           >
+//             <option value="name">Сортировать: имя</option>
+//             <option value="price">Сортировать: цена</option>
+//             <option value="minutes">Сортировать: минуты</option>
+//           </select>
+
+//           <label className="inline-flex select-none items-center gap-2 rounded-full border border-white/15 px-3 py-2">
+//             <input
+//               type="checkbox"
+//               checked={onlyActive}
+//               onChange={(e) => setOnlyActive(e.target.checked)}
+//               className="admin-switch"
+//             />
+//             Только активные
+//           </label>
+
+//           <div className="ml-1 inline-flex rounded-full border border-white/15 p-1">
+//             <button
+//               type="button"
+//               onClick={() => setView("cards")}
+//               className={`rounded-full px-3 py-1.5 text-sm transition ${
+//                 view === "cards" ? "bg-white/10" : "hover:bg-white/5"
+//               }`}
+//             >
+//               Карточки
+//             </button>
+//             <button
+//               type="button"
+//               onClick={() => setView("table")}
+//               className={`rounded-full px-3 py-1.5 text-sm transition ${
+//                 view === "table" ? "bg-white/10" : "hover:bg-white/5"
+//               }`}
+//             >
+//               Таблица
+//             </button>
+//           </div>
+//         </div>
+//       </header>
+
+//       {view === "cards" ? (
+//         <CardsView
+//           items={filtered}
+//           parentOptions={parentOptions}
+//           updateAction={updateAction}
+//           deleteAction={deleteAction}
+//         />
+//       ) : (
+//         <TableView
+//           items={filtered}
+//           parentOptions={parentOptions}
+//           updateAction={updateAction}
+//           deleteAction={deleteAction}
+//         />
+//       )}
+//     </section>
+//   );
+// }
+
+// /* ===================== УТИЛИТНЫЕ ФОРМЫ ===================== */
+
+// function UpdateServiceForm({
+//   s,
+//   parentOptions,
+//   updateAction,
+//   layout = "grid",
+// }: {
+//   s: Sub;
+//   parentOptions: ParentOption[];
+//   updateAction: (fd: FormData) => Promise<ActionResult>;
+//   layout?: "grid" | "stack";
+// }) {
+//   const { state, formAction } = useServerAction(updateAction, { ok: true });
+//   const grid =
+//     layout === "grid" ? "grid grid-cols-2 gap-2" : "grid grid-cols-1 gap-2";
+
+//   return (
+//     <>
+//       <form action={formAction} className={grid}>
+//         <input type="hidden" name="id" value={s.id} />
+//         <input type="hidden" name="kind" value="service" />
+
+//         <div className="col-span-2">
+//           <label className="mb-1 block text-xs opacity-70">Название</label>
+//           <input name="name" defaultValue={s.name} className="admin-input" />
+//         </div>
+
+//         <div>
+//           <label className="mb-1 block text-xs opacity-70">Минуты</label>
+//           <input
+//             name="durationMin"
+//             type="number"
+//             min={0}
+//             step={5}
+//             defaultValue={s.durationMin ?? 0}
+//             className="admin-input"
+//           />
+//         </div>
+
+//         <div>
+//           <label className="mb-1 block text-xs opacity-70">Цена (€)</label>
+//           <input
+//             name="price"
+//             inputMode="decimal"
+//             defaultValue={s.priceCents ? String(s.priceCents / 100) : ""}
+//             className="admin-input"
+//           />
+//         </div>
+
+//         <div>
+//           <label className="mb-1 block text-xs opacity-70">Категория</label>
+//           <select
+//             name="parentId"
+//             defaultValue={s.parentId ?? ""}
+//             className="admin-select"
+//           >
+//             <option value="">— без категории —</option>
+//             {parentOptions.map((p) => (
+//               <option key={p.id} value={p.id}>
+//                 {p.name}
+//               </option>
+//             ))}
+//           </select>
+//         </div>
+
+//         <div className="flex items-center gap-2">
+//           <input
+//             id={`active-${s.id}`}
+//             name="isActive"
+//             type="checkbox"
+//             defaultChecked={s.isActive}
+//             className="admin-switch"
+//           />
+//           <label htmlFor={`active-${s.id}`} className="text-sm">
+//             Активна
+//           </label>
+//         </div>
+
+//         <div className="col-span-2">
+//           <label className="mb-1 block text-xs opacity-70">Описание</label>
+//           <textarea
+//             name="description"
+//             defaultValue={s.description ?? ""}
+//             rows={2}
+//             className="admin-textarea"
+//           />
+//         </div>
+
+//         <div className="col-span-2 mt-1">
+//           <button className="btn-primary">Сохранить</button>
+//         </div>
+//       </form>
+
+//       {!state.ok && state.message && (
+//         <p className="mt-2 text-sm text-rose-300/90">{state.message}</p>
+//       )}
+//     </>
+//   );
+// }
+
+// function DeleteServiceForm({
+//   id,
+//   deleteAction,
+//   compact = false,
+// }: {
+//   id: string;
+//   deleteAction: (fd: FormData) => Promise<ActionResult>;
+//   compact?: boolean;
+// }) {
+//   const { state, formAction } = useServerAction(deleteAction, { ok: true });
+
+//   return (
+//     <>
+//       <form action={formAction} className={compact ? "inline-block" : ""}>
+//         <input type="hidden" name="id" value={id} />
+//         <button className="btn-danger">Удалить</button>
+//       </form>
+//       {!state.ok && state.message && (
+//         <p className="mt-2 text-sm text-rose-300/90">{state.message}</p>
+//       )}
+//     </>
+//   );
+// }
+
+// /* ===================== ВИД: КАРТОЧКИ ===================== */
+
+// function CardsView(props: {
+//   items: Sub[];
+//   parentOptions: ParentOption[];
+//   updateAction: (formData: FormData) => Promise<ActionResult>;
+//   deleteAction: (formData: FormData) => Promise<ActionResult>;
+// }) {
+//   const { items, parentOptions, updateAction, deleteAction } = props;
+
+//   if (items.length === 0) {
+//     return (
+//       <div className="rounded-xl border border-white/10 p-6 text-center text-white/60">
+//         Ничего не найдено
+//       </div>
+//     );
+//   }
+
+//   return (
+//     <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+//       {items.map((s) => (
+//         <article key={s.id} className="admin-card p-4">
+//           <div className="mb-3 flex items-start justify-between gap-3">
+//             <div>
+//               <div className="text-base font-medium">{s.name}</div>
+//               <div className="text-xs text-white/50">{s.parentName}</div>
+//             </div>
+//             {s.isActive ? (
+//               <span className="tag-active">активна</span>
+//             ) : (
+//               <span className="inline-flex items-center gap-1 rounded-full border border-white/15 px-2 py-0.5 text-xs text-white/60">
+//                 выкл
+//               </span>
+//             )}
+//           </div>
+
+//           <UpdateServiceForm
+//             s={s}
+//             parentOptions={parentOptions}
+//             updateAction={updateAction}
+//             layout="grid"
+//           />
+
+//           <div className="mt-2 flex items-center justify-between">
+//             <span className="text-xs text-white/45">
+//               Цена: {euro(s.priceCents)} · Мин: {s.durationMin ?? 0}
+//             </span>
+//             <DeleteServiceForm id={s.id} deleteAction={deleteAction} compact />
+//           </div>
+//         </article>
+//       ))}
+//     </div>
+//   );
+// }
+
+// /* ===================== ВИД: ТАБЛИЦА ===================== */
+
+// function TableView(props: {
+//   items: Sub[];
+//   parentOptions: ParentOption[];
+//   updateAction: (formData: FormData) => Promise<ActionResult>;
+//   deleteAction: (formData: FormData) => Promise<ActionResult>;
+// }) {
+//   const { items, parentOptions, updateAction, deleteAction } = props;
+
+//   return (
+//     <div className="overflow-x-auto rounded-xl border border-white/10">
+//       <table className="table">
+//         <thead className="thead">
+//           <tr>
+//             <th className="th">Название</th>
+//             <th className="th">Категория</th>
+//             <th className="th">Цена</th>
+//             <th className="th">Мин</th>
+//             <th className="th">Активна</th>
+//             <th className="th">Описание</th>
+//             <th className="th" style={{ width: 220 }} />
+//           </tr>
+//         </thead>
+//         <tbody>
+//           {items.map((s) => (
+//             <tr key={s.id} className="row">
+//               <td className="td font-medium">{s.name}</td>
+//               <td className="td">{s.parentName || "—"}</td>
+//               <td className="td">{euro(s.priceCents)}</td>
+//               <td className="td">{s.durationMin ?? 0}</td>
+//               <td className="td">
+//                 {s.isActive ? (
+//                   <span className="tag-active">Да</span>
+//                 ) : (
+//                   <span className="inline-flex items-center gap-1 rounded-full border border-white/15 px-2 py-0.5 text-xs text-white/60">
+//                     Нет
+//                   </span>
+//                 )}
+//               </td>
+//               <td className="td max-w-[32rem]">
+//                 <span className="block truncate">{s.description ?? "—"}</span>
+//               </td>
+//               <td className="td">
+//                 <details className="relative">
+//                   <summary className="btn-secondary cursor-pointer list-none">
+//                     Редактировать
+//                   </summary>
+
+//                   <div className="popover">
+//                     <UpdateServiceForm
+//                       s={s}
+//                       parentOptions={parentOptions}
+//                       updateAction={updateAction}
+//                       layout="grid"
+//                     />
+//                     <div className="mt-2 flex items-center justify-between">
+//                       <span className="text-xs text-white/45">
+//                         ID: {s.id.slice(0, 8)}… · Slug:{" "}
+//                         <span className="font-mono opacity-80">
+//                           {s.slug ?? "—"}
+//                         </span>
+//                       </span>
+//                       <DeleteServiceForm
+//                         id={s.id}
+//                         deleteAction={deleteAction}
+//                         compact
+//                       />
+//                     </div>
+//                   </div>
+//                 </details>
+//               </td>
+//             </tr>
+//           ))}
+
+//           {items.length === 0 && (
+//             <tr>
+//               <td className="td py-6 text-center text-white/50" colSpan={7}>
+//                 Ничего не найдено
+//               </td>
+//             </tr>
+//           )}
+//         </tbody>
+//       </table>
+//     </div>
+//   );
+// }
 
 
 

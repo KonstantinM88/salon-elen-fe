@@ -48,8 +48,6 @@ model Service {
   /// Мягкое удаление: скрываем из интерфейса,
   /// данные и связи остаются (для истории).
   isArchived            Boolean                @default(false)
-  // ✅ ДОБАВИТЬ ЭТУ СТРОКУ:
-  translations          ServiceTranslation[]
   appointments          Appointment[]
   promotionItems        PromotionItem[]
   parent                Service?               @relation("ServiceChildren", fields: [parentId], references: [id])
@@ -62,23 +60,6 @@ model Service {
   @@index([slug])
   @@index([parentId])
   @@map("Service")
-}
-
-model ServiceTranslation {
-  id          String   @id @default(cuid())
-  serviceId   String
-  locale      String   // "ru", "de", "en"
-  name        String
-  description String?  @db.Text
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  
-  service Service @relation(fields: [serviceId], references: [id], onDelete: Cascade)
-  
-  @@unique([serviceId, locale])
-  @@index([locale])
-  @@index([serviceId])
-  @@map("service_translations")
 }
 
 model Client {

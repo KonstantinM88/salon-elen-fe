@@ -135,7 +135,7 @@ function RenderTree({ node, chosen, depth = 0 }: RenderTreeProps) {
         {isLeaf ? (
           <input
             type="checkbox"
-            name="serviceIds"
+            name="serviceId"
             value={node.id}
             defaultChecked={chosen.has(node.id)}
             className="accent-emerald-500 rounded transition-transform group-hover:scale-110"
