@@ -1,3 +1,4 @@
+// src/app/admin/profile/page.tsx
 import { prisma } from '@/lib/db';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';

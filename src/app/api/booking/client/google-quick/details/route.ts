@@ -1,3 +1,4 @@
+// src/app/api/booking/client/google-quick/details/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { Temporal } from "@js-temporal/polyfill";
 import { prisma } from "@/lib/prisma";

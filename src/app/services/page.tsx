@@ -1,3 +1,4 @@
+// src/app/services/page.tsx
 
 import ImageCard from "@/components/image-card";
 import Link from "next/link";

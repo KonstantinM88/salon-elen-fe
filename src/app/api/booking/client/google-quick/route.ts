@@ -1,3 +1,4 @@
+// src/app/api/booking/client/google-quick/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import crypto from "crypto";
