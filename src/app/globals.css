@@ -451,10 +451,10 @@ img { image-rendering: auto; }
 :root {
   --radius: 0.625rem;
 
-  --background: oklch(0.98 0.01 95);
+  --background: oklch(0.975 0.02 350);
   --foreground: oklch(0.22 0.02 260);
 
-  --card: oklch(0.99 0.005 95);
+  --card: oklch(0.985 0.015 350);
   --card-foreground: var(--foreground);
   --popover: var(--card);
   --popover-foreground: var(--foreground);
@@ -462,19 +462,19 @@ img { image-rendering: auto; }
   --primary: oklch(0.6 0.16 278);
   --primary-foreground: oklch(0.99 0 0);
 
-  --secondary: oklch(0.97 0.01 95);
+  --secondary: oklch(0.965 0.02 350);
   --secondary-foreground: var(--foreground);
 
-  --muted: oklch(0.965 0.01 95);
+  --muted: oklch(0.96 0.015 350);
   --muted-foreground: oklch(0.45 0.02 260);
 
-  --accent: oklch(0.97 0.015 95);
+  --accent: oklch(0.965 0.025 350);
   --accent-foreground: var(--foreground);
 
   --destructive: oklch(0.58 0.23 25);
-  --border: oklch(0.93 0.005 95);
+  --border: oklch(0.9 0.01 350);
   --input: var(--border);
-  --ring: oklch(0.78 0.03 270);
+  --ring: oklch(0.78 0.05 340);
 
   --chart-1: oklch(0.646 0.222 41.116);
   --chart-2: oklch(0.6 0.118 184.704);
@@ -482,7 +482,7 @@ img { image-rendering: auto; }
   --chart-4: oklch(0.828 0.189 84.429);
   --chart-5: oklch(0.769 0.188 70.08);
 
-  --sidebar: oklch(0.985 0.005 95);
+  --sidebar: oklch(0.98 0.015 350);
   --sidebar-foreground: var(--foreground);
   --sidebar-primary: var(--primary);
   --sidebar-primary-foreground: var(--primary-foreground);
@@ -533,6 +533,21 @@ img { image-rendering: auto; }
   --sidebar-accent-foreground: var(--accent-foreground);
   --sidebar-border: oklch(0.36 0.02 260 / 0.55);
   --sidebar-ring: var(--ring);
+}
+
+/* ── Light theme background texture ── */
+:root body {
+  background-color: var(--background);
+  background-image:
+    radial-gradient(1200px 600px at 18% 0%, oklch(0.98 0.05 350 / 0.70), transparent 60%),
+    radial-gradient(900px 520px at 82% 10%, oklch(0.985 0.04 30 / 0.55), transparent 62%),
+    radial-gradient(1000px 650px at 55% 100%, oklch(0.985 0.035 310 / 0.35), transparent 65%),
+    linear-gradient(180deg, oklch(0.985 0.02 350), oklch(0.97 0.02 350));
+  background-attachment: fixed;
+}
+
+.dark body {
+  background-image: none;
 }
 
 /* общий outline/border от токенов темы */
