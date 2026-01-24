@@ -65,11 +65,13 @@ model Service {
   isActive              Boolean                @default(true)
   description           String?
   parentId              String?
+  cover                 String?                // Обложка услуги
   /// Мягкое удаление: скрываем из интерфейса,
   /// данные и связи остаются (для истории).
   isArchived            Boolean                @default(false)
   // ✅ ДОБАВИТЬ ЭТУ СТРОКУ:
   translations          ServiceTranslation[]
+  gallery               ServiceGallery[]
   appointments          Appointment[]
   promotionItems        PromotionItem[]
   parent                Service?               @relation("ServiceChildren", fields: [parentId], references: [id])
@@ -99,6 +101,20 @@ model ServiceTranslation {
   @@index([locale])
   @@index([serviceId])
   @@map("service_translations")
+}
+
+model ServiceGallery {
+  id        String   @id @default(cuid())
+  serviceId String
+  image     String   // путь к изображению
+  caption   String?  // подпись к фото
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  
+  service Service @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  
+  @@index([serviceId])
+  @@map("service_gallery")
 }
 
 model Client {
