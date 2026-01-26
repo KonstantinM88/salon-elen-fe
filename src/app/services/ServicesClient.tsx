@@ -608,8 +608,63 @@ function ServiceDetailModal({
             </div>
 
             {service.description && (
-              <div className="mb-6">
-                <p className="text-zinc-600 dark:text-rose-100/80 text-sm sm:text-base leading-relaxed whitespace-pre-line">{service.description}</p>
+              <div className="relative mb-6 overflow-hidden">
+                <div className="absolute inset-0 pointer-events-none dark:hidden">
+                  {[...Array(10)].map((_, i) => (
+                    <motion.div
+                      key={`light-desc-heart-${i}`}
+                      className="absolute"
+                      style={{ left: `${(i * 10.5) % 100}%`, top: `${(i * 11.5) % 100}%` }}
+                      animate={{
+                        y: [0, -22, 0],
+                        x: [0, i % 2 === 0 ? 12 : -12, 0],
+                        opacity: [0.2, 0.6, 0.2],
+                        scale: [1, 1.2, 1],
+                      }}
+                      transition={{
+                        duration: 5.5 + (i % 4) * 1.2,
+                        repeat: Infinity,
+                        delay: i * 0.25,
+                        ease: "easeInOut",
+                      }}
+                    >
+                      <Heart
+                        className={`${i % 2 === 0 ? "w-4 h-4" : "w-3.5 h-3.5"} text-rose-400/60 drop-shadow-[0_1px_6px_rgba(244,63,94,0.25)]`}
+                        fill="currentColor"
+                      />
+                    </motion.div>
+                  ))}
+                </div>
+                <div className="absolute inset-0 pointer-events-none hidden dark:block">
+                  {[...Array(10)].map((_, i) => (
+                    <motion.div
+                      key={`dark-desc-heart-${i}`}
+                      className="absolute"
+                      style={{ left: `${(i * 10.5) % 100}%`, top: `${(i * 11.5) % 100}%` }}
+                      animate={{
+                        y: [0, -20, 0],
+                        x: [0, i % 2 === 0 ? 12 : -12, 0],
+                        opacity: [0.18, 0.5, 0.18],
+                        scale: [1, 1.18, 1],
+                      }}
+                      transition={{
+                        duration: 6 + (i % 4) * 1.2,
+                        repeat: Infinity,
+                        delay: i * 0.25,
+                        ease: "easeInOut",
+                      }}
+                    >
+                      <Heart
+                        className={`${i % 2 === 0 ? "w-3.5 h-3.5" : "w-3 h-3"} text-rose-400/40`}
+                        fill="currentColor"
+                      />
+                    </motion.div>
+                  ))}
+                </div>
+
+                <p className="relative z-10 text-zinc-600 dark:text-rose-100/80 text-sm sm:text-base leading-relaxed whitespace-pre-line">
+                  {service.description}
+                </p>
               </div>
             )}
 
@@ -728,10 +783,36 @@ function ServiceCard({
         </div>
 
         <div className="relative overflow-hidden p-4 sm:p-5 bg-gradient-to-b from-transparent to-rose-50/30 dark:from-rose-950/80 dark:via-slate-950/90 dark:to-purple-950/80">
-          <div className="absolute inset-0 hidden dark:block pointer-events-none">
+          <div className="absolute inset-0 pointer-events-none dark:hidden">
             {[...Array(8)].map((_, i) => (
               <motion.div
-                key={i}
+                key={`light-heart-${i}`}
+                className="absolute"
+                style={{ left: `${(i * 12.5) % 100}%`, top: `${(i * 14) % 100}%` }}
+                animate={{
+                  y: [0, -20, 0],
+                  x: [0, i % 2 === 0 ? 12 : -12, 0],
+                  opacity: [0.2, 0.6, 0.2],
+                  scale: [1, 1.2, 1],
+                }}
+                transition={{
+                  duration: 5 + (i % 3) * 1.4,
+                  repeat: Infinity,
+                  delay: i * 0.35,
+                  ease: "easeInOut",
+                }}
+              >
+                <Heart
+                  className={`${i % 2 === 0 ? "w-3.5 h-3.5" : "w-3 h-3"} text-rose-400/60 drop-shadow-[0_1px_6px_rgba(244,63,94,0.25)]`}
+                  fill="currentColor"
+                />
+              </motion.div>
+            ))}
+          </div>
+          <div className="absolute inset-0 pointer-events-none hidden dark:block">
+            {[...Array(8)].map((_, i) => (
+              <motion.div
+                key={`dark-heart-${i}`}
                 className="absolute"
                 style={{ left: `${(i * 12.5) % 100}%`, top: `${(i * 14) % 100}%` }}
                 animate={{
