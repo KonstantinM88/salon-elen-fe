@@ -727,31 +727,60 @@ function ServiceCard({
           </div>
         </div>
 
-        <div className="p-4 sm:p-5 bg-gradient-to-b from-transparent to-rose-50/30 dark:to-transparent">
-          <h3 className="text-base sm:text-lg font-bold text-zinc-800 dark:text-zinc-100 mb-1.5 line-clamp-2 group-hover:text-rose-600 dark:group-hover:text-rose-200 transition-colors"
-              style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
-            {service.name}
-          </h3>
-
-          {service.description && (
-            <p className="text-zinc-600 dark:text-zinc-300 text-xs sm:text-sm line-clamp-2 mb-3">{service.description}</p>
-          )}
-
-          <div className="flex items-center gap-3 mb-4">
-            <span className="inline-flex items-center gap-1 text-zinc-500 dark:text-zinc-300 text-xs sm:text-sm">
-              <Clock className="w-3.5 h-3.5 text-rose-400 dark:text-rose-300" />
-              {service.durationMin} {translations.minutes}
-            </span>
+        <div className="relative overflow-hidden p-4 sm:p-5 bg-gradient-to-b from-transparent to-rose-50/30 dark:from-rose-950/80 dark:via-slate-950/90 dark:to-purple-950/80">
+          <div className="absolute inset-0 hidden dark:block pointer-events-none">
+            {[...Array(8)].map((_, i) => (
+              <motion.div
+                key={i}
+                className="absolute"
+                style={{ left: `${(i * 12.5) % 100}%`, top: `${(i * 14) % 100}%` }}
+                animate={{
+                  y: [0, -18, 0],
+                  x: [0, i % 2 === 0 ? 10 : -10, 0],
+                  opacity: [0.15, 0.45, 0.15],
+                  scale: [1, 1.15, 1],
+                }}
+                transition={{
+                  duration: 5 + (i % 3) * 1.4,
+                  repeat: Infinity,
+                  delay: i * 0.35,
+                  ease: "easeInOut",
+                }}
+              >
+                <Heart
+                  className={`${i % 2 === 0 ? "w-3 h-3" : "w-2.5 h-2.5"} text-rose-400/40`}
+                  fill="currentColor"
+                />
+              </motion.div>
+            ))}
           </div>
 
-          <Link
-            href={`/booking?service=${service.id}`}
-            onClick={(e) => e.stopPropagation()}
-            className="flex items-center justify-center gap-2 w-full px-4 py-2.5 sm:py-3 rounded-xl bg-gradient-to-r from-rose-500 via-pink-500 to-rose-500 hover:from-rose-600 hover:via-pink-600 hover:to-rose-600 text-white font-semibold text-sm transition-all active:scale-[0.98] shadow-lg shadow-rose-300/40"
-          >
-            {translations.bookNow}
-            <ChevronRight className="w-4 h-4" />
-          </Link>
+          <div className="relative z-10">
+            <h3 className="text-base sm:text-lg font-bold text-zinc-800 dark:text-zinc-100 mb-1.5 line-clamp-2 group-hover:text-rose-600 dark:group-hover:text-rose-200 transition-colors"
+                style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
+              {service.name}
+            </h3>
+
+            {service.description && (
+              <p className="text-zinc-600 dark:text-zinc-300 text-xs sm:text-sm line-clamp-2 mb-3">{service.description}</p>
+            )}
+
+            <div className="flex items-center gap-3 mb-4">
+              <span className="inline-flex items-center gap-1 text-zinc-500 dark:text-zinc-300 text-xs sm:text-sm">
+                <Clock className="w-3.5 h-3.5 text-rose-400 dark:text-rose-300" />
+                {service.durationMin} {translations.minutes}
+              </span>
+            </div>
+
+            <Link
+              href={`/booking?service=${service.id}`}
+              onClick={(e) => e.stopPropagation()}
+              className="flex items-center justify-center gap-2 w-full px-4 py-2.5 sm:py-3 rounded-xl bg-gradient-to-r from-rose-500 via-pink-500 to-rose-500 hover:from-rose-600 hover:via-pink-600 hover:to-rose-600 text-white font-semibold text-sm transition-all active:scale-[0.98] shadow-lg shadow-rose-300/40"
+            >
+              {translations.bookNow}
+              <ChevronRight className="w-4 h-4" />
+            </Link>
+          </div>
         </div>
       </div>
     </motion.div>
