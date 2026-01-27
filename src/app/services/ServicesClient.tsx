@@ -1,7 +1,7 @@
 // src/app/services/ServicesClient.tsx
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, memo } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -221,6 +221,67 @@ function PageBackground() {
   );
 }
 
+const GalleryLightboxBackground = memo(() => (
+  <div className="absolute inset-0 -z-10">
+    {/* Основной градиент */}
+    <div className="absolute inset-0 bg-gradient-to-br from-rose-950 via-slate-950 to-purple-950" />
+    
+    {/* Анимированные сферы */}
+    <motion.div
+      className="absolute -top-1/4 -left-1/4 w-[600px] h-[600px] rounded-full opacity-30"
+      style={{ background: "radial-gradient(circle, rgba(244,63,94,0.4) 0%, transparent 70%)" }}
+      animate={{ scale: [1, 1.2, 1], x: [0, 50, 0], y: [0, 30, 0] }}
+      transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
+    />
+    <motion.div
+      className="absolute -bottom-1/4 -right-1/4 w-[700px] h-[700px] rounded-full opacity-25"
+      style={{ background: "radial-gradient(circle, rgba(168,85,247,0.4) 0%, transparent 70%)" }}
+      animate={{ scale: [1, 1.15, 1], x: [0, -40, 0], y: [0, -50, 0] }}
+      transition={{ duration: 10, repeat: Infinity, ease: "easeInOut", delay: 1 }}
+    />
+    <motion.div
+      className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] rounded-full opacity-20"
+      style={{ background: "radial-gradient(circle, rgba(251,113,133,0.3) 0%, transparent 60%)" }}
+      animate={{ scale: [1, 1.3, 1] }}
+      transition={{ duration: 6, repeat: Infinity, ease: "easeInOut", delay: 2 }}
+    />
+
+    {/* Плавающие сердечки */}
+    {[...Array(12)].map((_, i) => (
+      <motion.div
+        key={i}
+        className="absolute pointer-events-none"
+        style={{ left: `${(i * 8.5) % 100}%`, top: `${(i * 9.2) % 100}%` }}
+        animate={{ 
+          y: [0, -40, 0], 
+          x: [0, i % 2 === 0 ? 20 : -20, 0], 
+          opacity: [0.15, 0.4, 0.15],
+          scale: [1, 1.2, 1],
+        }}
+        transition={{ duration: 5 + (i % 4) * 1.5, repeat: Infinity, delay: i * 0.3, ease: "easeInOut" }}
+      >
+        <Heart className={`${i % 3 === 0 ? 'w-6 h-6' : i % 3 === 1 ? 'w-4 h-4' : 'w-5 h-5'} text-rose-400/50`} fill="currentColor" />
+      </motion.div>
+    ))}
+
+    {/* Звёздочки/блёстки */}
+    {[...Array(20)].map((_, i) => (
+      <motion.div
+        key={`star-${i}`}
+        className="absolute w-1 h-1 rounded-full bg-white/30"
+        style={{ left: `${(i * 5.1) % 100}%`, top: `${(i * 5.7) % 100}%` }}
+        animate={{ opacity: [0.1, 0.6, 0.1], scale: [1, 1.5, 1] }}
+        transition={{ duration: 2 + (i % 3), repeat: Infinity, delay: i * 0.2, ease: "easeInOut" }}
+      />
+    ))}
+
+    {/* Виньетка */}
+    <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_30%,rgba(0,0,0,0.5)_100%)]" />
+  </div>
+));
+
+GalleryLightboxBackground.displayName = "GalleryLightboxBackground";
+
 // ====== ЛАЙТБОКС С ПОДДЕРЖКОЙ СВАЙПА ======
 function GalleryLightbox({
   images, currentIndex, onClose, onPrev, onNext, serviceName,
@@ -296,63 +357,7 @@ function GalleryLightbox({
       className="fixed inset-0 z-[100] flex items-center justify-center overflow-hidden" 
       onClick={onClose}
     >
-      {/* ====== КРАСИВЫЙ АНИМИРОВАННЫЙ ФОН ====== */}
-      <div className="absolute inset-0 -z-10">
-        {/* Основной градиент */}
-        <div className="absolute inset-0 bg-gradient-to-br from-rose-950 via-slate-950 to-purple-950" />
-        
-        {/* Анимированные сферы */}
-        <motion.div
-          className="absolute -top-1/4 -left-1/4 w-[600px] h-[600px] rounded-full opacity-30"
-          style={{ background: "radial-gradient(circle, rgba(244,63,94,0.4) 0%, transparent 70%)" }}
-          animate={{ scale: [1, 1.2, 1], x: [0, 50, 0], y: [0, 30, 0] }}
-          transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
-        />
-        <motion.div
-          className="absolute -bottom-1/4 -right-1/4 w-[700px] h-[700px] rounded-full opacity-25"
-          style={{ background: "radial-gradient(circle, rgba(168,85,247,0.4) 0%, transparent 70%)" }}
-          animate={{ scale: [1, 1.15, 1], x: [0, -40, 0], y: [0, -50, 0] }}
-          transition={{ duration: 10, repeat: Infinity, ease: "easeInOut", delay: 1 }}
-        />
-        <motion.div
-          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] rounded-full opacity-20"
-          style={{ background: "radial-gradient(circle, rgba(251,113,133,0.3) 0%, transparent 60%)" }}
-          animate={{ scale: [1, 1.3, 1] }}
-          transition={{ duration: 6, repeat: Infinity, ease: "easeInOut", delay: 2 }}
-        />
-
-        {/* Плавающие сердечки */}
-        {[...Array(12)].map((_, i) => (
-          <motion.div
-            key={i}
-            className="absolute pointer-events-none"
-            style={{ left: `${(i * 8.5) % 100}%`, top: `${(i * 9.2) % 100}%` }}
-            animate={{ 
-              y: [0, -40, 0], 
-              x: [0, i % 2 === 0 ? 20 : -20, 0], 
-              opacity: [0.15, 0.4, 0.15],
-              scale: [1, 1.2, 1],
-            }}
-            transition={{ duration: 5 + (i % 4) * 1.5, repeat: Infinity, delay: i * 0.3, ease: "easeInOut" }}
-          >
-            <Heart className={`${i % 3 === 0 ? 'w-6 h-6' : i % 3 === 1 ? 'w-4 h-4' : 'w-5 h-5'} text-rose-400/50`} fill="currentColor" />
-          </motion.div>
-        ))}
-
-        {/* Звёздочки/блёстки */}
-        {[...Array(20)].map((_, i) => (
-          <motion.div
-            key={`star-${i}`}
-            className="absolute w-1 h-1 rounded-full bg-white/30"
-            style={{ left: `${(i * 5.1) % 100}%`, top: `${(i * 5.7) % 100}%` }}
-            animate={{ opacity: [0.1, 0.6, 0.1], scale: [1, 1.5, 1] }}
-            transition={{ duration: 2 + (i % 3), repeat: Infinity, delay: i * 0.2, ease: "easeInOut" }}
-          />
-        ))}
-
-        {/* Виньетка */}
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_30%,rgba(0,0,0,0.5)_100%)]" />
-      </div>
+      <GalleryLightboxBackground />
       {/* Кнопка закрытия */}
       <button 
         onClick={onClose} 
@@ -429,7 +434,7 @@ function GalleryLightbox({
           type: "tween",
           duration: 0.2,
         }}
-        className="relative max-w-[95vw] max-h-[80vh] mx-4 touch-pan-y select-none"
+        className="relative max-w-[95vw] max-h-[80vh] mx-4 touch-pan-y select-none transform-gpu will-change-transform"
         onClick={(e) => e.stopPropagation()}
         onTouchStart={onTouchStart}
         onTouchMove={onTouchMove}
