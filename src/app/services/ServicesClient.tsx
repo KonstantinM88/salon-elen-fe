@@ -499,7 +499,7 @@ function ServiceDetailModal({
         onClick={(e) => e.stopPropagation()}>
 
         {/* Тонкая маска сверху для мобильной тёмной темы (убирает краткий "просвет") */}
-        <div className="absolute top-0 left-0 right-0 h-2 sm:hidden hidden dark:block z-20 pointer-events-none bg-gradient-to-r from-rose-950 via-slate-950 to-purple-950" />
+        <div className="absolute -top-px left-0 right-0 h-3 sm:hidden hidden dark:block z-20 pointer-events-none bg-gradient-to-r from-rose-950 via-slate-950 to-purple-950" />
         
         {/* ====== КРАСИВЫЙ АНИМИРОВАННЫЙ ФОН ДЛЯ ТЁМНОЙ ТЕМЫ ====== */}
         <div className="absolute inset-0 hidden dark:block overflow-hidden rounded-t-3xl sm:rounded-3xl">
