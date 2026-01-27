@@ -491,7 +491,7 @@ function ServiceDetailModal({
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-      className="fixed inset-0 z-[90] flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm" onClick={onClose}>
+      className="fixed inset-0 z-[90] flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-0 sm:backdrop-blur-sm" onClick={onClose}>
       <motion.div
         initial={{ opacity: 0, y: 100 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 100 }}
         transition={{ type: "spring", damping: 25, stiffness: 300 }}
@@ -737,7 +737,7 @@ function ServiceCard({
           hover:shadow-[0_20px_50px_-15px_rgba(244,63,94,0.35)] dark:hover:shadow-[0_25px_60px_-20px_rgba(0,0,0,0.85)]
           hover:border-rose-300 dark:hover:border-white/20
           transition-all duration-500
-          active:scale-[0.98] sm:hover:-translate-y-2
+          sm:active:scale-[0.98] sm:hover:-translate-y-2
         "
       >
         {/* Декоративный уголок */}
