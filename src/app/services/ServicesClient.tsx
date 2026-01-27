@@ -365,7 +365,7 @@ function GalleryLightbox({
         <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 sm:hidden">
           <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-black/60 backdrop-blur-md border border-white/10">
             <ChevronLeft className="w-4 h-4 text-white/70" />
-            <span className="text-white/70 text-xs font-medium">Свайп</span>
+            <span className="text-white/70 text-xs font-medium">Swipe</span>
             <ChevronRight className="w-4 h-4 text-white/70" />
           </div>
         </div>
