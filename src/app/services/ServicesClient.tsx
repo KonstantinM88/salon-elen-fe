@@ -491,7 +491,7 @@ function ServiceDetailModal({
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-      className="fixed inset-0 z-[90] flex items-end sm:items-center justify-center bg-black/75 sm:bg-black/50 backdrop-blur-0 sm:backdrop-blur-sm" onClick={onClose}>
+      className="fixed inset-0 z-[90] flex items-start justify-center bg-black/75 sm:bg-black/50 backdrop-blur-0 sm:backdrop-blur-sm" onClick={onClose}>
       <motion.div
         initial={{ opacity: 0, y: 100 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 100 }}
         transition={{ type: "spring", damping: 25, stiffness: 300 }}
