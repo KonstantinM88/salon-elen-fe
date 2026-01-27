@@ -97,23 +97,38 @@ const t: Record<string, Record<string, string>> = {
 };
 
 const categoryIcons: Record<string, typeof Scissors> = {
-  haircut: Scissors, haare: Scissors, hair: Scissors, frisur: Scissors, стрижка: Scissors,
-  manicure: Palette, maniküre: Palette, nails: Palette, nagel: Palette, маникюр: Palette,
-  makeup: Heart, "make-up": Heart, kosmetik: Heart, макияж: Heart,
-  brows: Star, lashes: Star, permanent: Star, брови: Star, ресницы: Star,
+  haircut: Scissors,
+  haare: Scissors,
+  hair: Scissors,
+  frisur: Scissors,
+  manicure: Palette,
+  nails: Palette,
+  nagel: Palette,
+  makeup: Heart,
+  kosmetik: Heart,
+  brows: Star,
+  lashes: Star,
+  permanent: Star,
   default: Flower2,
 };
 
 function getCategoryIcon(slug: string) {
-  const key = Object.keys(categoryIcons).find((k) => slug.toLowerCase().includes(k));
+  const key = Object.keys(categoryIcons).find((k) =>
+    slug.toLowerCase().includes(k),
+  );
   return categoryIcons[key || "default"];
 }
 
 function formatPrice(cents: number | null, locale: string) {
   if (!cents) return null;
-  return new Intl.NumberFormat(locale === "de" ? "de-DE" : locale === "ru" ? "ru-RU" : "en-US", {
-    style: "currency", currency: "EUR", minimumFractionDigits: 0,
-  }).format(cents / 100);
+  return new Intl.NumberFormat(
+    locale === "de" ? "de-DE" : locale === "ru" ? "ru-RU" : "en-US",
+    {
+      style: "currency",
+      currency: "EUR",
+      minimumFractionDigits: 0,
+    },
+  ).format(cents / 100);
 }
 
 const cardGradients = [
@@ -124,65 +139,96 @@ const cardGradients = [
   "from-emerald-200/50 via-teal-100/50 to-cyan-100/50",
 ];
 
-// ====== КРАСИВЫЙ АНИМИРОВАННЫЙ ФОН (сохранены все анимации!) ======
+// ====== КРАСИВЫЙ АНИМИРОВАННЫЙ ФОН ======
 function PageBackground() {
   return (
     <div className="fixed inset-0 -z-10 overflow-hidden">
-      {/* Основной градиент */}
       <div className="absolute inset-0 bg-gradient-to-br from-rose-200/90 via-pink-100/80 to-amber-100/70 dark:from-[#080812] dark:via-[#0b0b16] dark:to-[#121227]" />
-      
-      {/* Дополнительный слой нежности */}
       <div className="absolute inset-0 bg-gradient-to-t from-white/40 via-transparent to-rose-100/30 dark:from-transparent dark:to-transparent" />
 
-      {/* Большие мягкие сферы с анимацией */}
       <motion.div
         className="absolute -top-32 -left-32 h-[500px] w-[500px] sm:h-[700px] sm:w-[700px] rounded-full"
-        style={{ background: "radial-gradient(circle, rgba(251,182,206,0.7) 0%, rgba(251,207,232,0.4) 40%, transparent 70%)" }}
+        style={{
+          background:
+            "radial-gradient(circle, rgba(251,182,206,0.7) 0%, rgba(251,207,232,0.4) 40%, transparent 70%)",
+        }}
         animate={{ scale: [1, 1.15, 1], opacity: [0.7, 0.5, 0.7] }}
         transition={{ duration: 12, repeat: Infinity, ease: "easeInOut" }}
       />
       <motion.div
         className="absolute top-1/4 -right-32 h-[400px] w-[400px] sm:h-[600px] sm:w-[600px] rounded-full"
-        style={{ background: "radial-gradient(circle, rgba(254,202,155,0.6) 0%, rgba(254,215,170,0.3) 40%, transparent 70%)" }}
+        style={{
+          background:
+            "radial-gradient(circle, rgba(254,202,155,0.6) 0%, rgba(254,215,170,0.3) 40%, transparent 70%)",
+        }}
         animate={{ scale: [1, 1.12, 1], opacity: [0.6, 0.35, 0.6] }}
-        transition={{ duration: 14, repeat: Infinity, ease: "easeInOut", delay: 2 }}
+        transition={{
+          duration: 14,
+          repeat: Infinity,
+          ease: "easeInOut",
+          delay: 2,
+        }}
       />
       <motion.div
         className="absolute -bottom-20 left-1/3 h-[450px] w-[450px] sm:h-[650px] sm:w-[650px] rounded-full"
-        style={{ background: "radial-gradient(circle, rgba(216,180,254,0.5) 0%, rgba(196,181,253,0.25) 40%, transparent 70%)" }}
+        style={{
+          background:
+            "radial-gradient(circle, rgba(216,180,254,0.5) 0%, rgba(196,181,253,0.25) 40%, transparent 70%)",
+        }}
         animate={{ scale: [1, 1.1, 1], opacity: [0.5, 0.3, 0.5] }}
-        transition={{ duration: 16, repeat: Infinity, ease: "easeInOut", delay: 4 }}
+        transition={{
+          duration: 16,
+          repeat: Infinity,
+          ease: "easeInOut",
+          delay: 4,
+        }}
       />
 
-      {/* Анимированные сердечки и декоративные элементы */}
       {[...Array(35)].map((_, i) => (
         <motion.div
           key={i}
           className="absolute pointer-events-none"
           style={{ left: `${(i * 2.9) % 100}%`, top: `${(i * 3.1) % 95}%` }}
-          animate={{ 
-            y: [0, -35, 0], 
-            x: [0, i % 2 === 0 ? 18 : -18, 0], 
+          animate={{
+            y: [0, -35, 0],
+            x: [0, i % 2 === 0 ? 18 : -18, 0],
             rotate: [0, i % 2 === 0 ? 20 : -20, 0],
             opacity: [0.35, 0.75, 0.35],
             scale: [1, 1.15, 1],
           }}
-          transition={{ duration: 6 + (i % 5) * 1.5, repeat: Infinity, delay: i * 0.15, ease: "easeInOut" }}
+          transition={{
+            duration: 6 + (i % 5) * 1.5,
+            repeat: Infinity,
+            delay: i * 0.15,
+            ease: "easeInOut",
+          }}
         >
           {i % 4 === 0 ? (
-            <Heart className="h-4 w-4 sm:h-5 sm:w-5 text-rose-400/80 dark:text-rose-300/25 drop-shadow-sm" fill="currentColor" />
+            <Heart
+              className="h-4 w-4 sm:h-5 sm:w-5 text-rose-400/80 dark:text-rose-300/25 drop-shadow-sm"
+              fill="currentColor"
+            />
           ) : i % 4 === 1 ? (
-            <Heart className="h-3 w-3 sm:h-4 sm:w-4 text-pink-400/70 dark:text-pink-300/20 drop-shadow-sm" fill="currentColor" />
+            <Heart
+              className="h-3 w-3 sm:h-4 sm:w-4 text-pink-400/70 dark:text-pink-300/20 drop-shadow-sm"
+              fill="currentColor"
+            />
           ) : i % 4 === 2 ? (
             <Sparkles className="h-3 w-3 sm:h-4 sm:w-4 text-amber-400/70 dark:text-amber-300/20" />
           ) : (
-            <Star className="h-3 w-3 sm:h-4 sm:w-4 text-rose-300/60 dark:text-rose-300/15" fill="currentColor" />
+            <Star
+              className="h-3 w-3 sm:h-4 sm:w-4 text-rose-300/60 dark:text-rose-300/15"
+              fill="currentColor"
+            />
           )}
         </motion.div>
       ))}
 
-      {/* Анимированная волна */}
-      <svg className="absolute bottom-0 left-0 w-full h-32 sm:h-48 opacity-20 dark:opacity-10" preserveAspectRatio="none" viewBox="0 0 1440 120">
+      <svg
+        className="absolute bottom-0 left-0 w-full h-32 sm:h-48 opacity-20 dark:opacity-10"
+        preserveAspectRatio="none"
+        viewBox="0 0 1440 120"
+      >
         <motion.path
           fill="url(#wave-fill)"
           animate={{
@@ -203,7 +249,6 @@ function PageBackground() {
         </defs>
       </svg>
 
-      {/* Тонкий узор */}
       <div
         className="absolute inset-0 opacity-[0.025] dark:opacity-[0.04]"
         style={{
@@ -214,25 +259,68 @@ function PageBackground() {
   );
 }
 
-// ====== СТАТИЧНЫЙ ФОН ЛАЙТБОКСА ======
 const GalleryLightboxBackground = memo(() => (
   <div className="absolute inset-0 -z-10">
     <div className="absolute inset-0 bg-gradient-to-br from-rose-950 via-slate-950 to-purple-950" />
-    <div className="absolute -top-1/4 -left-1/4 w-[600px] h-[600px] rounded-full opacity-30" style={{ background: "radial-gradient(circle, rgba(244,63,94,0.4) 0%, transparent 70%)" }} />
-    <div className="absolute -bottom-1/4 -right-1/4 w-[700px] h-[700px] rounded-full opacity-25" style={{ background: "radial-gradient(circle, rgba(168,85,247,0.4) 0%, transparent 70%)" }} />
+    <div
+      className="absolute -top-1/4 -left-1/4 w-[600px] h-[600px] rounded-full opacity-30"
+      style={{
+        background:
+          "radial-gradient(circle, rgba(244,63,94,0.4) 0%, transparent 70%)",
+      }}
+    />
+    <div
+      className="absolute -bottom-1/4 -right-1/4 w-[700px] h-[700px] rounded-full opacity-25"
+      style={{
+        background:
+          "radial-gradient(circle, rgba(168,85,247,0.4) 0%, transparent 70%)",
+      }}
+    />
+    <div
+      className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] rounded-full opacity-20"
+      style={{
+        background:
+          "radial-gradient(circle, rgba(251,113,133,0.3) 0%, transparent 60%)",
+      }}
+    />
     {[...Array(10)].map((_, i) => (
-      <div key={i} className="absolute pointer-events-none" style={{ left: `${(i * 10) % 100}%`, top: `${(i * 11) % 100}%` }}>
-        <Heart className={`${i % 2 === 0 ? 'w-5 h-5' : 'w-4 h-4'} text-rose-400/30`} fill="currentColor" />
+      <div
+        key={i}
+        className="absolute pointer-events-none"
+        style={{ left: `${(i * 10) % 100}%`, top: `${(i * 11) % 100}%` }}
+      >
+        <Heart
+          className={`${i % 3 === 0 ? "w-5 h-5" : i % 3 === 1 ? "w-4 h-4" : "w-3 h-3"} text-rose-400/30`}
+          fill="currentColor"
+        />
       </div>
+    ))}
+    {[...Array(15)].map((_, i) => (
+      <div
+        key={`star-${i}`}
+        className="absolute w-1 h-1 rounded-full bg-white/20"
+        style={{ left: `${(i * 6.5) % 100}%`, top: `${(i * 7) % 100}%` }}
+      />
     ))}
     <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_30%,rgba(0,0,0,0.5)_100%)]" />
   </div>
 ));
 GalleryLightboxBackground.displayName = "GalleryLightboxBackground";
 
-// ====== ЛАЙТБОКС ======
-function GalleryLightbox({ images, currentIndex, onClose, onPrev, onNext, serviceName }: {
-  images: GalleryItem[]; currentIndex: number; onClose: () => void; onPrev: () => void; onNext: () => void; serviceName: string;
+function GalleryLightbox({
+  images,
+  currentIndex,
+  onClose,
+  onPrev,
+  onNext,
+  serviceName,
+}: {
+  images: GalleryItem[];
+  currentIndex: number;
+  onClose: () => void;
+  onPrev: () => void;
+  onNext: () => void;
+  serviceName: string;
 }) {
   const [touchStart, setTouchStart] = useState<number | null>(null);
   const [touchEnd, setTouchEnd] = useState<number | null>(null);
@@ -241,130 +329,407 @@ function GalleryLightbox({ images, currentIndex, onClose, onPrev, onNext, servic
   const minSwipeDistance = 50;
 
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); if (e.key === "ArrowLeft") onPrev(); if (e.key === "ArrowRight") onNext(); };
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+      if (e.key === "ArrowLeft") onPrev();
+      if (e.key === "ArrowRight") onNext();
+    };
     window.addEventListener("keydown", handleKeyDown);
     document.body.style.overflow = "hidden";
-    return () => { window.removeEventListener("keydown", handleKeyDown); document.body.style.overflow = ""; };
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      document.body.style.overflow = "";
+    };
   }, [onClose, onPrev, onNext]);
 
-  const onTouchStart = (e: React.TouchEvent) => { setTouchEnd(null); setTouchStart(e.targetTouches[0].clientX); setIsDragging(true); };
-  const onTouchMove = (e: React.TouchEvent) => { if (!touchStart) return; const currentTouch = e.targetTouches[0].clientX; setTouchEnd(currentTouch); setDragOffset(currentTouch - touchStart); };
+  const onTouchStart = (e: React.TouchEvent) => {
+    setTouchEnd(null);
+    setTouchStart(e.targetTouches[0].clientX);
+    setIsDragging(true);
+  };
+  const onTouchMove = (e: React.TouchEvent) => {
+    if (!touchStart) return;
+    const currentTouch = e.targetTouches[0].clientX;
+    setTouchEnd(currentTouch);
+    setDragOffset(currentTouch - touchStart);
+  };
   const onTouchEnd = () => {
-    if (!touchStart || !touchEnd) { setIsDragging(false); setDragOffset(0); return; }
+    if (!touchStart || !touchEnd) {
+      setIsDragging(false);
+      setDragOffset(0);
+      return;
+    }
     const distance = touchStart - touchEnd;
     if (distance > minSwipeDistance && images.length > 1) onNext();
     else if (distance < -minSwipeDistance && images.length > 1) onPrev();
-    setIsDragging(false); setDragOffset(0); setTouchStart(null); setTouchEnd(null);
+    setIsDragging(false);
+    setDragOffset(0);
+    setTouchStart(null);
+    setTouchEnd(null);
   };
 
   const currentImage = images[currentIndex];
   const swipeDirection = dragOffset > 0 ? 1 : -1;
 
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-      className="fixed inset-0 z-[100] flex items-center justify-center overflow-hidden" onClick={onClose}>
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-[100] flex items-center justify-center overflow-hidden"
+      onClick={onClose}
+    >
       <GalleryLightboxBackground />
-      <button onClick={onClose} className="absolute top-4 right-4 z-50 p-3 rounded-full bg-black/60 hover:bg-black/80 backdrop-blur-md text-white border border-white/10 shadow-lg transition-colors"><X className="w-6 h-6" /></button>
+      <button
+        onClick={onClose}
+        className="absolute top-4 right-4 z-50 p-3 rounded-full bg-black/60 hover:bg-black/80 backdrop-blur-md text-white border border-white/10 shadow-lg transition-colors"
+      >
+        <X className="w-6 h-6" />
+      </button>
       <div className="absolute top-4 left-4 z-50">
         <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-black/60 backdrop-blur-md border border-white/10">
           <Heart className="w-4 h-4 text-rose-400" fill="currentColor" />
-          <p className="text-white font-medium">{currentIndex + 1} <span className="text-white/60">/ {images.length}</span></p>
+          <p className="text-white font-medium">
+            {currentIndex + 1}{" "}
+            <span className="text-white/60">/ {images.length}</span>
+          </p>
         </div>
       </div>
-      {images.length > 1 && (<div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 sm:hidden">
-        <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-black/60 backdrop-blur-md border border-white/10">
-          <ChevronLeft className="w-4 h-4 text-white/70" /><span className="text-white/70 text-xs font-medium">Свайп</span><ChevronRight className="w-4 h-4 text-white/70" />
+      {images.length > 1 && (
+        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 sm:hidden">
+          <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-black/60 backdrop-blur-md border border-white/10">
+            <ChevronLeft className="w-4 h-4 text-white/70" />
+            <span className="text-white/70 text-xs font-medium">Свайп</span>
+            <ChevronRight className="w-4 h-4 text-white/70" />
+          </div>
         </div>
-      </div>)}
-      {images.length > 1 && (<>
-        <button onClick={(e) => { e.stopPropagation(); onPrev(); }} className="absolute left-4 top-1/2 -translate-y-1/2 z-50 p-3 rounded-full bg-black/60 hover:bg-black/80 backdrop-blur-md text-white border border-white/10 shadow-lg transition-colors hidden sm:flex"><ChevronLeft className="w-8 h-8" /></button>
-        <button onClick={(e) => { e.stopPropagation(); onNext(); }} className="absolute right-4 top-1/2 -translate-y-1/2 z-50 p-3 rounded-full bg-black/60 hover:bg-black/80 backdrop-blur-md text-white border border-white/10 shadow-lg transition-colors hidden sm:flex"><ChevronRight className="w-8 h-8" /></button>
-      </>)}
-      {images.length > 1 && (<div className="absolute bottom-14 sm:bottom-6 left-1/2 -translate-x-1/2 z-50">
-        <div className="flex gap-2 px-4 py-2 rounded-full bg-black/60 backdrop-blur-md border border-white/10">
-          {images.map((_, idx) => (<div key={idx} className={`h-2 rounded-full transition-all duration-300 ${idx === currentIndex ? "bg-gradient-to-r from-rose-400 to-pink-400 w-6" : "bg-white/40 w-2"}`} />))}
+      )}
+      {images.length > 1 && (
+        <>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onPrev();
+            }}
+            className="absolute left-4 top-1/2 -translate-y-1/2 z-50 p-3 rounded-full bg-black/60 hover:bg-black/80 backdrop-blur-md text-white border border-white/10 shadow-lg transition-colors hidden sm:flex"
+          >
+            <ChevronLeft className="w-8 h-8" />
+          </button>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onNext();
+            }}
+            className="absolute right-4 top-1/2 -translate-y-1/2 z-50 p-3 rounded-full bg-black/60 hover:bg-black/80 backdrop-blur-md text-white border border-white/10 shadow-lg transition-colors hidden sm:flex"
+          >
+            <ChevronRight className="w-8 h-8" />
+          </button>
+        </>
+      )}
+      {images.length > 1 && (
+        <div className="absolute bottom-14 sm:bottom-6 left-1/2 -translate-x-1/2 z-50">
+          <div className="flex gap-2 px-4 py-2 rounded-full bg-black/60 backdrop-blur-md border border-white/10">
+            {images.map((_, idx) => (
+              <div
+                key={idx}
+                className={`h-2 rounded-full transition-all duration-300 ${idx === currentIndex ? "bg-gradient-to-r from-rose-400 to-pink-400 w-6" : "bg-white/40 w-2"}`}
+              />
+            ))}
+          </div>
         </div>
-      </div>)}
-      <motion.div key={currentIndex} initial={{ opacity: 0, x: swipeDirection * 50 }} animate={{ opacity: 1, x: isDragging ? dragOffset * 0.3 : 0 }} exit={{ opacity: 0, x: -swipeDirection * 50 }}
-        transition={{ type: "tween", duration: 0.2 }} className="relative max-w-[95vw] max-h-[80vh] mx-4 touch-pan-y select-none transform-gpu will-change-transform"
-        onClick={(e) => e.stopPropagation()} onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd} style={{ touchAction: "pan-y" }}>
+      )}
+      <motion.div
+        key={currentIndex}
+        initial={{ opacity: 0, x: swipeDirection * 50 }}
+        animate={{ opacity: 1, x: isDragging ? dragOffset * 0.3 : 0 }}
+        exit={{ opacity: 0, x: -swipeDirection * 50 }}
+        transition={{ type: "tween", duration: 0.2 }}
+        className="relative max-w-[95vw] max-h-[80vh] mx-4 touch-pan-y select-none transform-gpu will-change-transform"
+        onClick={(e) => e.stopPropagation()}
+        onTouchStart={onTouchStart}
+        onTouchMove={onTouchMove}
+        onTouchEnd={onTouchEnd}
+        style={{ touchAction: "pan-y" }}
+      >
         <div className="relative rounded-2xl sm:rounded-3xl overflow-hidden bg-black shadow-2xl border border-white/10">
-          {/* ОПТИМИЗАЦИЯ: next/image вместо img */}
-          <Image src={currentImage.image} alt={currentImage.caption || serviceName} width={800} height={600} className="max-w-full max-h-[75vh] w-auto h-auto object-contain" draggable={false} priority />
-          {currentImage.caption && (<div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/80 via-black/50 to-transparent"><p className="text-white text-center text-sm font-medium">{currentImage.caption}</p></div>)}
+          <Image
+            src={currentImage.image}
+            alt={currentImage.caption || serviceName}
+            width={800}
+            height={600}
+            className="max-w-full max-h-[75vh] w-auto h-auto object-contain"
+            draggable={false}
+            priority
+          />
+          {currentImage.caption && (
+            <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/80 via-black/50 to-transparent">
+              <p className="text-white text-center text-sm font-medium">
+                {currentImage.caption}
+              </p>
+            </div>
+          )}
         </div>
-        {isDragging && Math.abs(dragOffset) > 30 && (<div className={`absolute top-1/2 -translate-y-1/2 ${dragOffset > 0 ? "left-2" : "right-2"}`}><div className="p-3 rounded-full bg-black/50 backdrop-blur-md">{dragOffset > 0 ? <ChevronLeft className="w-6 h-6 text-white" /> : <ChevronRight className="w-6 h-6 text-white" />}</div></div>)}
+        {isDragging && Math.abs(dragOffset) > 30 && (
+          <div
+            className={`absolute top-1/2 -translate-y-1/2 ${dragOffset > 0 ? "left-2" : "right-2"}`}
+          >
+            <div className="p-3 rounded-full bg-black/50 backdrop-blur-md">
+              {dragOffset > 0 ? (
+                <ChevronLeft className="w-6 h-6 text-white" />
+              ) : (
+                <ChevronRight className="w-6 h-6 text-white" />
+              )}
+            </div>
+          </div>
+        )}
       </motion.div>
     </motion.div>
   );
 }
 
-// ====== МОДАЛКА УСЛУГИ ======
-function ServiceDetailModal({ service, categoryName, onClose, onOpenGallery, translations, locale }: {
-  service: ServiceChild; categoryName: string; onClose: () => void; onOpenGallery: (index: number) => void; translations: Record<string, string>; locale: string;
+function ServiceDetailModal({
+  service,
+  categoryName,
+  onClose,
+  onOpenGallery,
+  translations,
+  locale,
+}: {
+  service: ServiceChild;
+  categoryName: string;
+  onClose: () => void;
+  onOpenGallery: (index: number) => void;
+  translations: Record<string, string>;
+  locale: string;
 }) {
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
     window.addEventListener("keydown", handleKeyDown);
     document.body.style.overflow = "hidden";
-    return () => { window.removeEventListener("keydown", handleKeyDown); document.body.style.overflow = ""; };
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      document.body.style.overflow = "";
+    };
   }, [onClose]);
-
   const hasImage = service.cover || service.gallery.length > 0;
   const imageUrl = service.cover || service.gallery[0]?.image;
 
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-      className="fixed inset-0 z-[90] flex items-end lg:items-center justify-center bg-black/70 lg:bg-black/80 backdrop-blur-sm lg:backdrop-blur-md" onClick={onClose}>
-      <motion.div initial={{ y: 100, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 100, opacity: 0 }} transition={{ type: "spring", damping: 25, stiffness: 300 }}
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-[90] flex items-end lg:items-center justify-center bg-black/70 lg:bg-black/80 backdrop-blur-sm lg:backdrop-blur-md"
+      onClick={onClose}
+    >
+      <motion.div
+        initial={{ y: 100, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        exit={{ y: 100, opacity: 0 }}
+        transition={{ type: "spring", damping: 25, stiffness: 300 }}
         className="relative w-full lg:w-auto lg:max-w-5xl xl:max-w-6xl max-h-[92vh] lg:max-h-[85vh] lg:mx-4 overflow-hidden bg-white dark:bg-slate-950 rounded-t-3xl lg:rounded-3xl shadow-2xl border border-rose-200/50 dark:border-rose-500/30 transform-gpu will-change-transform"
-        onClick={(e) => e.stopPropagation()}>
-        {/* Фон для тёмной темы */}
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="absolute inset-0 hidden dark:block overflow-hidden rounded-t-3xl lg:rounded-3xl">
           <div className="absolute inset-0 bg-gradient-to-br from-rose-950 via-slate-950 to-purple-950" />
-          <div className="absolute -top-20 -left-20 w-64 h-64 rounded-full opacity-40" style={{ background: "radial-gradient(circle, rgba(244,63,94,0.5) 0%, transparent 70%)" }} />
-          <div className="absolute -bottom-20 -right-20 w-72 h-72 rounded-full opacity-30" style={{ background: "radial-gradient(circle, rgba(168,85,247,0.5) 0%, transparent 70%)" }} />
-          {[...Array(5)].map((_, i) => (<div key={i} className="absolute pointer-events-none" style={{ left: `${(i * 20) % 100}%`, top: `${(i * 22) % 100}%` }}><Heart className={`${i % 2 === 0 ? 'w-3 h-3' : 'w-2 h-2'} text-rose-400/25`} fill="currentColor" /></div>))}
+          <div
+            className="absolute -top-20 -left-20 w-64 h-64 rounded-full opacity-40"
+            style={{
+              background:
+                "radial-gradient(circle, rgba(244,63,94,0.5) 0%, transparent 70%)",
+            }}
+          />
+          <div
+            className="absolute -bottom-20 -right-20 w-72 h-72 rounded-full opacity-30"
+            style={{
+              background:
+                "radial-gradient(circle, rgba(168,85,247,0.5) 0%, transparent 70%)",
+            }}
+          />
+          {[...Array(6)].map((_, i) => (
+            <div
+              key={i}
+              className="absolute pointer-events-none"
+              style={{ left: `${(i * 16) % 100}%`, top: `${(i * 18) % 100}%` }}
+            >
+              <Heart
+                className={`${i % 2 === 0 ? "w-4 h-4" : "w-3 h-3"} text-rose-400/30`}
+                fill="currentColor"
+              />
+            </div>
+          ))}
         </div>
-        
         <div className="relative z-10 flex flex-col lg:flex-row h-full max-h-[92vh] lg:max-h-[85vh]">
-          <div className="lg:hidden flex justify-center pt-3 pb-1 flex-shrink-0"><div className="w-10 h-1 rounded-full bg-rose-300 dark:bg-rose-400/50" /></div>
-          <button onClick={onClose} className="absolute top-3 right-3 lg:top-4 lg:right-4 z-20 p-2 lg:p-2.5 rounded-full bg-white/90 hover:bg-white text-rose-500 dark:bg-black/50 dark:hover:bg-black/70 dark:text-rose-300 transition-colors shadow-lg border border-transparent dark:border-white/10"><X className="w-5 h-5 lg:w-6 lg:h-6" /></button>
-
-          {/* Изображение - ОПТИМИЗАЦИЯ: next/image */}
-          <div className="relative flex-shrink-0 h-48 sm:h-64 lg:h-auto lg:w-[45%] xl:w-[50%] overflow-hidden bg-black lg:rounded-l-3xl">
-            {hasImage ? (<Image src={imageUrl!} alt={service.name} fill className="object-cover" sizes="(max-width: 1024px) 100vw, 50vw" priority />)
-              : (<div className="w-full h-full bg-gradient-to-br from-rose-300 via-pink-200 to-amber-200 dark:from-rose-500/20 dark:via-pink-500/20 dark:to-purple-500/20" />)}
-            <div className="absolute inset-0 bg-gradient-to-t from-white via-white/30 to-transparent lg:bg-gradient-to-r lg:from-transparent lg:via-transparent lg:to-white dark:from-slate-950 dark:via-slate-950/30 dark:to-transparent lg:dark:from-transparent lg:dark:via-transparent lg:dark:to-slate-950" />
-            <div className="absolute top-4 left-4"><span className="px-3 py-1.5 rounded-full bg-white/95 dark:bg-black/60 backdrop-blur text-rose-600 dark:text-rose-200 text-xs sm:text-sm font-medium shadow-md border border-rose-200/50 dark:border-white/10">{categoryName}</span></div>
-            {service.priceCents && (<div className="absolute bottom-4 right-4 lg:hidden"><span className="px-4 py-2 rounded-full bg-gradient-to-r from-rose-500 to-pink-500 text-white font-bold text-sm shadow-lg shadow-rose-500/30">{translations.from} {formatPrice(service.priceCents, locale)}</span></div>)}
+          <div className="lg:hidden flex justify-center pt-3 pb-1 flex-shrink-0">
+            <div className="w-10 h-1 rounded-full bg-rose-300 dark:bg-rose-400/50" />
           </div>
-
-          {/* Контент */}
-          <div className="flex-1 overflow-y-auto">
+          <button
+            onClick={onClose}
+            className="absolute top-3 right-3 lg:top-4 lg:right-4 z-20 p-2 lg:p-2.5 rounded-full bg-white/90 hover:bg-white text-rose-500 dark:bg-black/50 dark:hover:bg-black/70 dark:text-rose-300 transition-colors shadow-lg border border-transparent dark:border-white/10"
+          >
+            <X className="w-5 h-5 lg:w-6 lg:h-6" />
+          </button>
+          <div className="relative flex-shrink-0 h-48 sm:h-64 lg:h-auto lg:w-[45%] xl:w-[50%] overflow-hidden bg-black lg:rounded-l-3xl">
+            {hasImage ? (
+              <Image
+                src={imageUrl!}
+                alt={service.name}
+                fill
+                className="object-cover"
+                sizes="(max-width: 1024px) 100vw, 50vw"
+                priority
+              />
+            ) : (
+              <div className="w-full h-full bg-gradient-to-br from-rose-300 via-pink-200 to-amber-200 dark:from-rose-500/20 dark:via-pink-500/20 dark:to-purple-500/20" />
+            )}
+            <div className="absolute inset-0 bg-gradient-to-t from-white via-white/30 to-transparent lg:bg-gradient-to-r lg:from-transparent lg:via-transparent lg:to-white dark:from-slate-950 dark:via-slate-950/30 dark:to-transparent lg:dark:from-transparent lg:dark:via-transparent lg:dark:to-slate-950" />
+            <div className="absolute top-4 left-4">
+              <span className="px-3 py-1.5 rounded-full bg-white/95 dark:bg-black/60 backdrop-blur text-rose-600 dark:text-rose-200 text-xs sm:text-sm font-medium shadow-md border border-rose-200/50 dark:border-white/10">
+                {categoryName}
+              </span>
+            </div>
+            {service.priceCents && (
+              <div className="absolute bottom-4 right-4 lg:hidden">
+                <span className="px-4 py-2 rounded-full bg-gradient-to-r from-rose-500 to-pink-500 text-white font-bold text-sm shadow-lg shadow-rose-500/30">
+                  {translations.from} {formatPrice(service.priceCents, locale)}
+                </span>
+              </div>
+            )}
+          </div>
+          <div className="flex-1 overflow-y-auto lg:overflow-y-auto">
             <div className="p-4 sm:p-6 lg:p-8 lg:pl-6">
               <div className="lg:flex lg:items-start lg:justify-between lg:gap-4 mb-4 lg:mb-6">
-                <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-zinc-800 dark:text-white pr-8 lg:pr-0 font-playfair">{service.name}</h2>
-                {service.priceCents && (<div className="hidden lg:block flex-shrink-0 mt-1"><span className="px-5 py-2.5 rounded-full bg-gradient-to-r from-rose-500 to-pink-500 text-white font-bold text-lg shadow-lg shadow-rose-500/30">{translations.from} {formatPrice(service.priceCents, locale)}</span></div>)}
+                <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-zinc-800 dark:text-white pr-8 lg:pr-0 font-playfair">
+                  {service.name}
+                </h2>
+                {service.priceCents && (
+                  <div className="hidden lg:block flex-shrink-0 mt-1">
+                    <span className="px-5 py-2.5 rounded-full bg-gradient-to-r from-rose-500 to-pink-500 text-white font-bold text-lg shadow-lg shadow-rose-500/30">
+                      {translations.from}{" "}
+                      {formatPrice(service.priceCents, locale)}
+                    </span>
+                  </div>
+                )}
               </div>
               <div className="flex flex-wrap gap-2 mb-5 lg:mb-6">
-                <div className="inline-flex items-center gap-1.5 px-3 py-1.5 lg:px-4 lg:py-2 rounded-full bg-rose-100 border border-rose-200 text-rose-700 dark:bg-rose-500/20 dark:border-rose-400/30 dark:text-rose-200 text-sm lg:text-base"><Clock className="w-4 h-4 lg:w-5 lg:h-5 text-rose-500 dark:text-rose-400" />{service.durationMin} {translations.minutes}</div>
-                {service.priceCents && (<div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-100 border border-amber-200 text-amber-700 dark:bg-amber-500/20 dark:border-amber-400/30 dark:text-amber-200 text-sm lg:hidden"><Euro className="w-4 h-4 text-amber-600 dark:text-amber-400" />{translations.from} {formatPrice(service.priceCents, locale)}</div>)}
-              </div>
-              {service.description && (<div className="relative mb-6 lg:mb-8"><p className="text-zinc-600 dark:text-rose-100/80 text-sm sm:text-base lg:text-lg leading-relaxed whitespace-pre-line">{service.description}</p></div>)}
-              {service.gallery.length > 0 && (<div className="mb-6 lg:mb-8">
-                <h3 className="text-sm lg:text-base font-semibold text-zinc-700 dark:text-rose-100 mb-3 flex items-center gap-2"><Images className="w-4 h-4 lg:w-5 lg:h-5 text-rose-500 dark:text-rose-400" />{translations.ourWorks} ({service.gallery.length})</h3>
-                <div className="grid grid-cols-4 lg:grid-cols-5 gap-2 lg:gap-3">
-                  {service.gallery.slice(0, 10).map((item, idx) => (<button key={item.id} onClick={() => onOpenGallery(idx)} className="relative aspect-square rounded-xl lg:rounded-2xl overflow-hidden group shadow-md border border-rose-100 dark:border-rose-500/30">
-                    {/* ОПТИМИЗАЦИЯ: next/image с lazy loading */}
-                    <Image src={item.image} alt="" fill className="object-cover transition-transform duration-300 group-hover:scale-110" sizes="80px" loading="lazy" />
-                    <div className="absolute inset-0 bg-rose-500/0 group-hover:bg-rose-500/30 transition-colors flex items-center justify-center"><ZoomIn className="w-5 h-5 lg:w-6 lg:h-6 text-white opacity-0 group-hover:opacity-100 transition-opacity drop-shadow-lg" /></div>
-                  </button>))}
+                <div className="inline-flex items-center gap-1.5 px-3 py-1.5 lg:px-4 lg:py-2 rounded-full bg-rose-100 border border-rose-200 text-rose-700 dark:bg-rose-500/20 dark:border-rose-400/30 dark:text-rose-200 text-sm lg:text-base">
+                  <Clock className="w-4 h-4 lg:w-5 lg:h-5 text-rose-500 dark:text-rose-400" />
+                  {service.durationMin} {translations.minutes}
                 </div>
-              </div>)}
+                {service.priceCents && (
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1.5 lg:px-4 lg:py-2 rounded-full bg-amber-100 border border-amber-200 text-amber-700 dark:bg-amber-500/20 dark:border-amber-400/30 dark:text-amber-200 text-sm lg:text-base lg:hidden">
+                    <Euro className="w-4 h-4 lg:w-5 lg:h-5 text-amber-600 dark:text-amber-400" />
+                    {translations.from}{" "}
+                    {formatPrice(service.priceCents, locale)}
+                  </div>
+                )}
+              </div>
+              {service.description && (
+                <div className="relative mb-6 lg:mb-8 overflow-hidden">
+                  <div className="absolute inset-0 pointer-events-none dark:hidden">
+                    {[...Array(6)].map((_, i) => (
+                      <motion.div
+                        key={`light-desc-heart-${i}`}
+                        className="absolute"
+                        style={{
+                          left: `${(i * 16) % 100}%`,
+                          top: `${(i * 18) % 100}%`,
+                        }}
+                        animate={{
+                          y: [0, -15, 0],
+                          x: [0, i % 2 === 0 ? 8 : -8, 0],
+                        }}
+                        transition={{
+                          duration: 8 + (i % 3) * 2,
+                          repeat: Infinity,
+                          delay: i * 0.5,
+                          ease: "easeInOut",
+                        }}
+                      >
+                        <Heart
+                          className={`${i % 2 === 0 ? "w-4 h-4" : "w-3.5 h-3.5"} text-rose-400/60`}
+                          fill="currentColor"
+                        />
+                      </motion.div>
+                    ))}
+                  </div>
+                  <div className="absolute inset-0 pointer-events-none hidden dark:block">
+                    {[...Array(6)].map((_, i) => (
+                      <motion.div
+                        key={`dark-desc-heart-${i}`}
+                        className="absolute"
+                        style={{
+                          left: `${(i * 16) % 100}%`,
+                          top: `${(i * 18) % 100}%`,
+                        }}
+                        animate={{
+                          y: [0, -12, 0],
+                          x: [0, i % 2 === 0 ? 6 : -6, 0],
+                        }}
+                        transition={{
+                          duration: 9 + (i % 3) * 2,
+                          repeat: Infinity,
+                          delay: i * 0.5,
+                          ease: "easeInOut",
+                        }}
+                      >
+                        <Heart
+                          className={`${i % 2 === 0 ? "w-3 h-3" : "w-2.5 h-2.5"} text-rose-400/30`}
+                          fill="currentColor"
+                        />
+                      </motion.div>
+                    ))}
+                  </div>
+                  <p className="relative z-10 text-zinc-600 dark:text-rose-100/80 text-sm sm:text-base lg:text-lg leading-relaxed whitespace-pre-line">
+                    {service.description}
+                  </p>
+                </div>
+              )}
+              {service.gallery.length > 0 && (
+                <div className="mb-6 lg:mb-8">
+                  <h3 className="text-sm lg:text-base font-semibold text-zinc-700 dark:text-rose-100 mb-3 flex items-center gap-2">
+                    <Images className="w-4 h-4 lg:w-5 lg:h-5 text-rose-500 dark:text-rose-400" />
+                    {translations.ourWorks} ({service.gallery.length})
+                  </h3>
+                  <div className="grid grid-cols-4 lg:grid-cols-5 gap-2 lg:gap-3">
+                    {service.gallery.slice(0, 10).map((item, idx) => (
+                      <button
+                        key={item.id}
+                        onClick={() => onOpenGallery(idx)}
+                        className="relative aspect-square rounded-xl lg:rounded-2xl overflow-hidden group shadow-md border border-rose-100 dark:border-rose-500/30"
+                      >
+                        <Image
+                          src={item.image}
+                          alt=""
+                          fill
+                          className="object-cover transition-transform duration-300 group-hover:scale-110"
+                          sizes="80px"
+                          loading="lazy"
+                        />
+                        <div className="absolute inset-0 bg-rose-500/0 group-hover:bg-rose-500/30 transition-colors flex items-center justify-center">
+                          <ZoomIn className="w-5 h-5 lg:w-6 lg:h-6 text-white opacity-0 group-hover:opacity-100 transition-opacity drop-shadow-lg" />
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
               <div className="flex flex-col sm:flex-row gap-3 pt-2 pb-6 sm:pb-4 lg:pb-0">
-                <Link href={`/booking?service=${service.id}`} className="flex-1 inline-flex items-center justify-center gap-2 px-6 py-3.5 lg:px-8 lg:py-4 bg-gradient-to-r from-rose-500 via-pink-500 to-rose-500 hover:from-rose-600 hover:via-pink-600 hover:to-rose-600 rounded-xl lg:rounded-2xl text-white font-semibold lg:text-lg shadow-lg shadow-rose-500/30 transition-all active:scale-[0.98]"><Calendar className="w-5 h-5 lg:w-6 lg:h-6" />{translations.bookNow}</Link>
-                <button onClick={onClose} className="sm:w-auto px-6 py-3.5 lg:px-8 lg:py-4 rounded-xl lg:rounded-2xl bg-zinc-100 hover:bg-zinc-200 text-zinc-700 dark:bg-white/10 dark:hover:bg-white/20 dark:text-rose-100 dark:border dark:border-rose-500/20 font-medium lg:text-lg transition-colors">{translations.close}</button>
+                <Link
+                  href={`/booking?service=${service.id}`}
+                  className="flex-1 inline-flex items-center justify-center gap-2 px-6 py-3.5 lg:px-8 lg:py-4 bg-gradient-to-r from-rose-500 via-pink-500 to-rose-500 hover:from-rose-600 hover:via-pink-600 hover:to-rose-600 rounded-xl lg:rounded-2xl text-white font-semibold lg:text-lg shadow-lg shadow-rose-500/30 transition-all active:scale-[0.98]"
+                >
+                  <Calendar className="w-5 h-5 lg:w-6 lg:h-6" />
+                  {translations.bookNow}
+                </Link>
+                <button
+                  onClick={onClose}
+                  className="sm:w-auto px-6 py-3.5 lg:px-8 lg:py-4 rounded-xl lg:rounded-2xl bg-zinc-100 hover:bg-zinc-200 text-zinc-700 dark:bg-white/10 dark:hover:bg-white/20 dark:text-rose-100 dark:border dark:border-rose-500/20 font-medium lg:text-lg transition-colors"
+                >
+                  {translations.close}
+                </button>
               </div>
             </div>
           </div>
@@ -374,124 +739,436 @@ function ServiceDetailModal({ service, categoryName, onClose, onOpenGallery, tra
   );
 }
 
-// ====== КАРТОЧКА УСЛУГИ ======
-const ServiceCard = memo(function ServiceCard({ service, categoryName, index, onOpenDetail, onOpenGallery, translations, locale, isPriority }: {
-  service: ServiceChild; categoryName: string; index: number; onOpenDetail: () => void; onOpenGallery: (index: number) => void; translations: Record<string, string>; locale: string; isPriority?: boolean;
+function ServiceCard({
+  service,
+  categoryName,
+  index,
+  onOpenDetail,
+  onOpenGallery,
+  translations,
+  locale,
+  isPriority,
+}: {
+  service: ServiceChild;
+  categoryName: string;
+  index: number;
+  onOpenDetail: () => void;
+  onOpenGallery: (index: number) => void;
+  translations: Record<string, string>;
+  locale: string;
+  isPriority?: boolean;
 }) {
   const hasImage = service.cover || service.gallery.length > 0;
   const imageUrl = service.cover || service.gallery[0]?.image;
 
   return (
-    <motion.div initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: index * 0.04 }} className="group">
-      <div onClick={onOpenDetail}
-        className="relative overflow-hidden rounded-2xl sm:rounded-3xl cursor-pointer bg-white dark:bg-zinc-900/80 border-2 border-rose-200/70 dark:border-white/10 shadow-[0_8px_30px_-12px_rgba(244,63,94,0.25)] dark:shadow-[0_18px_55px_-28px_rgba(0,0,0,0.75)] hover:shadow-[0_20px_50px_-15px_rgba(244,63,94,0.35)] dark:hover:shadow-[0_25px_60px_-20px_rgba(0,0,0,0.85)] hover:border-rose-300 dark:hover:border-white/20 transition-all duration-500 sm:active:scale-[0.98] sm:hover:-translate-y-2">
-        <div className="absolute top-0 right-0 w-16 h-16 overflow-hidden z-10 pointer-events-none"><div className="absolute -top-8 -right-8 w-16 h-16 bg-gradient-to-br from-rose-400/20 to-pink-400/20 rotate-45" /></div>
+    <motion.div
+      initial={{ opacity: 0, y: 18 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4, delay: index * 0.04 }}
+      className="group"
+    >
+      <div
+        onClick={onOpenDetail}
+        className="relative overflow-hidden rounded-2xl sm:rounded-3xl cursor-pointer bg-white dark:bg-zinc-900/80 border-2 border-rose-200/70 dark:border-white/10 shadow-[0_8px_30px_-12px_rgba(244,63,94,0.25)] dark:shadow-[0_18px_55px_-28px_rgba(0,0,0,0.75)] hover:shadow-[0_20px_50px_-15px_rgba(244,63,94,0.35)] dark:hover:shadow-[0_25px_60px_-20px_rgba(0,0,0,0.85)] hover:border-rose-300 dark:hover:border-white/20 transition-all duration-500 sm:active:scale-[0.98] sm:hover:-translate-y-2"
+      >
+        <div className="absolute top-0 right-0 w-16 h-16 overflow-hidden z-10 pointer-events-none">
+          <div className="absolute -top-8 -right-8 w-16 h-16 bg-gradient-to-br from-rose-400/20 to-pink-400/20 rotate-45" />
+        </div>
         <div className="relative h-40 sm:h-48 lg:h-52 overflow-hidden bg-white dark:bg-zinc-950">
           {hasImage ? (
-            // ОПТИМИЗАЦИЯ: next/image с priority для первых карточек и lazy для остальных
-            <Image src={imageUrl!} alt={service.name} fill className="object-cover transition-transform duration-700 group-hover:scale-105" sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw" priority={isPriority} loading={isPriority ? "eager" : "lazy"} />
+            <Image
+              src={imageUrl!}
+              alt={service.name}
+              fill
+              className="object-cover transition-transform duration-700 group-hover:scale-105"
+              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+              priority={isPriority}
+              loading={isPriority ? "eager" : "lazy"}
+            />
           ) : (
-            <div className={`absolute inset-0 bg-gradient-to-br ${cardGradients[index % cardGradients.length]}`}><div className="absolute inset-0 flex items-center justify-center"><Flower2 className="w-16 h-16 text-rose-300/70 dark:text-rose-200/20" /></div></div>
+            <div
+              className={`absolute inset-0 bg-gradient-to-br ${cardGradients[index % cardGradients.length]}`}
+            >
+              <div className="absolute inset-0 flex items-center justify-center">
+                <Flower2 className="w-16 h-16 text-rose-300/70 dark:text-rose-200/20" />
+              </div>
+            </div>
           )}
           <div className="absolute inset-0 bg-gradient-to-t from-white via-white/20 to-transparent dark:from-zinc-900 dark:via-zinc-900/40" />
-          {service.priceCents && (<div className="absolute top-3 right-3"><span className="px-3 py-1.5 rounded-full bg-white dark:bg-white/10 backdrop-blur-sm text-rose-600 dark:text-rose-200 text-xs sm:text-sm font-bold shadow-lg border border-rose-200/50 dark:border-white/10">{translations.from} {formatPrice(service.priceCents, locale)}</span></div>)}
-          {service.gallery.length > 0 && (<button onClick={(e) => { e.stopPropagation(); onOpenGallery(0); }} className="absolute top-3 left-3 px-2.5 py-1.5 rounded-full bg-white dark:bg-white/10 backdrop-blur-sm flex items-center gap-1.5 text-rose-500 dark:text-rose-200 text-xs hover:bg-rose-50 dark:hover:bg-white/15 transition-colors shadow-lg border border-rose-200/50 dark:border-white/10"><Images className="w-3.5 h-3.5" />{service.gallery.length}</button>)}
-          <div className="absolute bottom-3 left-3 right-3 flex items-center gap-2"><span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-rose-500/90 text-white text-[11px] font-medium backdrop-blur-sm shadow-md"><Heart className="h-2.5 w-2.5" fill="currentColor" />{categoryName}</span></div>
+          {service.priceCents && (
+            <div className="absolute top-3 right-3">
+              <span className="px-3 py-1.5 rounded-full bg-white dark:bg-white/10 backdrop-blur-sm text-rose-600 dark:text-rose-200 text-xs sm:text-sm font-bold shadow-lg border border-rose-200/50 dark:border-white/10">
+                {translations.from} {formatPrice(service.priceCents, locale)}
+              </span>
+            </div>
+          )}
+          {service.gallery.length > 0 && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onOpenGallery(0);
+              }}
+              className="absolute top-3 left-3 px-2.5 py-1.5 rounded-full bg-white dark:bg-white/10 backdrop-blur-sm flex items-center gap-1.5 text-rose-500 dark:text-rose-200 text-xs hover:bg-rose-50 dark:hover:bg-white/15 transition-colors shadow-lg border border-rose-200/50 dark:border-white/10"
+            >
+              <Images className="w-3.5 h-3.5" />
+              {service.gallery.length}
+            </button>
+          )}
+          <div className="absolute bottom-3 left-3 right-3 flex items-center gap-2">
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-rose-500/90 text-white text-[11px] font-medium backdrop-blur-sm shadow-md">
+              <Heart className="h-2.5 w-2.5" fill="currentColor" />
+              {categoryName}
+            </span>
+          </div>
         </div>
+        {/* НИЖНЯЯ ЧАСТЬ С АНИМИРОВАННЫМИ СЕРДЕЧКАМИ */}
         <div className="relative overflow-hidden p-4 sm:p-5 bg-gradient-to-b from-transparent to-rose-50/30 dark:from-rose-950/80 dark:via-slate-950/90 dark:to-purple-950/80">
+          {/* Анимированные сердечки для светлой темы */}
+          <div className="absolute inset-0 pointer-events-none dark:hidden">
+            {[...Array(5)].map((_, i) => (
+              <motion.div
+                key={`light-heart-${i}`}
+                className="absolute"
+                style={{
+                  left: `${(i * 20) % 100}%`,
+                  top: `${(i * 22) % 100}%`,
+                }}
+                animate={{ y: [0, -12, 0], x: [0, i % 2 === 0 ? 6 : -6, 0] }}
+                transition={{
+                  duration: 7 + (i % 3) * 2,
+                  repeat: Infinity,
+                  delay: i * 0.6,
+                  ease: "easeInOut",
+                }}
+              >
+                <Heart
+                  className={`${i % 2 === 0 ? "w-3.5 h-3.5" : "w-3 h-3"} text-rose-400/60 drop-shadow-[0_1px_6px_rgba(244,63,94,0.25)]`}
+                  fill="currentColor"
+                />
+              </motion.div>
+            ))}
+          </div>
+          {/* Анимированные сердечки для тёмной темы */}
+          <div className="absolute inset-0 pointer-events-none hidden dark:block">
+            {[...Array(5)].map((_, i) => (
+              <motion.div
+                key={`dark-heart-${i}`}
+                className="absolute"
+                style={{
+                  left: `${(i * 20) % 100}%`,
+                  top: `${(i * 22) % 100}%`,
+                }}
+                animate={{ y: [0, -10, 0], x: [0, i % 2 === 0 ? 5 : -5, 0] }}
+                transition={{
+                  duration: 8 + (i % 3) * 2,
+                  repeat: Infinity,
+                  delay: i * 0.6,
+                  ease: "easeInOut",
+                }}
+              >
+                <Heart
+                  className={`${i % 2 === 0 ? "w-2.5 h-2.5" : "w-2 h-2"} text-rose-400/25`}
+                  fill="currentColor"
+                />
+              </motion.div>
+            ))}
+          </div>
           <div className="relative z-10">
-            <h3 className="text-base sm:text-lg font-bold text-zinc-800 dark:text-zinc-100 mb-1.5 line-clamp-2 group-hover:text-rose-600 dark:group-hover:text-rose-200 transition-colors font-playfair">{service.name}</h3>
-            {service.description && (<p className="text-zinc-600 dark:text-zinc-300 text-xs sm:text-sm line-clamp-2 mb-3">{service.description}</p>)}
-            <div className="flex items-center gap-3 mb-4"><span className="inline-flex items-center gap-1 text-zinc-500 dark:text-zinc-300 text-xs sm:text-sm"><Clock className="w-3.5 h-3.5 text-rose-400 dark:text-rose-300" />{service.durationMin} {translations.minutes}</span></div>
-            <Link href={`/booking?service=${service.id}`} onClick={(e) => e.stopPropagation()} className="flex items-center justify-center gap-2 w-full px-4 py-2.5 sm:py-3 rounded-xl bg-gradient-to-r from-rose-500 via-pink-500 to-rose-500 hover:from-rose-600 hover:via-pink-600 hover:to-rose-600 text-white font-semibold text-sm transition-all active:scale-[0.98] shadow-lg shadow-rose-300/40">{translations.bookNow}<ChevronRight className="w-4 h-4" /></Link>
+            <h3 className="text-base sm:text-lg font-bold text-zinc-800 dark:text-zinc-100 mb-1.5 line-clamp-2 group-hover:text-rose-600 dark:group-hover:text-rose-200 transition-colors font-playfair">
+              {service.name}
+            </h3>
+            {service.description && (
+              <p className="text-zinc-600 dark:text-zinc-300 text-xs sm:text-sm line-clamp-2 mb-3">
+                {service.description}
+              </p>
+            )}
+            <div className="flex items-center gap-3 mb-4">
+              <span className="inline-flex items-center gap-1 text-zinc-500 dark:text-zinc-300 text-xs sm:text-sm">
+                <Clock className="w-3.5 h-3.5 text-rose-400 dark:text-rose-300" />
+                {service.durationMin} {translations.minutes}
+              </span>
+            </div>
+            <Link
+              href={`/booking?service=${service.id}`}
+              onClick={(e) => e.stopPropagation()}
+              className="flex items-center justify-center gap-2 w-full px-4 py-2.5 sm:py-3 rounded-xl bg-gradient-to-r from-rose-500 via-pink-500 to-rose-500 hover:from-rose-600 hover:via-pink-600 hover:to-rose-600 text-white font-semibold text-sm transition-all active:scale-[0.98] shadow-lg shadow-rose-300/40"
+            >
+              {translations.bookNow}
+              <ChevronRight className="w-4 h-4" />
+            </Link>
           </div>
         </div>
       </div>
     </motion.div>
   );
-});
+}
 
-// ====== ГЛАВНЫЙ КОМПОНЕНТ ======
 export default function ServicesClient({ categories, locale }: Props) {
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
-  const [selectedService, setSelectedService] = useState<{ service: ServiceChild; categoryName: string } | null>(null);
-  const [lightbox, setLightbox] = useState<{ isOpen: boolean; images: GalleryItem[]; currentIndex: number; serviceName: string } | null>(null);
+  const [selectedService, setSelectedService] = useState<{
+    service: ServiceChild;
+    categoryName: string;
+  } | null>(null);
+  const [lightbox, setLightbox] = useState<{
+    isOpen: boolean;
+    images: GalleryItem[];
+    currentIndex: number;
+    serviceName: string;
+  } | null>(null);
   const translations = t[locale] || t.de;
 
-  const openServiceDetail = useCallback((service: ServiceChild, categoryName: string) => setSelectedService({ service, categoryName }), []);
-  const openLightbox = useCallback((images: GalleryItem[], index: number, serviceName: string) => setLightbox({ isOpen: true, images, currentIndex: index, serviceName }), []);
+  const openServiceDetail = useCallback(
+    (service: ServiceChild, categoryName: string) =>
+      setSelectedService({ service, categoryName }),
+    [],
+  );
+  const openLightbox = useCallback(
+    (images: GalleryItem[], index: number, serviceName: string) =>
+      setLightbox({ isOpen: true, images, currentIndex: index, serviceName }),
+    [],
+  );
   const closeLightbox = useCallback(() => setLightbox(null), []);
-  const goToPrev = useCallback(() => { if (!lightbox) return; setLightbox({ ...lightbox, currentIndex: lightbox.currentIndex === 0 ? lightbox.images.length - 1 : lightbox.currentIndex - 1 }); }, [lightbox]);
-  const goToNext = useCallback(() => { if (!lightbox) return; setLightbox({ ...lightbox, currentIndex: (lightbox.currentIndex + 1) % lightbox.images.length }); }, [lightbox]);
+  const goToPrev = useCallback(() => {
+    if (!lightbox) return;
+    setLightbox({
+      ...lightbox,
+      currentIndex:
+        lightbox.currentIndex === 0
+          ? lightbox.images.length - 1
+          : lightbox.currentIndex - 1,
+    });
+  }, [lightbox]);
+  const goToNext = useCallback(() => {
+    if (!lightbox) return;
+    setLightbox({
+      ...lightbox,
+      currentIndex: (lightbox.currentIndex + 1) % lightbox.images.length,
+    });
+  }, [lightbox]);
 
-  const filteredCategories = categories.filter((cat) => !activeCategory || cat.id === activeCategory);
+  const filteredCategories = categories.filter(
+    (cat) => !activeCategory || cat.id === activeCategory,
+  );
   let globalServiceIndex = 0;
 
   return (
     <main className="relative min-h-screen overflow-hidden isolate">
       <PageBackground />
       <div className="relative z-10">
-        <AnimatePresence>{lightbox?.isOpen && (<GalleryLightbox images={lightbox.images} currentIndex={lightbox.currentIndex} onClose={closeLightbox} onPrev={goToPrev} onNext={goToNext} serviceName={lightbox.serviceName} />)}</AnimatePresence>
-        <AnimatePresence>{selectedService && (<ServiceDetailModal service={selectedService.service} categoryName={selectedService.categoryName} onClose={() => setSelectedService(null)} onOpenGallery={(index) => openLightbox(selectedService.service.gallery, index, selectedService.service.name)} translations={translations} locale={locale} />)}</AnimatePresence>
+        <AnimatePresence>
+          {lightbox?.isOpen && (
+            <GalleryLightbox
+              images={lightbox.images}
+              currentIndex={lightbox.currentIndex}
+              onClose={closeLightbox}
+              onPrev={goToPrev}
+              onNext={goToNext}
+              serviceName={lightbox.serviceName}
+            />
+          )}
+        </AnimatePresence>
+        <AnimatePresence>
+          {selectedService && (
+            <ServiceDetailModal
+              service={selectedService.service}
+              categoryName={selectedService.categoryName}
+              onClose={() => setSelectedService(null)}
+              onOpenGallery={(index) =>
+                openLightbox(
+                  selectedService.service.gallery,
+                  index,
+                  selectedService.service.name,
+                )
+              }
+              translations={translations}
+              locale={locale}
+            />
+          )}
+        </AnimatePresence>
 
-        {/* Hero */}
         <section className="relative pt-8 pb-6 sm:pt-16 sm:pb-12">
           <div className="container mx-auto px-4">
-            <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }} className="text-center max-w-2xl mx-auto">
-              <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.1 }} className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/90 dark:bg-white/10 backdrop-blur border border-rose-200 dark:border-white/10 shadow-lg shadow-rose-200/30 mb-4 sm:mb-6">
-                <Sparkles className="w-4 h-4 text-rose-500 dark:text-rose-200" /><span className="text-sm font-medium text-rose-600 dark:text-rose-200">Premium Beauty Salon</span>
+            <motion.div
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6 }}
+              className="text-center max-w-2xl mx-auto"
+            >
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.1 }}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/90 dark:bg-white/10 backdrop-blur border border-rose-200 dark:border-white/10 shadow-lg shadow-rose-200/30 mb-4 sm:mb-6"
+              >
+                <Sparkles className="w-4 h-4 text-rose-500 dark:text-rose-200" />
+                <span className="text-sm font-medium text-rose-600 dark:text-rose-200">
+                  Premium Beauty Salon
+                </span>
               </motion.div>
-              <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold mb-4 sm:mb-5 font-playfair"><span className="bg-gradient-to-r from-rose-500 via-pink-500 to-rose-600 bg-clip-text text-transparent">{translations.title}</span></h1>
-              <div className="flex justify-center items-center gap-3 mb-4"><div className="w-12 h-px bg-gradient-to-r from-transparent via-rose-400 to-transparent" /><Heart className="w-5 h-5 text-rose-500 dark:text-rose-300" fill="currentColor" /><div className="w-12 h-px bg-gradient-to-r from-transparent via-rose-400 to-transparent" /></div>
-              <p className="text-sm sm:text-base md:text-lg text-zinc-600 dark:text-zinc-200/90 mb-6 sm:mb-8 px-4 font-cormorant">{translations.subtitle}</p>
-              <Link href="/booking" className="inline-flex items-center gap-2 px-6 py-3 sm:px-8 sm:py-4 bg-gradient-to-r from-rose-500 via-pink-500 to-rose-500 hover:from-rose-600 hover:via-pink-600 hover:to-rose-600 rounded-full text-white font-semibold text-sm sm:text-base shadow-xl shadow-rose-300/50 transition-all active:scale-95 hover:scale-105">{translations.bookNow}<ArrowRight className="w-4 h-4 sm:w-5 sm:h-5" /></Link>
+              <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold mb-4 sm:mb-5 font-playfair">
+                <span className="bg-gradient-to-r from-rose-500 via-pink-500 to-rose-600 bg-clip-text text-transparent drop-shadow-sm">
+                  {translations.title}
+                </span>
+              </h1>
+              <div className="flex justify-center items-center gap-3 mb-4">
+                <div className="w-12 h-px bg-gradient-to-r from-transparent via-rose-400 to-transparent" />
+                <Heart
+                  className="w-5 h-5 text-rose-500 dark:text-rose-300"
+                  fill="currentColor"
+                />
+                <div className="w-12 h-px bg-gradient-to-r from-transparent via-rose-400 to-transparent" />
+              </div>
+              <p className="text-sm sm:text-base md:text-lg text-zinc-600 dark:text-zinc-200/90 mb-6 sm:mb-8 px-4 font-cormorant font-medium">
+                {translations.subtitle}
+              </p>
+              <Link
+                href="/booking"
+                className="inline-flex items-center gap-2 px-6 py-3 sm:px-8 sm:py-4 bg-gradient-to-r from-rose-500 via-pink-500 to-rose-500 hover:from-rose-600 hover:via-pink-600 hover:to-rose-600 rounded-full text-white font-semibold text-sm sm:text-base shadow-xl shadow-rose-300/50 transition-all active:scale-95 hover:scale-105"
+              >
+                {translations.bookNow}
+                <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5" />
+              </Link>
             </motion.div>
           </div>
         </section>
 
-        {/* Фильтр категорий */}
         <section className="sticky top-16 z-40">
           <div className="bg-white/80 dark:bg-zinc-950/70 backdrop-blur-xl border-y border-rose-200/50 dark:border-white/10">
             <div className="container mx-auto px-4">
               <div className="flex gap-2 py-3 sm:py-4 overflow-x-auto scrollbar-hide -mx-4 px-4">
-                <button onClick={() => setActiveCategory(null)} className={`flex-shrink-0 px-4 py-2 sm:px-5 sm:py-2.5 rounded-full text-xs sm:text-sm font-medium transition-all ${activeCategory === null ? "bg-gradient-to-r from-rose-500 to-pink-500 text-white shadow-lg shadow-rose-300/40" : "bg-white dark:bg-white/8 text-zinc-600 dark:text-zinc-200 hover:bg-rose-50 dark:hover:bg-white/12 border border-rose-200 dark:border-white/10"}`}>{translations.allCategories}</button>
-                {categories.map((cat) => { const Icon = getCategoryIcon(cat.slug); return (
-                  <button key={cat.id} onClick={() => setActiveCategory(cat.id === activeCategory ? null : cat.id)} className={`flex-shrink-0 inline-flex items-center gap-1.5 sm:gap-2 px-4 py-2 sm:px-5 sm:py-2.5 rounded-full text-xs sm:text-sm font-medium transition-all ${activeCategory === cat.id ? "bg-gradient-to-r from-rose-500 to-pink-500 text-white shadow-lg shadow-rose-300/40" : "bg-white dark:bg-white/8 text-zinc-600 dark:text-zinc-200 hover:bg-rose-50 dark:hover:bg-white/12 border border-rose-200 dark:border-white/10"}`}><Icon className="w-3.5 h-3.5 sm:w-4 sm:h-4" /><span className="whitespace-nowrap">{cat.name}</span></button>
-                );})}
+                <button
+                  onClick={() => setActiveCategory(null)}
+                  className={`flex-shrink-0 px-4 py-2 sm:px-5 sm:py-2.5 rounded-full text-xs sm:text-sm font-medium transition-all ${activeCategory === null ? "bg-gradient-to-r from-rose-500 to-pink-500 text-white shadow-lg shadow-rose-300/40" : "bg-white dark:bg-white/8 text-zinc-600 dark:text-zinc-200 hover:bg-rose-50 dark:hover:bg-white/12 border border-rose-200 dark:border-white/10"}`}
+                >
+                  {translations.allCategories}
+                </button>
+                {categories.map((cat) => {
+                  const Icon = getCategoryIcon(cat.slug);
+                  return (
+                    <button
+                      key={cat.id}
+                      onClick={() =>
+                        setActiveCategory(
+                          cat.id === activeCategory ? null : cat.id,
+                        )
+                      }
+                      className={`flex-shrink-0 inline-flex items-center gap-1.5 sm:gap-2 px-4 py-2 sm:px-5 sm:py-2.5 rounded-full text-xs sm:text-sm font-medium transition-all ${activeCategory === cat.id ? "bg-gradient-to-r from-rose-500 to-pink-500 text-white shadow-lg shadow-rose-300/40" : "bg-white dark:bg-white/8 text-zinc-600 dark:text-zinc-200 hover:bg-rose-50 dark:hover:bg-white/12 border border-rose-200 dark:border-white/10"}`}
+                    >
+                      <Icon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                      <span className="whitespace-nowrap">{cat.name}</span>
+                    </button>
+                  );
+                })}
               </div>
             </div>
           </div>
         </section>
 
-        {/* Услуги */}
         <section className="py-8 sm:py-12 lg:py-16 relative">
           <div className="container mx-auto px-4">
             {filteredCategories.map((category, catIndex) => (
-              <motion.div key={category.id} initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: catIndex * 0.08 }} className="mb-12 sm:mb-16 last:mb-0">
+              <motion.div
+                key={category.id}
+                initial={{ opacity: 0, y: 18 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: catIndex * 0.08 }}
+                className="mb-12 sm:mb-16 last:mb-0"
+              >
                 <div className="flex items-center gap-3 sm:gap-4 mb-6 sm:mb-8">
-                  <div className="p-2.5 sm:p-3 rounded-xl sm:rounded-2xl bg-white dark:bg-white/7 border border-rose-200 dark:border-white/10 shadow-lg shadow-rose-200/20 backdrop-blur">{(() => { const Icon = getCategoryIcon(category.slug); return <Icon className="w-5 h-5 sm:w-6 sm:h-6 text-rose-500 dark:text-rose-200" />; })()}</div>
-                  <div className="flex-1 min-w-0"><h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-zinc-800 dark:text-zinc-100 truncate font-playfair">{category.name}</h2><span className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-300">{category.children.length} {translations.services}</span></div>
+                  <div className="p-2.5 sm:p-3 rounded-xl sm:rounded-2xl bg-white dark:bg-white/7 border border-rose-200 dark:border-white/10 shadow-lg shadow-rose-200/20 backdrop-blur">
+                    {(() => {
+                      const Icon = getCategoryIcon(category.slug);
+                      return (
+                        <Icon className="w-5 h-5 sm:w-6 sm:h-6 text-rose-500 dark:text-rose-200" />
+                      );
+                    })()}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-zinc-800 dark:text-zinc-100 truncate font-playfair">
+                      {category.name}
+                    </h2>
+                    <span className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-300">
+                      {category.children.length} {translations.services}
+                    </span>
+                  </div>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6">
-                  {category.children.map((service, index) => { const currentGlobalIndex = globalServiceIndex++; return (
-                    <ServiceCard key={service.id} service={service} categoryName={category.name} index={index} onOpenDetail={() => openServiceDetail(service, category.name)} onOpenGallery={(idx) => openLightbox(service.gallery, idx, service.name)} translations={translations} locale={locale} isPriority={currentGlobalIndex < 3} />
-                  );})}
+                  {category.children.map((service, index) => {
+                    const currentGlobalIndex = globalServiceIndex++;
+                    return (
+                      <ServiceCard
+                        key={service.id}
+                        service={service}
+                        categoryName={category.name}
+                        index={index}
+                        onOpenDetail={() =>
+                          openServiceDetail(service, category.name)
+                        }
+                        onOpenGallery={(idx) =>
+                          openLightbox(service.gallery, idx, service.name)
+                        }
+                        translations={translations}
+                        locale={locale}
+                        isPriority={currentGlobalIndex < 3}
+                      />
+                    );
+                  })}
                 </div>
               </motion.div>
             ))}
-            {categories.length === 0 && (<div className="text-center py-16 sm:py-20"><div className="w-16 h-16 sm:w-20 sm:h-20 mx-auto mb-4 rounded-full bg-white dark:bg-white/8 flex items-center justify-center border border-rose-200 dark:border-white/10 shadow-lg"><Flower2 className="w-8 h-8 sm:w-10 sm:h-10 text-rose-400 dark:text-rose-200" /></div><p className="text-lg sm:text-xl text-zinc-500 dark:text-zinc-300">{translations.noServices}</p></div>)}
+            {categories.length === 0 && (
+              <div className="text-center py-16 sm:py-20">
+                <div className="w-16 h-16 sm:w-20 sm:h-20 mx-auto mb-4 rounded-full bg-white dark:bg-white/8 flex items-center justify-center border border-rose-200 dark:border-white/10 shadow-lg">
+                  <Flower2 className="w-8 h-8 sm:w-10 sm:h-10 text-rose-400 dark:text-rose-200" />
+                </div>
+                <p className="text-lg sm:text-xl text-zinc-500 dark:text-zinc-300">
+                  {translations.noServices}
+                </p>
+              </div>
+            )}
           </div>
         </section>
 
-        {/* Нижний CTA */}
         <section className="py-12 sm:py-20 relative overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-r from-rose-100/70 via-pink-50/70 to-amber-50/70 dark:from-black/25 dark:via-black/20 dark:to-black/25" />
           <div className="relative container mx-auto px-4 text-center">
-            <motion.div initial={{ opacity: 0, y: 18 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}>
-              <div className="flex justify-center mb-4"><div className="flex items-center gap-3"><Heart className="w-4 h-4 text-rose-400" fill="currentColor" /><div className="w-10 h-px bg-gradient-to-r from-rose-400 to-transparent" /><Heart className="w-5 h-5 text-rose-500 dark:text-rose-300" fill="currentColor" /><div className="w-10 h-px bg-gradient-to-l from-rose-400 to-transparent" /><Heart className="w-4 h-4 text-rose-400" fill="currentColor" /></div></div>
-              <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-zinc-800 dark:text-zinc-100 mb-3 sm:mb-4 font-playfair">{translations.trustText}</h2>
-              <p className="text-zinc-600 dark:text-zinc-200 mb-6 sm:mb-8 max-w-md mx-auto font-cormorant">{translations.welcomeText}</p>
-              <Link href="/booking" className="inline-flex items-center gap-2 px-8 py-4 sm:px-10 sm:py-5 bg-gradient-to-r from-rose-500 via-pink-500 to-rose-500 hover:from-rose-600 hover:via-pink-600 hover:to-rose-600 text-white rounded-full font-bold text-base sm:text-lg shadow-xl shadow-rose-300/50 transition-all active:scale-95 hover:scale-105">{translations.bookNow}<ArrowRight className="w-5 h-5" /></Link>
+            <motion.div
+              initial={{ opacity: 0, y: 18 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+            >
+              <div className="flex justify-center mb-4">
+                <div className="flex items-center gap-3">
+                  <Heart
+                    className="w-4 h-4 text-rose-400"
+                    fill="currentColor"
+                  />
+                  <div className="w-10 h-px bg-gradient-to-r from-rose-400 to-transparent" />
+                  <Heart
+                    className="w-5 h-5 text-rose-500 dark:text-rose-300"
+                    fill="currentColor"
+                  />
+                  <div className="w-10 h-px bg-gradient-to-l from-rose-400 to-transparent" />
+                  <Heart
+                    className="w-4 h-4 text-rose-400"
+                    fill="currentColor"
+                  />
+                </div>
+              </div>
+              <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-zinc-800 dark:text-zinc-100 mb-3 sm:mb-4 font-playfair">
+                {translations.trustText}
+              </h2>
+              <p className="text-zinc-600 dark:text-zinc-200 mb-6 sm:mb-8 max-w-md mx-auto font-cormorant font-medium">
+                {translations.welcomeText}
+              </p>
+              <Link
+                href="/booking"
+                className="inline-flex items-center gap-2 px-8 py-4 sm:px-10 sm:py-5 bg-gradient-to-r from-rose-500 via-pink-500 to-rose-500 hover:from-rose-600 hover:via-pink-600 hover:to-rose-600 text-white rounded-full font-bold text-base sm:text-lg shadow-xl shadow-rose-300/50 transition-all active:scale-95 hover:scale-105"
+              >
+                {translations.bookNow}
+                <ArrowRight className="w-5 h-5" />
+              </Link>
             </motion.div>
           </div>
         </section>
@@ -500,8 +1177,508 @@ export default function ServicesClient({ categories, locale }: Props) {
   );
 }
 
+//----- работает с частичной анимацией скорость 84, тестим с полной анимацией------
+// // src/app/services/ServicesClient.tsx
+// "use client";
 
+// import { useState, useEffect, useCallback, memo } from "react";
+// import Link from "next/link";
+// import Image from "next/image";
+// import { motion, AnimatePresence } from "framer-motion";
+// import {
+//   Sparkles,
+//   Clock,
+//   ChevronRight,
+//   ChevronLeft,
+//   Scissors,
+//   Palette,
+//   Heart,
+//   Star,
+//   ArrowRight,
+//   X,
+//   Images,
+//   ZoomIn,
+//   Euro,
+//   Calendar,
+//   Flower2,
+// } from "lucide-react";
 
+// type GalleryItem = { id: string; image: string; caption: string | null };
+
+// type ServiceChild = {
+//   id: string;
+//   slug: string;
+//   name: string;
+//   description: string | null;
+//   priceCents: number | null;
+//   durationMin: number;
+//   cover: string | null;
+//   gallery: GalleryItem[];
+// };
+
+// type Category = {
+//   id: string;
+//   slug: string;
+//   name: string;
+//   description: string | null;
+//   cover: string | null;
+//   gallery: GalleryItem[];
+//   children: ServiceChild[];
+// };
+
+// type Props = { categories: Category[]; locale: string };
+
+// const t: Record<string, Record<string, string>> = {
+//   de: {
+//     title: "Unsere Leistungen",
+//     subtitle: "Verwöhnen Sie sich mit Premium-Schönheitspflege",
+//     bookNow: "Termin buchen",
+//     from: "ab",
+//     minutes: "Min.",
+//     noServices: "Keine Dienstleistungen verfügbar",
+//     allCategories: "Alle",
+//     photos: "Fotos",
+//     close: "Schließen",
+//     ourWorks: "Unsere Arbeiten",
+//     services: "Leistungen",
+//     trustText: "Vertrauen Sie uns Ihre Schönheit an",
+//     welcomeText: "Willkommen in unserem Salon",
+//   },
+//   ru: {
+//     title: "Наши услуги",
+//     subtitle: "Побалуйте себя премиальным уходом за красотой",
+//     bookNow: "Записаться",
+//     from: "от",
+//     minutes: "мин.",
+//     noServices: "Услуги не найдены",
+//     allCategories: "Все",
+//     photos: "фото",
+//     close: "Закрыть",
+//     ourWorks: "Наши работы",
+//     services: "услуг",
+//     trustText: "Доверьте нам вашу красоту",
+//     welcomeText: "Добро пожаловать в наш салон",
+//   },
+//   en: {
+//     title: "Our Services",
+//     subtitle: "Indulge yourself with premium beauty care",
+//     bookNow: "Book Now",
+//     from: "from",
+//     minutes: "min.",
+//     noServices: "No services available",
+//     allCategories: "All",
+//     photos: "photos",
+//     close: "Close",
+//     ourWorks: "Our Works",
+//     services: "services",
+//     trustText: "Trust us with your beauty",
+//     welcomeText: "Welcome to our salon",
+//   },
+// };
+
+// const categoryIcons: Record<string, typeof Scissors> = {
+//   haircut: Scissors, haare: Scissors, hair: Scissors, frisur: Scissors, стрижка: Scissors,
+//   manicure: Palette, maniküre: Palette, nails: Palette, nagel: Palette, маникюр: Palette,
+//   makeup: Heart, "make-up": Heart, kosmetik: Heart, макияж: Heart,
+//   brows: Star, lashes: Star, permanent: Star, брови: Star, ресницы: Star,
+//   default: Flower2,
+// };
+
+// function getCategoryIcon(slug: string) {
+//   const key = Object.keys(categoryIcons).find((k) => slug.toLowerCase().includes(k));
+//   return categoryIcons[key || "default"];
+// }
+
+// function formatPrice(cents: number | null, locale: string) {
+//   if (!cents) return null;
+//   return new Intl.NumberFormat(locale === "de" ? "de-DE" : locale === "ru" ? "ru-RU" : "en-US", {
+//     style: "currency", currency: "EUR", minimumFractionDigits: 0,
+//   }).format(cents / 100);
+// }
+
+// const cardGradients = [
+//   "from-rose-300/50 via-pink-200/50 to-rose-100/50",
+//   "from-amber-200/50 via-orange-100/50 to-yellow-100/50",
+//   "from-violet-300/50 via-purple-200/50 to-pink-100/50",
+//   "from-sky-200/50 via-cyan-100/50 to-teal-100/50",
+//   "from-emerald-200/50 via-teal-100/50 to-cyan-100/50",
+// ];
+
+// // ====== КРАСИВЫЙ АНИМИРОВАННЫЙ ФОН (сохранены все анимации!) ======
+// function PageBackground() {
+//   return (
+//     <div className="fixed inset-0 -z-10 overflow-hidden">
+//       {/* Основной градиент */}
+//       <div className="absolute inset-0 bg-gradient-to-br from-rose-200/90 via-pink-100/80 to-amber-100/70 dark:from-[#080812] dark:via-[#0b0b16] dark:to-[#121227]" />
+
+//       {/* Дополнительный слой нежности */}
+//       <div className="absolute inset-0 bg-gradient-to-t from-white/40 via-transparent to-rose-100/30 dark:from-transparent dark:to-transparent" />
+
+//       {/* Большие мягкие сферы с анимацией */}
+//       <motion.div
+//         className="absolute -top-32 -left-32 h-[500px] w-[500px] sm:h-[700px] sm:w-[700px] rounded-full"
+//         style={{ background: "radial-gradient(circle, rgba(251,182,206,0.7) 0%, rgba(251,207,232,0.4) 40%, transparent 70%)" }}
+//         animate={{ scale: [1, 1.15, 1], opacity: [0.7, 0.5, 0.7] }}
+//         transition={{ duration: 12, repeat: Infinity, ease: "easeInOut" }}
+//       />
+//       <motion.div
+//         className="absolute top-1/4 -right-32 h-[400px] w-[400px] sm:h-[600px] sm:w-[600px] rounded-full"
+//         style={{ background: "radial-gradient(circle, rgba(254,202,155,0.6) 0%, rgba(254,215,170,0.3) 40%, transparent 70%)" }}
+//         animate={{ scale: [1, 1.12, 1], opacity: [0.6, 0.35, 0.6] }}
+//         transition={{ duration: 14, repeat: Infinity, ease: "easeInOut", delay: 2 }}
+//       />
+//       <motion.div
+//         className="absolute -bottom-20 left-1/3 h-[450px] w-[450px] sm:h-[650px] sm:w-[650px] rounded-full"
+//         style={{ background: "radial-gradient(circle, rgba(216,180,254,0.5) 0%, rgba(196,181,253,0.25) 40%, transparent 70%)" }}
+//         animate={{ scale: [1, 1.1, 1], opacity: [0.5, 0.3, 0.5] }}
+//         transition={{ duration: 16, repeat: Infinity, ease: "easeInOut", delay: 4 }}
+//       />
+
+//       {/* Анимированные сердечки и декоративные элементы */}
+//       {[...Array(35)].map((_, i) => (
+//         <motion.div
+//           key={i}
+//           className="absolute pointer-events-none"
+//           style={{ left: `${(i * 2.9) % 100}%`, top: `${(i * 3.1) % 95}%` }}
+//           animate={{
+//             y: [0, -35, 0],
+//             x: [0, i % 2 === 0 ? 18 : -18, 0],
+//             rotate: [0, i % 2 === 0 ? 20 : -20, 0],
+//             opacity: [0.35, 0.75, 0.35],
+//             scale: [1, 1.15, 1],
+//           }}
+//           transition={{ duration: 6 + (i % 5) * 1.5, repeat: Infinity, delay: i * 0.15, ease: "easeInOut" }}
+//         >
+//           {i % 4 === 0 ? (
+//             <Heart className="h-4 w-4 sm:h-5 sm:w-5 text-rose-400/80 dark:text-rose-300/25 drop-shadow-sm" fill="currentColor" />
+//           ) : i % 4 === 1 ? (
+//             <Heart className="h-3 w-3 sm:h-4 sm:w-4 text-pink-400/70 dark:text-pink-300/20 drop-shadow-sm" fill="currentColor" />
+//           ) : i % 4 === 2 ? (
+//             <Sparkles className="h-3 w-3 sm:h-4 sm:w-4 text-amber-400/70 dark:text-amber-300/20" />
+//           ) : (
+//             <Star className="h-3 w-3 sm:h-4 sm:w-4 text-rose-300/60 dark:text-rose-300/15" fill="currentColor" />
+//           )}
+//         </motion.div>
+//       ))}
+
+//       {/* Анимированная волна */}
+//       <svg className="absolute bottom-0 left-0 w-full h-32 sm:h-48 opacity-20 dark:opacity-10" preserveAspectRatio="none" viewBox="0 0 1440 120">
+//         <motion.path
+//           fill="url(#wave-fill)"
+//           animate={{
+//             d: [
+//               "M0,60 C360,100 720,20 1080,60 C1260,80 1380,40 1440,60 L1440,120 L0,120 Z",
+//               "M0,40 C360,80 720,40 1080,80 C1260,60 1380,80 1440,40 L1440,120 L0,120 Z",
+//               "M0,60 C360,100 720,20 1080,60 C1260,80 1380,40 1440,60 L1440,120 L0,120 Z",
+//             ],
+//           }}
+//           transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
+//         />
+//         <defs>
+//           <linearGradient id="wave-fill" x1="0%" y1="0%" x2="100%" y2="0%">
+//             <stop offset="0%" stopColor="#f9a8d4" />
+//             <stop offset="50%" stopColor="#fda4af" />
+//             <stop offset="100%" stopColor="#fdba74" />
+//           </linearGradient>
+//         </defs>
+//       </svg>
+
+//       {/* Тонкий узор */}
+//       <div
+//         className="absolute inset-0 opacity-[0.025] dark:opacity-[0.04]"
+//         style={{
+//           backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23000' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
+//         }}
+//       />
+//     </div>
+//   );
+// }
+
+// // ====== СТАТИЧНЫЙ ФОН ЛАЙТБОКСА ======
+// const GalleryLightboxBackground = memo(() => (
+//   <div className="absolute inset-0 -z-10">
+//     <div className="absolute inset-0 bg-gradient-to-br from-rose-950 via-slate-950 to-purple-950" />
+//     <div className="absolute -top-1/4 -left-1/4 w-[600px] h-[600px] rounded-full opacity-30" style={{ background: "radial-gradient(circle, rgba(244,63,94,0.4) 0%, transparent 70%)" }} />
+//     <div className="absolute -bottom-1/4 -right-1/4 w-[700px] h-[700px] rounded-full opacity-25" style={{ background: "radial-gradient(circle, rgba(168,85,247,0.4) 0%, transparent 70%)" }} />
+//     {[...Array(10)].map((_, i) => (
+//       <div key={i} className="absolute pointer-events-none" style={{ left: `${(i * 10) % 100}%`, top: `${(i * 11) % 100}%` }}>
+//         <Heart className={`${i % 2 === 0 ? 'w-5 h-5' : 'w-4 h-4'} text-rose-400/30`} fill="currentColor" />
+//       </div>
+//     ))}
+//     <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_30%,rgba(0,0,0,0.5)_100%)]" />
+//   </div>
+// ));
+// GalleryLightboxBackground.displayName = "GalleryLightboxBackground";
+
+// // ====== ЛАЙТБОКС ======
+// function GalleryLightbox({ images, currentIndex, onClose, onPrev, onNext, serviceName }: {
+//   images: GalleryItem[]; currentIndex: number; onClose: () => void; onPrev: () => void; onNext: () => void; serviceName: string;
+// }) {
+//   const [touchStart, setTouchStart] = useState<number | null>(null);
+//   const [touchEnd, setTouchEnd] = useState<number | null>(null);
+//   const [isDragging, setIsDragging] = useState(false);
+//   const [dragOffset, setDragOffset] = useState(0);
+//   const minSwipeDistance = 50;
+
+//   useEffect(() => {
+//     const handleKeyDown = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); if (e.key === "ArrowLeft") onPrev(); if (e.key === "ArrowRight") onNext(); };
+//     window.addEventListener("keydown", handleKeyDown);
+//     document.body.style.overflow = "hidden";
+//     return () => { window.removeEventListener("keydown", handleKeyDown); document.body.style.overflow = ""; };
+//   }, [onClose, onPrev, onNext]);
+
+//   const onTouchStart = (e: React.TouchEvent) => { setTouchEnd(null); setTouchStart(e.targetTouches[0].clientX); setIsDragging(true); };
+//   const onTouchMove = (e: React.TouchEvent) => { if (!touchStart) return; const currentTouch = e.targetTouches[0].clientX; setTouchEnd(currentTouch); setDragOffset(currentTouch - touchStart); };
+//   const onTouchEnd = () => {
+//     if (!touchStart || !touchEnd) { setIsDragging(false); setDragOffset(0); return; }
+//     const distance = touchStart - touchEnd;
+//     if (distance > minSwipeDistance && images.length > 1) onNext();
+//     else if (distance < -minSwipeDistance && images.length > 1) onPrev();
+//     setIsDragging(false); setDragOffset(0); setTouchStart(null); setTouchEnd(null);
+//   };
+
+//   const currentImage = images[currentIndex];
+//   const swipeDirection = dragOffset > 0 ? 1 : -1;
+
+//   return (
+//     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+//       className="fixed inset-0 z-[100] flex items-center justify-center overflow-hidden" onClick={onClose}>
+//       <GalleryLightboxBackground />
+//       <button onClick={onClose} className="absolute top-4 right-4 z-50 p-3 rounded-full bg-black/60 hover:bg-black/80 backdrop-blur-md text-white border border-white/10 shadow-lg transition-colors"><X className="w-6 h-6" /></button>
+//       <div className="absolute top-4 left-4 z-50">
+//         <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-black/60 backdrop-blur-md border border-white/10">
+//           <Heart className="w-4 h-4 text-rose-400" fill="currentColor" />
+//           <p className="text-white font-medium">{currentIndex + 1} <span className="text-white/60">/ {images.length}</span></p>
+//         </div>
+//       </div>
+//       {images.length > 1 && (<div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 sm:hidden">
+//         <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-black/60 backdrop-blur-md border border-white/10">
+//           <ChevronLeft className="w-4 h-4 text-white/70" /><span className="text-white/70 text-xs font-medium">Свайп</span><ChevronRight className="w-4 h-4 text-white/70" />
+//         </div>
+//       </div>)}
+//       {images.length > 1 && (<>
+//         <button onClick={(e) => { e.stopPropagation(); onPrev(); }} className="absolute left-4 top-1/2 -translate-y-1/2 z-50 p-3 rounded-full bg-black/60 hover:bg-black/80 backdrop-blur-md text-white border border-white/10 shadow-lg transition-colors hidden sm:flex"><ChevronLeft className="w-8 h-8" /></button>
+//         <button onClick={(e) => { e.stopPropagation(); onNext(); }} className="absolute right-4 top-1/2 -translate-y-1/2 z-50 p-3 rounded-full bg-black/60 hover:bg-black/80 backdrop-blur-md text-white border border-white/10 shadow-lg transition-colors hidden sm:flex"><ChevronRight className="w-8 h-8" /></button>
+//       </>)}
+//       {images.length > 1 && (<div className="absolute bottom-14 sm:bottom-6 left-1/2 -translate-x-1/2 z-50">
+//         <div className="flex gap-2 px-4 py-2 rounded-full bg-black/60 backdrop-blur-md border border-white/10">
+//           {images.map((_, idx) => (<div key={idx} className={`h-2 rounded-full transition-all duration-300 ${idx === currentIndex ? "bg-gradient-to-r from-rose-400 to-pink-400 w-6" : "bg-white/40 w-2"}`} />))}
+//         </div>
+//       </div>)}
+//       <motion.div key={currentIndex} initial={{ opacity: 0, x: swipeDirection * 50 }} animate={{ opacity: 1, x: isDragging ? dragOffset * 0.3 : 0 }} exit={{ opacity: 0, x: -swipeDirection * 50 }}
+//         transition={{ type: "tween", duration: 0.2 }} className="relative max-w-[95vw] max-h-[80vh] mx-4 touch-pan-y select-none transform-gpu will-change-transform"
+//         onClick={(e) => e.stopPropagation()} onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd} style={{ touchAction: "pan-y" }}>
+//         <div className="relative rounded-2xl sm:rounded-3xl overflow-hidden bg-black shadow-2xl border border-white/10">
+//           {/* ОПТИМИЗАЦИЯ: next/image вместо img */}
+//           <Image src={currentImage.image} alt={currentImage.caption || serviceName} width={800} height={600} className="max-w-full max-h-[75vh] w-auto h-auto object-contain" draggable={false} priority />
+//           {currentImage.caption && (<div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/80 via-black/50 to-transparent"><p className="text-white text-center text-sm font-medium">{currentImage.caption}</p></div>)}
+//         </div>
+//         {isDragging && Math.abs(dragOffset) > 30 && (<div className={`absolute top-1/2 -translate-y-1/2 ${dragOffset > 0 ? "left-2" : "right-2"}`}><div className="p-3 rounded-full bg-black/50 backdrop-blur-md">{dragOffset > 0 ? <ChevronLeft className="w-6 h-6 text-white" /> : <ChevronRight className="w-6 h-6 text-white" />}</div></div>)}
+//       </motion.div>
+//     </motion.div>
+//   );
+// }
+
+// // ====== МОДАЛКА УСЛУГИ ======
+// function ServiceDetailModal({ service, categoryName, onClose, onOpenGallery, translations, locale }: {
+//   service: ServiceChild; categoryName: string; onClose: () => void; onOpenGallery: (index: number) => void; translations: Record<string, string>; locale: string;
+// }) {
+//   useEffect(() => {
+//     const handleKeyDown = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+//     window.addEventListener("keydown", handleKeyDown);
+//     document.body.style.overflow = "hidden";
+//     return () => { window.removeEventListener("keydown", handleKeyDown); document.body.style.overflow = ""; };
+//   }, [onClose]);
+
+//   const hasImage = service.cover || service.gallery.length > 0;
+//   const imageUrl = service.cover || service.gallery[0]?.image;
+
+//   return (
+//     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+//       className="fixed inset-0 z-[90] flex items-end lg:items-center justify-center bg-black/70 lg:bg-black/80 backdrop-blur-sm lg:backdrop-blur-md" onClick={onClose}>
+//       <motion.div initial={{ y: 100, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 100, opacity: 0 }} transition={{ type: "spring", damping: 25, stiffness: 300 }}
+//         className="relative w-full lg:w-auto lg:max-w-5xl xl:max-w-6xl max-h-[92vh] lg:max-h-[85vh] lg:mx-4 overflow-hidden bg-white dark:bg-slate-950 rounded-t-3xl lg:rounded-3xl shadow-2xl border border-rose-200/50 dark:border-rose-500/30 transform-gpu will-change-transform"
+//         onClick={(e) => e.stopPropagation()}>
+//         {/* Фон для тёмной темы */}
+//         <div className="absolute inset-0 hidden dark:block overflow-hidden rounded-t-3xl lg:rounded-3xl">
+//           <div className="absolute inset-0 bg-gradient-to-br from-rose-950 via-slate-950 to-purple-950" />
+//           <div className="absolute -top-20 -left-20 w-64 h-64 rounded-full opacity-40" style={{ background: "radial-gradient(circle, rgba(244,63,94,0.5) 0%, transparent 70%)" }} />
+//           <div className="absolute -bottom-20 -right-20 w-72 h-72 rounded-full opacity-30" style={{ background: "radial-gradient(circle, rgba(168,85,247,0.5) 0%, transparent 70%)" }} />
+//           {[...Array(5)].map((_, i) => (<div key={i} className="absolute pointer-events-none" style={{ left: `${(i * 20) % 100}%`, top: `${(i * 22) % 100}%` }}><Heart className={`${i % 2 === 0 ? 'w-3 h-3' : 'w-2 h-2'} text-rose-400/25`} fill="currentColor" /></div>))}
+//         </div>
+
+//         <div className="relative z-10 flex flex-col lg:flex-row h-full max-h-[92vh] lg:max-h-[85vh]">
+//           <div className="lg:hidden flex justify-center pt-3 pb-1 flex-shrink-0"><div className="w-10 h-1 rounded-full bg-rose-300 dark:bg-rose-400/50" /></div>
+//           <button onClick={onClose} className="absolute top-3 right-3 lg:top-4 lg:right-4 z-20 p-2 lg:p-2.5 rounded-full bg-white/90 hover:bg-white text-rose-500 dark:bg-black/50 dark:hover:bg-black/70 dark:text-rose-300 transition-colors shadow-lg border border-transparent dark:border-white/10"><X className="w-5 h-5 lg:w-6 lg:h-6" /></button>
+
+//           {/* Изображение - ОПТИМИЗАЦИЯ: next/image */}
+//           <div className="relative flex-shrink-0 h-48 sm:h-64 lg:h-auto lg:w-[45%] xl:w-[50%] overflow-hidden bg-black lg:rounded-l-3xl">
+//             {hasImage ? (<Image src={imageUrl!} alt={service.name} fill className="object-cover" sizes="(max-width: 1024px) 100vw, 50vw" priority />)
+//               : (<div className="w-full h-full bg-gradient-to-br from-rose-300 via-pink-200 to-amber-200 dark:from-rose-500/20 dark:via-pink-500/20 dark:to-purple-500/20" />)}
+//             <div className="absolute inset-0 bg-gradient-to-t from-white via-white/30 to-transparent lg:bg-gradient-to-r lg:from-transparent lg:via-transparent lg:to-white dark:from-slate-950 dark:via-slate-950/30 dark:to-transparent lg:dark:from-transparent lg:dark:via-transparent lg:dark:to-slate-950" />
+//             <div className="absolute top-4 left-4"><span className="px-3 py-1.5 rounded-full bg-white/95 dark:bg-black/60 backdrop-blur text-rose-600 dark:text-rose-200 text-xs sm:text-sm font-medium shadow-md border border-rose-200/50 dark:border-white/10">{categoryName}</span></div>
+//             {service.priceCents && (<div className="absolute bottom-4 right-4 lg:hidden"><span className="px-4 py-2 rounded-full bg-gradient-to-r from-rose-500 to-pink-500 text-white font-bold text-sm shadow-lg shadow-rose-500/30">{translations.from} {formatPrice(service.priceCents, locale)}</span></div>)}
+//           </div>
+
+//           {/* Контент */}
+//           <div className="flex-1 overflow-y-auto">
+//             <div className="p-4 sm:p-6 lg:p-8 lg:pl-6">
+//               <div className="lg:flex lg:items-start lg:justify-between lg:gap-4 mb-4 lg:mb-6">
+//                 <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-zinc-800 dark:text-white pr-8 lg:pr-0 font-playfair">{service.name}</h2>
+//                 {service.priceCents && (<div className="hidden lg:block flex-shrink-0 mt-1"><span className="px-5 py-2.5 rounded-full bg-gradient-to-r from-rose-500 to-pink-500 text-white font-bold text-lg shadow-lg shadow-rose-500/30">{translations.from} {formatPrice(service.priceCents, locale)}</span></div>)}
+//               </div>
+//               <div className="flex flex-wrap gap-2 mb-5 lg:mb-6">
+//                 <div className="inline-flex items-center gap-1.5 px-3 py-1.5 lg:px-4 lg:py-2 rounded-full bg-rose-100 border border-rose-200 text-rose-700 dark:bg-rose-500/20 dark:border-rose-400/30 dark:text-rose-200 text-sm lg:text-base"><Clock className="w-4 h-4 lg:w-5 lg:h-5 text-rose-500 dark:text-rose-400" />{service.durationMin} {translations.minutes}</div>
+//                 {service.priceCents && (<div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-100 border border-amber-200 text-amber-700 dark:bg-amber-500/20 dark:border-amber-400/30 dark:text-amber-200 text-sm lg:hidden"><Euro className="w-4 h-4 text-amber-600 dark:text-amber-400" />{translations.from} {formatPrice(service.priceCents, locale)}</div>)}
+//               </div>
+//               {service.description && (<div className="relative mb-6 lg:mb-8"><p className="text-zinc-600 dark:text-rose-100/80 text-sm sm:text-base lg:text-lg leading-relaxed whitespace-pre-line">{service.description}</p></div>)}
+//               {service.gallery.length > 0 && (<div className="mb-6 lg:mb-8">
+//                 <h3 className="text-sm lg:text-base font-semibold text-zinc-700 dark:text-rose-100 mb-3 flex items-center gap-2"><Images className="w-4 h-4 lg:w-5 lg:h-5 text-rose-500 dark:text-rose-400" />{translations.ourWorks} ({service.gallery.length})</h3>
+//                 <div className="grid grid-cols-4 lg:grid-cols-5 gap-2 lg:gap-3">
+//                   {service.gallery.slice(0, 10).map((item, idx) => (<button key={item.id} onClick={() => onOpenGallery(idx)} className="relative aspect-square rounded-xl lg:rounded-2xl overflow-hidden group shadow-md border border-rose-100 dark:border-rose-500/30">
+//                     {/* ОПТИМИЗАЦИЯ: next/image с lazy loading */}
+//                     <Image src={item.image} alt="" fill className="object-cover transition-transform duration-300 group-hover:scale-110" sizes="80px" loading="lazy" />
+//                     <div className="absolute inset-0 bg-rose-500/0 group-hover:bg-rose-500/30 transition-colors flex items-center justify-center"><ZoomIn className="w-5 h-5 lg:w-6 lg:h-6 text-white opacity-0 group-hover:opacity-100 transition-opacity drop-shadow-lg" /></div>
+//                   </button>))}
+//                 </div>
+//               </div>)}
+//               <div className="flex flex-col sm:flex-row gap-3 pt-2 pb-6 sm:pb-4 lg:pb-0">
+//                 <Link href={`/booking?service=${service.id}`} className="flex-1 inline-flex items-center justify-center gap-2 px-6 py-3.5 lg:px-8 lg:py-4 bg-gradient-to-r from-rose-500 via-pink-500 to-rose-500 hover:from-rose-600 hover:via-pink-600 hover:to-rose-600 rounded-xl lg:rounded-2xl text-white font-semibold lg:text-lg shadow-lg shadow-rose-500/30 transition-all active:scale-[0.98]"><Calendar className="w-5 h-5 lg:w-6 lg:h-6" />{translations.bookNow}</Link>
+//                 <button onClick={onClose} className="sm:w-auto px-6 py-3.5 lg:px-8 lg:py-4 rounded-xl lg:rounded-2xl bg-zinc-100 hover:bg-zinc-200 text-zinc-700 dark:bg-white/10 dark:hover:bg-white/20 dark:text-rose-100 dark:border dark:border-rose-500/20 font-medium lg:text-lg transition-colors">{translations.close}</button>
+//               </div>
+//             </div>
+//           </div>
+//         </div>
+//       </motion.div>
+//     </motion.div>
+//   );
+// }
+
+// // ====== КАРТОЧКА УСЛУГИ ======
+// const ServiceCard = memo(function ServiceCard({ service, categoryName, index, onOpenDetail, onOpenGallery, translations, locale, isPriority }: {
+//   service: ServiceChild; categoryName: string; index: number; onOpenDetail: () => void; onOpenGallery: (index: number) => void; translations: Record<string, string>; locale: string; isPriority?: boolean;
+// }) {
+//   const hasImage = service.cover || service.gallery.length > 0;
+//   const imageUrl = service.cover || service.gallery[0]?.image;
+
+//   return (
+//     <motion.div initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: index * 0.04 }} className="group">
+//       <div onClick={onOpenDetail}
+//         className="relative overflow-hidden rounded-2xl sm:rounded-3xl cursor-pointer bg-white dark:bg-zinc-900/80 border-2 border-rose-200/70 dark:border-white/10 shadow-[0_8px_30px_-12px_rgba(244,63,94,0.25)] dark:shadow-[0_18px_55px_-28px_rgba(0,0,0,0.75)] hover:shadow-[0_20px_50px_-15px_rgba(244,63,94,0.35)] dark:hover:shadow-[0_25px_60px_-20px_rgba(0,0,0,0.85)] hover:border-rose-300 dark:hover:border-white/20 transition-all duration-500 sm:active:scale-[0.98] sm:hover:-translate-y-2">
+//         <div className="absolute top-0 right-0 w-16 h-16 overflow-hidden z-10 pointer-events-none"><div className="absolute -top-8 -right-8 w-16 h-16 bg-gradient-to-br from-rose-400/20 to-pink-400/20 rotate-45" /></div>
+//         <div className="relative h-40 sm:h-48 lg:h-52 overflow-hidden bg-white dark:bg-zinc-950">
+//           {hasImage ? (
+//             // ОПТИМИЗАЦИЯ: next/image с priority для первых карточек и lazy для остальных
+//             <Image src={imageUrl!} alt={service.name} fill className="object-cover transition-transform duration-700 group-hover:scale-105" sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw" priority={isPriority} loading={isPriority ? "eager" : "lazy"} />
+//           ) : (
+//             <div className={`absolute inset-0 bg-gradient-to-br ${cardGradients[index % cardGradients.length]}`}><div className="absolute inset-0 flex items-center justify-center"><Flower2 className="w-16 h-16 text-rose-300/70 dark:text-rose-200/20" /></div></div>
+//           )}
+//           <div className="absolute inset-0 bg-gradient-to-t from-white via-white/20 to-transparent dark:from-zinc-900 dark:via-zinc-900/40" />
+//           {service.priceCents && (<div className="absolute top-3 right-3"><span className="px-3 py-1.5 rounded-full bg-white dark:bg-white/10 backdrop-blur-sm text-rose-600 dark:text-rose-200 text-xs sm:text-sm font-bold shadow-lg border border-rose-200/50 dark:border-white/10">{translations.from} {formatPrice(service.priceCents, locale)}</span></div>)}
+//           {service.gallery.length > 0 && (<button onClick={(e) => { e.stopPropagation(); onOpenGallery(0); }} className="absolute top-3 left-3 px-2.5 py-1.5 rounded-full bg-white dark:bg-white/10 backdrop-blur-sm flex items-center gap-1.5 text-rose-500 dark:text-rose-200 text-xs hover:bg-rose-50 dark:hover:bg-white/15 transition-colors shadow-lg border border-rose-200/50 dark:border-white/10"><Images className="w-3.5 h-3.5" />{service.gallery.length}</button>)}
+//           <div className="absolute bottom-3 left-3 right-3 flex items-center gap-2"><span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-rose-500/90 text-white text-[11px] font-medium backdrop-blur-sm shadow-md"><Heart className="h-2.5 w-2.5" fill="currentColor" />{categoryName}</span></div>
+//         </div>
+//         <div className="relative overflow-hidden p-4 sm:p-5 bg-gradient-to-b from-transparent to-rose-50/30 dark:from-rose-950/80 dark:via-slate-950/90 dark:to-purple-950/80">
+//           <div className="relative z-10">
+//             <h3 className="text-base sm:text-lg font-bold text-zinc-800 dark:text-zinc-100 mb-1.5 line-clamp-2 group-hover:text-rose-600 dark:group-hover:text-rose-200 transition-colors font-playfair">{service.name}</h3>
+//             {service.description && (<p className="text-zinc-600 dark:text-zinc-300 text-xs sm:text-sm line-clamp-2 mb-3">{service.description}</p>)}
+//             <div className="flex items-center gap-3 mb-4"><span className="inline-flex items-center gap-1 text-zinc-500 dark:text-zinc-300 text-xs sm:text-sm"><Clock className="w-3.5 h-3.5 text-rose-400 dark:text-rose-300" />{service.durationMin} {translations.minutes}</span></div>
+//             <Link href={`/booking?service=${service.id}`} onClick={(e) => e.stopPropagation()} className="flex items-center justify-center gap-2 w-full px-4 py-2.5 sm:py-3 rounded-xl bg-gradient-to-r from-rose-500 via-pink-500 to-rose-500 hover:from-rose-600 hover:via-pink-600 hover:to-rose-600 text-white font-semibold text-sm transition-all active:scale-[0.98] shadow-lg shadow-rose-300/40">{translations.bookNow}<ChevronRight className="w-4 h-4" /></Link>
+//           </div>
+//         </div>
+//       </div>
+//     </motion.div>
+//   );
+// });
+
+// // ====== ГЛАВНЫЙ КОМПОНЕНТ ======
+// export default function ServicesClient({ categories, locale }: Props) {
+//   const [activeCategory, setActiveCategory] = useState<string | null>(null);
+//   const [selectedService, setSelectedService] = useState<{ service: ServiceChild; categoryName: string } | null>(null);
+//   const [lightbox, setLightbox] = useState<{ isOpen: boolean; images: GalleryItem[]; currentIndex: number; serviceName: string } | null>(null);
+//   const translations = t[locale] || t.de;
+
+//   const openServiceDetail = useCallback((service: ServiceChild, categoryName: string) => setSelectedService({ service, categoryName }), []);
+//   const openLightbox = useCallback((images: GalleryItem[], index: number, serviceName: string) => setLightbox({ isOpen: true, images, currentIndex: index, serviceName }), []);
+//   const closeLightbox = useCallback(() => setLightbox(null), []);
+//   const goToPrev = useCallback(() => { if (!lightbox) return; setLightbox({ ...lightbox, currentIndex: lightbox.currentIndex === 0 ? lightbox.images.length - 1 : lightbox.currentIndex - 1 }); }, [lightbox]);
+//   const goToNext = useCallback(() => { if (!lightbox) return; setLightbox({ ...lightbox, currentIndex: (lightbox.currentIndex + 1) % lightbox.images.length }); }, [lightbox]);
+
+//   const filteredCategories = categories.filter((cat) => !activeCategory || cat.id === activeCategory);
+//   let globalServiceIndex = 0;
+
+//   return (
+//     <main className="relative min-h-screen overflow-hidden isolate">
+//       <PageBackground />
+//       <div className="relative z-10">
+//         <AnimatePresence>{lightbox?.isOpen && (<GalleryLightbox images={lightbox.images} currentIndex={lightbox.currentIndex} onClose={closeLightbox} onPrev={goToPrev} onNext={goToNext} serviceName={lightbox.serviceName} />)}</AnimatePresence>
+//         <AnimatePresence>{selectedService && (<ServiceDetailModal service={selectedService.service} categoryName={selectedService.categoryName} onClose={() => setSelectedService(null)} onOpenGallery={(index) => openLightbox(selectedService.service.gallery, index, selectedService.service.name)} translations={translations} locale={locale} />)}</AnimatePresence>
+
+//         {/* Hero */}
+//         <section className="relative pt-8 pb-6 sm:pt-16 sm:pb-12">
+//           <div className="container mx-auto px-4">
+//             <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }} className="text-center max-w-2xl mx-auto">
+//               <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.1 }} className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/90 dark:bg-white/10 backdrop-blur border border-rose-200 dark:border-white/10 shadow-lg shadow-rose-200/30 mb-4 sm:mb-6">
+//                 <Sparkles className="w-4 h-4 text-rose-500 dark:text-rose-200" /><span className="text-sm font-medium text-rose-600 dark:text-rose-200">Premium Beauty Salon</span>
+//               </motion.div>
+//               <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold mb-4 sm:mb-5 font-playfair"><span className="bg-gradient-to-r from-rose-500 via-pink-500 to-rose-600 bg-clip-text text-transparent">{translations.title}</span></h1>
+//               <div className="flex justify-center items-center gap-3 mb-4"><div className="w-12 h-px bg-gradient-to-r from-transparent via-rose-400 to-transparent" /><Heart className="w-5 h-5 text-rose-500 dark:text-rose-300" fill="currentColor" /><div className="w-12 h-px bg-gradient-to-r from-transparent via-rose-400 to-transparent" /></div>
+//               <p className="text-sm sm:text-base md:text-lg text-zinc-600 dark:text-zinc-200/90 mb-6 sm:mb-8 px-4 font-cormorant">{translations.subtitle}</p>
+//               <Link href="/booking" className="inline-flex items-center gap-2 px-6 py-3 sm:px-8 sm:py-4 bg-gradient-to-r from-rose-500 via-pink-500 to-rose-500 hover:from-rose-600 hover:via-pink-600 hover:to-rose-600 rounded-full text-white font-semibold text-sm sm:text-base shadow-xl shadow-rose-300/50 transition-all active:scale-95 hover:scale-105">{translations.bookNow}<ArrowRight className="w-4 h-4 sm:w-5 sm:h-5" /></Link>
+//             </motion.div>
+//           </div>
+//         </section>
+
+//         {/* Фильтр категорий */}
+//         <section className="sticky top-16 z-40">
+//           <div className="bg-white/80 dark:bg-zinc-950/70 backdrop-blur-xl border-y border-rose-200/50 dark:border-white/10">
+//             <div className="container mx-auto px-4">
+//               <div className="flex gap-2 py-3 sm:py-4 overflow-x-auto scrollbar-hide -mx-4 px-4">
+//                 <button onClick={() => setActiveCategory(null)} className={`flex-shrink-0 px-4 py-2 sm:px-5 sm:py-2.5 rounded-full text-xs sm:text-sm font-medium transition-all ${activeCategory === null ? "bg-gradient-to-r from-rose-500 to-pink-500 text-white shadow-lg shadow-rose-300/40" : "bg-white dark:bg-white/8 text-zinc-600 dark:text-zinc-200 hover:bg-rose-50 dark:hover:bg-white/12 border border-rose-200 dark:border-white/10"}`}>{translations.allCategories}</button>
+//                 {categories.map((cat) => { const Icon = getCategoryIcon(cat.slug); return (
+//                   <button key={cat.id} onClick={() => setActiveCategory(cat.id === activeCategory ? null : cat.id)} className={`flex-shrink-0 inline-flex items-center gap-1.5 sm:gap-2 px-4 py-2 sm:px-5 sm:py-2.5 rounded-full text-xs sm:text-sm font-medium transition-all ${activeCategory === cat.id ? "bg-gradient-to-r from-rose-500 to-pink-500 text-white shadow-lg shadow-rose-300/40" : "bg-white dark:bg-white/8 text-zinc-600 dark:text-zinc-200 hover:bg-rose-50 dark:hover:bg-white/12 border border-rose-200 dark:border-white/10"}`}><Icon className="w-3.5 h-3.5 sm:w-4 sm:h-4" /><span className="whitespace-nowrap">{cat.name}</span></button>
+//                 );})}
+//               </div>
+//             </div>
+//           </div>
+//         </section>
+
+//         {/* Услуги */}
+//         <section className="py-8 sm:py-12 lg:py-16 relative">
+//           <div className="container mx-auto px-4">
+//             {filteredCategories.map((category, catIndex) => (
+//               <motion.div key={category.id} initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: catIndex * 0.08 }} className="mb-12 sm:mb-16 last:mb-0">
+//                 <div className="flex items-center gap-3 sm:gap-4 mb-6 sm:mb-8">
+//                   <div className="p-2.5 sm:p-3 rounded-xl sm:rounded-2xl bg-white dark:bg-white/7 border border-rose-200 dark:border-white/10 shadow-lg shadow-rose-200/20 backdrop-blur">{(() => { const Icon = getCategoryIcon(category.slug); return <Icon className="w-5 h-5 sm:w-6 sm:h-6 text-rose-500 dark:text-rose-200" />; })()}</div>
+//                   <div className="flex-1 min-w-0"><h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-zinc-800 dark:text-zinc-100 truncate font-playfair">{category.name}</h2><span className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-300">{category.children.length} {translations.services}</span></div>
+//                 </div>
+//                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6">
+//                   {category.children.map((service, index) => { const currentGlobalIndex = globalServiceIndex++; return (
+//                     <ServiceCard key={service.id} service={service} categoryName={category.name} index={index} onOpenDetail={() => openServiceDetail(service, category.name)} onOpenGallery={(idx) => openLightbox(service.gallery, idx, service.name)} translations={translations} locale={locale} isPriority={currentGlobalIndex < 3} />
+//                   );})}
+//                 </div>
+//               </motion.div>
+//             ))}
+//             {categories.length === 0 && (<div className="text-center py-16 sm:py-20"><div className="w-16 h-16 sm:w-20 sm:h-20 mx-auto mb-4 rounded-full bg-white dark:bg-white/8 flex items-center justify-center border border-rose-200 dark:border-white/10 shadow-lg"><Flower2 className="w-8 h-8 sm:w-10 sm:h-10 text-rose-400 dark:text-rose-200" /></div><p className="text-lg sm:text-xl text-zinc-500 dark:text-zinc-300">{translations.noServices}</p></div>)}
+//           </div>
+//         </section>
+
+//         {/* Нижний CTA */}
+//         <section className="py-12 sm:py-20 relative overflow-hidden">
+//           <div className="absolute inset-0 bg-gradient-to-r from-rose-100/70 via-pink-50/70 to-amber-50/70 dark:from-black/25 dark:via-black/20 dark:to-black/25" />
+//           <div className="relative container mx-auto px-4 text-center">
+//             <motion.div initial={{ opacity: 0, y: 18 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}>
+//               <div className="flex justify-center mb-4"><div className="flex items-center gap-3"><Heart className="w-4 h-4 text-rose-400" fill="currentColor" /><div className="w-10 h-px bg-gradient-to-r from-rose-400 to-transparent" /><Heart className="w-5 h-5 text-rose-500 dark:text-rose-300" fill="currentColor" /><div className="w-10 h-px bg-gradient-to-l from-rose-400 to-transparent" /><Heart className="w-4 h-4 text-rose-400" fill="currentColor" /></div></div>
+//               <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-zinc-800 dark:text-zinc-100 mb-3 sm:mb-4 font-playfair">{translations.trustText}</h2>
+//               <p className="text-zinc-600 dark:text-zinc-200 mb-6 sm:mb-8 max-w-md mx-auto font-cormorant">{translations.welcomeText}</p>
+//               <Link href="/booking" className="inline-flex items-center gap-2 px-8 py-4 sm:px-10 sm:py-5 bg-gradient-to-r from-rose-500 via-pink-500 to-rose-500 hover:from-rose-600 hover:via-pink-600 hover:to-rose-600 text-white rounded-full font-bold text-base sm:text-lg shadow-xl shadow-rose-300/50 transition-all active:scale-95 hover:scale-105">{translations.bookNow}<ArrowRight className="w-5 h-5" /></Link>
+//             </motion.div>
+//           </div>
+//         </section>
+//       </div>
+//     </main>
+//   );
+// }
 
 //----------этот вариант без анимации, выше с анимацией----------
 // // src/app/services/ServicesClient.tsx
@@ -770,7 +1947,7 @@ export default function ServicesClient({ categories, locale }: Props) {
 //           <div className="absolute -bottom-20 -right-20 w-72 h-72 rounded-full opacity-30" style={{ background: "radial-gradient(circle, rgba(168,85,247,0.5) 0%, transparent 70%)" }} />
 //           {[...Array(5)].map((_, i) => (<div key={i} className="absolute pointer-events-none" style={{ left: `${(i * 20) % 100}%`, top: `${(i * 22) % 100}%` }}><Heart className={`${i % 2 === 0 ? 'w-3 h-3' : 'w-2 h-2'} text-rose-400/25`} fill="currentColor" /></div>))}
 //         </div>
-        
+
 //         <div className="relative z-10 flex flex-col lg:flex-row h-full max-h-[92vh] lg:max-h-[85vh]">
 //           <div className="lg:hidden flex justify-center pt-3 pb-1 flex-shrink-0"><div className="w-10 h-1 rounded-full bg-rose-300 dark:bg-rose-400/50" /></div>
 //           <button onClick={onClose} className="absolute top-3 right-3 lg:top-4 lg:right-4 z-20 p-2 lg:p-2.5 rounded-full bg-white/90 hover:bg-white text-rose-500 dark:bg-black/50 dark:hover:bg-black/70 dark:text-rose-300 transition-colors shadow-lg border border-transparent dark:border-white/10"><X className="w-5 h-5 lg:w-6 lg:h-6" /></button>
@@ -939,10 +2116,6 @@ export default function ServicesClient({ categories, locale }: Props) {
 //   );
 // }
 
-
-
-
-
 //------оптимизирем скорость загрузки страницы---------
 // // src/app/services/ServicesClient.tsx
 // "use client";
@@ -1075,7 +2248,7 @@ export default function ServicesClient({ categories, locale }: Props) {
 //     <div className="fixed inset-0 -z-10 overflow-hidden">
 //       {/* Основной градиент - более насыщенный розовый */}
 //       <div className="absolute inset-0 bg-gradient-to-br from-rose-200/90 via-pink-100/80 to-amber-100/70 dark:from-[#080812] dark:via-[#0b0b16] dark:to-[#121227]" />
-      
+
 //       {/* Дополнительный слой нежности */}
 //       <div className="absolute inset-0 bg-gradient-to-t from-white/40 via-transparent to-rose-100/30 dark:from-transparent dark:to-transparent" />
 
@@ -1104,22 +2277,22 @@ export default function ServicesClient({ categories, locale }: Props) {
 //         <motion.div
 //           key={i}
 //           className="absolute pointer-events-none"
-//           style={{ 
-//             left: `${(i * 2.9) % 100}%`, 
+//           style={{
+//             left: `${(i * 2.9) % 100}%`,
 //             top: `${(i * 3.1) % 95}%`,
 //           }}
-//           animate={{ 
-//             y: [0, -35, 0], 
-//             x: [0, i % 2 === 0 ? 18 : -18, 0], 
+//           animate={{
+//             y: [0, -35, 0],
+//             x: [0, i % 2 === 0 ? 18 : -18, 0],
 //             rotate: [0, i % 2 === 0 ? 20 : -20, 0],
 //             opacity: [0.35, 0.75, 0.35],
 //             scale: [1, 1.15, 1],
 //           }}
-//           transition={{ 
-//             duration: 6 + (i % 5) * 1.5, 
-//             repeat: Infinity, 
-//             delay: i * 0.15, 
-//             ease: "easeInOut" 
+//           transition={{
+//             duration: 6 + (i % 5) * 1.5,
+//             repeat: Infinity,
+//             delay: i * 0.15,
+//             ease: "easeInOut"
 //           }}
 //         >
 //           {i % 4 === 0 ? (
@@ -1172,7 +2345,7 @@ export default function ServicesClient({ categories, locale }: Props) {
 //   <div className="absolute inset-0 -z-10">
 //     {/* Основной градиент */}
 //     <div className="absolute inset-0 bg-gradient-to-br from-rose-950 via-slate-950 to-purple-950" />
-    
+
 //     {/* Статичные сферы */}
 //     <div
 //       className="absolute -top-1/4 -left-1/4 w-[600px] h-[600px] rounded-full opacity-30"
@@ -1259,17 +2432,17 @@ export default function ServicesClient({ categories, locale }: Props) {
 //       setDragOffset(0);
 //       return;
 //     }
-    
+
 //     const distance = touchStart - touchEnd;
 //     const isLeftSwipe = distance > minSwipeDistance;
 //     const isRightSwipe = distance < -minSwipeDistance;
-    
+
 //     if (isLeftSwipe && images.length > 1) {
 //       onNext();
 //     } else if (isRightSwipe && images.length > 1) {
 //       onPrev();
 //     }
-    
+
 //     setIsDragging(false);
 //     setDragOffset(0);
 //     setTouchStart(null);
@@ -1282,22 +2455,22 @@ export default function ServicesClient({ categories, locale }: Props) {
 //   const swipeDirection = dragOffset > 0 ? 1 : -1;
 
 //   return (
-//     <motion.div 
-//       initial={{ opacity: 0 }} 
-//       animate={{ opacity: 1 }} 
+//     <motion.div
+//       initial={{ opacity: 0 }}
+//       animate={{ opacity: 1 }}
 //       exit={{ opacity: 0 }}
-//       className="fixed inset-0 z-[100] flex items-center justify-center overflow-hidden" 
+//       className="fixed inset-0 z-[100] flex items-center justify-center overflow-hidden"
 //       onClick={onClose}
 //     >
 //       <GalleryLightboxBackground />
 //       {/* Кнопка закрытия */}
-//       <button 
-//         onClick={onClose} 
+//       <button
+//         onClick={onClose}
 //         className="absolute top-4 right-4 z-50 p-3 rounded-full bg-black/60 hover:bg-black/80 backdrop-blur-md text-white border border-white/10 shadow-lg transition-colors"
 //       >
 //         <X className="w-6 h-6" />
 //       </button>
-      
+
 //       {/* Счётчик с сердечком */}
 //       <div className="absolute top-4 left-4 z-50">
 //         <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-black/60 backdrop-blur-md border border-white/10">
@@ -1320,13 +2493,13 @@ export default function ServicesClient({ categories, locale }: Props) {
 //       {/* Кнопки навигации (скрыты на мобильных) */}
 //       {images.length > 1 && (
 //         <>
-//           <button 
+//           <button
 //             onClick={(e) => { e.stopPropagation(); onPrev(); }}
 //             className="absolute left-4 top-1/2 -translate-y-1/2 z-50 p-3 rounded-full bg-black/60 hover:bg-black/80 backdrop-blur-md text-white border border-white/10 shadow-lg transition-colors hidden sm:flex"
 //           >
 //             <ChevronLeft className="w-8 h-8" />
 //           </button>
-//           <button 
+//           <button
 //             onClick={(e) => { e.stopPropagation(); onNext(); }}
 //             className="absolute right-4 top-1/2 -translate-y-1/2 z-50 p-3 rounded-full bg-black/60 hover:bg-black/80 backdrop-blur-md text-white border border-white/10 shadow-lg transition-colors hidden sm:flex"
 //           >
@@ -1343,8 +2516,8 @@ export default function ServicesClient({ categories, locale }: Props) {
 //               <div
 //                 key={idx}
 //                 className={`h-2 rounded-full transition-all duration-300 ${
-//                   idx === currentIndex 
-//                     ? "bg-gradient-to-r from-rose-400 to-pink-400 w-6" 
+//                   idx === currentIndex
+//                     ? "bg-gradient-to-r from-rose-400 to-pink-400 w-6"
 //                     : "bg-white/40 w-2"
 //                 }`}
 //               />
@@ -1354,15 +2527,15 @@ export default function ServicesClient({ categories, locale }: Props) {
 //       )}
 
 //       {/* Изображение с поддержкой свайпа */}
-//       <motion.div 
+//       <motion.div
 //         key={currentIndex}
 //         initial={{ opacity: 0, x: swipeDirection * 50 }}
-//         animate={{ 
-//           opacity: 1, 
-//           x: isDragging ? dragOffset * 0.3 : 0, 
+//         animate={{
+//           opacity: 1,
+//           x: isDragging ? dragOffset * 0.3 : 0,
 //         }}
 //         exit={{ opacity: 0, x: -swipeDirection * 50 }}
-//         transition={{ 
+//         transition={{
 //           type: "tween",
 //           duration: 0.2,
 //         }}
@@ -1376,13 +2549,13 @@ export default function ServicesClient({ categories, locale }: Props) {
 //         {/* Контейнер изображения с НЕПРОЗРАЧНЫМ чёрным фоном */}
 //         <div className="relative rounded-2xl sm:rounded-3xl overflow-hidden bg-black shadow-2xl border border-white/10">
 //           {/* eslint-disable-next-line @next/next/no-img-element */}
-//           <img 
-//             src={currentImage.image} 
-//             alt={currentImage.caption || serviceName} 
+//           <img
+//             src={currentImage.image}
+//             alt={currentImage.caption || serviceName}
 //             className="max-w-full max-h-[75vh] object-contain pointer-events-none"
 //             draggable={false}
 //           />
-          
+
 //           {/* Подпись к фото */}
 //           {currentImage.caption && (
 //             <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/80 via-black/50 to-transparent">
@@ -1390,10 +2563,10 @@ export default function ServicesClient({ categories, locale }: Props) {
 //             </div>
 //           )}
 //         </div>
-        
+
 //         {/* Визуальная подсказка при свайпе */}
 //         {isDragging && Math.abs(dragOffset) > 30 && (
-//           <div 
+//           <div
 //             className={`absolute top-1/2 -translate-y-1/2 ${
 //               dragOffset > 0 ? "left-2" : "right-2"
 //             }`}
@@ -1438,8 +2611,8 @@ export default function ServicesClient({ categories, locale }: Props) {
 //       onClick={onClose}
 //     >
 //       <motion.div
-//         initial={{ y: 100, opacity: 0 }} 
-//         animate={{ y: 0, opacity: 1 }} 
+//         initial={{ y: 100, opacity: 0 }}
+//         animate={{ y: 0, opacity: 1 }}
 //         exit={{ y: 100, opacity: 0 }}
 //         transition={{ type: "spring", damping: 25, stiffness: 300 }}
 //         className="relative w-full lg:w-auto lg:max-w-5xl xl:max-w-6xl max-h-[92vh] lg:max-h-[85vh] lg:mx-4 overflow-hidden bg-white dark:bg-slate-950 rounded-t-3xl lg:rounded-3xl shadow-2xl border border-rose-200/50 dark:border-rose-500/30 transform-gpu will-change-transform"
@@ -1466,18 +2639,18 @@ export default function ServicesClient({ categories, locale }: Props) {
 //             </div>
 //           ))}
 //         </div>
-        
+
 //         {/* Контент модалки */}
 //         <div className="relative z-10 flex flex-col lg:flex-row h-full max-h-[92vh] lg:max-h-[85vh]">
-          
+
 //           {/* Drag indicator для мобильных */}
 //           <div className="lg:hidden flex justify-center pt-3 pb-1 flex-shrink-0">
 //             <div className="w-10 h-1 rounded-full bg-rose-300 dark:bg-rose-400/50" />
 //           </div>
 
 //           {/* Кнопка закрытия */}
-//           <button 
-//             onClick={onClose} 
+//           <button
+//             onClick={onClose}
 //             className="absolute top-3 right-3 lg:top-4 lg:right-4 z-20 p-2 lg:p-2.5 rounded-full bg-white/90 hover:bg-white text-rose-500 dark:bg-black/50 dark:hover:bg-black/70 dark:text-rose-300 transition-colors shadow-lg border border-transparent dark:border-white/10"
 //           >
 //             <X className="w-5 h-5 lg:w-6 lg:h-6" />
@@ -1487,18 +2660,18 @@ export default function ServicesClient({ categories, locale }: Props) {
 //           <div className="relative flex-shrink-0 h-48 sm:h-64 lg:h-auto lg:w-[45%] xl:w-[50%] overflow-hidden bg-black lg:rounded-l-3xl">
 //             {hasImage ? (
 //               // eslint-disable-next-line @next/next/no-img-element
-//               <img 
-//                 src={imageUrl} 
-//                 alt={service.name} 
-//                 className="w-full h-full object-cover lg:absolute lg:inset-0" 
+//               <img
+//                 src={imageUrl}
+//                 alt={service.name}
+//                 className="w-full h-full object-cover lg:absolute lg:inset-0"
 //               />
 //             ) : (
 //               <div className="w-full h-full bg-gradient-to-br from-rose-300 via-pink-200 to-amber-200 dark:from-rose-500/20 dark:via-pink-500/20 dark:to-purple-500/20" />
 //             )}
-            
+
 //             {/* Градиент поверх изображения */}
 //             <div className="absolute inset-0 bg-gradient-to-t from-white via-white/30 to-transparent lg:bg-gradient-to-r lg:from-transparent lg:via-transparent lg:to-white dark:from-slate-950 dark:via-slate-950/30 dark:to-transparent lg:dark:from-transparent lg:dark:via-transparent lg:dark:to-slate-950" />
-            
+
 //             {/* Бейдж категории */}
 //             <div className="absolute top-4 left-4">
 //               <span className="px-3 py-1.5 rounded-full bg-white/95 dark:bg-black/60 backdrop-blur text-rose-600 dark:text-rose-200 text-xs sm:text-sm font-medium shadow-md border border-rose-200/50 dark:border-white/10">
@@ -1519,16 +2692,16 @@ export default function ServicesClient({ categories, locale }: Props) {
 //           {/* ===== КОНТЕНТ (справа на десктопе) ===== */}
 //           <div className="flex-1 overflow-y-auto lg:overflow-y-auto">
 //             <div className="p-4 sm:p-6 lg:p-8 lg:pl-6">
-              
+
 //               {/* Заголовок и цена */}
 //               <div className="lg:flex lg:items-start lg:justify-between lg:gap-4 mb-4 lg:mb-6">
-//                 <h2 
-//                   className="text-2xl sm:text-3xl lg:text-4xl font-bold text-zinc-800 dark:text-white pr-8 lg:pr-0" 
+//                 <h2
+//                   className="text-2xl sm:text-3xl lg:text-4xl font-bold text-zinc-800 dark:text-white pr-8 lg:pr-0"
 //                   style={{ fontFamily: "'Playfair Display', Georgia, serif" }}
 //                 >
 //                   {service.name}
 //                 </h2>
-                
+
 //                 {/* Цена (только десктоп) */}
 //                 {service.priceCents && (
 //                   <div className="hidden lg:block flex-shrink-0 mt-1">
@@ -1601,9 +2774,9 @@ export default function ServicesClient({ categories, locale }: Props) {
 //                   </h3>
 //                   <div className="grid grid-cols-4 lg:grid-cols-5 gap-2 lg:gap-3">
 //                     {service.gallery.slice(0, 10).map((item, idx) => (
-//                       <button 
-//                         key={item.id} 
-//                         onClick={() => onOpenGallery(idx)} 
+//                       <button
+//                         key={item.id}
+//                         onClick={() => onOpenGallery(idx)}
 //                         className="relative aspect-square rounded-xl lg:rounded-2xl overflow-hidden group shadow-md border border-rose-100 dark:border-rose-500/30"
 //                       >
 //                         {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -1619,15 +2792,15 @@ export default function ServicesClient({ categories, locale }: Props) {
 
 //               {/* Кнопки действий */}
 //               <div className="flex flex-col sm:flex-row gap-3 pt-2 pb-6 sm:pb-4 lg:pb-0">
-//                 <Link 
+//                 <Link
 //                   href={`/booking?service=${service.id}`}
 //                   className="flex-1 inline-flex items-center justify-center gap-2 px-6 py-3.5 lg:px-8 lg:py-4 bg-gradient-to-r from-rose-500 via-pink-500 to-rose-500 hover:from-rose-600 hover:via-pink-600 hover:to-rose-600 rounded-xl lg:rounded-2xl text-white font-semibold lg:text-lg shadow-lg shadow-rose-500/30 transition-all active:scale-[0.98]"
 //                 >
 //                   <Calendar className="w-5 h-5 lg:w-6 lg:h-6" />
 //                   {translations.bookNow}
 //                 </Link>
-//                 <button 
-//                   onClick={onClose} 
+//                 <button
+//                   onClick={onClose}
 //                   className="sm:w-auto px-6 py-3.5 lg:px-8 lg:py-4 rounded-xl lg:rounded-2xl bg-zinc-100 hover:bg-zinc-200 text-zinc-700 dark:bg-white/10 dark:hover:bg-white/20 dark:text-rose-100 dark:border dark:border-rose-500/20 font-medium lg:text-lg transition-colors"
 //                 >
 //                   {translations.close}
@@ -2003,7 +3176,6 @@ export default function ServicesClient({ categories, locale }: Props) {
 //   );
 // }
 
-
 // ------------делаем адаптацию под десктоп---------
 // // src/app/services/ServicesClient.tsx
 // "use client";
@@ -2136,7 +3308,7 @@ export default function ServicesClient({ categories, locale }: Props) {
 //     <div className="fixed inset-0 -z-10 overflow-hidden">
 //       {/* Основной градиент - более насыщенный розовый */}
 //       <div className="absolute inset-0 bg-gradient-to-br from-rose-200/90 via-pink-100/80 to-amber-100/70 dark:from-[#080812] dark:via-[#0b0b16] dark:to-[#121227]" />
-      
+
 //       {/* Дополнительный слой нежности */}
 //       <div className="absolute inset-0 bg-gradient-to-t from-white/40 via-transparent to-rose-100/30 dark:from-transparent dark:to-transparent" />
 
@@ -2165,22 +3337,22 @@ export default function ServicesClient({ categories, locale }: Props) {
 //         <motion.div
 //           key={i}
 //           className="absolute pointer-events-none"
-//           style={{ 
-//             left: `${(i * 2.9) % 100}%`, 
+//           style={{
+//             left: `${(i * 2.9) % 100}%`,
 //             top: `${(i * 3.1) % 95}%`,
 //           }}
-//           animate={{ 
-//             y: [0, -35, 0], 
-//             x: [0, i % 2 === 0 ? 18 : -18, 0], 
+//           animate={{
+//             y: [0, -35, 0],
+//             x: [0, i % 2 === 0 ? 18 : -18, 0],
 //             rotate: [0, i % 2 === 0 ? 20 : -20, 0],
 //             opacity: [0.35, 0.75, 0.35],
 //             scale: [1, 1.15, 1],
 //           }}
-//           transition={{ 
-//             duration: 6 + (i % 5) * 1.5, 
-//             repeat: Infinity, 
-//             delay: i * 0.15, 
-//             ease: "easeInOut" 
+//           transition={{
+//             duration: 6 + (i % 5) * 1.5,
+//             repeat: Infinity,
+//             delay: i * 0.15,
+//             ease: "easeInOut"
 //           }}
 //         >
 //           {i % 4 === 0 ? (
@@ -2233,7 +3405,7 @@ export default function ServicesClient({ categories, locale }: Props) {
 //   <div className="absolute inset-0 -z-10">
 //     {/* Основной градиент */}
 //     <div className="absolute inset-0 bg-gradient-to-br from-rose-950 via-slate-950 to-purple-950" />
-    
+
 //     {/* Статичные сферы */}
 //     <div
 //       className="absolute -top-1/4 -left-1/4 w-[600px] h-[600px] rounded-full opacity-30"
@@ -2320,17 +3492,17 @@ export default function ServicesClient({ categories, locale }: Props) {
 //       setDragOffset(0);
 //       return;
 //     }
-    
+
 //     const distance = touchStart - touchEnd;
 //     const isLeftSwipe = distance > minSwipeDistance;
 //     const isRightSwipe = distance < -minSwipeDistance;
-    
+
 //     if (isLeftSwipe && images.length > 1) {
 //       onNext();
 //     } else if (isRightSwipe && images.length > 1) {
 //       onPrev();
 //     }
-    
+
 //     setIsDragging(false);
 //     setDragOffset(0);
 //     setTouchStart(null);
@@ -2343,22 +3515,22 @@ export default function ServicesClient({ categories, locale }: Props) {
 //   const swipeDirection = dragOffset > 0 ? 1 : -1;
 
 //   return (
-//     <motion.div 
-//       initial={{ opacity: 0 }} 
-//       animate={{ opacity: 1 }} 
+//     <motion.div
+//       initial={{ opacity: 0 }}
+//       animate={{ opacity: 1 }}
 //       exit={{ opacity: 0 }}
-//       className="fixed inset-0 z-[100] flex items-center justify-center overflow-hidden" 
+//       className="fixed inset-0 z-[100] flex items-center justify-center overflow-hidden"
 //       onClick={onClose}
 //     >
 //       <GalleryLightboxBackground />
 //       {/* Кнопка закрытия */}
-//       <button 
-//         onClick={onClose} 
+//       <button
+//         onClick={onClose}
 //         className="absolute top-4 right-4 z-50 p-3 rounded-full bg-black/60 hover:bg-black/80 backdrop-blur-md text-white border border-white/10 shadow-lg transition-colors"
 //       >
 //         <X className="w-6 h-6" />
 //       </button>
-      
+
 //       {/* Счётчик с сердечком */}
 //       <div className="absolute top-4 left-4 z-50">
 //         <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-black/60 backdrop-blur-md border border-white/10">
@@ -2381,13 +3553,13 @@ export default function ServicesClient({ categories, locale }: Props) {
 //       {/* Кнопки навигации (скрыты на мобильных) */}
 //       {images.length > 1 && (
 //         <>
-//           <button 
+//           <button
 //             onClick={(e) => { e.stopPropagation(); onPrev(); }}
 //             className="absolute left-4 top-1/2 -translate-y-1/2 z-50 p-3 rounded-full bg-black/60 hover:bg-black/80 backdrop-blur-md text-white border border-white/10 shadow-lg transition-colors hidden sm:flex"
 //           >
 //             <ChevronLeft className="w-8 h-8" />
 //           </button>
-//           <button 
+//           <button
 //             onClick={(e) => { e.stopPropagation(); onNext(); }}
 //             className="absolute right-4 top-1/2 -translate-y-1/2 z-50 p-3 rounded-full bg-black/60 hover:bg-black/80 backdrop-blur-md text-white border border-white/10 shadow-lg transition-colors hidden sm:flex"
 //           >
@@ -2404,8 +3576,8 @@ export default function ServicesClient({ categories, locale }: Props) {
 //               <div
 //                 key={idx}
 //                 className={`h-2 rounded-full transition-all duration-300 ${
-//                   idx === currentIndex 
-//                     ? "bg-gradient-to-r from-rose-400 to-pink-400 w-6" 
+//                   idx === currentIndex
+//                     ? "bg-gradient-to-r from-rose-400 to-pink-400 w-6"
 //                     : "bg-white/40 w-2"
 //                 }`}
 //               />
@@ -2415,15 +3587,15 @@ export default function ServicesClient({ categories, locale }: Props) {
 //       )}
 
 //       {/* Изображение с поддержкой свайпа */}
-//       <motion.div 
+//       <motion.div
 //         key={currentIndex}
 //         initial={{ opacity: 0, x: swipeDirection * 50 }}
-//         animate={{ 
-//           opacity: 1, 
-//           x: isDragging ? dragOffset * 0.3 : 0, 
+//         animate={{
+//           opacity: 1,
+//           x: isDragging ? dragOffset * 0.3 : 0,
 //         }}
 //         exit={{ opacity: 0, x: -swipeDirection * 50 }}
-//         transition={{ 
+//         transition={{
 //           type: "tween",
 //           duration: 0.2,
 //         }}
@@ -2437,13 +3609,13 @@ export default function ServicesClient({ categories, locale }: Props) {
 //         {/* Контейнер изображения с НЕПРОЗРАЧНЫМ чёрным фоном */}
 //         <div className="relative rounded-2xl sm:rounded-3xl overflow-hidden bg-black shadow-2xl border border-white/10">
 //           {/* eslint-disable-next-line @next/next/no-img-element */}
-//           <img 
-//             src={currentImage.image} 
-//             alt={currentImage.caption || serviceName} 
+//           <img
+//             src={currentImage.image}
+//             alt={currentImage.caption || serviceName}
 //             className="max-w-full max-h-[75vh] object-contain pointer-events-none"
 //             draggable={false}
 //           />
-          
+
 //           {/* Подпись к фото */}
 //           {currentImage.caption && (
 //             <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/80 via-black/50 to-transparent">
@@ -2451,10 +3623,10 @@ export default function ServicesClient({ categories, locale }: Props) {
 //             </div>
 //           )}
 //         </div>
-        
+
 //         {/* Визуальная подсказка при свайпе */}
 //         {isDragging && Math.abs(dragOffset) > 30 && (
-//           <div 
+//           <div
 //             className={`absolute top-1/2 -translate-y-1/2 ${
 //               dragOffset > 0 ? "left-2" : "right-2"
 //             }`}
@@ -2501,12 +3673,12 @@ export default function ServicesClient({ categories, locale }: Props) {
 //         {/* Тонкая маска сверху для мобильной тёмной темы (убирает краткий "просвет") */}
 //         <div className="absolute -top-px left-0 right-0 h-3 sm:hidden hidden dark:block z-20 pointer-events-none bg-gradient-to-r from-rose-950 via-slate-950 to-purple-950" />
 //         <div className="absolute top-2 left-0 right-0 h-px sm:hidden hidden dark:block z-20 pointer-events-none bg-gradient-to-r from-rose-950/50 via-slate-950/40 to-purple-950/50" />
-        
+
 //         {/* ====== КРАСИВЫЙ ФОН ДЛЯ ТЁМНОЙ ТЕМЫ (статичный) ====== */}
 //         <div className="absolute inset-0 hidden dark:block overflow-hidden rounded-t-3xl sm:rounded-3xl">
 //           {/* Основной градиент */}
 //           <div className="absolute inset-0 bg-gradient-to-br from-rose-950 via-slate-950 to-purple-950" />
-          
+
 //           {/* Статичные сферы */}
 //           <div
 //             className="absolute -top-20 -left-20 w-64 h-64 rounded-full opacity-40"
@@ -2532,7 +3704,7 @@ export default function ServicesClient({ categories, locale }: Props) {
 //             </div>
 //           ))}
 //         </div>
-        
+
 //         {/* Контент модалки */}
 //         <div className="relative z-10">
 //           <div className="sm:hidden flex justify-center pt-3 pb-1">
@@ -2553,7 +3725,7 @@ export default function ServicesClient({ categories, locale }: Props) {
 //                 <div className="w-full h-full bg-gradient-to-br from-rose-300 via-pink-200 to-amber-200 dark:from-rose-500/20 dark:via-pink-500/20 dark:to-purple-500/20" />
 //               )}
 //               <div className="absolute inset-0 bg-gradient-to-t from-white via-white/30 to-transparent dark:from-black/90 dark:via-black/40 dark:to-transparent" />
-              
+
 //               <div className="absolute top-4 left-4">
 //                 <span className="px-3 py-1.5 rounded-full bg-white/95 dark:bg-black/60 backdrop-blur text-rose-600 dark:text-rose-200 text-xs sm:text-sm font-medium shadow-md border border-rose-200/50 dark:border-white/10">
 //                   {categoryName}
@@ -3047,8 +4219,6 @@ export default function ServicesClient({ categories, locale }: Props) {
 //   );
 // }
 
-
-
 //---------фиксю клаудом---
 // // src/app/services/ServicesClient.tsx
 // "use client";
@@ -3181,7 +4351,7 @@ export default function ServicesClient({ categories, locale }: Props) {
 //     <div className="fixed inset-0 -z-10 overflow-hidden">
 //       {/* Основной градиент - более насыщенный розовый */}
 //       <div className="absolute inset-0 bg-gradient-to-br from-rose-200/90 via-pink-100/80 to-amber-100/70 dark:from-[#080812] dark:via-[#0b0b16] dark:to-[#121227]" />
-      
+
 //       {/* Дополнительный слой нежности */}
 //       <div className="absolute inset-0 bg-gradient-to-t from-white/40 via-transparent to-rose-100/30 dark:from-transparent dark:to-transparent" />
 
@@ -3210,22 +4380,22 @@ export default function ServicesClient({ categories, locale }: Props) {
 //         <motion.div
 //           key={i}
 //           className="absolute pointer-events-none"
-//           style={{ 
-//             left: `${(i * 2.9) % 100}%`, 
+//           style={{
+//             left: `${(i * 2.9) % 100}%`,
 //             top: `${(i * 3.1) % 95}%`,
 //           }}
-//           animate={{ 
-//             y: [0, -35, 0], 
-//             x: [0, i % 2 === 0 ? 18 : -18, 0], 
+//           animate={{
+//             y: [0, -35, 0],
+//             x: [0, i % 2 === 0 ? 18 : -18, 0],
 //             rotate: [0, i % 2 === 0 ? 20 : -20, 0],
 //             opacity: [0.35, 0.75, 0.35],
 //             scale: [1, 1.15, 1],
 //           }}
-//           transition={{ 
-//             duration: 6 + (i % 5) * 1.5, 
-//             repeat: Infinity, 
-//             delay: i * 0.15, 
-//             ease: "easeInOut" 
+//           transition={{
+//             duration: 6 + (i % 5) * 1.5,
+//             repeat: Infinity,
+//             delay: i * 0.15,
+//             ease: "easeInOut"
 //           }}
 //         >
 //           {i % 4 === 0 ? (
@@ -3277,7 +4447,7 @@ export default function ServicesClient({ categories, locale }: Props) {
 //   <div className="absolute inset-0 -z-10">
 //     {/* Основной градиент */}
 //     <div className="absolute inset-0 bg-gradient-to-br from-rose-950 via-slate-950 to-purple-950" />
-    
+
 //     {/* Анимированные сферы */}
 //     <motion.div
 //       className="absolute -top-1/4 -left-1/4 w-[600px] h-[600px] rounded-full opacity-30"
@@ -3304,9 +4474,9 @@ export default function ServicesClient({ categories, locale }: Props) {
 //         key={i}
 //         className="absolute pointer-events-none"
 //         style={{ left: `${(i * 8.5) % 100}%`, top: `${(i * 9.2) % 100}%` }}
-//         animate={{ 
-//           y: [0, -40, 0], 
-//           x: [0, i % 2 === 0 ? 20 : -20, 0], 
+//         animate={{
+//           y: [0, -40, 0],
+//           x: [0, i % 2 === 0 ? 20 : -20, 0],
 //           opacity: [0.15, 0.4, 0.15],
 //           scale: [1, 1.2, 1],
 //         }}
@@ -3379,17 +4549,17 @@ export default function ServicesClient({ categories, locale }: Props) {
 //       setDragOffset(0);
 //       return;
 //     }
-    
+
 //     const distance = touchStart - touchEnd;
 //     const isLeftSwipe = distance > minSwipeDistance;
 //     const isRightSwipe = distance < -minSwipeDistance;
-    
+
 //     if (isLeftSwipe && images.length > 1) {
 //       onNext();
 //     } else if (isRightSwipe && images.length > 1) {
 //       onPrev();
 //     }
-    
+
 //     setIsDragging(false);
 //     setDragOffset(0);
 //     setTouchStart(null);
@@ -3402,22 +4572,22 @@ export default function ServicesClient({ categories, locale }: Props) {
 //   const swipeDirection = dragOffset > 0 ? 1 : -1;
 
 //   return (
-//     <motion.div 
-//       initial={{ opacity: 0 }} 
-//       animate={{ opacity: 1 }} 
+//     <motion.div
+//       initial={{ opacity: 0 }}
+//       animate={{ opacity: 1 }}
 //       exit={{ opacity: 0 }}
-//       className="fixed inset-0 z-[100] flex items-center justify-center overflow-hidden" 
+//       className="fixed inset-0 z-[100] flex items-center justify-center overflow-hidden"
 //       onClick={onClose}
 //     >
 //       <GalleryLightboxBackground />
 //       {/* Кнопка закрытия */}
-//       <button 
-//         onClick={onClose} 
+//       <button
+//         onClick={onClose}
 //         className="absolute top-4 right-4 z-50 p-3 rounded-full bg-white/10 hover:bg-white/20 backdrop-blur-md text-white border border-white/10 shadow-lg transition-all hover:scale-105"
 //       >
 //         <X className="w-6 h-6" />
 //       </button>
-      
+
 //       {/* Счётчик с сердечком */}
 //       <div className="absolute top-4 left-4 z-50">
 //         <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-black/60 backdrop-blur-md border border-white/10">
@@ -3440,13 +4610,13 @@ export default function ServicesClient({ categories, locale }: Props) {
 //       {/* Кнопки навигации (скрыты на мобильных) */}
 //       {images.length > 1 && (
 //         <>
-//           <button 
+//           <button
 //             onClick={(e) => { e.stopPropagation(); onPrev(); }}
 //             className="absolute left-4 top-1/2 -translate-y-1/2 z-50 p-3 rounded-full bg-black/60 hover:bg-black/80 backdrop-blur-md text-white border border-white/10 shadow-lg transition-all hover:scale-105 hidden sm:flex"
 //           >
 //             <ChevronLeft className="w-8 h-8" />
 //           </button>
-//           <button 
+//           <button
 //             onClick={(e) => { e.stopPropagation(); onNext(); }}
 //             className="absolute right-4 top-1/2 -translate-y-1/2 z-50 p-3 rounded-full bg-black/60 hover:bg-black/80 backdrop-blur-md text-white border border-white/10 shadow-lg transition-all hover:scale-105 hidden sm:flex"
 //           >
@@ -3463,8 +4633,8 @@ export default function ServicesClient({ categories, locale }: Props) {
 //               <div
 //                 key={idx}
 //                 className={`h-2 rounded-full transition-all duration-300 ${
-//                   idx === currentIndex 
-//                     ? "bg-gradient-to-r from-rose-400 to-pink-400 w-6" 
+//                   idx === currentIndex
+//                     ? "bg-gradient-to-r from-rose-400 to-pink-400 w-6"
 //                     : "bg-white/40 w-2"
 //                 }`}
 //               />
@@ -3474,15 +4644,15 @@ export default function ServicesClient({ categories, locale }: Props) {
 //       )}
 
 //       {/* Изображение с поддержкой свайпа */}
-//       <motion.div 
+//       <motion.div
 //         key={currentIndex}
 //         initial={{ opacity: 0, x: swipeDirection * 50 }}
-//         animate={{ 
-//           opacity: 1, 
-//           x: isDragging ? dragOffset * 0.3 : 0, 
+//         animate={{
+//           opacity: 1,
+//           x: isDragging ? dragOffset * 0.3 : 0,
 //         }}
 //         exit={{ opacity: 0, x: -swipeDirection * 50 }}
-//         transition={{ 
+//         transition={{
 //           type: "tween",
 //           duration: 0.2,
 //         }}
@@ -3496,13 +4666,13 @@ export default function ServicesClient({ categories, locale }: Props) {
 //         {/* Контейнер изображения с НЕПРОЗРАЧНЫМ чёрным фоном */}
 //         <div className="relative rounded-2xl sm:rounded-3xl overflow-hidden bg-black shadow-2xl border border-white/10">
 //           {/* eslint-disable-next-line @next/next/no-img-element */}
-//           <img 
-//             src={currentImage.image} 
-//             alt={currentImage.caption || serviceName} 
+//           <img
+//             src={currentImage.image}
+//             alt={currentImage.caption || serviceName}
 //             className="max-w-full max-h-[75vh] object-contain pointer-events-none"
 //             draggable={false}
 //           />
-          
+
 //           {/* Подпись к фото */}
 //           {currentImage.caption && (
 //             <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/80 via-black/50 to-transparent">
@@ -3510,10 +4680,10 @@ export default function ServicesClient({ categories, locale }: Props) {
 //             </div>
 //           )}
 //         </div>
-        
+
 //         {/* Визуальная подсказка при свайпе */}
 //         {isDragging && Math.abs(dragOffset) > 30 && (
-//           <div 
+//           <div
 //             className={`absolute top-1/2 -translate-y-1/2 ${
 //               dragOffset > 0 ? "left-2" : "right-2"
 //             }`}
@@ -3560,12 +4730,12 @@ export default function ServicesClient({ categories, locale }: Props) {
 //         {/* Тонкая маска сверху для мобильной тёмной темы (убирает краткий "просвет") */}
 //         <div className="absolute -top-px left-0 right-0 h-3 sm:hidden hidden dark:block z-20 pointer-events-none bg-gradient-to-r from-rose-950 via-slate-950 to-purple-950" />
 //         <div className="absolute top-2 left-0 right-0 h-px sm:hidden hidden dark:block z-20 pointer-events-none bg-gradient-to-r from-rose-950/50 via-slate-950/40 to-purple-950/50" />
-        
+
 //         {/* ====== КРАСИВЫЙ АНИМИРОВАННЫЙ ФОН ДЛЯ ТЁМНОЙ ТЕМЫ ====== */}
 //         <div className="absolute inset-0 hidden dark:block overflow-hidden rounded-t-3xl sm:rounded-3xl">
 //           {/* Основной градиент */}
 //           <div className="absolute inset-0 bg-gradient-to-br from-rose-950 via-slate-950 to-purple-950" />
-          
+
 //           {/* Статичные сферы (без анимации для предотвращения мерцания) */}
 //           <div
 //             className="absolute -top-20 -left-20 w-64 h-64 rounded-full opacity-40"
@@ -3591,7 +4761,7 @@ export default function ServicesClient({ categories, locale }: Props) {
 //             </div>
 //           ))}
 //         </div>
-        
+
 //         {/* Контент модалки */}
 //         <div className="relative z-10">
 //           <div className="sm:hidden flex justify-center pt-3 pb-1">
@@ -3612,7 +4782,7 @@ export default function ServicesClient({ categories, locale }: Props) {
 //                 <div className="w-full h-full bg-gradient-to-br from-rose-300 via-pink-200 to-amber-200 dark:from-rose-500/20 dark:via-pink-500/20 dark:to-purple-500/20" />
 //               )}
 //               <div className="absolute inset-0 bg-gradient-to-t from-white via-white/30 to-transparent dark:from-black/90 dark:via-black/40 dark:to-transparent" />
-              
+
 //               <div className="absolute top-4 left-4">
 //                 <span className="px-3 py-1.5 rounded-full bg-white/95 dark:bg-black/60 backdrop-blur text-rose-600 dark:text-rose-200 text-xs sm:text-sm font-medium shadow-md border border-rose-200/50 dark:border-white/10">
 //                   {categoryName}
@@ -4162,10 +5332,6 @@ export default function ServicesClient({ categories, locale }: Props) {
 //   );
 // }
 
-
-
-
-
 //------------работает убираем мерцание-----------
 // // src/app/services/ServicesClient.tsx
 // "use client";
@@ -4298,7 +5464,7 @@ export default function ServicesClient({ categories, locale }: Props) {
 //     <div className="fixed inset-0 -z-10 overflow-hidden">
 //       {/* Основной градиент - более насыщенный розовый */}
 //       <div className="absolute inset-0 bg-gradient-to-br from-rose-200/90 via-pink-100/80 to-amber-100/70 dark:from-[#080812] dark:via-[#0b0b16] dark:to-[#121227]" />
-      
+
 //       {/* Дополнительный слой нежности */}
 //       <div className="absolute inset-0 bg-gradient-to-t from-white/40 via-transparent to-rose-100/30 dark:from-transparent dark:to-transparent" />
 
@@ -4327,22 +5493,22 @@ export default function ServicesClient({ categories, locale }: Props) {
 //         <motion.div
 //           key={i}
 //           className="absolute pointer-events-none"
-//           style={{ 
-//             left: `${(i * 2.9) % 100}%`, 
+//           style={{
+//             left: `${(i * 2.9) % 100}%`,
 //             top: `${(i * 3.1) % 95}%`,
 //           }}
-//           animate={{ 
-//             y: [0, -35, 0], 
-//             x: [0, i % 2 === 0 ? 18 : -18, 0], 
+//           animate={{
+//             y: [0, -35, 0],
+//             x: [0, i % 2 === 0 ? 18 : -18, 0],
 //             rotate: [0, i % 2 === 0 ? 20 : -20, 0],
 //             opacity: [0.35, 0.75, 0.35],
 //             scale: [1, 1.15, 1],
 //           }}
-//           transition={{ 
-//             duration: 6 + (i % 5) * 1.5, 
-//             repeat: Infinity, 
-//             delay: i * 0.15, 
-//             ease: "easeInOut" 
+//           transition={{
+//             duration: 6 + (i % 5) * 1.5,
+//             repeat: Infinity,
+//             delay: i * 0.15,
+//             ease: "easeInOut"
 //           }}
 //         >
 //           {i % 4 === 0 ? (
@@ -4435,17 +5601,17 @@ export default function ServicesClient({ categories, locale }: Props) {
 //       setDragOffset(0);
 //       return;
 //     }
-    
+
 //     const distance = touchStart - touchEnd;
 //     const isLeftSwipe = distance > minSwipeDistance;
 //     const isRightSwipe = distance < -minSwipeDistance;
-    
+
 //     if (isLeftSwipe && images.length > 1) {
 //       onNext();
 //     } else if (isRightSwipe && images.length > 1) {
 //       onPrev();
 //     }
-    
+
 //     setIsDragging(false);
 //     setDragOffset(0);
 //     setTouchStart(null);
@@ -4458,18 +5624,18 @@ export default function ServicesClient({ categories, locale }: Props) {
 //   const swipeDirection = dragOffset > 0 ? 1 : -1;
 
 //   return (
-//     <motion.div 
-//       initial={{ opacity: 0 }} 
-//       animate={{ opacity: 1 }} 
+//     <motion.div
+//       initial={{ opacity: 0 }}
+//       animate={{ opacity: 1 }}
 //       exit={{ opacity: 0 }}
-//       className="fixed inset-0 z-[100] flex items-center justify-center overflow-hidden" 
+//       className="fixed inset-0 z-[100] flex items-center justify-center overflow-hidden"
 //       onClick={onClose}
 //     >
 //       {/* ====== КРАСИВЫЙ АНИМИРОВАННЫЙ ФОН ====== */}
 //       <div className="absolute inset-0 -z-10">
 //         {/* Основной градиент */}
 //         <div className="absolute inset-0 bg-gradient-to-br from-rose-950 via-slate-950 to-purple-950" />
-        
+
 //         {/* Анимированные сферы */}
 //         <motion.div
 //           className="absolute -top-1/4 -left-1/4 w-[600px] h-[600px] rounded-full opacity-30"
@@ -4496,9 +5662,9 @@ export default function ServicesClient({ categories, locale }: Props) {
 //             key={i}
 //             className="absolute pointer-events-none"
 //             style={{ left: `${(i * 8.5) % 100}%`, top: `${(i * 9.2) % 100}%` }}
-//             animate={{ 
-//               y: [0, -40, 0], 
-//               x: [0, i % 2 === 0 ? 20 : -20, 0], 
+//             animate={{
+//               y: [0, -40, 0],
+//               x: [0, i % 2 === 0 ? 20 : -20, 0],
 //               opacity: [0.15, 0.4, 0.15],
 //               scale: [1, 1.2, 1],
 //             }}
@@ -4523,13 +5689,13 @@ export default function ServicesClient({ categories, locale }: Props) {
 //         <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_30%,rgba(0,0,0,0.5)_100%)]" />
 //       </div>
 //       {/* Кнопка закрытия */}
-//       <button 
-//         onClick={onClose} 
+//       <button
+//         onClick={onClose}
 //         className="absolute top-4 right-4 z-50 p-3 rounded-full bg-white/10 hover:bg-white/20 backdrop-blur-md text-white border border-white/10 shadow-lg transition-all hover:scale-105"
 //       >
 //         <X className="w-6 h-6" />
 //       </button>
-      
+
 //       {/* Счётчик с сердечком */}
 //       <div className="absolute top-4 left-4 z-50">
 //         <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-black/60 backdrop-blur-md border border-white/10">
@@ -4552,13 +5718,13 @@ export default function ServicesClient({ categories, locale }: Props) {
 //       {/* Кнопки навигации (скрыты на мобильных) */}
 //       {images.length > 1 && (
 //         <>
-//           <button 
+//           <button
 //             onClick={(e) => { e.stopPropagation(); onPrev(); }}
 //             className="absolute left-4 top-1/2 -translate-y-1/2 z-50 p-3 rounded-full bg-black/60 hover:bg-black/80 backdrop-blur-md text-white border border-white/10 shadow-lg transition-all hover:scale-105 hidden sm:flex"
 //           >
 //             <ChevronLeft className="w-8 h-8" />
 //           </button>
-//           <button 
+//           <button
 //             onClick={(e) => { e.stopPropagation(); onNext(); }}
 //             className="absolute right-4 top-1/2 -translate-y-1/2 z-50 p-3 rounded-full bg-black/60 hover:bg-black/80 backdrop-blur-md text-white border border-white/10 shadow-lg transition-all hover:scale-105 hidden sm:flex"
 //           >
@@ -4575,8 +5741,8 @@ export default function ServicesClient({ categories, locale }: Props) {
 //               <div
 //                 key={idx}
 //                 className={`h-2 rounded-full transition-all duration-300 ${
-//                   idx === currentIndex 
-//                     ? "bg-gradient-to-r from-rose-400 to-pink-400 w-6" 
+//                   idx === currentIndex
+//                     ? "bg-gradient-to-r from-rose-400 to-pink-400 w-6"
 //                     : "bg-white/40 w-2"
 //                 }`}
 //               />
@@ -4586,15 +5752,15 @@ export default function ServicesClient({ categories, locale }: Props) {
 //       )}
 
 //       {/* Изображение с поддержкой свайпа */}
-//       <motion.div 
+//       <motion.div
 //         key={currentIndex}
 //         initial={{ opacity: 0, x: swipeDirection * 50 }}
-//         animate={{ 
-//           opacity: 1, 
-//           x: isDragging ? dragOffset * 0.3 : 0, 
+//         animate={{
+//           opacity: 1,
+//           x: isDragging ? dragOffset * 0.3 : 0,
 //         }}
 //         exit={{ opacity: 0, x: -swipeDirection * 50 }}
-//         transition={{ 
+//         transition={{
 //           type: "tween",
 //           duration: 0.2,
 //         }}
@@ -4608,13 +5774,13 @@ export default function ServicesClient({ categories, locale }: Props) {
 //         {/* Контейнер изображения с НЕПРОЗРАЧНЫМ чёрным фоном */}
 //         <div className="relative rounded-2xl sm:rounded-3xl overflow-hidden bg-black shadow-2xl border border-white/10">
 //           {/* eslint-disable-next-line @next/next/no-img-element */}
-//           <img 
-//             src={currentImage.image} 
-//             alt={currentImage.caption || serviceName} 
+//           <img
+//             src={currentImage.image}
+//             alt={currentImage.caption || serviceName}
 //             className="max-w-full max-h-[75vh] object-contain pointer-events-none"
 //             draggable={false}
 //           />
-          
+
 //           {/* Подпись к фото */}
 //           {currentImage.caption && (
 //             <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/80 via-black/50 to-transparent">
@@ -4622,10 +5788,10 @@ export default function ServicesClient({ categories, locale }: Props) {
 //             </div>
 //           )}
 //         </div>
-        
+
 //         {/* Визуальная подсказка при свайпе */}
 //         {isDragging && Math.abs(dragOffset) > 30 && (
-//           <div 
+//           <div
 //             className={`absolute top-1/2 -translate-y-1/2 ${
 //               dragOffset > 0 ? "left-2" : "right-2"
 //             }`}
@@ -4666,12 +5832,12 @@ export default function ServicesClient({ categories, locale }: Props) {
 //         transition={{ type: "spring", damping: 25, stiffness: 300 }}
 //         className="relative w-full sm:max-w-lg md:max-w-2xl max-h-[92vh] sm:max-h-[90vh] overflow-hidden bg-white dark:bg-transparent sm:rounded-3xl rounded-t-3xl shadow-2xl border border-rose-200/50 dark:border-rose-500/30"
 //         onClick={(e) => e.stopPropagation()}>
-        
+
 //         {/* ====== КРАСИВЫЙ АНИМИРОВАННЫЙ ФОН ДЛЯ ТЁМНОЙ ТЕМЫ ====== */}
 //         <div className="absolute inset-0 hidden dark:block overflow-hidden rounded-t-3xl sm:rounded-3xl">
 //           {/* Основной градиент */}
 //           <div className="absolute inset-0 bg-gradient-to-br from-rose-950 via-slate-950 to-purple-950" />
-          
+
 //           {/* Анимированные сферы */}
 //           <motion.div
 //             className="absolute -top-20 -left-20 w-64 h-64 rounded-full opacity-40"
@@ -4698,9 +5864,9 @@ export default function ServicesClient({ categories, locale }: Props) {
 //               key={i}
 //               className="absolute pointer-events-none"
 //               style={{ left: `${(i * 12.5) % 100}%`, top: `${(i * 14) % 100}%` }}
-//               animate={{ 
-//                 y: [0, -25, 0], 
-//                 x: [0, i % 2 === 0 ? 12 : -12, 0], 
+//               animate={{
+//                 y: [0, -25, 0],
+//                 x: [0, i % 2 === 0 ? 12 : -12, 0],
 //                 opacity: [0.2, 0.5, 0.2],
 //                 scale: [1, 1.15, 1],
 //               }}
@@ -4721,7 +5887,7 @@ export default function ServicesClient({ categories, locale }: Props) {
 //             />
 //           ))}
 //         </div>
-        
+
 //         {/* Контент модалки */}
 //         <div className="relative z-10">
 //           <div className="sm:hidden flex justify-center pt-3 pb-1">
@@ -4742,7 +5908,7 @@ export default function ServicesClient({ categories, locale }: Props) {
 //                 <div className="w-full h-full bg-gradient-to-br from-rose-300 via-pink-200 to-amber-200 dark:from-rose-500/20 dark:via-pink-500/20 dark:to-purple-500/20" />
 //               )}
 //               <div className="absolute inset-0 bg-gradient-to-t from-white via-white/30 to-transparent dark:from-black/90 dark:via-black/40 dark:to-transparent" />
-              
+
 //               <div className="absolute top-4 left-4">
 //                 <span className="px-3 py-1.5 rounded-full bg-white/95 dark:bg-black/60 backdrop-blur text-rose-600 dark:text-rose-200 text-xs sm:text-sm font-medium shadow-md border border-rose-200/50 dark:border-white/10">
 //                   {categoryName}
@@ -5238,9 +6404,6 @@ export default function ServicesClient({ categories, locale }: Props) {
 //   );
 // }
 
-
-
-
 // убераем мерцания при свайпе------
 // "use client";
 
@@ -5372,7 +6535,7 @@ export default function ServicesClient({ categories, locale }: Props) {
 //     <div className="fixed inset-0 -z-10 overflow-hidden">
 //       {/* Основной градиент - более насыщенный розовый */}
 //       <div className="absolute inset-0 bg-gradient-to-br from-rose-200/90 via-pink-100/80 to-amber-100/70 dark:from-[#080812] dark:via-[#0b0b16] dark:to-[#121227]" />
-      
+
 //       {/* Дополнительный слой нежности */}
 //       <div className="absolute inset-0 bg-gradient-to-t from-white/40 via-transparent to-rose-100/30 dark:from-transparent dark:to-transparent" />
 
@@ -5401,22 +6564,22 @@ export default function ServicesClient({ categories, locale }: Props) {
 //         <motion.div
 //           key={i}
 //           className="absolute pointer-events-none"
-//           style={{ 
-//             left: `${(i * 2.9) % 100}%`, 
+//           style={{
+//             left: `${(i * 2.9) % 100}%`,
 //             top: `${(i * 3.1) % 95}%`,
 //           }}
-//           animate={{ 
-//             y: [0, -35, 0], 
-//             x: [0, i % 2 === 0 ? 18 : -18, 0], 
+//           animate={{
+//             y: [0, -35, 0],
+//             x: [0, i % 2 === 0 ? 18 : -18, 0],
 //             rotate: [0, i % 2 === 0 ? 20 : -20, 0],
 //             opacity: [0.35, 0.75, 0.35],
 //             scale: [1, 1.15, 1],
 //           }}
-//           transition={{ 
-//             duration: 6 + (i % 5) * 1.5, 
-//             repeat: Infinity, 
-//             delay: i * 0.15, 
-//             ease: "easeInOut" 
+//           transition={{
+//             duration: 6 + (i % 5) * 1.5,
+//             repeat: Infinity,
+//             delay: i * 0.15,
+//             ease: "easeInOut"
 //           }}
 //         >
 //           {i % 4 === 0 ? (
@@ -5509,17 +6672,17 @@ export default function ServicesClient({ categories, locale }: Props) {
 //       setDragOffset(0);
 //       return;
 //     }
-    
+
 //     const distance = touchStart - touchEnd;
 //     const isLeftSwipe = distance > minSwipeDistance;
 //     const isRightSwipe = distance < -minSwipeDistance;
-    
+
 //     if (isLeftSwipe && images.length > 1) {
 //       onNext();
 //     } else if (isRightSwipe && images.length > 1) {
 //       onPrev();
 //     }
-    
+
 //     setIsDragging(false);
 //     setDragOffset(0);
 //     setTouchStart(null);
@@ -5532,23 +6695,23 @@ export default function ServicesClient({ categories, locale }: Props) {
 //   const swipeDirection = dragOffset > 0 ? 1 : -1;
 
 //   return (
-//     <motion.div 
-//       initial={{ opacity: 0 }} 
-//       animate={{ opacity: 1 }} 
+//     <motion.div
+//       initial={{ opacity: 0 }}
+//       animate={{ opacity: 1 }}
 //       exit={{ opacity: 0 }}
-//       className="fixed inset-0 z-[100] flex items-center justify-center overflow-hidden" 
+//       className="fixed inset-0 z-[100] flex items-center justify-center overflow-hidden"
 //       onClick={onClose}
 //     >
 //       {/* ====== КРАСИВЫЙ АНИМИРОВАННЫЙ ФОН ====== */}
 //       <div className="absolute inset-0 -z-10">
 //         {/* Основной градиент */}
 //         <div className="absolute inset-0 bg-gradient-to-br from-rose-950 via-slate-950 to-purple-950" />
-        
+
 //         {/* Анимированные сферы */}
 //         <motion.div
 //           className="absolute -top-1/4 -left-1/4 w-[600px] h-[600px] rounded-full opacity-30"
 //           style={{ background: "radial-gradient(circle, rgba(244,63,94,0.4) 0%, transparent 70%)" }}
-//           animate={{ 
+//           animate={{
 //             scale: [1, 1.2, 1],
 //             x: [0, 50, 0],
 //             y: [0, 30, 0],
@@ -5558,7 +6721,7 @@ export default function ServicesClient({ categories, locale }: Props) {
 //         <motion.div
 //           className="absolute -bottom-1/4 -right-1/4 w-[700px] h-[700px] rounded-full opacity-25"
 //           style={{ background: "radial-gradient(circle, rgba(168,85,247,0.4) 0%, transparent 70%)" }}
-//           animate={{ 
+//           animate={{
 //             scale: [1, 1.15, 1],
 //             x: [0, -40, 0],
 //             y: [0, -50, 0],
@@ -5577,27 +6740,27 @@ export default function ServicesClient({ categories, locale }: Props) {
 //           <motion.div
 //             key={i}
 //             className="absolute pointer-events-none"
-//             style={{ 
-//               left: `${(i * 8.5) % 100}%`, 
+//             style={{
+//               left: `${(i * 8.5) % 100}%`,
 //               top: `${(i * 9.2) % 100}%`,
 //             }}
-//             animate={{ 
-//               y: [0, -40, 0], 
-//               x: [0, i % 2 === 0 ? 20 : -20, 0], 
+//             animate={{
+//               y: [0, -40, 0],
+//               x: [0, i % 2 === 0 ? 20 : -20, 0],
 //               opacity: [0.15, 0.4, 0.15],
 //               scale: [1, 1.2, 1],
 //               rotate: [0, i % 2 === 0 ? 15 : -15, 0],
 //             }}
-//             transition={{ 
-//               duration: 5 + (i % 4) * 1.5, 
-//               repeat: Infinity, 
-//               delay: i * 0.3, 
-//               ease: "easeInOut" 
+//             transition={{
+//               duration: 5 + (i % 4) * 1.5,
+//               repeat: Infinity,
+//               delay: i * 0.3,
+//               ease: "easeInOut"
 //             }}
 //           >
-//             <Heart 
-//               className={`${i % 3 === 0 ? 'w-6 h-6' : i % 3 === 1 ? 'w-4 h-4' : 'w-5 h-5'} text-rose-400/50`} 
-//               fill="currentColor" 
+//             <Heart
+//               className={`${i % 3 === 0 ? 'w-6 h-6' : i % 3 === 1 ? 'w-4 h-4' : 'w-5 h-5'} text-rose-400/50`}
+//               fill="currentColor"
 //             />
 //           </motion.div>
 //         ))}
@@ -5607,25 +6770,25 @@ export default function ServicesClient({ categories, locale }: Props) {
 //           <motion.div
 //             key={`star-${i}`}
 //             className="absolute w-1 h-1 rounded-full bg-white/30"
-//             style={{ 
-//               left: `${(i * 5.1) % 100}%`, 
+//             style={{
+//               left: `${(i * 5.1) % 100}%`,
 //               top: `${(i * 5.7) % 100}%`,
 //             }}
-//             animate={{ 
+//             animate={{
 //               opacity: [0.1, 0.6, 0.1],
 //               scale: [1, 1.5, 1],
 //             }}
-//             transition={{ 
-//               duration: 2 + (i % 3), 
-//               repeat: Infinity, 
-//               delay: i * 0.2, 
-//               ease: "easeInOut" 
+//             transition={{
+//               duration: 2 + (i % 3),
+//               repeat: Infinity,
+//               delay: i * 0.2,
+//               ease: "easeInOut"
 //             }}
 //           />
 //         ))}
 
 //         {/* Сетка/узор */}
-//         <div 
+//         <div
 //           className="absolute inset-0 opacity-[0.03]"
 //           style={{
 //             backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23fff' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
@@ -5636,13 +6799,13 @@ export default function ServicesClient({ categories, locale }: Props) {
 //         <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_30%,rgba(0,0,0,0.4)_100%)]" />
 //       </div>
 //       {/* Кнопка закрытия */}
-//       <button 
-//         onClick={onClose} 
+//       <button
+//         onClick={onClose}
 //         className="absolute top-4 right-4 z-50 p-3 rounded-full bg-white/10 hover:bg-white/20 backdrop-blur-md text-white border border-white/10 shadow-lg transition-all hover:scale-105"
 //       >
 //         <X className="w-6 h-6" />
 //       </button>
-      
+
 //       {/* Счётчик с красивым оформлением */}
 //       <div className="absolute top-4 left-4 z-50">
 //         <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 backdrop-blur-md border border-white/10">
@@ -5665,13 +6828,13 @@ export default function ServicesClient({ categories, locale }: Props) {
 //       {/* Кнопки навигации (скрыты на мобильных) */}
 //       {images.length > 1 && (
 //         <>
-//           <button 
+//           <button
 //             onClick={(e) => { e.stopPropagation(); onPrev(); }}
 //             className="absolute left-4 top-1/2 -translate-y-1/2 z-50 p-3 rounded-full bg-white/10 hover:bg-white/20 backdrop-blur-md text-white border border-white/10 shadow-lg transition-all hover:scale-110 hidden sm:flex"
 //           >
 //             <ChevronLeft className="w-8 h-8" />
 //           </button>
-//           <button 
+//           <button
 //             onClick={(e) => { e.stopPropagation(); onNext(); }}
 //             className="absolute right-4 top-1/2 -translate-y-1/2 z-50 p-3 rounded-full bg-white/10 hover:bg-white/20 backdrop-blur-md text-white border border-white/10 shadow-lg transition-all hover:scale-110 hidden sm:flex"
 //           >
@@ -5688,8 +6851,8 @@ export default function ServicesClient({ categories, locale }: Props) {
 //               <motion.div
 //                 key={idx}
 //                 className={`h-2 rounded-full transition-all duration-300 ${
-//                   idx === currentIndex 
-//                     ? "bg-gradient-to-r from-rose-400 to-pink-400 w-6" 
+//                   idx === currentIndex
+//                     ? "bg-gradient-to-r from-rose-400 to-pink-400 w-6"
 //                     : "bg-white/40 hover:bg-white/60 w-2"
 //                 }`}
 //                 animate={idx === currentIndex ? { scale: [1, 1.1, 1] } : {}}
@@ -5701,17 +6864,17 @@ export default function ServicesClient({ categories, locale }: Props) {
 //       )}
 
 //       {/* Изображение с поддержкой свайпа и красивой рамкой */}
-//       <motion.div 
+//       <motion.div
 //         key={currentIndex}
 //         initial={{ opacity: 0, x: swipeDirection * 100, scale: 0.95 }}
-//         animate={{ 
-//           opacity: 1, 
-//           x: isDragging ? dragOffset * 0.5 : 0, 
+//         animate={{
+//           opacity: 1,
+//           x: isDragging ? dragOffset * 0.5 : 0,
 //           scale: isDragging ? 0.98 : 1,
 //           rotate: isDragging ? dragOffset * 0.02 : 0
 //         }}
 //         exit={{ opacity: 0, x: -swipeDirection * 100, scale: 0.95 }}
-//         transition={{ 
+//         transition={{
 //           type: isDragging ? "tween" : "spring",
 //           duration: isDragging ? 0 : 0.3,
 //           damping: 25,
@@ -5728,13 +6891,13 @@ export default function ServicesClient({ categories, locale }: Props) {
 //         <div className="relative p-1 sm:p-1.5 rounded-2xl sm:rounded-3xl bg-gradient-to-br from-rose-400/30 via-pink-500/30 to-purple-500/30 shadow-2xl shadow-rose-500/20">
 //           <div className="relative rounded-xl sm:rounded-2xl overflow-hidden bg-black/20 backdrop-blur-sm">
 //             {/* eslint-disable-next-line @next/next/no-img-element */}
-//             <img 
-//               src={currentImage.image} 
-//               alt={currentImage.caption || serviceName} 
+//             <img
+//               src={currentImage.image}
+//               alt={currentImage.caption || serviceName}
 //               className="max-w-full max-h-[75vh] object-contain pointer-events-none"
 //               draggable={false}
 //             />
-            
+
 //             {/* Подпись к фото */}
 //             {currentImage.caption && (
 //               <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/80 via-black/50 to-transparent">
@@ -5742,17 +6905,17 @@ export default function ServicesClient({ categories, locale }: Props) {
 //               </div>
 //             )}
 //           </div>
-          
+
 //           {/* Декоративные уголки */}
 //           <div className="absolute top-0 left-0 w-8 h-8 border-t-2 border-l-2 border-rose-400/50 rounded-tl-2xl" />
 //           <div className="absolute top-0 right-0 w-8 h-8 border-t-2 border-r-2 border-rose-400/50 rounded-tr-2xl" />
 //           <div className="absolute bottom-0 left-0 w-8 h-8 border-b-2 border-l-2 border-rose-400/50 rounded-bl-2xl" />
 //           <div className="absolute bottom-0 right-0 w-8 h-8 border-b-2 border-r-2 border-rose-400/50 rounded-br-2xl" />
 //         </div>
-        
+
 //         {/* Визуальная подсказка при свайпе */}
 //         {isDragging && Math.abs(dragOffset) > 20 && (
-//           <motion.div 
+//           <motion.div
 //             initial={{ opacity: 0, scale: 0.8 }}
 //             animate={{ opacity: 1, scale: 1 }}
 //             className={`absolute top-1/2 -translate-y-1/2 ${
@@ -5795,12 +6958,12 @@ export default function ServicesClient({ categories, locale }: Props) {
 //         transition={{ type: "spring", damping: 25, stiffness: 300 }}
 //         className="relative w-full sm:max-w-lg md:max-w-2xl max-h-[92vh] sm:max-h-[90vh] overflow-hidden bg-white dark:bg-transparent sm:rounded-3xl rounded-t-3xl shadow-2xl border border-rose-200/50 dark:border-rose-500/30"
 //         onClick={(e) => e.stopPropagation()}>
-        
+
 //         {/* ====== ПРЕМИАЛЬНЫЙ ФОН ДЛЯ ТЁМНОЙ ТЕМЫ ====== */}
 //         <div className="absolute inset-0 hidden dark:block overflow-hidden rounded-t-3xl sm:rounded-3xl">
 //           {/* Основной градиент */}
 //           <div className="absolute inset-0 bg-gradient-to-br from-rose-950 via-slate-950 to-purple-950" />
-          
+
 //           {/* Анимированные сферы */}
 //           <motion.div
 //             className="absolute -top-20 -left-20 w-64 h-64 rounded-full opacity-40"
@@ -5827,9 +6990,9 @@ export default function ServicesClient({ categories, locale }: Props) {
 //               key={i}
 //               className="absolute pointer-events-none"
 //               style={{ left: `${(i * 12.5) % 100}%`, top: `${(i * 14) % 100}%` }}
-//               animate={{ 
-//                 y: [0, -25, 0], 
-//                 x: [0, i % 2 === 0 ? 12 : -12, 0], 
+//               animate={{
+//                 y: [0, -25, 0],
+//                 x: [0, i % 2 === 0 ? 12 : -12, 0],
 //                 opacity: [0.2, 0.5, 0.2],
 //                 scale: [1, 1.15, 1],
 //               }}
@@ -5851,14 +7014,14 @@ export default function ServicesClient({ categories, locale }: Props) {
 //           ))}
 
 //           {/* Тонкий узор */}
-//           <div 
+//           <div
 //             className="absolute inset-0 opacity-[0.03]"
 //             style={{
 //               backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23fff' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
 //             }}
 //           />
 //         </div>
-        
+
 //         {/* Контент модалки */}
 //         <div className="relative z-10">
 //           <div className="sm:hidden flex justify-center pt-3 pb-1">
@@ -5878,10 +7041,10 @@ export default function ServicesClient({ categories, locale }: Props) {
 //                 <div className="w-full h-full bg-gradient-to-br from-rose-300 via-pink-200 to-amber-200 dark:from-rose-500/20 dark:via-pink-500/20 dark:to-purple-500/20" />
 //               )}
 //               <div className="absolute inset-0 bg-gradient-to-t from-white via-white/30 to-transparent dark:from-transparent dark:via-transparent dark:to-transparent" />
-              
+
 //               {/* Градиент снизу для тёмной темы */}
 //               <div className="absolute inset-0 hidden dark:block bg-gradient-to-t from-rose-950/90 via-rose-950/40 to-transparent" />
-              
+
 //               <div className="absolute top-4 left-4">
 //                 <span className="px-3 py-1.5 rounded-full bg-white/95 dark:bg-rose-500/20 backdrop-blur text-rose-600 dark:text-rose-200 text-xs sm:text-sm font-medium shadow-md border border-rose-200/50 dark:border-rose-400/30">
 //                   {categoryName}
@@ -6267,9 +7430,6 @@ export default function ServicesClient({ categories, locale }: Props) {
 //   );
 // }
 
-
-
-
 //------меня фон модалки для тёмной темы----
 // // src/app/services/ServicesClient.tsx
 // "use client";
@@ -6402,7 +7562,7 @@ export default function ServicesClient({ categories, locale }: Props) {
 //     <div className="fixed inset-0 -z-10 overflow-hidden">
 //       {/* Основной градиент - более насыщенный розовый */}
 //       <div className="absolute inset-0 bg-gradient-to-br from-rose-200/90 via-pink-100/80 to-amber-100/70 dark:from-[#080812] dark:via-[#0b0b16] dark:to-[#121227]" />
-      
+
 //       {/* Дополнительный слой нежности */}
 //       <div className="absolute inset-0 bg-gradient-to-t from-white/40 via-transparent to-rose-100/30 dark:from-transparent dark:to-transparent" />
 
@@ -6431,22 +7591,22 @@ export default function ServicesClient({ categories, locale }: Props) {
 //         <motion.div
 //           key={i}
 //           className="absolute pointer-events-none"
-//           style={{ 
-//             left: `${(i * 2.9) % 100}%`, 
+//           style={{
+//             left: `${(i * 2.9) % 100}%`,
 //             top: `${(i * 3.1) % 95}%`,
 //           }}
-//           animate={{ 
-//             y: [0, -35, 0], 
-//             x: [0, i % 2 === 0 ? 18 : -18, 0], 
+//           animate={{
+//             y: [0, -35, 0],
+//             x: [0, i % 2 === 0 ? 18 : -18, 0],
 //             rotate: [0, i % 2 === 0 ? 20 : -20, 0],
 //             opacity: [0.35, 0.75, 0.35],
 //             scale: [1, 1.15, 1],
 //           }}
-//           transition={{ 
-//             duration: 6 + (i % 5) * 1.5, 
-//             repeat: Infinity, 
-//             delay: i * 0.15, 
-//             ease: "easeInOut" 
+//           transition={{
+//             duration: 6 + (i % 5) * 1.5,
+//             repeat: Infinity,
+//             delay: i * 0.15,
+//             ease: "easeInOut"
 //           }}
 //         >
 //           {i % 4 === 0 ? (
@@ -6539,17 +7699,17 @@ export default function ServicesClient({ categories, locale }: Props) {
 //       setDragOffset(0);
 //       return;
 //     }
-    
+
 //     const distance = touchStart - touchEnd;
 //     const isLeftSwipe = distance > minSwipeDistance;
 //     const isRightSwipe = distance < -minSwipeDistance;
-    
+
 //     if (isLeftSwipe && images.length > 1) {
 //       onNext();
 //     } else if (isRightSwipe && images.length > 1) {
 //       onPrev();
 //     }
-    
+
 //     setIsDragging(false);
 //     setDragOffset(0);
 //     setTouchStart(null);
@@ -6562,23 +7722,23 @@ export default function ServicesClient({ categories, locale }: Props) {
 //   const swipeDirection = dragOffset > 0 ? 1 : -1;
 
 //   return (
-//     <motion.div 
-//       initial={{ opacity: 0 }} 
-//       animate={{ opacity: 1 }} 
+//     <motion.div
+//       initial={{ opacity: 0 }}
+//       animate={{ opacity: 1 }}
 //       exit={{ opacity: 0 }}
-//       className="fixed inset-0 z-[100] flex items-center justify-center overflow-hidden" 
+//       className="fixed inset-0 z-[100] flex items-center justify-center overflow-hidden"
 //       onClick={onClose}
 //     >
 //       {/* ====== КРАСИВЫЙ АНИМИРОВАННЫЙ ФОН ====== */}
 //       <div className="absolute inset-0 -z-10">
 //         {/* Основной градиент */}
 //         <div className="absolute inset-0 bg-gradient-to-br from-rose-950 via-slate-950 to-purple-950" />
-        
+
 //         {/* Анимированные сферы */}
 //         <motion.div
 //           className="absolute -top-1/4 -left-1/4 w-[600px] h-[600px] rounded-full opacity-30"
 //           style={{ background: "radial-gradient(circle, rgba(244,63,94,0.4) 0%, transparent 70%)" }}
-//           animate={{ 
+//           animate={{
 //             scale: [1, 1.2, 1],
 //             x: [0, 50, 0],
 //             y: [0, 30, 0],
@@ -6588,7 +7748,7 @@ export default function ServicesClient({ categories, locale }: Props) {
 //         <motion.div
 //           className="absolute -bottom-1/4 -right-1/4 w-[700px] h-[700px] rounded-full opacity-25"
 //           style={{ background: "radial-gradient(circle, rgba(168,85,247,0.4) 0%, transparent 70%)" }}
-//           animate={{ 
+//           animate={{
 //             scale: [1, 1.15, 1],
 //             x: [0, -40, 0],
 //             y: [0, -50, 0],
@@ -6607,27 +7767,27 @@ export default function ServicesClient({ categories, locale }: Props) {
 //           <motion.div
 //             key={i}
 //             className="absolute pointer-events-none"
-//             style={{ 
-//               left: `${(i * 8.5) % 100}%`, 
+//             style={{
+//               left: `${(i * 8.5) % 100}%`,
 //               top: `${(i * 9.2) % 100}%`,
 //             }}
-//             animate={{ 
-//               y: [0, -40, 0], 
-//               x: [0, i % 2 === 0 ? 20 : -20, 0], 
+//             animate={{
+//               y: [0, -40, 0],
+//               x: [0, i % 2 === 0 ? 20 : -20, 0],
 //               opacity: [0.15, 0.4, 0.15],
 //               scale: [1, 1.2, 1],
 //               rotate: [0, i % 2 === 0 ? 15 : -15, 0],
 //             }}
-//             transition={{ 
-//               duration: 5 + (i % 4) * 1.5, 
-//               repeat: Infinity, 
-//               delay: i * 0.3, 
-//               ease: "easeInOut" 
+//             transition={{
+//               duration: 5 + (i % 4) * 1.5,
+//               repeat: Infinity,
+//               delay: i * 0.3,
+//               ease: "easeInOut"
 //             }}
 //           >
-//             <Heart 
-//               className={`${i % 3 === 0 ? 'w-6 h-6' : i % 3 === 1 ? 'w-4 h-4' : 'w-5 h-5'} text-rose-400/50`} 
-//               fill="currentColor" 
+//             <Heart
+//               className={`${i % 3 === 0 ? 'w-6 h-6' : i % 3 === 1 ? 'w-4 h-4' : 'w-5 h-5'} text-rose-400/50`}
+//               fill="currentColor"
 //             />
 //           </motion.div>
 //         ))}
@@ -6637,25 +7797,25 @@ export default function ServicesClient({ categories, locale }: Props) {
 //           <motion.div
 //             key={`star-${i}`}
 //             className="absolute w-1 h-1 rounded-full bg-white/30"
-//             style={{ 
-//               left: `${(i * 5.1) % 100}%`, 
+//             style={{
+//               left: `${(i * 5.1) % 100}%`,
 //               top: `${(i * 5.7) % 100}%`,
 //             }}
-//             animate={{ 
+//             animate={{
 //               opacity: [0.1, 0.6, 0.1],
 //               scale: [1, 1.5, 1],
 //             }}
-//             transition={{ 
-//               duration: 2 + (i % 3), 
-//               repeat: Infinity, 
-//               delay: i * 0.2, 
-//               ease: "easeInOut" 
+//             transition={{
+//               duration: 2 + (i % 3),
+//               repeat: Infinity,
+//               delay: i * 0.2,
+//               ease: "easeInOut"
 //             }}
 //           />
 //         ))}
 
 //         {/* Сетка/узор */}
-//         <div 
+//         <div
 //           className="absolute inset-0 opacity-[0.03]"
 //           style={{
 //             backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23fff' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
@@ -6666,13 +7826,13 @@ export default function ServicesClient({ categories, locale }: Props) {
 //         <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_30%,rgba(0,0,0,0.4)_100%)]" />
 //       </div>
 //       {/* Кнопка закрытия */}
-//       <button 
-//         onClick={onClose} 
+//       <button
+//         onClick={onClose}
 //         className="absolute top-4 right-4 z-50 p-3 rounded-full bg-white/10 hover:bg-white/20 backdrop-blur-md text-white border border-white/10 shadow-lg transition-all hover:scale-105"
 //       >
 //         <X className="w-6 h-6" />
 //       </button>
-      
+
 //       {/* Счётчик с красивым оформлением */}
 //       <div className="absolute top-4 left-4 z-50">
 //         <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 backdrop-blur-md border border-white/10">
@@ -6695,13 +7855,13 @@ export default function ServicesClient({ categories, locale }: Props) {
 //       {/* Кнопки навигации (скрыты на мобильных) */}
 //       {images.length > 1 && (
 //         <>
-//           <button 
+//           <button
 //             onClick={(e) => { e.stopPropagation(); onPrev(); }}
 //             className="absolute left-4 top-1/2 -translate-y-1/2 z-50 p-3 rounded-full bg-white/10 hover:bg-white/20 backdrop-blur-md text-white border border-white/10 shadow-lg transition-all hover:scale-110 hidden sm:flex"
 //           >
 //             <ChevronLeft className="w-8 h-8" />
 //           </button>
-//           <button 
+//           <button
 //             onClick={(e) => { e.stopPropagation(); onNext(); }}
 //             className="absolute right-4 top-1/2 -translate-y-1/2 z-50 p-3 rounded-full bg-white/10 hover:bg-white/20 backdrop-blur-md text-white border border-white/10 shadow-lg transition-all hover:scale-110 hidden sm:flex"
 //           >
@@ -6718,8 +7878,8 @@ export default function ServicesClient({ categories, locale }: Props) {
 //               <motion.div
 //                 key={idx}
 //                 className={`h-2 rounded-full transition-all duration-300 ${
-//                   idx === currentIndex 
-//                     ? "bg-gradient-to-r from-rose-400 to-pink-400 w-6" 
+//                   idx === currentIndex
+//                     ? "bg-gradient-to-r from-rose-400 to-pink-400 w-6"
 //                     : "bg-white/40 hover:bg-white/60 w-2"
 //                 }`}
 //                 animate={idx === currentIndex ? { scale: [1, 1.1, 1] } : {}}
@@ -6731,17 +7891,17 @@ export default function ServicesClient({ categories, locale }: Props) {
 //       )}
 
 //       {/* Изображение с поддержкой свайпа и красивой рамкой */}
-//       <motion.div 
+//       <motion.div
 //         key={currentIndex}
 //         initial={{ opacity: 0, x: swipeDirection * 100, scale: 0.95 }}
-//         animate={{ 
-//           opacity: 1, 
-//           x: isDragging ? dragOffset * 0.5 : 0, 
+//         animate={{
+//           opacity: 1,
+//           x: isDragging ? dragOffset * 0.5 : 0,
 //           scale: isDragging ? 0.98 : 1,
 //           rotate: isDragging ? dragOffset * 0.02 : 0
 //         }}
 //         exit={{ opacity: 0, x: -swipeDirection * 100, scale: 0.95 }}
-//         transition={{ 
+//         transition={{
 //           type: isDragging ? "tween" : "spring",
 //           duration: isDragging ? 0 : 0.3,
 //           damping: 25,
@@ -6758,13 +7918,13 @@ export default function ServicesClient({ categories, locale }: Props) {
 //         <div className="relative p-1 sm:p-1.5 rounded-2xl sm:rounded-3xl bg-gradient-to-br from-rose-400/30 via-pink-500/30 to-purple-500/30 shadow-2xl shadow-rose-500/20">
 //           <div className="relative rounded-xl sm:rounded-2xl overflow-hidden bg-black/20 backdrop-blur-sm">
 //             {/* eslint-disable-next-line @next/next/no-img-element */}
-//             <img 
-//               src={currentImage.image} 
-//               alt={currentImage.caption || serviceName} 
+//             <img
+//               src={currentImage.image}
+//               alt={currentImage.caption || serviceName}
 //               className="max-w-full max-h-[75vh] object-contain pointer-events-none"
 //               draggable={false}
 //             />
-            
+
 //             {/* Подпись к фото */}
 //             {currentImage.caption && (
 //               <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/80 via-black/50 to-transparent">
@@ -6772,17 +7932,17 @@ export default function ServicesClient({ categories, locale }: Props) {
 //               </div>
 //             )}
 //           </div>
-          
+
 //           {/* Декоративные уголки */}
 //           <div className="absolute top-0 left-0 w-8 h-8 border-t-2 border-l-2 border-rose-400/50 rounded-tl-2xl" />
 //           <div className="absolute top-0 right-0 w-8 h-8 border-t-2 border-r-2 border-rose-400/50 rounded-tr-2xl" />
 //           <div className="absolute bottom-0 left-0 w-8 h-8 border-b-2 border-l-2 border-rose-400/50 rounded-bl-2xl" />
 //           <div className="absolute bottom-0 right-0 w-8 h-8 border-b-2 border-r-2 border-rose-400/50 rounded-br-2xl" />
 //         </div>
-        
+
 //         {/* Визуальная подсказка при свайпе */}
 //         {isDragging && Math.abs(dragOffset) > 20 && (
-//           <motion.div 
+//           <motion.div
 //             initial={{ opacity: 0, scale: 0.8 }}
 //             animate={{ opacity: 1, scale: 1 }}
 //             className={`absolute top-1/2 -translate-y-1/2 ${
@@ -6825,7 +7985,7 @@ export default function ServicesClient({ categories, locale }: Props) {
 //         transition={{ type: "spring", damping: 25, stiffness: 300 }}
 //         className="relative w-full sm:max-w-lg md:max-w-2xl max-h-[92vh] sm:max-h-[90vh] overflow-hidden bg-white dark:bg-zinc-950/95 sm:rounded-3xl rounded-t-3xl shadow-2xl border border-rose-200/50 dark:border-white/10"
 //         onClick={(e) => e.stopPropagation()}>
-        
+
 //         <div className="sm:hidden flex justify-center pt-3 pb-1">
 //           <div className="w-10 h-1 rounded-full bg-rose-300 dark:bg-white/20" />
 //         </div>
@@ -6843,7 +8003,7 @@ export default function ServicesClient({ categories, locale }: Props) {
 //               <div className="w-full h-full bg-gradient-to-br from-rose-300 via-pink-200 to-amber-200 dark:from-white/5 dark:via-white/5 dark:to-white/0" />
 //             )}
 //             <div className="absolute inset-0 bg-gradient-to-t from-white via-white/30 to-transparent dark:from-zinc-950 dark:via-zinc-950/40" />
-            
+
 //             <div className="absolute top-4 left-4">
 //               <span className="px-3 py-1.5 rounded-full bg-white/95 dark:bg-white/10 backdrop-blur text-rose-600 dark:text-rose-200 text-xs sm:text-sm font-medium shadow-md border border-rose-200/50 dark:border-white/10">
 //                 {categoryName}
@@ -7227,9 +8387,6 @@ export default function ServicesClient({ categories, locale }: Props) {
 //     </>
 //   );
 // }
-
-
-
 
 //---------меняем задний фон галереи--------
 // // src/app/services/ServicesClient.tsx
@@ -7363,7 +8520,7 @@ export default function ServicesClient({ categories, locale }: Props) {
 //     <div className="fixed inset-0 -z-10 overflow-hidden">
 //       {/* Основной градиент - более насыщенный розовый */}
 //       <div className="absolute inset-0 bg-gradient-to-br from-rose-200/90 via-pink-100/80 to-amber-100/70 dark:from-[#080812] dark:via-[#0b0b16] dark:to-[#121227]" />
-      
+
 //       {/* Дополнительный слой нежности */}
 //       <div className="absolute inset-0 bg-gradient-to-t from-white/40 via-transparent to-rose-100/30 dark:from-transparent dark:to-transparent" />
 
@@ -7392,22 +8549,22 @@ export default function ServicesClient({ categories, locale }: Props) {
 //         <motion.div
 //           key={i}
 //           className="absolute pointer-events-none"
-//           style={{ 
-//             left: `${(i * 2.9) % 100}%`, 
+//           style={{
+//             left: `${(i * 2.9) % 100}%`,
 //             top: `${(i * 3.1) % 95}%`,
 //           }}
-//           animate={{ 
-//             y: [0, -35, 0], 
-//             x: [0, i % 2 === 0 ? 18 : -18, 0], 
+//           animate={{
+//             y: [0, -35, 0],
+//             x: [0, i % 2 === 0 ? 18 : -18, 0],
 //             rotate: [0, i % 2 === 0 ? 20 : -20, 0],
 //             opacity: [0.35, 0.75, 0.35],
 //             scale: [1, 1.15, 1],
 //           }}
-//           transition={{ 
-//             duration: 6 + (i % 5) * 1.5, 
-//             repeat: Infinity, 
-//             delay: i * 0.15, 
-//             ease: "easeInOut" 
+//           transition={{
+//             duration: 6 + (i % 5) * 1.5,
+//             repeat: Infinity,
+//             delay: i * 0.15,
+//             ease: "easeInOut"
 //           }}
 //         >
 //           {i % 4 === 0 ? (
@@ -7500,17 +8657,17 @@ export default function ServicesClient({ categories, locale }: Props) {
 //       setDragOffset(0);
 //       return;
 //     }
-    
+
 //     const distance = touchStart - touchEnd;
 //     const isLeftSwipe = distance > minSwipeDistance;
 //     const isRightSwipe = distance < -minSwipeDistance;
-    
+
 //     if (isLeftSwipe && images.length > 1) {
 //       onNext();
 //     } else if (isRightSwipe && images.length > 1) {
 //       onPrev();
 //     }
-    
+
 //     setIsDragging(false);
 //     setDragOffset(0);
 //     setTouchStart(null);
@@ -7523,18 +8680,18 @@ export default function ServicesClient({ categories, locale }: Props) {
 //   const swipeDirection = dragOffset > 0 ? 1 : -1;
 
 //   return (
-//     <motion.div 
-//       initial={{ opacity: 0 }} 
-//       animate={{ opacity: 1 }} 
+//     <motion.div
+//       initial={{ opacity: 0 }}
+//       animate={{ opacity: 1 }}
 //       exit={{ opacity: 0 }}
-//       className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-xl" 
+//       className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-xl"
 //       onClick={onClose}
 //     >
 //       {/* Кнопка закрытия */}
 //       <button onClick={onClose} className="absolute top-4 right-4 z-50 p-3 rounded-full bg-white/10 hover:bg-white/20 text-white">
 //         <X className="w-6 h-6" />
 //       </button>
-      
+
 //       {/* Счётчик */}
 //       <div className="absolute top-4 left-4 z-50">
 //         <p className="text-white/80 text-sm">{currentIndex + 1} / {images.length}</p>
@@ -7552,13 +8709,13 @@ export default function ServicesClient({ categories, locale }: Props) {
 //       {/* Кнопки навигации (скрыты на мобильных) */}
 //       {images.length > 1 && (
 //         <>
-//           <button 
+//           <button
 //             onClick={(e) => { e.stopPropagation(); onPrev(); }}
 //             className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 z-50 p-2 sm:p-3 rounded-full bg-white/10 hover:bg-white/20 text-white hidden sm:flex"
 //           >
 //             <ChevronLeft className="w-6 h-6 sm:w-8 sm:h-8" />
 //           </button>
-//           <button 
+//           <button
 //             onClick={(e) => { e.stopPropagation(); onNext(); }}
 //             className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 z-50 p-2 sm:p-3 rounded-full bg-white/10 hover:bg-white/20 text-white hidden sm:flex"
 //           >
@@ -7574,8 +8731,8 @@ export default function ServicesClient({ categories, locale }: Props) {
 //             <div
 //               key={idx}
 //               className={`w-2 h-2 rounded-full transition-all duration-300 ${
-//                 idx === currentIndex 
-//                   ? "bg-white w-6" 
+//                 idx === currentIndex
+//                   ? "bg-white w-6"
 //                   : "bg-white/40 hover:bg-white/60"
 //               }`}
 //             />
@@ -7584,17 +8741,17 @@ export default function ServicesClient({ categories, locale }: Props) {
 //       )}
 
 //       {/* Изображение с поддержкой свайпа */}
-//       <motion.div 
+//       <motion.div
 //         key={currentIndex}
 //         initial={{ opacity: 0, x: swipeDirection * 100, scale: 0.95 }}
-//         animate={{ 
-//           opacity: 1, 
-//           x: isDragging ? dragOffset * 0.5 : 0, 
+//         animate={{
+//           opacity: 1,
+//           x: isDragging ? dragOffset * 0.5 : 0,
 //           scale: isDragging ? 0.98 : 1,
 //           rotate: isDragging ? dragOffset * 0.02 : 0
 //         }}
 //         exit={{ opacity: 0, x: -swipeDirection * 100, scale: 0.95 }}
-//         transition={{ 
+//         transition={{
 //           type: isDragging ? "tween" : "spring",
 //           duration: isDragging ? 0 : 0.3,
 //           damping: 25,
@@ -7608,9 +8765,9 @@ export default function ServicesClient({ categories, locale }: Props) {
 //         style={{ touchAction: "pan-y" }}
 //       >
 //         {/* eslint-disable-next-line @next/next/no-img-element */}
-//         <img 
-//           src={currentImage.image} 
-//           alt={currentImage.caption || serviceName} 
+//         <img
+//           src={currentImage.image}
+//           alt={currentImage.caption || serviceName}
 //           className="max-w-full max-h-[85vh] object-contain rounded-2xl shadow-2xl pointer-events-none"
 //           draggable={false}
 //         />
@@ -7619,10 +8776,10 @@ export default function ServicesClient({ categories, locale }: Props) {
 //             <p className="text-white text-center text-sm">{currentImage.caption}</p>
 //           </div>
 //         )}
-        
+
 //         {/* Визуальная подсказка при свайпе */}
 //         {isDragging && Math.abs(dragOffset) > 20 && (
-//           <motion.div 
+//           <motion.div
 //             initial={{ opacity: 0 }}
 //             animate={{ opacity: 1 }}
 //             className={`absolute top-1/2 -translate-y-1/2 ${
@@ -7665,7 +8822,7 @@ export default function ServicesClient({ categories, locale }: Props) {
 //         transition={{ type: "spring", damping: 25, stiffness: 300 }}
 //         className="relative w-full sm:max-w-lg md:max-w-2xl max-h-[92vh] sm:max-h-[90vh] overflow-hidden bg-white dark:bg-zinc-950/95 sm:rounded-3xl rounded-t-3xl shadow-2xl border border-rose-200/50 dark:border-white/10"
 //         onClick={(e) => e.stopPropagation()}>
-        
+
 //         <div className="sm:hidden flex justify-center pt-3 pb-1">
 //           <div className="w-10 h-1 rounded-full bg-rose-300 dark:bg-white/20" />
 //         </div>
@@ -7683,7 +8840,7 @@ export default function ServicesClient({ categories, locale }: Props) {
 //               <div className="w-full h-full bg-gradient-to-br from-rose-300 via-pink-200 to-amber-200 dark:from-white/5 dark:via-white/5 dark:to-white/0" />
 //             )}
 //             <div className="absolute inset-0 bg-gradient-to-t from-white via-white/30 to-transparent dark:from-zinc-950 dark:via-zinc-950/40" />
-            
+
 //             <div className="absolute top-4 left-4">
 //               <span className="px-3 py-1.5 rounded-full bg-white/95 dark:bg-white/10 backdrop-blur text-rose-600 dark:text-rose-200 text-xs sm:text-sm font-medium shadow-md border border-rose-200/50 dark:border-white/10">
 //                 {categoryName}
@@ -8067,10 +9224,6 @@ export default function ServicesClient({ categories, locale }: Props) {
 //     </>
 //   );
 // }
-
-
-
-
 
 //--------добавляем свайп просмотра фото в карточках--------
 // "use client";
@@ -8203,7 +9356,7 @@ export default function ServicesClient({ categories, locale }: Props) {
 //     <div className="fixed inset-0 -z-10 overflow-hidden">
 //       {/* Основной градиент - более насыщенный розовый */}
 //       <div className="absolute inset-0 bg-gradient-to-br from-rose-200/90 via-pink-100/80 to-amber-100/70 dark:from-[#080812] dark:via-[#0b0b16] dark:to-[#121227]" />
-      
+
 //       {/* Дополнительный слой нежности */}
 //       <div className="absolute inset-0 bg-gradient-to-t from-white/40 via-transparent to-rose-100/30 dark:from-transparent dark:to-transparent" />
 
@@ -8232,22 +9385,22 @@ export default function ServicesClient({ categories, locale }: Props) {
 //         <motion.div
 //           key={i}
 //           className="absolute pointer-events-none"
-//           style={{ 
-//             left: `${(i * 2.9) % 100}%`, 
+//           style={{
+//             left: `${(i * 2.9) % 100}%`,
 //             top: `${(i * 3.1) % 95}%`,
 //           }}
-//           animate={{ 
-//             y: [0, -35, 0], 
-//             x: [0, i % 2 === 0 ? 18 : -18, 0], 
+//           animate={{
+//             y: [0, -35, 0],
+//             x: [0, i % 2 === 0 ? 18 : -18, 0],
 //             rotate: [0, i % 2 === 0 ? 20 : -20, 0],
 //             opacity: [0.35, 0.75, 0.35],
 //             scale: [1, 1.15, 1],
 //           }}
-//           transition={{ 
-//             duration: 6 + (i % 5) * 1.5, 
-//             repeat: Infinity, 
-//             delay: i * 0.15, 
-//             ease: "easeInOut" 
+//           transition={{
+//             duration: 6 + (i % 5) * 1.5,
+//             repeat: Infinity,
+//             delay: i * 0.15,
+//             ease: "easeInOut"
 //           }}
 //         >
 //           {i % 4 === 0 ? (
@@ -8372,7 +9525,7 @@ export default function ServicesClient({ categories, locale }: Props) {
 //         transition={{ type: "spring", damping: 25, stiffness: 300 }}
 //         className="relative w-full sm:max-w-lg md:max-w-2xl max-h-[92vh] sm:max-h-[90vh] overflow-hidden bg-white dark:bg-zinc-950/95 sm:rounded-3xl rounded-t-3xl shadow-2xl border border-rose-200/50 dark:border-white/10"
 //         onClick={(e) => e.stopPropagation()}>
-        
+
 //         <div className="sm:hidden flex justify-center pt-3 pb-1">
 //           <div className="w-10 h-1 rounded-full bg-rose-300 dark:bg-white/20" />
 //         </div>
@@ -8390,7 +9543,7 @@ export default function ServicesClient({ categories, locale }: Props) {
 //               <div className="w-full h-full bg-gradient-to-br from-rose-300 via-pink-200 to-amber-200 dark:from-white/5 dark:via-white/5 dark:to-white/0" />
 //             )}
 //             <div className="absolute inset-0 bg-gradient-to-t from-white via-white/30 to-transparent dark:from-zinc-950 dark:via-zinc-950/40" />
-            
+
 //             <div className="absolute top-4 left-4">
 //               <span className="px-3 py-1.5 rounded-full bg-white/95 dark:bg-white/10 backdrop-blur text-rose-600 dark:text-rose-200 text-xs sm:text-sm font-medium shadow-md border border-rose-200/50 dark:border-white/10">
 //                 {categoryName}
@@ -8774,10 +9927,6 @@ export default function ServicesClient({ categories, locale }: Props) {
 //     </>
 //   );
 // }
-
-
-
-
 
 //---------работало, дорабатываем под светлую тему------
 // "use client";
@@ -9502,8 +10651,6 @@ export default function ServicesClient({ categories, locale }: Props) {
 //   );
 // }
 
-
-
 // "use client";
 
 // import { useState, useEffect, useCallback } from "react";
@@ -10225,11 +11372,6 @@ export default function ServicesClient({ categories, locale }: Props) {
 //     </>
 //   );
 // }
-
-
-
-
-
 
 // // src/app/services/ServicesClient.tsx
 // "use client";
@@ -11296,8 +12438,6 @@ export default function ServicesClient({ categories, locale }: Props) {
 //   );
 // }
 
-
-
 //-------------GPT test
 
 // "use client";
@@ -11305,9 +12445,9 @@ export default function ServicesClient({ categories, locale }: Props) {
 // import { useState, useEffect, useCallback } from "react";
 // import Link from "next/link";
 // import { motion, AnimatePresence } from "framer-motion";
-// import { 
-//   Sparkles, 
-//   Clock, 
+// import {
+//   Sparkles,
+//   Clock,
 //   ChevronRight,
 //   ChevronLeft,
 //   Scissors,
@@ -11421,7 +12561,7 @@ export default function ServicesClient({ categories, locale }: Props) {
 //     <div className="fixed inset-0 -z-10 overflow-hidden">
 //       {/* Базовый градиент */}
 //       <div className="absolute inset-0 bg-gradient-to-br from-rose-50 via-white to-amber-50/50" />
-      
+
 //       {/* Анимированные волны */}
 //       <svg className="absolute bottom-0 left-0 w-full h-auto opacity-30" viewBox="0 0 1440 320" preserveAspectRatio="none">
 //         <motion.path
@@ -11536,7 +12676,7 @@ export default function ServicesClient({ categories, locale }: Props) {
 //       />
 
 //       {/* Тонкий узор */}
-//       <div 
+//       <div
 //         className="absolute inset-0 opacity-[0.015]"
 //         style={{
 //           backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M30 0L30 60M0 30L60 30' stroke='%23000' stroke-width='0.5' fill='none'/%3E%3C/svg%3E")`,
@@ -11547,8 +12687,8 @@ export default function ServicesClient({ categories, locale }: Props) {
 // }
 
 // // ====== ЛАЙТБОКС ======
-// function GalleryLightbox({ images, currentIndex, onClose, onPrev, onNext, serviceName }: { 
-//   images: GalleryItem[]; currentIndex: number; 
+// function GalleryLightbox({ images, currentIndex, onClose, onPrev, onNext, serviceName }: {
+//   images: GalleryItem[]; currentIndex: number;
 //   onClose: () => void; onPrev: () => void; onNext: () => void; serviceName: string;
 // }) {
 //   useEffect(() => {
@@ -11733,7 +12873,7 @@ export default function ServicesClient({ categories, locale }: Props) {
 //           )}
 //         </div>
 //         <div className="p-4 sm:p-5">
-//           <h3 className="text-base sm:text-lg font-bold text-stone-800 mb-1.5 line-clamp-2 group-hover:text-rose-500 transition-colors" 
+//           <h3 className="text-base sm:text-lg font-bold text-stone-800 mb-1.5 line-clamp-2 group-hover:text-rose-500 transition-colors"
 //               style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
 //             {service.name}
 //           </h3>
@@ -11758,7 +12898,7 @@ export default function ServicesClient({ categories, locale }: Props) {
 //   const [activeCategory, setActiveCategory] = useState<string | null>(null);
 //   const [selectedService, setSelectedService] = useState<{ service: ServiceChild; categoryName: string } | null>(null);
 //   const [lightbox, setLightbox] = useState<{ isOpen: boolean; images: GalleryItem[]; currentIndex: number; serviceName: string } | null>(null);
-  
+
 //   const translations = t[locale] || t.de;
 
 //   const openServiceDetail = useCallback((service: ServiceChild, categoryName: string) => setSelectedService({ service, categoryName }), []);
@@ -11942,19 +13082,15 @@ export default function ServicesClient({ categories, locale }: Props) {
 //   );
 // }
 
-
-
-
-
 // // src/app/services/ServicesClient.tsx
 // "use client";
 
 // import { useState, useEffect, useCallback } from "react";
 // import Link from "next/link";
 // import { motion, AnimatePresence } from "framer-motion";
-// import { 
-//   Sparkles, 
-//   Clock, 
+// import {
+//   Sparkles,
+//   Clock,
 //   ChevronRight,
 //   ChevronLeft,
 //   Scissors,
@@ -12108,12 +13244,12 @@ export default function ServicesClient({ categories, locale }: Props) {
 //             ease: "easeInOut",
 //           }}
 //         >
-//           <div 
+//           <div
 //             className="w-3 h-3 sm:w-4 sm:h-4 rounded-full"
 //             style={{
 //               background: `radial-gradient(circle, ${
-//                 i % 3 === 0 ? 'rgba(251, 207, 232, 0.6)' : 
-//                 i % 3 === 1 ? 'rgba(254, 215, 170, 0.5)' : 
+//                 i % 3 === 0 ? 'rgba(251, 207, 232, 0.6)' :
+//                 i % 3 === 1 ? 'rgba(254, 215, 170, 0.5)' :
 //                 'rgba(221, 214, 254, 0.5)'
 //               } 0%, transparent 70%)`,
 //             }}
@@ -12125,10 +13261,10 @@ export default function ServicesClient({ categories, locale }: Props) {
 // }
 
 // // ====== ЛАЙТБОКС ГАЛЕРЕИ ======
-// function GalleryLightbox({ 
+// function GalleryLightbox({
 //   images, currentIndex, onClose, onPrev, onNext, serviceName,
-// }: { 
-//   images: GalleryItem[]; currentIndex: number; 
+// }: {
+//   images: GalleryItem[]; currentIndex: number;
 //   onClose: () => void; onPrev: () => void; onNext: () => void;
 //   serviceName: string;
 // }) {
@@ -12247,14 +13383,14 @@ export default function ServicesClient({ categories, locale }: Props) {
 //               <div className="w-full h-full bg-gradient-to-br from-rose-200 via-pink-100 to-amber-100" />
 //             )}
 //             <div className="absolute inset-0 bg-gradient-to-t from-white via-white/40 to-transparent" />
-            
+
 //             {/* Category badge */}
 //             <div className="absolute top-4 left-4">
 //               <span className="px-3 py-1.5 rounded-full bg-white/90 backdrop-blur text-rose-600 text-xs sm:text-sm font-medium shadow-sm">
 //                 {categoryName}
 //               </span>
 //             </div>
-            
+
 //             {/* Price badge */}
 //             {service.priceCents && (
 //               <div className="absolute bottom-4 right-4">
@@ -12358,7 +13494,7 @@ export default function ServicesClient({ categories, locale }: Props) {
 //       transition={{ duration: 0.4, delay: index * 0.05 }}
 //       className="group"
 //     >
-//       <div 
+//       <div
 //         onClick={onOpenDetail}
 //         className="
 //           relative overflow-hidden rounded-2xl sm:rounded-3xl cursor-pointer
@@ -12379,9 +13515,9 @@ export default function ServicesClient({ categories, locale }: Props) {
 //               <div className="absolute inset-0 opacity-30" style={{ backgroundImage: "radial-gradient(circle at 2px 2px, rgba(244, 114, 182, 0.3) 1px, transparent 0)", backgroundSize: "20px 20px" }} />
 //             </div>
 //           )}
-          
+
 //           <div className="absolute inset-0 bg-gradient-to-t from-white via-white/30 to-transparent" />
-          
+
 //           {/* Price */}
 //           {service.priceCents && (
 //             <div className="absolute top-3 right-3">
@@ -12408,7 +13544,7 @@ export default function ServicesClient({ categories, locale }: Props) {
 //           <h3 className="text-base sm:text-lg font-bold text-stone-800 mb-1.5 line-clamp-2 group-hover:text-rose-500 transition-colors">
 //             {service.name}
 //           </h3>
-          
+
 //           {service.description && (
 //             <p className="text-stone-500 text-xs sm:text-sm line-clamp-2 mb-3">
 //               {service.description}
@@ -12451,7 +13587,7 @@ export default function ServicesClient({ categories, locale }: Props) {
 //   const [activeCategory, setActiveCategory] = useState<string | null>(null);
 //   const [selectedService, setSelectedService] = useState<{ service: ServiceChild; categoryName: string } | null>(null);
 //   const [lightbox, setLightbox] = useState<{ isOpen: boolean; images: GalleryItem[]; currentIndex: number; serviceName: string } | null>(null);
-  
+
 //   const translations = t[locale] || t.de;
 
 //   const openServiceDetail = useCallback((service: ServiceChild, categoryName: string) => {
@@ -12482,15 +13618,15 @@ export default function ServicesClient({ categories, locale }: Props) {
 //       <div className="fixed inset-0 -z-10">
 //         {/* Основной градиент */}
 //         <div className="absolute inset-0 bg-gradient-to-b from-rose-50 via-white to-amber-50/30" />
-        
+
 //         {/* Декоративные круги */}
 //         <div className="absolute top-0 left-0 w-[600px] h-[600px] bg-gradient-to-br from-rose-100/40 to-transparent rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2" />
 //         <div className="absolute top-1/3 right-0 w-[500px] h-[500px] bg-gradient-to-bl from-pink-100/30 to-transparent rounded-full blur-3xl translate-x-1/2" />
 //         <div className="absolute bottom-0 left-1/3 w-[700px] h-[700px] bg-gradient-to-t from-amber-100/30 to-transparent rounded-full blur-3xl" />
 //         <div className="absolute bottom-1/4 right-1/4 w-[400px] h-[400px] bg-gradient-to-tl from-violet-100/20 to-transparent rounded-full blur-3xl" />
-        
+
 //         {/* Тонкий узор */}
-//         <div 
+//         <div
 //           className="absolute inset-0 opacity-[0.03]"
 //           style={{
 //             backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23000000' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
@@ -12666,7 +13802,7 @@ export default function ServicesClient({ categories, locale }: Props) {
 //         <div className="absolute inset-0 bg-gradient-to-r from-rose-100/50 via-pink-50/50 to-amber-50/50" />
 //         <div className="absolute top-0 left-1/4 w-64 h-64 bg-rose-200/30 rounded-full blur-3xl" />
 //         <div className="absolute bottom-0 right-1/4 w-64 h-64 bg-pink-200/30 rounded-full blur-3xl" />
-        
+
 //         <div className="relative container mx-auto px-4 text-center">
 //           <motion.div
 //             initial={{ opacity: 0, y: 20 }}
@@ -12685,10 +13821,10 @@ export default function ServicesClient({ categories, locale }: Props) {
 //             <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-stone-800 mb-3 sm:mb-4">
 //               {translations.trustText}
 //             </h2>
-            
+
 //             <p className="text-stone-500 mb-6 sm:mb-8 max-w-md mx-auto">
-//               {locale === "de" ? "Wir freuen uns auf Ihren Besuch" : 
-//                locale === "ru" ? "Мы ждём вас в нашем салоне" : 
+//               {locale === "de" ? "Wir freuen uns auf Ihren Besuch" :
+//                locale === "ru" ? "Мы ждём вас в нашем салоне" :
 //                "We look forward to your visit"}
 //             </p>
 
@@ -12706,10 +13842,6 @@ export default function ServicesClient({ categories, locale }: Props) {
 //   );
 // }
 
-
-
-
-
 //----------работает, делаем женский дизайн---
 // // src/app/services/ServicesClient.tsx
 // "use client";
@@ -12717,9 +13849,9 @@ export default function ServicesClient({ categories, locale }: Props) {
 // import { useState, useEffect, useCallback } from "react";
 // import Link from "next/link";
 // import { motion, AnimatePresence } from "framer-motion";
-// import { 
-//   Sparkles, 
-//   Clock, 
+// import {
+//   Sparkles,
+//   Clock,
 //   ChevronRight,
 //   ChevronLeft,
 //   Scissors,
@@ -12845,10 +13977,10 @@ export default function ServicesClient({ categories, locale }: Props) {
 // ];
 
 // // ====== ЛАЙТБОКС ГАЛЕРЕИ ======
-// function GalleryLightbox({ 
+// function GalleryLightbox({
 //   images, currentIndex, onClose, onPrev, onNext, serviceName,
-// }: { 
-//   images: GalleryItem[]; currentIndex: number; 
+// }: {
+//   images: GalleryItem[]; currentIndex: number;
 //   onClose: () => void; onPrev: () => void; onNext: () => void;
 //   serviceName: string;
 // }) {
@@ -12973,14 +14105,14 @@ export default function ServicesClient({ categories, locale }: Props) {
 //               <div className="w-full h-full bg-gradient-to-br from-fuchsia-600/40 to-violet-600/40" />
 //             )}
 //             <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/60 to-transparent" />
-            
+
 //             {/* Category badge */}
 //             <div className="absolute top-4 left-4">
 //               <span className="px-3 py-1.5 rounded-full bg-black/40 backdrop-blur text-white text-xs sm:text-sm font-medium">
 //                 {categoryName}
 //               </span>
 //             </div>
-            
+
 //             {/* Price badge */}
 //             {service.priceCents && (
 //               <div className="absolute bottom-4 right-4">
@@ -13084,7 +14216,7 @@ export default function ServicesClient({ categories, locale }: Props) {
 //       transition={{ duration: 0.4, delay: index * 0.05 }}
 //       className="group"
 //     >
-//       <div 
+//       <div
 //         onClick={onOpenDetail}
 //         className={`
 //           relative overflow-hidden rounded-2xl sm:rounded-3xl cursor-pointer
@@ -13105,9 +14237,9 @@ export default function ServicesClient({ categories, locale }: Props) {
 //               <div className="absolute inset-0 opacity-20" style={{ backgroundImage: "radial-gradient(circle at 2px 2px, rgba(255,255,255,0.15) 1px, transparent 0)", backgroundSize: "20px 20px" }} />
 //             </div>
 //           )}
-          
+
 //           <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/50 to-transparent" />
-          
+
 //           {/* Price */}
 //           {service.priceCents && (
 //             <div className="absolute top-3 right-3">
@@ -13134,7 +14266,7 @@ export default function ServicesClient({ categories, locale }: Props) {
 //           <h3 className="text-base sm:text-lg font-bold text-white mb-1.5 line-clamp-2 group-hover:text-fuchsia-200 transition-colors">
 //             {service.name}
 //           </h3>
-          
+
 //           {service.description && (
 //             <p className="text-slate-400 text-xs sm:text-sm line-clamp-2 mb-3">
 //               {service.description}
@@ -13177,7 +14309,7 @@ export default function ServicesClient({ categories, locale }: Props) {
 //   const [activeCategory, setActiveCategory] = useState<string | null>(null);
 //   const [selectedService, setSelectedService] = useState<{ service: ServiceChild; categoryName: string } | null>(null);
 //   const [lightbox, setLightbox] = useState<{ isOpen: boolean; images: GalleryItem[]; currentIndex: number; serviceName: string } | null>(null);
-  
+
 //   const translations = t[locale] || t.de;
 
 //   const openServiceDetail = useCallback((service: ServiceChild, categoryName: string) => {
@@ -13372,7 +14504,7 @@ export default function ServicesClient({ categories, locale }: Props) {
 //       {/* Bottom CTA */}
 //       <section className="py-12 sm:py-20 relative overflow-hidden">
 //         <div className="absolute inset-0 bg-gradient-to-r from-fuchsia-600/10 via-violet-600/10 to-fuchsia-600/10" />
-        
+
 //         <div className="relative container mx-auto px-4 text-center">
 //           <motion.div
 //             initial={{ opacity: 0, y: 20 }}
@@ -13380,8 +14512,8 @@ export default function ServicesClient({ categories, locale }: Props) {
 //             viewport={{ once: true }}
 //           >
 //             <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white mb-4 sm:mb-6">
-//               {locale === "de" ? "Bereit für Ihre Verwandlung?" : 
-//                locale === "ru" ? "Готовы к преображению?" : 
+//               {locale === "de" ? "Bereit für Ihre Verwandlung?" :
+//                locale === "ru" ? "Готовы к преображению?" :
 //                "Ready for Your Transformation?"}
 //             </h2>
 //             <Link
@@ -13398,9 +14530,6 @@ export default function ServicesClient({ categories, locale }: Props) {
 //   );
 // }
 
-
-
-
 //--------обновляем дизайн----
 // // src/app/services/ServicesClient.tsx
 // "use client";
@@ -13408,9 +14537,9 @@ export default function ServicesClient({ categories, locale }: Props) {
 // import { useState, useEffect, useCallback } from "react";
 // import Link from "next/link";
 // import { motion, AnimatePresence } from "framer-motion";
-// import { 
-//   Sparkles, 
-//   Clock, 
+// import {
+//   Sparkles,
+//   Clock,
 //   ChevronRight,
 //   ChevronLeft,
 //   Scissors,
@@ -13552,7 +14681,7 @@ export default function ServicesClient({ categories, locale }: Props) {
 // };
 
 // function getCategoryIcon(slug: string) {
-//   const key = Object.keys(categoryIcons).find((k) => 
+//   const key = Object.keys(categoryIcons).find((k) =>
 //     slug.toLowerCase().includes(k)
 //   );
 //   return categoryIcons[key || "default"];
@@ -13579,16 +14708,16 @@ export default function ServicesClient({ categories, locale }: Props) {
 // ];
 
 // // Компонент лайтбокса для галереи
-// function GalleryLightbox({ 
-//   images, 
-//   currentIndex, 
-//   onClose, 
-//   onPrev, 
+// function GalleryLightbox({
+//   images,
+//   currentIndex,
+//   onClose,
+//   onPrev,
 //   onNext,
 //   serviceName,
-// }: { 
-//   images: GalleryItem[]; 
-//   currentIndex: number; 
+// }: {
+//   images: GalleryItem[];
+//   currentIndex: number;
 //   onClose: () => void;
 //   onPrev: () => void;
 //   onNext: () => void;
@@ -13755,14 +14884,14 @@ export default function ServicesClient({ categories, locale }: Props) {
 //             </div>
 //           )}
 //           <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/50 to-transparent" />
-          
+
 //           {/* Category badge */}
 //           <div className="absolute top-4 left-4">
 //             <span className="px-3 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-white text-sm">
 //               {categoryName}
 //             </span>
 //           </div>
-          
+
 //           {/* Price badge */}
 //           {service.priceCents && (
 //             <div className="absolute top-4 right-16">
@@ -13862,12 +14991,12 @@ export default function ServicesClient({ categories, locale }: Props) {
 // }
 
 // // Компонент мини-галереи в карточке услуги
-// function ServiceGalleryPreview({ 
-//   gallery, 
+// function ServiceGalleryPreview({
+//   gallery,
 //   onOpenGallery,
 //   translations
-// }: { 
-//   gallery: GalleryItem[]; 
+// }: {
+//   gallery: GalleryItem[];
 //   onOpenGallery: (index: number) => void;
 //   translations: Record<string, string>;
 // }) {
@@ -13924,7 +15053,7 @@ export default function ServicesClient({ categories, locale }: Props) {
 //     currentIndex: number;
 //     serviceName: string;
 //   } | null>(null);
-  
+
 //   const translations = t[locale] || t.de;
 
 //   // Открыть модалку услуги
@@ -13947,8 +15076,8 @@ export default function ServicesClient({ categories, locale }: Props) {
 //     if (!lightbox) return;
 //     setLightbox({
 //       ...lightbox,
-//       currentIndex: lightbox.currentIndex === 0 
-//         ? lightbox.images.length - 1 
+//       currentIndex: lightbox.currentIndex === 0
+//         ? lightbox.images.length - 1
 //         : lightbox.currentIndex - 1
 //     });
 //   }, [lightbox]);
@@ -14178,10 +15307,10 @@ export default function ServicesClient({ categories, locale }: Props) {
 //                               </div>
 //                             </div>
 //                           )}
-                          
+
 //                           {/* Overlay */}
 //                           <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/60 to-transparent" />
-                          
+
 //                           {/* Price Badge */}
 //                           {service.priceCents && (
 //                             <div className="absolute top-4 right-4">
@@ -14221,7 +15350,7 @@ export default function ServicesClient({ categories, locale }: Props) {
 //                           <h3 className="text-xl font-bold text-white mb-2 group-hover:text-fuchsia-200 transition-colors">
 //                             {service.name}
 //                           </h3>
-                          
+
 //                           {service.description && (
 //                             <p className="text-slate-400 text-sm line-clamp-2 mb-4">
 //                               {service.description}
@@ -14302,7 +15431,7 @@ export default function ServicesClient({ categories, locale }: Props) {
 //             }} />
 //           </div>
 //         </div>
-        
+
 //         <div className="relative container mx-auto px-4 text-center">
 //           <motion.div
 //             initial={{ opacity: 0, y: 20 }}
@@ -14317,13 +15446,13 @@ export default function ServicesClient({ categories, locale }: Props) {
 //               </span>
 //             </div>
 //             <h2 className="text-4xl sm:text-5xl font-bold text-white mb-6">
-//               {locale === "de" ? "Bereit für Ihre Verwandlung?" : 
-//                locale === "ru" ? "Готовы к преображению?" : 
+//               {locale === "de" ? "Bereit für Ihre Verwandlung?" :
+//                locale === "ru" ? "Готовы к преображению?" :
 //                "Ready for Your Transformation?"}
 //             </h2>
 //             <p className="text-slate-300 text-lg mb-10 max-w-xl mx-auto">
-//               {locale === "de" ? "Buchen Sie jetzt Ihren Termin und erleben Sie Premium-Schönheitsservice." : 
-//                locale === "ru" ? "Запишитесь сейчас и ощутите премиальный сервис красоты." : 
+//               {locale === "de" ? "Buchen Sie jetzt Ihren Termin und erleben Sie Premium-Schönheitsservice." :
+//                locale === "ru" ? "Запишитесь сейчас и ощутите премиальный сервис красоты." :
 //                "Book your appointment now and experience premium beauty service."}
 //             </p>
 //             <Link
