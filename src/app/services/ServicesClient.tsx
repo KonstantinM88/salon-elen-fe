@@ -497,6 +497,9 @@ function ServiceDetailModal({
         transition={{ type: "spring", damping: 25, stiffness: 300 }}
         className="relative w-full sm:max-w-lg md:max-w-2xl max-h-[92vh] sm:max-h-[90vh] overflow-hidden bg-white dark:bg-transparent sm:rounded-3xl rounded-t-3xl shadow-2xl border border-rose-200/80 dark:border-rose-500/60 sm:border-rose-200/50 sm:dark:border-rose-500/30"
         onClick={(e) => e.stopPropagation()}>
+
+        {/* Тонкая маска сверху для мобильной тёмной темы (убирает краткий "просвет") */}
+        <div className="absolute top-0 left-0 right-0 h-2 sm:hidden hidden dark:block z-20 pointer-events-none bg-gradient-to-r from-rose-950 via-slate-950 to-purple-950" />
         
         {/* ====== КРАСИВЫЙ АНИМИРОВАННЫЙ ФОН ДЛЯ ТЁМНОЙ ТЕМЫ ====== */}
         <div className="absolute inset-0 hidden dark:block overflow-hidden rounded-t-3xl sm:rounded-3xl">
