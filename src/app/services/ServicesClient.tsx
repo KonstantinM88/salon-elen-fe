@@ -585,8 +585,22 @@ function ServiceDetailModal({
 
             {service.description && (
               <div className="relative mb-6 overflow-hidden">
-                {/* Сердечки для светлой темы - только плавное движение, без мерцания */}
-                <div className="absolute inset-0 pointer-events-none dark:hidden">
+                {/* Светлая тема: на мобильных статично, на >=sm анимация */}
+                <div className="absolute inset-0 pointer-events-none sm:hidden dark:hidden">
+                  {[...Array(6)].map((_, i) => (
+                    <div
+                      key={`light-desc-heart-static-${i}`}
+                      className="absolute"
+                      style={{ left: `${(i * 16) % 100}%`, top: `${(i * 18) % 100}%` }}
+                    >
+                      <Heart
+                        className={`${i % 2 === 0 ? "w-3.5 h-3.5" : "w-3 h-3"} text-rose-300/50`}
+                        fill="currentColor"
+                      />
+                    </div>
+                  ))}
+                </div>
+                <div className="absolute inset-0 pointer-events-none hidden sm:block dark:hidden">
                   {[...Array(6)].map((_, i) => (
                     <motion.div
                       key={`light-desc-heart-${i}`}
@@ -610,8 +624,23 @@ function ServiceDetailModal({
                     </motion.div>
                   ))}
                 </div>
-                {/* Сердечки для тёмной темы - только плавное движение */}
-                <div className="absolute inset-0 pointer-events-none hidden dark:block">
+
+                {/* Тёмная тема: на мобильных статично, на >=sm анимация */}
+                <div className="absolute inset-0 pointer-events-none hidden dark:block sm:hidden">
+                  {[...Array(6)].map((_, i) => (
+                    <div
+                      key={`dark-desc-heart-static-${i}`}
+                      className="absolute"
+                      style={{ left: `${(i * 16) % 100}%`, top: `${(i * 18) % 100}%` }}
+                    >
+                      <Heart
+                        className={`${i % 2 === 0 ? "w-3 h-3" : "w-2.5 h-2.5"} text-rose-400/30`}
+                        fill="currentColor"
+                      />
+                    </div>
+                  ))}
+                </div>
+                <div className="absolute inset-0 pointer-events-none hidden sm:dark:block">
                   {[...Array(6)].map((_, i) => (
                     <motion.div
                       key={`dark-desc-heart-${i}`}
@@ -757,8 +786,22 @@ function ServiceCard({
         </div>
 
         <div className="relative overflow-hidden p-4 sm:p-5 bg-gradient-to-b from-transparent to-rose-50/30 dark:from-rose-950/80 dark:via-slate-950/90 dark:to-purple-950/80">
-          {/* Сердечки для светлой темы - только плавное движение */}
-          <div className="absolute inset-0 pointer-events-none dark:hidden">
+          {/* Светлая тема: на мобильных статично, на >=sm анимация */}
+          <div className="absolute inset-0 pointer-events-none sm:hidden dark:hidden">
+            {[...Array(5)].map((_, i) => (
+              <div
+                key={`light-heart-static-${i}`}
+                className="absolute"
+                style={{ left: `${(i * 20) % 100}%`, top: `${(i * 22) % 100}%` }}
+              >
+                <Heart
+                  className={`${i % 2 === 0 ? "w-3 h-3" : "w-2.5 h-2.5"} text-rose-300/40`}
+                  fill="currentColor"
+                />
+              </div>
+            ))}
+          </div>
+          <div className="absolute inset-0 pointer-events-none hidden sm:block dark:hidden">
             {[...Array(5)].map((_, i) => (
               <motion.div
                 key={`light-heart-${i}`}
@@ -782,8 +825,23 @@ function ServiceCard({
               </motion.div>
             ))}
           </div>
-          {/* Сердечки для тёмной темы - только плавное движение */}
-          <div className="absolute inset-0 pointer-events-none hidden dark:block">
+
+          {/* Тёмная тема: на мобильных статично, на >=sm анимация */}
+          <div className="absolute inset-0 pointer-events-none hidden dark:block sm:hidden">
+            {[...Array(5)].map((_, i) => (
+              <div
+                key={`dark-heart-static-${i}`}
+                className="absolute"
+                style={{ left: `${(i * 20) % 100}%`, top: `${(i * 22) % 100}%` }}
+              >
+                <Heart
+                  className={`${i % 2 === 0 ? "w-2.5 h-2.5" : "w-2 h-2"} text-rose-400/25`}
+                  fill="currentColor"
+                />
+              </div>
+            ))}
+          </div>
+          <div className="absolute inset-0 pointer-events-none hidden sm:dark:block">
             {[...Array(5)].map((_, i) => (
               <motion.div
                 key={`dark-heart-${i}`}
