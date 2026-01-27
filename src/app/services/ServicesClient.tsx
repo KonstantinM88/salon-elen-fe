@@ -2,6 +2,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, memo } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
@@ -371,12 +372,12 @@ function GalleryLightbox({
   const currentImage = images[currentIndex];
   const swipeDirection = dragOffset > 0 ? 1 : -1;
 
-  return (
+  const lightbox = (
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-[100] flex items-center justify-center overflow-hidden"
+      className="fixed inset-0 z-[9999] flex items-center justify-center overflow-hidden"
       onClick={onClose}
     >
       <GalleryLightboxBackground />
@@ -485,6 +486,9 @@ function GalleryLightbox({
       </motion.div>
     </motion.div>
   );
+
+  if (typeof document === "undefined") return null;
+  return createPortal(lightbox, document.body);
 }
 
 function ServiceDetailModal({
@@ -516,12 +520,12 @@ function ServiceDetailModal({
   const hasImage = service.cover || service.gallery.length > 0;
   const imageUrl = service.cover || service.gallery[0]?.image;
 
-  return (
+  const modal = (
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-[90] flex items-end lg:items-center justify-center bg-black/70 lg:bg-black/80 backdrop-blur-sm lg:backdrop-blur-md"
+      className="fixed inset-0 z-[9998] flex items-start justify-center pt-0 lg:pt-16 bg-black/70 lg:bg-black/80 backdrop-blur-sm lg:backdrop-blur-md"
       onClick={onClose}
     >
       <motion.div
@@ -737,6 +741,9 @@ function ServiceDetailModal({
       </motion.div>
     </motion.div>
   );
+
+  if (typeof document === "undefined") return null;
+  return createPortal(modal, document.body);
 }
 
 function ServiceCard({
