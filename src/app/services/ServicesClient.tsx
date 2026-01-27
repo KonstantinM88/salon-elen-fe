@@ -491,11 +491,11 @@ function ServiceDetailModal({
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-      className="fixed inset-0 z-[90] flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-0 sm:backdrop-blur-sm" onClick={onClose}>
+      className="fixed inset-0 z-[90] flex items-end sm:items-center justify-center bg-black/75 sm:bg-black/50 backdrop-blur-0 sm:backdrop-blur-sm" onClick={onClose}>
       <motion.div
         initial={{ opacity: 0, y: 100 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 100 }}
         transition={{ type: "spring", damping: 25, stiffness: 300 }}
-        className="relative w-full sm:max-w-lg md:max-w-2xl max-h-[92vh] sm:max-h-[90vh] overflow-hidden bg-white dark:bg-transparent sm:rounded-3xl rounded-t-3xl shadow-2xl border border-rose-200/50 dark:border-rose-500/30"
+        className="relative w-full sm:max-w-lg md:max-w-2xl max-h-[92vh] sm:max-h-[90vh] overflow-hidden bg-white dark:bg-[#0b0b16] sm:rounded-3xl rounded-t-3xl shadow-2xl border border-rose-200/50 dark:border-rose-500/30"
         onClick={(e) => e.stopPropagation()}>
         
         {/* ====== КРАСИВЫЙ АНИМИРОВАННЫЙ ФОН ДЛЯ ТЁМНОЙ ТЕМЫ ====== */}
@@ -565,7 +565,7 @@ function ServiceDetailModal({
               )}
             </div>
 
-            <div className="p-4 sm:p-6 -mt-6 relative">
+            <div className="relative p-4 sm:p-6 sm:-mt-6 bg-white dark:bg-[#0b0b16] sm:bg-transparent sm:dark:bg-transparent">
               <h2 className="text-2xl sm:text-3xl font-bold text-zinc-800 dark:text-white mb-4 pr-8" style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
                 {service.name}
               </h2>
@@ -586,7 +586,7 @@ function ServiceDetailModal({
             {service.description && (
               <div className="relative mb-6 overflow-hidden">
                 {/* Светлая тема: на мобильных статично, на >=sm анимация */}
-                <div className="absolute inset-0 pointer-events-none sm:hidden dark:hidden">
+                <div className="absolute inset-0 pointer-events-none hidden dark:hidden">
                   {[...Array(6)].map((_, i) => (
                     <div
                       key={`light-desc-heart-static-${i}`}
@@ -594,13 +594,13 @@ function ServiceDetailModal({
                       style={{ left: `${(i * 16) % 100}%`, top: `${(i * 18) % 100}%` }}
                     >
                       <Heart
-                        className={`${i % 2 === 0 ? "w-3.5 h-3.5" : "w-3 h-3"} text-rose-300/50`}
+                        className={`${i % 2 === 0 ? "w-4 h-4" : "w-3.5 h-3.5"} text-rose-400/60 drop-shadow-[0_1px_6px_rgba(244,63,94,0.25)]`}
                         fill="currentColor"
                       />
                     </div>
                   ))}
                 </div>
-                <div className="absolute inset-0 pointer-events-none hidden sm:block dark:hidden">
+                <div className="absolute inset-0 pointer-events-none dark:hidden">
                   {[...Array(6)].map((_, i) => (
                     <motion.div
                       key={`light-desc-heart-${i}`}
@@ -618,7 +618,7 @@ function ServiceDetailModal({
                       }}
                     >
                       <Heart
-                        className={`${i % 2 === 0 ? "w-3.5 h-3.5" : "w-3 h-3"} text-rose-300/50`}
+                        className={`${i % 2 === 0 ? "w-4 h-4" : "w-3.5 h-3.5"} text-rose-400/60 drop-shadow-[0_1px_6px_rgba(244,63,94,0.25)]`}
                         fill="currentColor"
                       />
                     </motion.div>
@@ -626,7 +626,7 @@ function ServiceDetailModal({
                 </div>
 
                 {/* Тёмная тема: на мобильных статично, на >=sm анимация */}
-                <div className="absolute inset-0 pointer-events-none hidden dark:block sm:hidden">
+                <div className="absolute inset-0 pointer-events-none hidden dark:hidden">
                   {[...Array(6)].map((_, i) => (
                     <div
                       key={`dark-desc-heart-static-${i}`}
@@ -640,7 +640,7 @@ function ServiceDetailModal({
                     </div>
                   ))}
                 </div>
-                <div className="absolute inset-0 pointer-events-none hidden sm:dark:block">
+                <div className="absolute inset-0 pointer-events-none hidden dark:block">
                   {[...Array(6)].map((_, i) => (
                     <motion.div
                       key={`dark-desc-heart-${i}`}
@@ -786,8 +786,8 @@ function ServiceCard({
         </div>
 
         <div className="relative overflow-hidden p-4 sm:p-5 bg-gradient-to-b from-transparent to-rose-50/30 dark:from-rose-950/80 dark:via-slate-950/90 dark:to-purple-950/80">
-          {/* Светлая тема: на мобильных статично, на >=sm анимация */}
-          <div className="absolute inset-0 pointer-events-none sm:hidden dark:hidden">
+          {/* Сердечки для светлой темы */}
+          <div className="absolute inset-0 pointer-events-none hidden dark:hidden">
             {[...Array(5)].map((_, i) => (
               <div
                 key={`light-heart-static-${i}`}
@@ -795,13 +795,13 @@ function ServiceCard({
                 style={{ left: `${(i * 20) % 100}%`, top: `${(i * 22) % 100}%` }}
               >
                 <Heart
-                  className={`${i % 2 === 0 ? "w-3 h-3" : "w-2.5 h-2.5"} text-rose-300/40`}
+                  className={`${i % 2 === 0 ? "w-3.5 h-3.5" : "w-3 h-3"} text-rose-400/60 drop-shadow-[0_1px_6px_rgba(244,63,94,0.25)]`}
                   fill="currentColor"
                 />
               </div>
             ))}
           </div>
-          <div className="absolute inset-0 pointer-events-none hidden sm:block dark:hidden">
+          <div className="absolute inset-0 pointer-events-none dark:hidden">
             {[...Array(5)].map((_, i) => (
               <motion.div
                 key={`light-heart-${i}`}
@@ -819,15 +819,15 @@ function ServiceCard({
                 }}
               >
                 <Heart
-                  className={`${i % 2 === 0 ? "w-3 h-3" : "w-2.5 h-2.5"} text-rose-300/40`}
+                  className={`${i % 2 === 0 ? "w-3.5 h-3.5" : "w-3 h-3"} text-rose-400/60 drop-shadow-[0_1px_6px_rgba(244,63,94,0.25)]`}
                   fill="currentColor"
                 />
               </motion.div>
             ))}
           </div>
 
-          {/* Тёмная тема: на мобильных статично, на >=sm анимация */}
-          <div className="absolute inset-0 pointer-events-none hidden dark:block sm:hidden">
+          {/* Сердечки для тёмной темы */}
+          <div className="absolute inset-0 pointer-events-none hidden dark:hidden">
             {[...Array(5)].map((_, i) => (
               <div
                 key={`dark-heart-static-${i}`}
@@ -841,7 +841,7 @@ function ServiceCard({
               </div>
             ))}
           </div>
-          <div className="absolute inset-0 pointer-events-none hidden sm:dark:block">
+          <div className="absolute inset-0 pointer-events-none hidden dark:block">
             {[...Array(5)].map((_, i) => (
               <motion.div
                 key={`dark-heart-${i}`}
