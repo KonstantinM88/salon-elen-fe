@@ -490,12 +490,14 @@ function ServiceDetailModal({
   }, [onClose]);
 
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-      className="fixed inset-0 z-[90] flex items-start justify-center bg-black/75 sm:bg-black/50 backdrop-blur-0 sm:backdrop-blur-sm" onClick={onClose}>
+    <motion.div
+      className="fixed inset-0 z-[90] flex items-start justify-center bg-white/95 dark:bg-black/75 sm:bg-black/50 sm:dark:bg-black/50 backdrop-blur-0 sm:backdrop-blur-sm"
+      onClick={onClose}
+    >
       <motion.div
-        initial={{ opacity: 0, y: 100 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 100 }}
+        initial={{ y: 100 }} animate={{ y: 0 }} exit={{ y: 100 }}
         transition={{ type: "spring", damping: 25, stiffness: 300 }}
-        className="relative w-full sm:max-w-lg md:max-w-2xl max-h-[92vh] sm:max-h-[90vh] overflow-hidden bg-white dark:bg-transparent sm:rounded-3xl rounded-t-3xl shadow-2xl border border-rose-200/80 dark:border-rose-500/60 sm:border-rose-200/50 sm:dark:border-rose-500/30"
+        className="relative w-full sm:max-w-lg md:max-w-2xl max-h-[92vh] sm:max-h-[90vh] overflow-hidden bg-white dark:bg-transparent sm:rounded-3xl rounded-t-3xl shadow-2xl border border-rose-200/80 dark:border-rose-500/60 sm:border-rose-200/50 sm:dark:border-rose-500/30 transform-gpu will-change-transform"
         onClick={(e) => e.stopPropagation()}>
 
         {/* Тонкая маска сверху для мобильной тёмной темы (убирает краткий "просвет") */}
