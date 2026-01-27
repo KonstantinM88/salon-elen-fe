@@ -495,7 +495,7 @@ function ServiceDetailModal({
       <motion.div
         initial={{ opacity: 0, y: 100 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 100 }}
         transition={{ type: "spring", damping: 25, stiffness: 300 }}
-        className="relative w-full sm:max-w-lg md:max-w-2xl max-h-[92vh] sm:max-h-[90vh] overflow-hidden bg-white dark:bg-[#0b0b16] sm:rounded-3xl rounded-t-3xl shadow-2xl border border-rose-200/50 dark:border-rose-500/30"
+        className="relative w-full sm:max-w-lg md:max-w-2xl max-h-[92vh] sm:max-h-[90vh] overflow-hidden bg-white dark:bg-transparent sm:rounded-3xl rounded-t-3xl shadow-2xl border border-rose-200/50 dark:border-rose-500/30"
         onClick={(e) => e.stopPropagation()}>
         
         {/* ====== КРАСИВЫЙ АНИМИРОВАННЫЙ ФОН ДЛЯ ТЁМНОЙ ТЕМЫ ====== */}
@@ -565,7 +565,7 @@ function ServiceDetailModal({
               )}
             </div>
 
-            <div className="relative p-4 sm:p-6 sm:-mt-6 bg-white dark:bg-[#0b0b16] sm:bg-transparent sm:dark:bg-transparent">
+            <div className="relative p-4 sm:p-6 sm:-mt-6 bg-white dark:bg-gradient-to-b dark:from-rose-950/90 dark:via-slate-950/95 dark:to-purple-950/90 sm:bg-transparent sm:dark:bg-transparent">
               <h2 className="text-2xl sm:text-3xl font-bold text-zinc-800 dark:text-white mb-4 pr-8" style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
                 {service.name}
               </h2>
