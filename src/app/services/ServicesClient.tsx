@@ -792,6 +792,7 @@ function ServiceCard({
               sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
               priority={isPriority}
               loading={isPriority ? "eager" : "lazy"}
+              fetchPriority={isPriority ? "high" : "auto"}
             />
           ) : (
             <div
