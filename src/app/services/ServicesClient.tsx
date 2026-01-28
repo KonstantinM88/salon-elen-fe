@@ -308,7 +308,8 @@ function ServiceCard({
   return (
     <motion.div
       initial={{ opacity: 0, y: 18 }}
-      animate={{ opacity: 1, y: 0 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, amount: 0.2 }}
       transition={{ duration: 0.4, delay: index * 0.04 }}
       className="group"
     >
@@ -610,13 +611,17 @@ export default function ServicesClient({ categories, locale }: Props) {
           </div>
         </section>
 
-        <section className="py-8 sm:py-12 lg:py-16 relative">
+        <section
+          className="py-8 sm:py-12 lg:py-16 relative"
+          style={{ contentVisibility: "auto", containIntrinsicSize: "1px 1200px" }}
+        >
           <div className="container mx-auto px-4">
             {filteredCategories.map((category, catIndex) => (
               <motion.div
                 key={category.id}
                 initial={{ opacity: 0, y: 18 }}
-                animate={{ opacity: 1, y: 0 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, amount: 0.2 }}
                 transition={{ duration: 0.5, delay: catIndex * 0.08 }}
                 className="mb-12 sm:mb-16 last:mb-0"
               >
