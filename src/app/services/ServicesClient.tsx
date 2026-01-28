@@ -306,13 +306,7 @@ function ServiceCard({
   const imageUrl = service.cover || service.gallery[0]?.image;
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 18 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, amount: 0.2 }}
-      transition={{ duration: 0.4, delay: index * 0.04 }}
-      className="group"
-    >
+    <motion.div initial={false} className="group">
       <div
         onClick={onOpenDetail}
         className="relative overflow-hidden rounded-2xl sm:rounded-3xl cursor-pointer bg-white dark:bg-zinc-900/80 border-2 border-rose-200/70 dark:border-white/10 shadow-[0_8px_30px_-12px_rgba(244,63,94,0.25)] dark:shadow-[0_18px_55px_-28px_rgba(0,0,0,0.75)] hover:shadow-[0_20px_50px_-15px_rgba(244,63,94,0.35)] dark:hover:shadow-[0_25px_60px_-20px_rgba(0,0,0,0.85)] hover:border-rose-300 dark:hover:border-white/20 transition-all duration-500 sm:active:scale-[0.98] sm:hover:-translate-y-2"
@@ -616,10 +610,7 @@ export default function ServicesClient({ categories, locale }: Props) {
             {filteredCategories.map((category, catIndex) => (
               <motion.div
                 key={category.id}
-                initial={{ opacity: 0, y: 18 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, amount: 0.2 }}
-                transition={{ duration: 0.5, delay: catIndex * 0.08 }}
+                initial={false}
                 className="mb-12 sm:mb-16 last:mb-0"
               >
                 <div className="flex items-center gap-3 sm:gap-4 mb-6 sm:mb-8">
