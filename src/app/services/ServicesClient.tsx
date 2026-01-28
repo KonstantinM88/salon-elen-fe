@@ -322,6 +322,7 @@ function ServiceCard({
               fill
               className="object-cover transition-transform duration-700 group-hover:scale-105"
               sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+              quality={60}
               priority={isPriority}
               loading={isPriority ? "eager" : "lazy"}
               fetchPriority={isPriority ? "high" : "auto"}
@@ -648,7 +649,7 @@ export default function ServicesClient({ categories, locale }: Props) {
                         }
                         translations={translations}
                         locale={locale}
-                        isPriority={currentGlobalIndex < 3}
+                        isPriority={currentGlobalIndex < 1}
                       />
                     );
                   })}
