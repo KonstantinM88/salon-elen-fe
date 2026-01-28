@@ -611,10 +611,7 @@ export default function ServicesClient({ categories, locale }: Props) {
           </div>
         </section>
 
-        <section
-          className="py-8 sm:py-12 lg:py-16 relative"
-          style={{ contentVisibility: "auto", containIntrinsicSize: "1px 1200px" }}
-        >
+        <section className="py-8 sm:py-12 lg:py-16 relative">
           <div className="container mx-auto px-4">
             {filteredCategories.map((category, catIndex) => (
               <motion.div
