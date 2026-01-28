@@ -131,6 +131,8 @@ export default function ServiceDetailModal({
                 fill
                 className="object-cover"
                 sizes="(max-width: 1024px) 100vw, 50vw"
+                // важно:
+                unoptimized
                 priority
                 loading="eager"
                 fetchPriority="high"

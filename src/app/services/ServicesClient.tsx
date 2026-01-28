@@ -723,7 +723,7 @@ export default function ServicesClient({ categories, locale }: Props) {
                         onPrefetch={prefetchServiceModal}
                         translations={translations}
                         locale={locale}
-                        isPriority={currentGlobalIndex < 6}
+                        isPriority={currentGlobalIndex < 2}
                       />
                     );
                   })}
