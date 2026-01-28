@@ -8,7 +8,7 @@ const nextConfig: NextConfig = {
     formats: ['image/avif', 'image/webp'],
     
     // Размеры для srcset
-    deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048],
+    deviceSizes: [320, 360, 420, 480, 640, 750, 828, 1080, 1200, 1920, 2048],
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
     
     // Кеширование на 30 дней
