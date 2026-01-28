@@ -533,7 +533,7 @@ function ServiceDetailModal({
         animate={{ y: 0, opacity: 1 }}
         exit={{ y: 100, opacity: 0 }}
         transition={{ type: "spring", damping: 25, stiffness: 300 }}
-        className="relative w-full lg:w-auto lg:max-w-5xl xl:max-w-6xl max-h-[92vh] lg:max-h-[85vh] lg:mx-4 overflow-hidden bg-white dark:bg-slate-950 rounded-t-3xl lg:rounded-3xl shadow-2xl border border-rose-200/50 dark:border-rose-500/30 transform-gpu will-change-transform"
+        className="relative w-full lg:w-auto lg:max-w-5xl xl:max-w-6xl h-screen min-h-screen max-h-screen lg:h-auto lg:max-h-[85vh] lg:mx-4 overflow-hidden bg-white dark:bg-slate-950 rounded-t-3xl lg:rounded-3xl shadow-2xl border border-rose-200/50 dark:border-rose-500/30 transform-gpu will-change-transform"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="absolute inset-0 hidden dark:block overflow-hidden rounded-t-3xl lg:rounded-3xl">
@@ -565,7 +565,7 @@ function ServiceDetailModal({
             </div>
           ))}
         </div>
-        <div className="relative z-10 flex flex-col lg:flex-row h-full max-h-[92vh] lg:max-h-[85vh]">
+        <div className="relative z-10 flex flex-col lg:flex-row h-full max-h-screen lg:max-h-[85vh]">
           <div className="lg:hidden flex justify-center pt-3 pb-1 flex-shrink-0">
             <div className="w-10 h-1 rounded-full bg-rose-300 dark:bg-rose-400/50" />
           </div>
