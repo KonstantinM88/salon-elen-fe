@@ -472,7 +472,7 @@ export default function SiteFooter(): React.JSX.Element {
                     glowClass="from-sky-400 via-indigo-400 to-fuchsia-500"
                     ringShadowClass="shadow-[0_0_16px_rgba(129,140,248,0.8)]"
                   />
-                  info@salon-elen.de
+                  elen69@web.de
                 </a>
               </div>
             </div>
