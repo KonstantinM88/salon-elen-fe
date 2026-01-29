@@ -92,12 +92,12 @@ export default function SiteFooter() {
             <ul className="space-y-2 text-sm">
               <li className="flex items-start gap-2.5">
                 <MapPin className="mt-0.5 h-4 w-4 text-sky-400" />
-                <span>ул. Примерная, 10, Киев</span>
+                <span>06114, Halle Saale Lessingstrasse 37.</span>
               </li>
               <li className="flex items-center gap-2.5">
                 <Phone className="h-4 w-4 text-emerald-400" />
-                <a href="tel:+380000000000" className="link">
-                  +38 (000) 000-00-00
+                <a href="tel:+491778995106" className="link">
+                  +49 (177) 899-51-06
                 </a>
               </li>
               <li className="flex items-center gap-2.5">

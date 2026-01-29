@@ -205,7 +205,7 @@ ${t.duration} ${duration} ${t.duration_minutes}
 ${t.appointment_id} ${appointmentId}
 
 ${t.address} ${t.location}
-${t.contacts} https://salon-elen.de
+${t.contacts} https://permanent-halle.de
 ${t.phone} 0177-899-5106
 
 ${t.reschedule_notice}
@@ -322,7 +322,7 @@ export function createAppleCalendarICSContent(params: {
     `${t.address}`,
     t.location,
     '',
-    `${t.contacts} https://salon-elen.de`,
+    `${t.contacts} https://permanent-halle.de`,
     `${t.phone} +49 177 899 5106`,
     '',
     t.reschedule_notice,

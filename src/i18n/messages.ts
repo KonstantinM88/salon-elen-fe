@@ -932,7 +932,7 @@ const ruMessages: BaseMessages = {
     "Мы создаём атмосферу расслабления и красоты, используя профессиональную косметику и современные методики ухода.",
 
   footer_location_section: "Наш адрес",
-  footer_address_label: "Leipziger Straße 70, Halle (Saale)",
+  footer_address_label: "Lessingstrasse 37, Halle (Saale)",
 
   footer_hours_label: "График работы",
   footer_hours_weekdays: "Пн–Пт: 10:00 – 19:00",
@@ -1856,7 +1856,7 @@ const deMessages: BaseMessages = {
     "Wir schaffen eine entspannte Atmosphäre und bieten professionelle Pflege mit hochwertigen Produkten und modernen Techniken.",
 
   footer_location_section: "Unsere Adresse",
-  footer_address_label: "Leipziger Straße 70, Halle (Saale)",
+  footer_address_label: "Lessingstrasse 37, Halle (Saale)",
 
   footer_hours_label: "Öffnungszeiten",
   footer_hours_weekdays: "Mo–Fr: 10:00 – 19:00",
@@ -2777,7 +2777,7 @@ const enMessages: BaseMessages = {
     "We create an atmosphere of comfort and beauty using professional cosmetics and modern care techniques.",
 
   footer_location_section: "Our address",
-  footer_address_label: "Leipziger Straße 70, Halle (Saale)",
+  footer_address_label: "Lessingstrasse 37, Halle (Saale)",
 
   footer_hours_label: "Opening hours",
   footer_hours_weekdays: "Mon–Fri: 10:00 – 19:00",

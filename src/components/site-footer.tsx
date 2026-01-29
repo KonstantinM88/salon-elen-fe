@@ -179,14 +179,14 @@ const socials: SocialItem[] = [
 
 const messengers: MessengerItem[] = [
   {
-    href: "mailto:info@salon-elen.de",
+    href: "mailto:elen69@web.de",
     labelKey: "footer_messenger_email",
     icon: Mail,
     bgClass: "from-sky-500 via-emerald-400 to-emerald-500",
     ringClass: "ring-emerald-300/70",
   },
   {
-    href: "tel:+495554443322",
+    href: "tel:+491778995106",
     labelKey: "footer_messenger_call",
     icon: Phone,
     bgClass: "from-emerald-400 via-teal-400 to-sky-500",
@@ -317,7 +317,7 @@ export default function SiteFooter(): React.JSX.Element {
               <div className="inline-flex items-center gap-2 rounded-full border border-emerald-400/40 bg-emerald-500/10 px-2.5 py-1 text-[11px] font-medium text-emerald-100 shadow-[0_0_16px_rgba(34,197,94,0.5)] backdrop-blur">
                 <Sparkles className="h-3.5 w-3.5 text-emerald-300" />
                 <span className="uppercase tracking-[0.18em]">
-                  Salon Elen • Halle (Saale)
+                  Salon Elen • Halle (Saale) Lessingstrasse 37.
                 </span>
               </div>
 
@@ -425,7 +425,7 @@ export default function SiteFooter(): React.JSX.Element {
                   ringShadowClass="shadow-[0_0_16px_rgba(56,189,248,0.8)]"
                 />
                 <div>
-                  <p>Halle (Saale)</p>
+                  <p>Halle (Saale) Lessingstrasse 37.</p>
                   <p className="text-xs text-slate-300">
                     {t("footer_about_description")}
                   </p>
