@@ -8,7 +8,9 @@
 
 /* ============== BASE ============== */
 @layer base {
-  html, body { @apply h-full; }
+  /*html, body { @apply h-full; } */
+  html { text-rendering: optimizeLegibility; }
+  body { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
 
   /* системные селекты в тёмной теме */
   .dark select { color-scheme: dark; }

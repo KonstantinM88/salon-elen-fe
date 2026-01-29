@@ -456,14 +456,24 @@ function ServiceCard({
           </div>
 
           <div className="relative z-10">
-            <h3 className="text-base sm:text-lg font-bold text-zinc-800 dark:text-zinc-100 mb-1.5 line-clamp-2 group-hover:text-rose-600 dark:group-hover:text-rose-200 transition-colors font-playfair">
+            <h3 className="text-base sm:text-lg font-playfair font-semibold tracking-tight text-zinc-800 dark:text-zinc-100 mb-1.5 line-clamp-2 group-hover:text-rose-600 dark:group-hover:text-rose-200 transition-colors">
               {service.name}
             </h3>
 
+            
+            
+            {/* <h3 className="text-base sm:text-lg font-bold text-zinc-800 dark:text-zinc-100 mb-1.5 line-clamp-2 group-hover:text-rose-600 dark:group-hover:text-rose-200 transition-colors font-playfair">
+              {service.name}
+            </h3> */}
+
             {service.description && (
-              <p className="text-zinc-600 dark:text-zinc-300 text-xs sm:text-sm line-clamp-2 mb-3">
-                {service.description}
+              <p className="font-cormorant text-sm sm:text-base leading-snug text-zinc-600 dark:text-zinc-300 line-clamp-2 mb-3">
+               {service.description}
               </p>
+
+              // <p className="text-zinc-600 dark:text-zinc-300 text-xs sm:text-sm line-clamp-2 mb-3">
+              //   {service.description}
+              // </p>
             )}
 
             <div className="flex items-center gap-3 mb-4">
@@ -605,16 +615,29 @@ export default function ServicesClient({ categories, locale }: Props) {
                 className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/90 dark:bg-white/10 backdrop-blur border border-rose-200 dark:border-white/10 shadow-lg shadow-rose-200/30 mb-4 sm:mb-6"
               >
                 <Sparkles className="w-4 h-4 text-rose-500 dark:text-rose-200" />
-                <span className="text-sm font-medium text-rose-600 dark:text-rose-200">
-                  Premium Beauty Salon
+               <span className="text-sm font-medium tracking-wide text-rose-600 dark:text-rose-200">
+                 Premium Beauty Salon
                 </span>
+
+               
+               
+                {/* <span className="text-sm font-medium text-rose-600 dark:text-rose-200">
+                  Premium Beauty Salon
+                </span> */}
               </motion.div>
 
-              <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold mb-4 sm:mb-5 font-playfair">
+              <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-playfair font-semibold tracking-tight leading-[1.05] mb-4 sm:mb-5">
+            <span className="bg-gradient-to-r from-rose-500 via-pink-500 to-rose-600 bg-clip-text text-transparent drop-shadow-sm">
+              {translations.title}
+              </span>
+            </h1>
+
+
+              {/* <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold mb-4 sm:mb-5 font-playfair">
                 <span className="bg-gradient-to-r from-rose-500 via-pink-500 to-rose-600 bg-clip-text text-transparent drop-shadow-sm">
                   {translations.title}
                 </span>
-              </h1>
+              </h1> */}
 
               <div className="flex justify-center items-center gap-3 mb-4">
                 <div className="w-12 h-px bg-gradient-to-r from-transparent via-rose-400 to-transparent" />
@@ -625,9 +648,13 @@ export default function ServicesClient({ categories, locale }: Props) {
                 <div className="w-12 h-px bg-gradient-to-r from-transparent via-rose-400 to-transparent" />
               </div>
 
-              <p className="text-sm sm:text-base md:text-lg text-zinc-600 dark:text-zinc-200/90 mb-6 sm:mb-8 px-4 font-cormorant font-medium">
+                <p className="font-cormorant text-base sm:text-lg md:text-xl leading-relaxed text-zinc-700 dark:text-zinc-200/90 mb-6 sm:mb-8 px-4 font-medium">
+                 {translations.subtitle}
+                </p>
+                
+              {/* <p className="text-sm sm:text-base md:text-lg text-zinc-600 dark:text-zinc-200/90 mb-6 sm:mb-8 px-4 font-cormorant font-medium">
                 {translations.subtitle}
-              </p>
+              </p> */}
 
               <Link
                 href="/booking"
