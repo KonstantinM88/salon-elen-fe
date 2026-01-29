@@ -453,7 +453,7 @@ export default function SiteFooter(): React.JSX.Element {
                   {t("footer_contacts_title")}
                 </p>
                 <a
-                  href="tel:+495554443322"
+                  href="tel:+491778995106"
                   className="flex items-center gap-2 text-slate-300 transition hover:text-emerald-300"
                 >
                   <RoundIcon
@@ -461,10 +461,10 @@ export default function SiteFooter(): React.JSX.Element {
                     glowClass="from-emerald-400 via-teal-400 to-sky-400"
                     ringShadowClass="shadow-[0_0_16px_rgba(45,212,191,0.9)]"
                   />
-                  +49 555 444 33 22
+                  +49 177 899 5106
                 </a>
                 <a
-                  href="mailto:info@salon-elen.de"
+                  href="mailto:elen69@web.de"
                   className="flex items-center gap-2 text-slate-300 transition hover:text-sky-300"
                 >
                   <RoundIcon
