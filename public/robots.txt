@@ -1,0 +1,9 @@
+# *
+User-agent: *
+Allow: /
+
+# Host
+Host: https://permanent-halle.de
+
+# Sitemaps
+Sitemap: https://permanent-halle.de/sitemap.xml
