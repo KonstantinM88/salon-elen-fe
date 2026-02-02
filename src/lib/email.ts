@@ -213,7 +213,7 @@ function getEmailBody(
       break;
   }
 
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://salon-elen.com';
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://permanent-halle.de';
 
   return `
     <!DOCTYPE html>

@@ -1664,8 +1664,8 @@ booking_payment_paypal_footer: "Платежи обрабатываются че
   email_status_details_datetime_label: "Дата и время:",
   email_status_cta_button: "📅 Записаться снова",
   email_status_footer_tagline: "Salon Elen - Ваша красота, наша забота 💖",
-  email_status_footer_address: "ул. Примерная, 10, Киев",
-  email_status_footer_contacts: "📞 +38 (000) 000-00-00 | 📧 hello@salon-elen.com",
+  email_status_footer_address: "Lessingstrasse 37, 06114 Halle Saale",
+  email_status_footer_contacts: "📞 +49 177 899 51 06 | 📧 elen69@web.de",
   email_status_footer_note:
     "Это автоматическое уведомление. Пожалуйста, не отвечайте на это письмо.",
   email_test_subject: "🧪 Тестовое письмо - Salon Elen",
@@ -2602,7 +2602,7 @@ const deMessages: BaseMessages = {
   email_status_cta_button: "📅 Erneut buchen",
   email_status_footer_tagline: "Salon Elen - Ihre Schönheit, unsere Fürsorge 💖",
   email_status_footer_address: "Lessingstrasse 37, 06114 Halle Saale",
-  email_status_footer_contacts: "📞 +49 177 899 51 06 | 📧 hello@salon-elen.com",
+  email_status_footer_contacts: "📞 +49 177 899 51 06 | 📧 elen69@web.de",
   email_status_footer_note:
     "Dies ist eine automatische Benachrichtigung. Bitte antworten Sie nicht auf diese E-Mail.",
   email_test_subject: "🧪 Test-E-Mail - Salon Elen",
@@ -3517,8 +3517,8 @@ const enMessages: BaseMessages = {
   email_status_details_datetime_label: "Date and time:",
   email_status_cta_button: "📅 Book again",
   email_status_footer_tagline: "Salon Elen - Your beauty, our care 💖",
-  email_status_footer_address: "Example St 10, Kyiv",
-  email_status_footer_contacts: "📞 +38 (000) 000-00-00 | 📧 hello@salon-elen.com",
+  email_status_footer_address: "Lessingstrasse 37, 06114 Halle Saale",
+  email_status_footer_contacts: "📞 +49 177 899 51 06 | 📧 elen69@web.de",
   email_status_footer_note:
     "This is an automated notification. Please do not reply to this email.",
   email_test_subject: "🧪 Test email - Salon Elen",

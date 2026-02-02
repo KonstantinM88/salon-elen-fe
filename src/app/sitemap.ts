@@ -1,6 +1,8 @@
 import { prisma } from "@/lib/db";
 import type { MetadataRoute } from "next";
 
+export const dynamic = "force-dynamic";
+
 const BASE_URL = "https://permanent-halle.de";
 const LOCALES = ['de', 'en', 'ru'] as const;
 

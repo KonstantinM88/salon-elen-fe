@@ -186,6 +186,7 @@ export async function POST(req: NextRequest) {
           phone: phoneStr, // ✅ Номер телефона от пользователя (обязательный)!
           birthDate: birthdayDate, // ✅ Дата рождения (опциональная) — поле модели Appointment
           status: "PENDING",
+          locale: quickReg.locale || 'de',
         },
       });
 
