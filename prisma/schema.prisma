@@ -196,6 +196,8 @@ model Appointment {
   phone                String
   email                String?
   notes                String?
+  /// Язык клиента при бронировании (для email/sms уведомлений): "de", "ru", "en"
+  locale               String?                @default("de")
   status               AppointmentStatus      @default(PENDING)
   createdAt            DateTime               @default(now())
   clientId             String?
@@ -366,6 +368,8 @@ model BookingDraft {
   birthDate    DateTime?
   referral     String?
   notes        String?
+  /// Язык клиента при бронировании: "de", "ru", "en"
+  locale       String?   @default("de")
   createdAt    DateTime  @default(now())
 
   @@index([serviceId])
@@ -417,6 +421,8 @@ model GoogleQuickRegistration {
   createdAt     DateTime  @default(now())
   birthDate     DateTime?
   customerName  String?
+  /// Язык клиента при бронировании: "de", "ru", "en"
+  locale        String?   @default("de")
 
   @@index([state])
   @@index([verified])
@@ -439,6 +445,8 @@ model SmsPhoneRegistration {
   birthDate     DateTime?
   verified      Boolean      @default(false)
   appointmentId String?      @unique
+  /// Язык клиента при бронировании: "de", "ru", "en"
+  locale        String?      @default("de")
   expiresAt     DateTime
   createdAt     DateTime     @default(now())
   appointment   Appointment? @relation(fields: [appointmentId], references: [id])
@@ -464,6 +472,8 @@ model TelegramVerification {
   email          String?
   birthDate      DateTime?
   appointmentId  String?      @unique
+  /// Язык клиента при бронировании: "de", "ru", "en"
+  locale         String?      @default("de")
   createdAt      DateTime     @default(now())
   expiresAt      DateTime
   appointment    Appointment? @relation(fields: [appointmentId], references: [id])
@@ -561,3 +571,4 @@ model AdminOTP {
   @@index([expiresAt])
   @@map("admin_otp")
 }
+

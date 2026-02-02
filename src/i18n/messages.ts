@@ -2601,8 +2601,8 @@ const deMessages: BaseMessages = {
   email_status_details_datetime_label: "Datum und Uhrzeit:",
   email_status_cta_button: "📅 Erneut buchen",
   email_status_footer_tagline: "Salon Elen - Ihre Schönheit, unsere Fürsorge 💖",
-  email_status_footer_address: "Beispielstraße 10, Kiew",
-  email_status_footer_contacts: "📞 +38 (000) 000-00-00 | 📧 hello@salon-elen.com",
+  email_status_footer_address: "Lessingstrasse 37, 06114 Halle Saale",
+  email_status_footer_contacts: "📞 +49 177 899 51 06 | 📧 hello@salon-elen.com",
   email_status_footer_note:
     "Dies ist eine automatische Benachrichtigung. Bitte antworten Sie nicht auf diese E-Mail.",
   email_test_subject: "🧪 Test-E-Mail - Salon Elen",
