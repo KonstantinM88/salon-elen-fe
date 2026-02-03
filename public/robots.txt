@@ -4,6 +4,7 @@ Allow: /
 
 Disallow: /admin/
 Disallow: /api/
+Disallow: /booking/
 
 Sitemap: https://permanent-halle.de/sitemap.xml
 

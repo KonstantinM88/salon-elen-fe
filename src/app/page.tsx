@@ -4,8 +4,6 @@ import HomePage from "@/components/home-page";
 import type { Metadata } from "next";
 import { cookies } from "next/headers";
 
-// Главная страница зависит от query (?lang=..) и cookie (locale), поэтому фиксируем
-// динамический рендер, чтобы Next не пытался "статически" нормализовать alternates/hreflang.
 export const dynamic = "force-dynamic";
 
 type KnownType = "ARTICLE" | "NEWS" | "PROMO";
@@ -69,28 +67,27 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const locale = await resolveLocale(searchParams);
 
-  // Важно: на главной Next иногда "схлопывает" строки canonical/hreflang.
-  // Поэтому здесь отдаём абсолютные URL (URL objects), чтобы query (?lang=) не терялся.
-  const base =
-    process.env.NEXT_PUBLIC_SITE_URL?.trim() || "https://permanent-halle.de";
-
-  const de = new URL("/", base);
-  const ru = new URL("/?lang=ru", base);
-  const en = new URL("/?lang=en", base);
-
-  const canonical = locale === "de" ? de : locale === "ru" ? ru : en;
-
+  // Важно: canonical/hreflang для главной страницы делаем вручную через app/head.tsx (План Б),
+  // т.к. Next на "/" выкидывает query и "склеивает" alternates.
   return {
     title: metaTitles[locale],
     description: metaDescriptions[locale],
-    alternates: {
-      canonical,
-      languages: {
-        de,
-        ru,
-        en,
-        "x-default": de,
-      },
+    // Можно оставить OG/Twitter — они у тебя работают корректно
+    openGraph: {
+      title: metaTitles[locale],
+      description: metaDescriptions[locale],
+      images: ["https://permanent-halle.de/images/hero.webp"],
+      type: "website",
+      url:
+        locale === "de"
+          ? "https://permanent-halle.de/"
+          : `https://permanent-halle.de/?lang=${locale}`,
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: metaTitles[locale],
+      description: metaDescriptions[locale],
+      images: ["https://permanent-halle.de/images/hero.webp"],
     },
   };
 }
@@ -116,6 +113,130 @@ export default async function Page() {
   const latest = await getLatestArticles();
   return <HomePage latest={latest} />;
 }
+
+
+
+
+
+//--------План Б
+// // src/app/page.tsx
+// import { prisma } from "@/lib/db";
+// import HomePage from "@/components/home-page";
+// import type { Metadata } from "next";
+// import { cookies } from "next/headers";
+
+// // Главная страница зависит от query (?lang=..) и cookie (locale), поэтому фиксируем
+// // динамический рендер, чтобы Next не пытался "статически" нормализовать alternates/hreflang.
+// export const dynamic = "force-dynamic";
+
+// type KnownType = "ARTICLE" | "NEWS" | "PROMO";
+
+// type ArticleItem = {
+//   id: string;
+//   slug: string;
+//   title: string;
+//   excerpt: string | null;
+//   cover: string | null;
+//   type: KnownType;
+// };
+
+// // ===== SEO / i18n helpers =====
+// const SUPPORTED = ["de", "ru", "en"] as const;
+// type Locale = (typeof SUPPORTED)[number];
+
+// type SearchParams = Record<string, string | string[] | undefined>;
+// type SearchParamsPromise = Promise<SearchParams>;
+
+// function isLocale(v: unknown): v is Locale {
+//   return typeof v === "string" && (SUPPORTED as readonly string[]).includes(v);
+// }
+
+// async function getLangFromSearchParams(
+//   searchParams?: SearchParamsPromise,
+// ): Promise<string | undefined> {
+//   const sp = searchParams ? await searchParams : undefined;
+//   const raw = sp?.lang;
+//   if (Array.isArray(raw)) return raw[0];
+//   return raw;
+// }
+
+// async function resolveLocale(searchParams?: SearchParamsPromise): Promise<Locale> {
+//   const urlLang = await getLangFromSearchParams(searchParams);
+//   if (isLocale(urlLang)) return urlLang;
+
+//   const cookieStore = await cookies();
+//   const cookieLocale = cookieStore.get("locale")?.value;
+//   if (isLocale(cookieLocale)) return cookieLocale;
+
+//   return "de";
+// }
+
+// const metaTitles: Record<Locale, string> = {
+//   de: "Salon Elen",
+//   ru: "Salon Elen — салон красоты в Halle",
+//   en: "Salon Elen — beauty salon in Halle",
+// };
+
+// const metaDescriptions: Record<Locale, string> = {
+//   de: "Kosmetiksalon in Halle – Leistungen, Preise, Kontakt",
+//   ru: "Салон красоты в Halle: услуги, цены, контакты. Онлайн-запись.",
+//   en: "Beauty salon in Halle: services, prices, contacts. Online booking.",
+// };
+
+// export async function generateMetadata({
+//   searchParams,
+// }: {
+//   searchParams?: SearchParamsPromise;
+// }): Promise<Metadata> {
+//   const locale = await resolveLocale(searchParams);
+
+//   // Важно: на главной Next иногда "схлопывает" строки canonical/hreflang.
+//   // Поэтому здесь отдаём абсолютные URL (URL objects), чтобы query (?lang=) не терялся.
+//   const base =
+//     process.env.NEXT_PUBLIC_SITE_URL?.trim() || "https://permanent-halle.de";
+
+//   const de = new URL("/", base);
+//   const ru = new URL("/?lang=ru", base);
+//   const en = new URL("/?lang=en", base);
+
+//   const canonical = locale === "de" ? de : locale === "ru" ? ru : en;
+
+//   return {
+//     title: metaTitles[locale],
+//     description: metaDescriptions[locale],
+//     alternates: {
+//       canonical,
+//       languages: {
+//         de,
+//         ru,
+//         en,
+//         "x-default": de,
+//       },
+//     },
+//   };
+// }
+
+// async function getLatestArticles(): Promise<ArticleItem[]> {
+//   const rows = await prisma.article.findMany({
+//     where: { publishedAt: { not: null } },
+//     orderBy: [{ createdAt: "desc" }],
+//     take: 3,
+//   });
+
+//   return rows.map((r) => ({
+//     id: r.id,
+//     slug: r.slug,
+//     title: r.title,
+//     excerpt: r.excerpt,
+//     cover: r.cover,
+//     type: (r.type ?? "NEWS") as KnownType,
+//   }));
+// }
+
+// export default async function Page() {
+//   const latest = await getLatestArticles();
+//   return <HomePage latest={latest} />;
+// }
 
 
 
