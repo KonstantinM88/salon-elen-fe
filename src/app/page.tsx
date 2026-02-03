@@ -1,3 +1,4 @@
+// ------test3 если не сработает удалить------
 // src/app/page.tsx
 import { prisma } from "@/lib/db";
 import HomePage from "@/components/home-page";
@@ -17,7 +18,6 @@ type ArticleItem = {
   type: KnownType;
 };
 
-// ===== SEO / i18n helpers =====
 const SUPPORTED = ["de", "ru", "en"] as const;
 type Locale = (typeof SUPPORTED)[number];
 
@@ -40,7 +40,6 @@ async function getLangFromSearchParams(
 }
 
 async function resolveLocale(searchParams?: SearchParamsPromise): Promise<Locale> {
-  // 1) query param > 2) cookie > 3) default
   const urlLang = await getLangFromSearchParams(searchParams);
   if (isLocale(urlLang)) return urlLang;
 
@@ -70,28 +69,18 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const locale = await resolveLocale(searchParams);
 
-  // Canonical URLs:
-  // - de: /
-  // - ru/en: /?lang=xx
+  // ✅ ВАЖНО: absolute canonical с query — это то, что тебе нужно для индексации
   const canonicalUrl =
     locale === "de" ? `${BASE_URL}/` : `${BASE_URL}/?lang=${locale}`;
 
   return {
-    // Лучше явно задать metadataBase, чем ставить null
-    metadataBase: new URL(BASE_URL),
-
     title: metaTitles[locale],
     description: metaDescriptions[locale],
 
+    // ✅ Оставляем ТОЛЬКО canonical.
+    // hreflang НЕ генерим из Next metadata, потому что он у тебя превращается в /
     alternates: {
       canonical: canonicalUrl,
-      // ✅ вернёт <link rel="alternate" hreflang="..."> в <head>
-      languages: {
-        de: `${BASE_URL}/`,
-        ru: `${BASE_URL}/?lang=ru`,
-        en: `${BASE_URL}/?lang=en`,
-        "x-default": `${BASE_URL}/`,
-      },
     },
 
     openGraph: {
@@ -99,7 +88,7 @@ export async function generateMetadata({
       description: metaDescriptions[locale],
       images: [`${BASE_URL}/images/hero.webp`],
       type: "website",
-      url: canonicalUrl,
+      // url НЕ ставим — чтобы Next не “нормализовал” снова
     },
 
     twitter: {
@@ -132,6 +121,7 @@ export default async function Page() {
   const latest = await getLatestArticles();
   return <HomePage latest={latest} />;
 }
+
 
 
 
