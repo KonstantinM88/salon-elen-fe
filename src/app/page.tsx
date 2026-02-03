@@ -17,7 +17,6 @@ type ArticleItem = {
   type: KnownType;
 };
 
-// ===== SEO / i18n helpers =====
 const SUPPORTED = ["de", "ru", "en"] as const;
 type Locale = (typeof SUPPORTED)[number];
 
@@ -69,7 +68,6 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const locale = await resolveLocale(searchParams);
 
-  // Используем СТРОКИ с явным путём, чтобы Next не "склеивал" query
   const canonicalUrl = locale === "de" 
     ? `${BASE_URL}/` 
     : `${BASE_URL}/?lang=${locale}`;
@@ -79,12 +77,7 @@ export async function generateMetadata({
     description: metaDescriptions[locale],
     alternates: {
       canonical: canonicalUrl,
-      languages: {
-        de: `${BASE_URL}/`,
-        ru: `${BASE_URL}/?lang=ru`,
-        en: `${BASE_URL}/?lang=en`,
-        "x-default": `${BASE_URL}/`,
-      },
+      // ❗ hreflang добавляется через HomeSeoTags компонент (Next.js баг с query params)
     },
     openGraph: {
       title: metaTitles[locale],
@@ -123,6 +116,7 @@ export default async function Page() {
   const latest = await getLatestArticles();
   return <HomePage latest={latest} />;
 }
+
 
 
 
