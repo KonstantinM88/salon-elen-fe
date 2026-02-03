@@ -1,0 +1,113 @@
+// src/app/layout.tsx
+import type { Metadata } from 'next';
+import { cookies, headers } from 'next/headers';
+import { Playfair_Display, Cormorant_Garamond } from 'next/font/google';
+import './globals.css';
+
+import SiteHeader from '@/components/site-header';
+import SiteFooter from '@/components/site-footer';
+import Providers from '@/app/providers';
+
+import { I18nProvider } from '@/i18n/I18nProvider';
+import { LocaleProvider } from '@/i18n/LocaleContext';
+import { DEFAULT_LOCALE, LOCALES, type Locale } from '@/i18n/locales';
+
+const playfair = Playfair_Display({
+  subsets: ['latin', 'cyrillic'],
+  weight: ['400', '500', '600', '700'],
+  display: 'swap',
+  variable: '--font-playfair',
+});
+
+const cormorant = Cormorant_Garamond({
+  subsets: ['latin', 'cyrillic'],
+  weight: ['400', '500', '600'],
+  display: 'swap',
+  variable: '--font-cormorant',
+});
+
+export const metadata: Metadata = {
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_SITE_URL ?? 'https://permanent-halle.de',
+  ),
+  title: 'Salon Elen',
+  description: 'Kosmetiksalon in Halle – Leistungen, Preise, Kontakt',
+  openGraph: { images: ['/images/hero.webp'] },
+  twitter: { images: ['/images/hero.webp'] },
+};
+
+const BASE_URL = 'https://permanent-halle.de';
+
+type RootLayoutProps = {
+  children: React.ReactNode;
+};
+
+export default async function RootLayout({ children }: RootLayoutProps) {
+  const cookieStore = await cookies();
+  const headersList = await headers();
+  
+  // Получаем pathname из middleware header
+  const pathname = headersList.get('x-pathname') || '/';
+  const fullUrl = headersList.get('x-url') || '';
+  
+  // Получаем ?lang= параметр из URL
+  let urlLang: Locale | undefined;
+  try {
+    if (fullUrl.includes('?')) {
+      const searchParams = new URLSearchParams(fullUrl.split('?')[1]);
+      const langParam = searchParams.get('lang') as Locale | null;
+      if (langParam && LOCALES.includes(langParam)) {
+        urlLang = langParam;
+      }
+    }
+  } catch {
+    // ignore
+  }
+  
+  // Приоритет: URL параметр > cookie > default
+  const cookieLocale = cookieStore.get('locale')?.value as Locale | undefined;
+  const initialLocale: Locale = 
+    (urlLang && LOCALES.includes(urlLang)) ? urlLang :
+    (cookieLocale && LOCALES.includes(cookieLocale)) ? cookieLocale : 
+    DEFAULT_LOCALE;
+
+  // Генерируем canonical URL (немецкая версия без ?lang=)
+  const cleanPath = pathname === '/' ? '' : pathname;
+  const canonicalUrl = `${BASE_URL}${cleanPath}`;
+  
+  // Генерируем hreflang URLs
+  const separator = cleanPath ? '?' : '?';
+  const hreflangDe = canonicalUrl;
+  const hreflangRu = `${canonicalUrl}${separator}lang=ru`;
+  const hreflangEn = `${canonicalUrl}${separator}lang=en`;
+
+  return (
+    <html lang={initialLocale} suppressHydrationWarning>
+      <head>
+        {/* ✅ SEO: Динамические canonical и hreflang */}
+        <link rel="canonical" href={canonicalUrl} />
+        <link rel="alternate" hrefLang="de" href={hreflangDe} />
+        <link rel="alternate" hrefLang="ru" href={hreflangRu} />
+        <link rel="alternate" hrefLang="en" href={hreflangEn} />
+        <link rel="alternate" hrefLang="x-default" href={hreflangDe} />
+      </head>
+      <body 
+        className={`
+          ${playfair.variable} 
+          ${cormorant.variable} 
+          bg-white text-gray-900 dark:bg-gray-900 dark:text-gray-100 antialiased
+        `}
+      >
+        <Providers>
+          <I18nProvider initialLocale={initialLocale}>
+            <LocaleProvider initialLocale={initialLocale}>
+              <SiteHeader />
+              <main>{children}</main>
+              <SiteFooter />
+            </LocaleProvider>
+          </I18nProvider>
+        </Providers>
+      </body>
+    </html>
+  );
+}

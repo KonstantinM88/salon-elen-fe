@@ -10,8 +10,8 @@ const LOCALES = ['de', 'en', 'ru'] as const;
 function createAlternates(path: string): Record<string, string> {
   return {
     de: `${BASE_URL}${path}`,
-    en: `${BASE_URL}${path}${path === '/' ? '' : '/'}?lang=en`,
-    ru: `${BASE_URL}${path}${path === '/' ? '' : '/'}?lang=ru`,
+    en: `${BASE_URL}${path}?lang=en`,
+    ru: `${BASE_URL}${path}?lang=ru`,
   };
 }
 
@@ -22,7 +22,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const staticPages = [
     { path: '/', priority: 1.0 },
     { path: '/services', priority: 0.9 },
-    { path: '/booking', priority: 0.9 },
+    { path: '/booking/services', priority: 0.9 },
     { path: '/prices', priority: 0.8 },
     { path: '/news', priority: 0.7 },
     { path: '/contacts', priority: 0.6 },
