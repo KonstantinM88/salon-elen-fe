@@ -1,86 +1,159 @@
 // src/i18n/I18nProvider.tsx
-'use client';
+"use client";
 
-import {
-  createContext,
-  useContext,
-  useEffect,
-  useMemo,
-  useState,
-  type ReactNode,
-} from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { DEFAULT_LOCALE, LOCALES, type Locale } from './locales';
+import React, { createContext, useContext, useMemo, useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
+import { DEFAULT_LOCALE, LOCALES, type Locale } from "./locales";
 
 type I18nContextValue = {
   locale: Locale;
-  setLocale: (next: Locale) => void;
+  setLocale: (locale: Locale) => void;
 };
 
-const I18nContext = createContext<I18nContextValue | undefined>(undefined);
+const I18nContext = createContext<I18nContextValue | null>(null);
 
-type I18nProviderProps = {
+function isLocale(v: unknown): v is Locale {
+  return typeof v === "string" && LOCALES.includes(v as Locale);
+}
+
+export function I18nProvider({
+  children,
+  initialLocale,
+}: {
+  children: React.ReactNode;
   initialLocale: Locale;
-  children: ReactNode;
-};
-
-export function I18nProvider({ initialLocale, children }: I18nProviderProps) {
+}) {
   const searchParams = useSearchParams();
-  // ✅ Читаем ?lang= из URL для SEO (Google будет индексировать ?lang=ru, ?lang=en)
-  const urlLang = searchParams?.get('lang') as Locale | null;
-  
-  // Приоритет: URL параметр > cookie > default
-  const safeInitial = (urlLang && LOCALES.includes(urlLang))
-    ? urlLang
-    : LOCALES.includes(initialLocale)
-      ? initialLocale
-      : DEFAULT_LOCALE;
+  const urlLang = searchParams.get("lang");
 
-  const [locale, setLocaleState] = useState<Locale>(safeInitial);
-  const router = useRouter();
+  const [locale, setLocaleState] = useState<Locale>(
+    isLocale(urlLang) ? (urlLang as Locale) : initialLocale,
+  );
 
-  // ✅ Обновляем locale если изменился URL параметр ?lang=
   useEffect(() => {
-    if (urlLang && LOCALES.includes(urlLang) && urlLang !== locale) {
-      setLocaleState(urlLang);
-      // Также обновляем cookie для consistency
-      const maxAgeSeconds = 60 * 60 * 24 * 365;
-      document.cookie = `locale=${urlLang}; path=/; max-age=${maxAgeSeconds}; SameSite=Lax`;
+    if (isLocale(urlLang) && urlLang !== locale) {
+      setLocaleState(urlLang as Locale);
     }
   }, [urlLang, locale]);
 
   const setLocale = (next: Locale) => {
     if (next === locale) return;
-    
+
     setLocaleState(next);
 
-    if (typeof document !== 'undefined') {
-      const maxAgeSeconds = 60 * 60 * 24 * 365; // 1 год
-      document.cookie = `locale=${next}; path=/; max-age=${maxAgeSeconds}; SameSite=Lax`;
-      
-      // Перезагружаем страницу чтобы Server Components получили новый cookie
-      window.location.reload();
+    if (typeof document !== "undefined" && typeof window !== "undefined") {
+      const maxAgeSeconds = 60 * 60 * 24 * 365;
+      const secure = window.location.protocol === "https:" ? "; Secure" : "";
+      document.cookie = `locale=${next}; path=/; max-age=${maxAgeSeconds}; SameSite=Lax${secure}`;
+
+      const url = new URL(window.location.href);
+      if (next === DEFAULT_LOCALE) {
+        url.searchParams.delete("lang");
+      } else {
+        url.searchParams.set("lang", next);
+      }
+      window.location.assign(url.toString());
     }
   };
 
-  const value: I18nContextValue = useMemo(
-    () => ({ locale, setLocale }),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [locale],
-  );
+  const value = useMemo<I18nContextValue>(() => ({ locale, setLocale }), [locale]);
 
-  return (
-    <I18nContext.Provider value={value}>{children}</I18nContext.Provider>
-  );
+  return <I18nContext.Provider value={value}>{children}</I18nContext.Provider>;
 }
 
 export function useI18n(): I18nContextValue {
   const ctx = useContext(I18nContext);
-  if (!ctx) {
-    throw new Error('useI18n must be used inside I18nProvider');
-  }
+  if (!ctx) throw new Error("useI18n must be used within I18nProvider");
   return ctx;
 }
+
+
+
+
+//---------03.02.26--------//
+// // src/i18n/I18nProvider.tsx
+// 'use client';
+
+// import {
+//   createContext,
+//   useContext,
+//   useEffect,
+//   useMemo,
+//   useState,
+//   type ReactNode,
+// } from 'react';
+// import { useRouter, useSearchParams } from 'next/navigation';
+// import { DEFAULT_LOCALE, LOCALES, type Locale } from './locales';
+
+// type I18nContextValue = {
+//   locale: Locale;
+//   setLocale: (next: Locale) => void;
+// };
+
+// const I18nContext = createContext<I18nContextValue | undefined>(undefined);
+
+// type I18nProviderProps = {
+//   initialLocale: Locale;
+//   children: ReactNode;
+// };
+
+// export function I18nProvider({ initialLocale, children }: I18nProviderProps) {
+//   const searchParams = useSearchParams();
+//   // ✅ Читаем ?lang= из URL для SEO (Google будет индексировать ?lang=ru, ?lang=en)
+//   const urlLang = searchParams?.get('lang') as Locale | null;
+  
+//   // Приоритет: URL параметр > cookie > default
+//   const safeInitial = (urlLang && LOCALES.includes(urlLang))
+//     ? urlLang
+//     : LOCALES.includes(initialLocale)
+//       ? initialLocale
+//       : DEFAULT_LOCALE;
+
+//   const [locale, setLocaleState] = useState<Locale>(safeInitial);
+//   const router = useRouter();
+
+//   // ✅ Обновляем locale если изменился URL параметр ?lang=
+//   useEffect(() => {
+//     if (urlLang && LOCALES.includes(urlLang) && urlLang !== locale) {
+//       setLocaleState(urlLang);
+//       // Также обновляем cookie для consistency
+//       const maxAgeSeconds = 60 * 60 * 24 * 365;
+//       document.cookie = `locale=${urlLang}; path=/; max-age=${maxAgeSeconds}; SameSite=Lax`;
+//     }
+//   }, [urlLang, locale]);
+
+//   const setLocale = (next: Locale) => {
+//     if (next === locale) return;
+    
+//     setLocaleState(next);
+
+//     if (typeof document !== 'undefined') {
+//       const maxAgeSeconds = 60 * 60 * 24 * 365; // 1 год
+//       document.cookie = `locale=${next}; path=/; max-age=${maxAgeSeconds}; SameSite=Lax`;
+      
+//       // Перезагружаем страницу чтобы Server Components получили новый cookie
+//       window.location.reload();
+//     }
+//   };
+
+//   const value: I18nContextValue = useMemo(
+//     () => ({ locale, setLocale }),
+//     // eslint-disable-next-line react-hooks/exhaustive-deps
+//     [locale],
+//   );
+
+//   return (
+//     <I18nContext.Provider value={value}>{children}</I18nContext.Provider>
+//   );
+// }
+
+// export function useI18n(): I18nContextValue {
+//   const ctx = useContext(I18nContext);
+//   if (!ctx) {
+//     throw new Error('useI18n must be used inside I18nProvider');
+//   }
+//   return ctx;
+// }
 
 
 
