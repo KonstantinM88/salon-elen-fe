@@ -1,0 +1,96 @@
+/* src/components/contactsMapEmbed.module.css */
+
+.wrap {
+  position: relative;
+  overflow: hidden;
+}
+
+.softBorder {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: 1rem;
+  border: 1px solid rgba(0,0,0,.06);
+}
+:global(.dark) .softBorder {
+  border-color: rgba(255,255,255,.10);
+}
+
+.sparkles {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: .55;
+  mix-blend-mode: screen;
+  background:
+    radial-gradient(900px circle at 12% 18%, rgba(255,193,7,.45), transparent 55%),
+    radial-gradient(900px circle at 92% 25%, rgba(236,72,153,.28), transparent 58%),
+    radial-gradient(900px circle at 40% 92%, rgba(56,189,248,.22), transparent 60%),
+    radial-gradient(1.2px 1.2px at 20% 25%, rgba(255,255,255,.9), transparent 60%),
+    radial-gradient(1.2px 1.2px at 60% 35%, rgba(255,255,255,.8), transparent 60%),
+    radial-gradient(1.2px 1.2px at 80% 65%, rgba(255,255,255,.85), transparent 60%),
+    radial-gradient(1.2px 1.2px at 30% 75%, rgba(255,255,255,.75), transparent 60%);
+  animation: sparkleFloat 10s ease-in-out infinite;
+}
+:global(.dark) .sparkles {
+  opacity: .35;
+  mix-blend-mode: lighten;
+  background:
+    radial-gradient(900px circle at 12% 18%, rgba(255,193,7,.18), transparent 60%),
+    radial-gradient(900px circle at 92% 25%, rgba(168,85,247,.16), transparent 60%),
+    radial-gradient(900px circle at 40% 92%, rgba(56,189,248,.12), transparent 60%),
+    radial-gradient(1.2px 1.2px at 20% 25%, rgba(255,255,255,.35), transparent 60%),
+    radial-gradient(1.2px 1.2px at 60% 35%, rgba(255,255,255,.28), transparent 60%),
+    radial-gradient(1.2px 1.2px at 80% 65%, rgba(255,255,255,.30), transparent 60%),
+    radial-gradient(1.2px 1.2px at 30% 75%, rgba(255,255,255,.25), transparent 60%);
+}
+
+@keyframes sparkleFloat {
+  0%, 100% { transform: translate3d(0,0,0) scale(1); }
+  50% { transform: translate3d(10px,-8px,0) scale(1.02); }
+}
+
+/* “shine” effect for primary button */
+.shineBtn {
+  position: relative;
+  overflow: hidden;
+  transform: translateZ(0);
+}
+.shineBtn::after {
+  content: "";
+  position: absolute;
+  top: -40%;
+  left: -60%;
+  width: 50%;
+  height: 180%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,.35), transparent);
+  transform: rotate(18deg);
+  animation: shine 3.6s ease-in-out infinite;
+  opacity: .9;
+}
+:global(.dark) .shineBtn::after { opacity: .65; }
+
+@keyframes shine {
+  0% { transform: translateX(0) rotate(18deg); }
+  60% { transform: translateX(220%) rotate(18deg); }
+  100% { transform: translateX(220%) rotate(18deg); }
+}
+
+/* subtle glow ring on hover */
+.glowHover {
+  transition: transform .25s ease, box-shadow .25s ease;
+}
+.glowHover:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 14px 34px rgba(255,193,7,.18), 0 10px 24px rgba(236,72,153,.10);
+}
+:global(.dark) .glowHover:hover {
+  box-shadow: 0 14px 34px rgba(255,193,7,.10), 0 10px 24px rgba(56,189,248,.08);
+}
+
+/* respects reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .sparkles { animation: none; }
+  .shineBtn::after { animation: none; }
+  .glowHover { transition: none; }
+}

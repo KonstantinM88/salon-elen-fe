@@ -859,6 +859,44 @@ booking_payment_paypal_footer: string;
   api_admin_clients_duplicate_suggestion: string;
   api_admin_clients_created: string;
   api_admin_clients_error: string;
+
+    // ======= CONTACTS (NEW) =======
+  contacts_seo_description: string;
+
+  contacts_subtitle: string;
+  contacts_title: string;
+  contacts_intro: string;
+
+  contacts_quick_title: string;
+
+  contacts_quick_call: string;
+  contacts_quick_book: string;
+  contacts_quick_route: string;
+
+  contacts_details_title: string;
+
+  contacts_open_maps: string;
+
+  contacts_map_title: string;
+  contacts_map_caption: string;
+  contacts_show_map: string;
+  contacts_map_privacy: string;
+
+  contacts_address_label: string;
+  contacts_phone_label: string;
+  contacts_email_label: string;
+  contacts_hours_label: string;
+  contacts_hours_value: string;
+
+  contacts_form_title: string;
+  contacts_form_name: string;
+  contacts_form_phone: string;
+  contacts_form_message: string;
+  contacts_form_send: string;
+  contacts_form_note: string;
+
+
+
 };
 
 export type MessageKey = keyof BaseMessages;
@@ -1782,6 +1820,48 @@ booking_payment_paypal_footer: "Платежи обрабатываются че
     "Вы можете восстановить удалённого клиента вместо создания нового",
   api_admin_clients_created: "Клиент успешно создан",
   api_admin_clients_error: "Ошибка создания клиента",
+
+  // ======= CONTACTS (NEW) =======
+  contacts_seo_description:
+    "Адрес, телефон, часы работы и как нас найти. Онлайн-запись в Salon Elen в Halle (Saale).",
+
+  contacts_subtitle: "Свяжитесь с нами • Быстро и удобно",
+  contacts_title: "Контакты",
+  contacts_intro:
+    "Поможем с услугами, временем и записью. Можно позвонить, написать на email или открыть маршрут.",
+
+  contacts_quick_title: "Карта и сообщение",
+
+  contacts_quick_call: "Позвонить",
+  contacts_quick_book: "Онлайн-запись",
+  contacts_quick_route: "Маршрут",
+
+  contacts_details_title: "Данные салона",
+
+  contacts_open_maps: "Открыть в Google Maps",
+
+  contacts_map_title: "Как нас найти",
+  contacts_map_caption: "Откройте карту и проложите маршрут в один клик.",
+  contacts_show_map: "Показать интерактивную карту",
+  contacts_map_privacy:
+    "Карта загрузится только после клика. Google может установить cookies и обработать данные согласно своей политике.",
+
+  contacts_address_label: "Адрес",
+  contacts_phone_label: "Телефон",
+  contacts_email_label: "Email",
+  contacts_hours_label: "Часы работы",
+  contacts_hours_value: "Пн–Пт 10:00–19:00, Сб 10:00–16:00",
+
+  contacts_form_title: "Написать сообщение",
+  contacts_form_name: "Ваше имя",
+  contacts_form_phone: "Телефон (необязательно)",
+  contacts_form_message: "Сообщение",
+  contacts_form_send: "Отправить",
+  contacts_form_note:
+    "Сообщение откроется в вашем почтовом приложении. Если не открылось — напишите напрямую на elen69@web.de",
+
+
+
 };
 
 /* ==================== GERMAN (DE) ==================== */
@@ -2724,6 +2804,47 @@ const deMessages: BaseMessages = {
   api_admin_clients_created: "Kunde erfolgreich erstellt",
   api_admin_clients_error: "Fehler beim Erstellen des Kunden",
 
+  // ======= CONTACTS (NEW) =======
+  contacts_seo_description:
+    "Adresse, Telefon, Öffnungszeiten und Anfahrt. Online-Termin bei Salon Elen in Halle (Saale).",
+
+  contacts_subtitle: "Kontakt • Schnell & bequem",
+  contacts_title: "Kontakt",
+  contacts_intro:
+    "Wir helfen gern bei Fragen zu Leistungen, Zeiten und Terminen. Anrufen, E-Mail schreiben oder Route öffnen.",
+
+  contacts_quick_title: "Karte & Nachricht",
+
+  contacts_quick_call: "Anrufen",
+  contacts_quick_book: "Online-Termin",
+  contacts_quick_route: "Route",
+
+  contacts_details_title: "Salon-Daten",
+
+  contacts_open_maps: "In Google Maps öffnen",
+
+  contacts_map_title: "So finden Sie uns",
+  contacts_map_caption: "Karte öffnen und Route mit einem Klick starten.",
+  contacts_show_map: "Interaktive Karte anzeigen",
+  contacts_map_privacy:
+    "Die Karte wird erst nach Klick geladen. Google kann Cookies setzen und Daten gemäß eigener Richtlinien verarbeiten.",
+
+  contacts_address_label: "Adresse",
+  contacts_phone_label: "Telefon",
+  contacts_email_label: "E-Mail",
+  contacts_hours_label: "Öffnungszeiten",
+  contacts_hours_value: "Mo–Fr 10:00–19:00, Sa 10:00–16:00",
+
+  contacts_form_title: "Nachricht senden",
+  contacts_form_name: "Ihr Name",
+  contacts_form_phone: "Telefon (optional)",
+  contacts_form_message: "Nachricht",
+  contacts_form_send: "Senden",
+  contacts_form_note:
+    "Die Nachricht öffnet sich in Ihrem Mail-Programm. Falls nicht, schreiben Sie bitte direkt an elen69@web.de",
+
+
+
 };
 
 /* ==================== ENGLISH (EN) ==================== */
@@ -3636,6 +3757,47 @@ const enMessages: BaseMessages = {
     "You can restore the deleted client instead of creating a new one",
   api_admin_clients_created: "Client created successfully",
   api_admin_clients_error: "Failed to create client",
+
+  // ======= CONTACTS (NEW) =======
+  contacts_seo_description:
+    "Address, phone, opening hours and directions. Book online with Salon Elen in Halle (Saale).",
+
+  contacts_subtitle: "Contact • Fast & easy",
+  contacts_title: "Contact",
+  contacts_intro:
+    "We can help with services, timing and booking. Call, email us, or open directions instantly.",
+
+  contacts_quick_title: "Map & message",
+
+  contacts_quick_call: "Call",
+  contacts_quick_book: "Book online",
+  contacts_quick_route: "Directions",
+
+  contacts_details_title: "Salon details",
+
+  contacts_open_maps: "Open in Google Maps",
+
+  contacts_map_title: "How to find us",
+  contacts_map_caption: "Open the map and start navigation in one click.",
+  contacts_show_map: "Show interactive map",
+  contacts_map_privacy:
+    "The map loads only after you click. Google may set cookies and process data under its policies.",
+
+  contacts_address_label: "Address",
+  contacts_phone_label: "Phone",
+  contacts_email_label: "Email",
+  contacts_hours_label: "Opening hours",
+  contacts_hours_value: "Mon–Fri 10:00–19:00, Sat 10:00–16:00",
+
+  contacts_form_title: "Send a message",
+  contacts_form_name: "Your name",
+  contacts_form_phone: "Phone (optional)",
+  contacts_form_message: "Message",
+  contacts_form_send: "Send",
+  contacts_form_note:
+    "Your email app will open with a draft. If it doesn’t, email us directly at elen69@web.de",
+
+
 
 
 };
