@@ -17,7 +17,6 @@ type ArticleItem = {
   type: KnownType;
 };
 
-// ===== i18n helpers =====
 const SUPPORTED = ["de", "ru", "en"] as const;
 type Locale = (typeof SUPPORTED)[number];
 
@@ -48,7 +47,6 @@ async function resolveLocale(searchParams?: SearchParamsPromise): Promise<Locale
   return "de";
 }
 
-// ===== SEO content =====
 const metaTitles: Record<Locale, string> = {
   de: "Salon Elen",
   ru: "Salon Elen — салон красоты в Halle",
@@ -63,8 +61,8 @@ const metaDescriptions: Record<Locale, string> = {
 
 const BASE_URL = "https://permanent-halle.de";
 
-// Важно: для de — канон. "/", для других — "/?lang=xx"
 function canonicalFor(locale: Locale): string {
+  // / для de, /?lang=xx для ru/en
   return locale === "de" ? `${BASE_URL}/` : `${BASE_URL}/?lang=${locale}`;
 }
 
@@ -77,10 +75,11 @@ export async function generateMetadata({
   const canonicalUrl = canonicalFor(locale);
 
   return {
+    metadataBase: new URL(BASE_URL),
+
     title: metaTitles[locale],
     description: metaDescriptions[locale],
 
-    // ✅ Это заставит Next реально вывести hreflang в HTML (link rel="alternate")
     alternates: {
       canonical: canonicalUrl,
       languages: {
@@ -97,14 +96,7 @@ export async function generateMetadata({
       url: canonicalUrl,
       siteName: "Salon Elen",
       type: "website",
-      images: [
-        {
-          url: `${BASE_URL}/images/hero.webp`,
-          width: 1200,
-          height: 630,
-          alt: "Salon Elen",
-        },
-      ],
+      images: [`${BASE_URL}/images/hero.webp`],
     },
 
     twitter: {
@@ -137,6 +129,7 @@ export default async function Page() {
   const latest = await getLatestArticles();
   return <HomePage latest={latest} />;
 }
+
 
 
 
