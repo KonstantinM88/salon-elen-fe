@@ -4,6 +4,7 @@ import HomePage from "@/components/home-page";
 import type { Metadata } from "next";
 import { cookies } from "next/headers";
 
+// Главная зависит от query (?lang=..) и cookie (locale) → только динамика
 export const dynamic = "force-dynamic";
 
 type KnownType = "ARTICLE" | "NEWS" | "PROMO";
@@ -17,6 +18,7 @@ type ArticleItem = {
   type: KnownType;
 };
 
+// ===== i18n helpers =====
 const SUPPORTED = ["de", "ru", "en"] as const;
 type Locale = (typeof SUPPORTED)[number];
 
@@ -47,6 +49,7 @@ async function resolveLocale(searchParams?: SearchParamsPromise): Promise<Locale
   return "de";
 }
 
+// ===== SEO texts =====
 const metaTitles: Record<Locale, string> = {
   de: "Salon Elen",
   ru: "Salon Elen — салон красоты в Halle",
@@ -61,10 +64,7 @@ const metaDescriptions: Record<Locale, string> = {
 
 const BASE_URL = "https://permanent-halle.de";
 
-function canonicalPathFor(locale: Locale) {
-  return locale === "de" ? "/" : `/?lang=${locale}`;
-}
-
+// Вариант 2: canonical/hreflang через URL-объекты + metadataBase в page
 export async function generateMetadata({
   searchParams,
 }: {
@@ -72,37 +72,40 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const locale = await resolveLocale(searchParams);
 
-  const canonicalPath = canonicalPathFor(locale);
-  const canonicalUrl = `${BASE_URL}${canonicalPath}`;
+  const metadataBase = new URL(BASE_URL);
+
+  const canonical =
+    locale === "de"
+      ? new URL("/", metadataBase)
+      : new URL(`/?lang=${locale}`, metadataBase);
+
+  const languages: Record<string, URL> = {
+    de: new URL("/", metadataBase),
+    ru: new URL("/?lang=ru", metadataBase),
+    en: new URL("/?lang=en", metadataBase),
+    "x-default": new URL("/", metadataBase),
+  };
 
   return {
+    metadataBase,
     title: metaTitles[locale],
     description: metaDescriptions[locale],
-
-    // ✅ canonical + hreflang
     alternates: {
-      canonical: canonicalPath, // относительный путь → соберётся через metadataBase из layout.tsx
-      languages: {
-        de: "/",
-        ru: "/?lang=ru",
-        en: "/?lang=en",
-        "x-default": "/",
-      },
+      canonical,
+      languages,
     },
-
     openGraph: {
       title: metaTitles[locale],
       description: metaDescriptions[locale],
-      images: [`${BASE_URL}/images/hero.webp`],
+      images: [new URL("/images/hero.webp", metadataBase)],
       type: "website",
-      url: canonicalUrl,
+      url: canonical,
     },
-
     twitter: {
       card: "summary_large_image",
       title: metaTitles[locale],
       description: metaDescriptions[locale],
-      images: [`${BASE_URL}/images/hero.webp`],
+      images: [new URL("/images/hero.webp", metadataBase)],
     },
   };
 }
@@ -128,6 +131,7 @@ export default async function Page() {
   const latest = await getLatestArticles();
   return <HomePage latest={latest} />;
 }
+
 
 
 
