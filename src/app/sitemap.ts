@@ -1,97 +1,5 @@
-// // src/app/sitemap.ts
-// import { prisma } from "@/lib/db";
-// import type { MetadataRoute } from "next";
-
-// export const dynamic = "force-dynamic";
-
-// const BASE_URL = "https://permanent-halle.de";
-
-// // Создаёт alternates для всех языков
-// function createAlternates(path: string): Record<string, string> {
-//   // Корень строго со слэшем: https://.../
-//   const normalizedPath = path === "/" ? "/" : path;
-
-//   const joinWithLang = (lang: "en" | "ru") => {
-//     // Если вдруг когда-нибудь появятся query в path — подстрахуемся
-//     const sep = normalizedPath.includes("?") ? "&" : "?";
-//     return `${BASE_URL}${normalizedPath}${sep}lang=${lang}`;
-//   };
-
-//   return {
-//     de: `${BASE_URL}${normalizedPath}`,
-//     en: joinWithLang("en"),
-//     ru: joinWithLang("ru"),
-//   };
-// }
-
-// export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-//   const items: MetadataRoute.Sitemap = [];
-
-//   // ========== СТАТИЧЕСКИЕ СТРАНИЦЫ ==========
-//   // ❗ booking убран из sitemap (они noindex/Disallow и не должны попадать в sitemap)
-//   const staticPages = [
-//     { path: "/", priority: 1.0 },
-//     { path: "/services", priority: 0.9 },
-//     { path: "/prices", priority: 0.8 },
-//     { path: "/about", priority: 0.8 },
-//     { path: "/news", priority: 0.7 },
-//     { path: "/contacts", priority: 0.6 },
-//     { path: "/gallerie", priority: 0.6 },
-//   ];
-
-//   const lastModified = new Date();
-
-//   for (const page of staticPages) {
-//     const url = page.path === "/" ? `${BASE_URL}/` : `${BASE_URL}${page.path}`;
-
-//     items.push({
-//       url,
-//       lastModified,
-//       changeFrequency: "weekly",
-//       priority: page.priority,
-//       alternates: {
-//         languages: createAlternates(page.path),
-//       },
-//     });
-//   }
-
-//   // ========== СТАТЬИ ==========
-//   try {
-//     const now = new Date();
-//     const articles = await prisma.article.findMany({
-//       where: {
-//         publishedAt: {
-//           not: null,
-//           lte: now,
-//         },
-//       },
-//       select: { slug: true, updatedAt: true },
-//     });
-
-//     for (const article of articles) {
-//       const path = `/news/${article.slug}`;
-
-//       items.push({
-//         url: `${BASE_URL}${path}`,
-//         lastModified: article.updatedAt || lastModified,
-//         changeFrequency: "weekly",
-//         priority: 0.5,
-//         alternates: {
-//           languages: createAlternates(path),
-//         },
-//       });
-//     }
-//   } catch (error) {
-//     console.error("[Sitemap] Error fetching articles:", error);
-//   }
-
-//   return items;
-// }
-
-
-
-
-//---------добавляем /
+//--------с /
+// src/app/sitemap.ts
 import { prisma } from "@/lib/db";
 import type { MetadataRoute } from "next";
 
@@ -101,13 +9,19 @@ const BASE_URL = "https://permanent-halle.de";
 
 // Создаёт alternates для всех языков
 function createAlternates(path: string): Record<string, string> {
-  // Важно: для корня не добавляем второй "/" (чтобы было строго https://.../)
-  const normalized = path === "/" ? "/" : path;
+  // Корень строго со слэшем: https://.../
+  const normalizedPath = path === "/" ? "/" : path;
+
+  const joinWithLang = (lang: "en" | "ru") => {
+    // Если вдруг когда-нибудь появятся query в path — подстрахуемся
+    const sep = normalizedPath.includes("?") ? "&" : "?";
+    return `${BASE_URL}${normalizedPath}${sep}lang=${lang}`;
+  };
 
   return {
-    de: `${BASE_URL}${normalized}`,
-    en: `${BASE_URL}${normalized}${normalized.includes("?") ? "&" : "?"}lang=en`,
-    ru: `${BASE_URL}${normalized}${normalized.includes("?") ? "&" : "?"}lang=ru`,
+    de: `${BASE_URL}${normalizedPath}`,
+    en: joinWithLang("en"),
+    ru: joinWithLang("ru"),
   };
 }
 
@@ -115,7 +29,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const items: MetadataRoute.Sitemap = [];
 
   // ========== СТАТИЧЕСКИЕ СТРАНИЦЫ ==========
-  // ❗ Убрали booking из sitemap (они noindex и не должны попадать в sitemap)
+  // ❗ booking убран из sitemap (они noindex/Disallow и не должны попадать в sitemap)
   const staticPages = [
     { path: "/", priority: 1.0 },
     { path: "/services", priority: 0.9 },
@@ -129,8 +43,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const lastModified = new Date();
 
   for (const page of staticPages) {
+    const url = page.path === "/" ? `${BASE_URL}/` : `${BASE_URL}${page.path}`;
+
     items.push({
-      url: `${BASE_URL}${page.path === "/" ? "" : page.path}`,
+      url,
       lastModified,
       changeFrequency: "weekly",
       priority: page.priority,
@@ -147,7 +63,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       where: {
         publishedAt: {
           not: null,
-          lte: now, // опубликованные (дата публикации <= сейчас)
+          lte: now,
         },
       },
       select: { slug: true, updatedAt: true },
@@ -155,6 +71,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
     for (const article of articles) {
       const path = `/news/${article.slug}`;
+
       items.push({
         url: `${BASE_URL}${path}`,
         lastModified: article.updatedAt || lastModified,
@@ -171,6 +88,90 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   return items;
 }
+
+
+
+
+// //---------без /
+// import { prisma } from "@/lib/db";
+// import type { MetadataRoute } from "next";
+
+// export const dynamic = "force-dynamic";
+
+// const BASE_URL = "https://permanent-halle.de";
+
+// // Создаёт alternates для всех языков
+// function createAlternates(path: string): Record<string, string> {
+//   // Важно: для корня не добавляем второй "/" (чтобы было строго https://.../)
+//   const normalized = path === "/" ? "/" : path;
+
+//   return {
+//     de: `${BASE_URL}${normalized}`,
+//     en: `${BASE_URL}${normalized}${normalized.includes("?") ? "&" : "?"}lang=en`,
+//     ru: `${BASE_URL}${normalized}${normalized.includes("?") ? "&" : "?"}lang=ru`,
+//   };
+// }
+
+// export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+//   const items: MetadataRoute.Sitemap = [];
+
+//   // ========== СТАТИЧЕСКИЕ СТРАНИЦЫ ==========
+//   // ❗ Убрали booking из sitemap (они noindex и не должны попадать в sitemap)
+//   const staticPages = [
+//     { path: "/", priority: 1.0 },
+//     { path: "/services", priority: 0.9 },
+//     { path: "/prices", priority: 0.8 },
+//     { path: "/about", priority: 0.8 },
+//     { path: "/news", priority: 0.7 },
+//     { path: "/contacts", priority: 0.6 },
+//     { path: "/gallerie", priority: 0.6 },
+//   ];
+
+//   const lastModified = new Date();
+
+//   for (const page of staticPages) {
+//     items.push({
+//       url: `${BASE_URL}${page.path === "/" ? "" : page.path}`,
+//       lastModified,
+//       changeFrequency: "weekly",
+//       priority: page.priority,
+//       alternates: {
+//         languages: createAlternates(page.path),
+//       },
+//     });
+//   }
+
+//   // ========== СТАТЬИ ==========
+//   try {
+//     const now = new Date();
+//     const articles = await prisma.article.findMany({
+//       where: {
+//         publishedAt: {
+//           not: null,
+//           lte: now, // опубликованные (дата публикации <= сейчас)
+//         },
+//       },
+//       select: { slug: true, updatedAt: true },
+//     });
+
+//     for (const article of articles) {
+//       const path = `/news/${article.slug}`;
+//       items.push({
+//         url: `${BASE_URL}${path}`,
+//         lastModified: article.updatedAt || lastModified,
+//         changeFrequency: "weekly",
+//         priority: 0.5,
+//         alternates: {
+//           languages: createAlternates(path),
+//         },
+//       });
+//     }
+//   } catch (error) {
+//     console.error("[Sitemap] Error fetching articles:", error);
+//   }
+
+//   return items;
+// }
 
 
 
