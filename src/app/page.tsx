@@ -17,7 +17,7 @@ type ArticleItem = {
   type: KnownType;
 };
 
-// ===== SEO / i18n helpers =====
+// ===== i18n helpers =====
 const SUPPORTED = ["de", "ru", "en"] as const;
 type Locale = (typeof SUPPORTED)[number];
 
@@ -48,6 +48,7 @@ async function resolveLocale(searchParams?: SearchParamsPromise): Promise<Locale
   return "de";
 }
 
+// ===== SEO texts =====
 const metaTitles: Record<Locale, string> = {
   de: "Salon Elen",
   ru: "Salon Elen — салон красоты в Halle",
@@ -62,7 +63,8 @@ const metaDescriptions: Record<Locale, string> = {
 
 const BASE_URL = "https://permanent-halle.de";
 
-function canonicalFor(locale: Locale): string {
+// Главная: обязательно фиксируем trailing slash для de, и query для ru/en
+function canonicalFor(locale: Locale) {
   return locale === "de" ? `${BASE_URL}/` : `${BASE_URL}/?lang=${locale}`;
 }
 
@@ -91,9 +93,9 @@ export async function generateMetadata({
     openGraph: {
       title: metaTitles[locale],
       description: metaDescriptions[locale],
-      images: [`${BASE_URL}/images/hero.webp`],
-      type: "website",
       url: canonicalUrl,
+      type: "website",
+      images: [`${BASE_URL}/images/hero.webp`],
     },
 
     twitter: {
@@ -126,6 +128,7 @@ export default async function Page() {
   const latest = await getLatestArticles();
   return <HomePage latest={latest} />;
 }
+
 
 
 
