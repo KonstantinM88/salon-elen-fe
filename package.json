@@ -14,7 +14,6 @@
         "vercel-build": "prisma generate && next build",
         "prisma:seed": "tsx prisma/seed.ts",
         "optimize:uploads": "tsx scripts/optimize-uploads.ts"
-        
     },
     "dependencies": {
         "@js-temporal/polyfill": "^0.5.1",
@@ -35,6 +34,7 @@
         "@radix-ui/react-tooltip": "^1.2.8",
         "@stripe/react-stripe-js": "^5.4.1",
         "@stripe/stripe-js": "^8.6.0",
+        "@use-gesture/react": "^10.3.1",
         "axios": "^1.13.2",
         "bcrypt": "^6.0.0",
         "bcryptjs": "^3.0.2",
