@@ -15,6 +15,11 @@
   /* системные селекты в тёмной теме */
   .dark select { color-scheme: dark; }
 
+@keyframes scroll {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
   /* единый фон/цвет для select и option */
   select, select option {
     background-color: var(--background);
