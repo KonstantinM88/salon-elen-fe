@@ -9,35 +9,60 @@ datasource db {
 }
 
 model Article {
-  id          String      @id @default(cuid())
-  slug        String      @unique
-  title       String
-  excerpt     String?
-  cover       String?
-  type        ArticleType @default(NEWS)
-  content     String?     @db.Text
-  publishedAt DateTime?
-  expiresAt   DateTime?
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
-
-  translations ArticleTranslation[]
+  id             String               @id @default(cuid())
+  slug           String               @unique
+  title          String
+  excerpt        String?
+  cover          String?
+  type           ArticleType          @default(NEWS)
+  content        String?
+  publishedAt    DateTime?
+  expiresAt      DateTime?
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
+  /// <title> для Google (30-60 символов)
+  seoTitle       String?
+  /// meta description для Google (70-160 символов)
+  seoDescription String?
+  /// Заголовок при шеринге в соцсетях
+  ogTitle        String?
+  /// Описание при шеринге в соцсетях
+  ogDescription  String?
+  /// OG-картинка (1200×630, авто из cover если пусто)
+  ogImage        String?
+  /// Закреплённая новость — всегда наверху
+  isPinned       Boolean              @default(false)
+  /// Ручная сортировка (выше = приоритетнее)
+  sortOrder      Int                  @default(0)
+  /// URL видео (загруженное .webm или внешнее YouTube/Vimeo)
+  videoUrl       String?
+  /// Тип видео: UPLOAD, YOUTUBE, VIMEO
+  videoType      VideoType?
+  translations   ArticleTranslation[]
 
   @@index([publishedAt])
   @@index([expiresAt])
+  @@index([isPinned(sort: Desc), sortOrder(sort: Desc), publishedAt(sort: Desc)])
 }
 
 model ArticleTranslation {
-  id        String   @id @default(cuid())
-  articleId String
-  locale    String   // "ru", "de", "en"
-  title     String
-  excerpt   String?
-  content   String?  @db.Text
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  article Article @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  id             String   @id @default(cuid())
+  articleId      String
+  locale         String
+  title          String
+  excerpt        String?
+  content        String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @default(now()) @updatedAt
+  /// <title> для Google на этом языке
+  seoTitle       String?
+  /// meta description на этом языке
+  seoDescription String?
+  /// OG-заголовок на этом языке
+  ogTitle        String?
+  /// OG-описание на этом языке
+  ogDescription  String?
+  article        Article  @relation(fields: [articleId], references: [id], onDelete: Cascade)
 
   @@unique([articleId, locale])
   @@index([locale])
@@ -57,26 +82,23 @@ model Booking {
 model Service {
   id                    String                 @id @default(cuid())
   slug                  String                 @unique
-  name                  String                 @map("title")
   priceCents            Int?
   durationMin           Int
   createdAt             DateTime               @default(now())
   updatedAt             DateTime               @updatedAt
   isActive              Boolean                @default(true)
-  description           String?
   parentId              String?
-  cover                 String?                // Обложка услуги
-  /// Мягкое удаление: скрываем из интерфейса,
-  /// данные и связи остаются (для истории).
   isArchived            Boolean                @default(false)
-  // ✅ ДОБАВИТЬ ЭТУ СТРОКУ:
-  translations          ServiceTranslation[]
-  gallery               ServiceGallery[]
+  name                  String?                @map("title")
+  description           String?
+  cover                 String?
   appointments          Appointment[]
   promotionItems        PromotionItem[]
   parent                Service?               @relation("ServiceChildren", fields: [parentId], references: [id])
   children              Service[]              @relation("ServiceChildren")
   smsPhoneRegistrations SmsPhoneRegistration[]
+  gallery               ServiceGallery[]
+  translations          ServiceTranslation[]
   masters               Master[]               @relation("MasterServices")
 
   @@index([isActive])
@@ -89,14 +111,13 @@ model Service {
 model ServiceTranslation {
   id          String   @id @default(cuid())
   serviceId   String
-  locale      String   // "ru", "de", "en"
+  locale      String
   name        String
-  description String?  @db.Text
+  description String?
   createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  
-  service Service @relation(fields: [serviceId], references: [id], onDelete: Cascade)
-  
+  updatedAt   DateTime @default(now()) @updatedAt
+  service     Service  @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
   @@unique([serviceId, locale])
   @@index([locale])
   @@index([serviceId])
@@ -106,13 +127,12 @@ model ServiceTranslation {
 model ServiceGallery {
   id        String   @id @default(cuid())
   serviceId String
-  image     String   // путь к изображению
-  caption   String?  // подпись к фото
+  image     String
+  caption   String?
   sortOrder Int      @default(0)
   createdAt DateTime @default(now())
-  
-  service Service @relation(fields: [serviceId], references: [id], onDelete: Cascade)
-  
+  service   Service  @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
   @@index([serviceId])
   @@map("service_gallery")
 }
@@ -162,7 +182,6 @@ model Master {
 model MasterWorkingHours {
   id           String   @id @default(cuid())
   masterId     String
-  /// 0 = Sunday ... 6 = Saturday
   weekday      Int
   startMinutes Int
   endMinutes   Int
@@ -176,7 +195,6 @@ model MasterWorkingHours {
 model MasterTimeOff {
   id           String   @id @default(cuid())
   masterId     String
-  /// Дата (обычно полночь локальной TZ) + интервал
   date         DateTime
   startMinutes Int
   endMinutes   Int
@@ -196,18 +214,16 @@ model Appointment {
   phone                String
   email                String?
   notes                String?
-  /// Язык клиента при бронировании (для email/sms уведомлений): "de", "ru", "en"
-  locale               String?                @default("de")
   status               AppointmentStatus      @default(PENDING)
   createdAt            DateTime               @default(now())
   clientId             String?
-  /// Связь с мастером (optional — для обратной совместимости)
   masterId             String?
   birthDate            DateTime?
   referral             String?
   paymentStatus        PaymentStatus          @default(PENDING)
   deletedAt            DateTime?              @db.Timestamp(6)
   deletedBy            String?
+  locale               String?                @default("de")
   client               Client?                @relation(fields: [clientId], references: [id])
   master               Master?                @relation(fields: [masterId], references: [id])
   service              Service                @relation(fields: [serviceId], references: [id])
@@ -368,9 +384,8 @@ model BookingDraft {
   birthDate    DateTime?
   referral     String?
   notes        String?
-  /// Язык клиента при бронировании: "de", "ru", "en"
-  locale       String?   @default("de")
   createdAt    DateTime  @default(now())
+  locale       String?   @default("de")
 
   @@index([serviceId])
   @@index([masterId])
@@ -421,7 +436,6 @@ model GoogleQuickRegistration {
   createdAt     DateTime  @default(now())
   birthDate     DateTime?
   customerName  String?
-  /// Язык клиента при бронировании: "de", "ru", "en"
   locale        String?   @default("de")
 
   @@index([state])
@@ -445,10 +459,9 @@ model SmsPhoneRegistration {
   birthDate     DateTime?
   verified      Boolean      @default(false)
   appointmentId String?      @unique
-  /// Язык клиента при бронировании: "de", "ru", "en"
-  locale        String?      @default("de")
   expiresAt     DateTime
   createdAt     DateTime     @default(now())
+  locale        String?      @default("de")
   appointment   Appointment? @relation(fields: [appointmentId], references: [id])
   master        Master       @relation(fields: [masterId], references: [id], onDelete: Cascade)
   service       Service      @relation(fields: [serviceId], references: [id], onDelete: Cascade)
@@ -472,10 +485,9 @@ model TelegramVerification {
   email          String?
   birthDate      DateTime?
   appointmentId  String?      @unique
-  /// Язык клиента при бронировании: "de", "ru", "en"
-  locale         String?      @default("de")
   createdAt      DateTime     @default(now())
   expiresAt      DateTime
+  locale         String?      @default("de")
   appointment    Appointment? @relation(fields: [appointmentId], references: [id])
 
   @@index([sessionId])
@@ -512,7 +524,6 @@ model TemporarySlotReservation {
   @@index([expiresAt])
 }
 
-/// История изменений статуса заявок
 model AppointmentStatusLog {
   id             String             @id @default(cuid())
   appointmentId  String
@@ -528,10 +539,34 @@ model AppointmentStatusLog {
   @@map("appointment_status_logs")
 }
 
+model AdminOTP {
+  id           String    @id @default(cuid())
+  code         String
+  action       String
+  resourceId   String
+  resourceType String
+  adminEmail   String
+  expiresAt    DateTime
+  verified     Boolean   @default(false)
+  createdAt    DateTime  @default(now())
+  usedAt       DateTime?
+
+  @@index([code])
+  @@index([adminEmail])
+  @@index([expiresAt])
+  @@map("admin_otp")
+}
+
 enum ArticleType {
   NEWS
   PROMO
   ARTICLE
+}
+
+enum VideoType {
+  UPLOAD
+  YOUTUBE
+  VIMEO
 }
 
 enum AppointmentStatus {
@@ -553,22 +588,3 @@ enum Role {
   MASTER
   ADMIN
 }
-
-model AdminOTP {
-  id           String    @id @default(cuid())
-  code         String
-  action       String
-  resourceId   String
-  resourceType String
-  adminEmail   String
-  expiresAt    DateTime
-  verified     Boolean   @default(false)
-  createdAt    DateTime  @default(now())
-  usedAt       DateTime?
-
-  @@index([code])
-  @@index([adminEmail])
-  @@index([expiresAt])
-  @@map("admin_otp")
-}
-
