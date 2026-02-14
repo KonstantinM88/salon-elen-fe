@@ -2,18 +2,17 @@
 "use server";
 
 import { prisma } from "@/lib/db";
-import { saveImageFile } from "@/lib/upload";
+import { saveImageFile, saveVideoFile } from "@/lib/upload";
 import { ArticleType, Prisma } from "@prisma/client";
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 /* =========================
- * ВСПОМОГАТЕЛЬНЫЕ ТИПЫ
+ * ТИПЫ
  * =======================*/
 
 export type FieldErrors = Record<string, string[]>;
-
 export type ActionOk = { ok: true; id?: string };
 export type ActionFail = {
   ok: false;
@@ -23,12 +22,12 @@ export type ActionFail = {
 export type ActionResult = ActionOk | ActionFail;
 
 /* =========================
- * TYPE GUARD ДЛЯ ОШИБОК PRISMA
+ * PRISMA TYPE GUARD
  * =======================*/
 
 function isKnownPrismaError(
   e: unknown,
-  code?: string
+  code?: string,
 ): e is Prisma.PrismaClientKnownRequestError {
   return (
     e instanceof Prisma.PrismaClientKnownRequestError &&
@@ -37,7 +36,7 @@ function isKnownPrismaError(
 }
 
 /* =========================
- * ВАЛИДАЦИЯ ПОЛЕЙ ФОРМЫ (Zod)
+ * ВАЛИДАЦИЯ (Zod)
  * =======================*/
 
 const ArticleSchema = z.object({
@@ -54,53 +53,58 @@ const ArticleSchema = z.object({
   excerpt: z.string().optional(),
   body: z.string().min(1, "Текст обязателен"),
 
-  // значения из <input type="datetime-local">
   publishedAt: z.string().optional(),
   expiresAt: z.string().optional(),
 
-  // Эти поля можно оставить в форме, но в БД их нет — игнорируем
+  // SEO
   seoTitle: z.string().optional(),
-  seoDesc: z.string().optional(),
+  seoDescription: z.string().optional(),
   ogTitle: z.string().optional(),
-  ogDesc: z.string().optional(),
+  ogDescription: z.string().optional(),
+
+  // Закрепление
+  isPinned: z.string().optional().transform((v) => v === "on" || v === "true"),
+  sortOrder: z
+    .string()
+    .optional()
+    .transform((v) => {
+      const n = parseInt(v ?? "0", 10);
+      return Number.isNaN(n) ? 0 : n;
+    }),
+
+  // Видео (URL для YouTube/Vimeo)
+  videoUrl: z.string().optional(),
+  videoType: z.string().optional(),
 });
 
 /* =========================
- * ПАРСИНГ ДАТ ИЗ СТРОК ФОРМЫ
+ * ПАРСИНГ ДАТ
  * =======================*/
 
-function toDates(input: { publishedAt?: string; expiresAt?: string }): {
-  publishedAt: Date | null;
-  expiresAt: Date | null;
-} {
-  const input_published = (input.publishedAt ?? "").trim();
-  const input_expires = (input.expiresAt ?? "").trim();
-
-  // Добавляем 'Z' чтобы интерпретировать как UTC (форма показывает UTC)
-  const publishedAt =
-    input_published !== "" ? new Date(input_published + ":00Z") : null;
-  const expiresAt = 
-    input_expires !== "" ? new Date(input_expires + ":00Z") : null;
-
-  return { publishedAt, expiresAt };
+function toDates(input: { publishedAt?: string; expiresAt?: string }) {
+  const pub = (input.publishedAt ?? "").trim();
+  const exp = (input.expiresAt ?? "").trim();
+  return {
+    publishedAt: pub !== "" ? new Date(pub + ":00Z") : null,
+    expiresAt: exp !== "" ? new Date(exp + ":00Z") : null,
+  };
 }
 
 /* =========================
- * ПОДГОТОВКА ДАННЫХ ИЗ FormData
+ * ПОДГОТОВКА ДАННЫХ
  * =======================*/
 
-async function prepareData(
-  fd: FormData
-): Promise<
-  | {
-      ok: true;
-      data: z.infer<typeof ArticleSchema>;
-      publishedAt: Date | null;
-      expiresAt: Date | null;
-      coverSrc?: string | null; // undefined — не трогаем; null — очистить; string — обновить
-    }
-  | ActionFail
-> {
+type PreparedData = {
+  ok: true;
+  data: z.infer<typeof ArticleSchema>;
+  publishedAt: Date | null;
+  expiresAt: Date | null;
+  coverSrc?: string | null;
+  ogImageSrc?: string | null;
+  videoSrc?: string | null;
+};
+
+async function prepareData(fd: FormData): Promise<PreparedData | ActionFail> {
   const raw = {
     type: fd.get("type")?.toString(),
     title: fd.get("title")?.toString() ?? "",
@@ -111,11 +115,16 @@ async function prepareData(
     publishedAt: fd.get("publishedAt")?.toString(),
     expiresAt: fd.get("expiresAt")?.toString(),
 
-    // SEO поля могут присутствовать в форме, но дальше не пишем их в БД
     seoTitle: fd.get("seoTitle")?.toString() ?? "",
-    seoDesc: fd.get("seoDesc")?.toString() ?? "",
+    seoDescription: fd.get("seoDescription")?.toString() ?? "",
     ogTitle: fd.get("ogTitle")?.toString() ?? "",
-    ogDesc: fd.get("ogDesc")?.toString() ?? "",
+    ogDescription: fd.get("ogDescription")?.toString() ?? "",
+
+    isPinned: fd.get("isPinned")?.toString() ?? "",
+    sortOrder: fd.get("sortOrder")?.toString() ?? "0",
+
+    videoUrl: fd.get("videoUrl")?.toString() ?? "",
+    videoType: fd.get("videoType")?.toString() ?? "",
   };
 
   const parsed = ArticleSchema.safeParse(raw);
@@ -125,33 +134,46 @@ async function prepareData(
       const key = issue.path.join(".") || "form";
       (fieldErrors[key] ??= []).push(issue.message);
     }
-    return {
-      ok: false,
-      error: "Некорректные поля формы",
-      details: { fieldErrors },
-    };
+    return { ok: false, error: "Некорректные поля формы", details: { fieldErrors } };
   }
 
   const { publishedAt, expiresAt } = toDates(parsed.data);
 
+  // ── Обложка ──
   let coverSrc: string | null | undefined = undefined;
+  let ogImageSrc: string | null | undefined = undefined;
   const coverCandidate = fd.get("coverFile") ?? fd.get("cover");
-  
-  if (coverCandidate instanceof File) {
-    if (coverCandidate.size > 0) {
-      try {
-        const saved = await saveImageFile(coverCandidate, { dir: "uploads" });
-        coverSrc = saved.src;
-      } catch {
-        return { ok: false, error: "Не удалось сохранить изображение" };
-      }
-    } else {
-      coverSrc = undefined;
+
+  if (coverCandidate instanceof File && coverCandidate.size > 0) {
+    try {
+      const saved = await saveImageFile(coverCandidate, {
+        dir: "uploads",
+        generateOg: true,
+      });
+      coverSrc = saved.src;
+      ogImageSrc = saved.ogSrc ?? null;
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Не удалось сохранить изображение";
+      return { ok: false, error: msg };
     }
-  } else if (coverCandidate === null) {
-    coverSrc = undefined;
+  } else if (coverCandidate instanceof File) {
+    coverSrc = undefined; // пустой File — не трогаем
   } else if (typeof coverCandidate === "string" && coverCandidate === "") {
-    coverSrc = null;
+    coverSrc = null; // очистить
+  }
+
+  // ── Видео ──
+  let videoSrc: string | null | undefined = undefined;
+  const videoCandidate = fd.get("videoFile");
+
+  if (videoCandidate instanceof File && videoCandidate.size > 0) {
+    try {
+      const saved = await saveVideoFile(videoCandidate, { dir: "uploads" });
+      videoSrc = saved.src;
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Не удалось сохранить видео";
+      return { ok: false, error: msg };
+    }
   }
 
   return {
@@ -160,6 +182,8 @@ async function prepareData(
     publishedAt,
     expiresAt,
     coverSrc,
+    ogImageSrc,
+    videoSrc,
   };
 }
 
@@ -172,19 +196,37 @@ export async function createArticle(fd: FormData): Promise<ActionResult> {
   if (!prep.ok) return prep;
 
   try {
+    const d = prep.data;
     const publishedAtFinal = prep.publishedAt ?? new Date();
+
+    // Определяем videoUrl — либо загруженное видео, либо внешняя ссылка
+    const finalVideoUrl = prep.videoSrc || d.videoUrl || undefined;
+    const finalVideoType = prep.videoSrc
+      ? "UPLOAD"
+      : d.videoType || undefined;
 
     const created = await prisma.article.create({
       data: {
-        type: prep.data.type,
-        title: prep.data.title,
-        slug: prep.data.slug,
-        excerpt: prep.data.excerpt || undefined,
-        content: prep.data.body,            // ← пишем в content
+        type: d.type,
+        title: d.title,
+        slug: d.slug,
+        excerpt: d.excerpt || undefined,
+        content: d.body,
         cover: prep.coverSrc ?? undefined,
         publishedAt: publishedAtFinal,
         expiresAt: prep.expiresAt ?? undefined,
-        // SEO-поля намеренно не пишем — их нет в схеме
+        // SEO
+        seoTitle: d.seoTitle || undefined,
+        seoDescription: d.seoDescription || undefined,
+        ogTitle: d.ogTitle || undefined,
+        ogDescription: d.ogDescription || undefined,
+        ogImage: prep.ogImageSrc ?? undefined,
+        // Закрепление
+        isPinned: d.isPinned,
+        sortOrder: d.sortOrder,
+        // Видео
+        videoUrl: finalVideoUrl,
+        videoType: finalVideoType as any,
       },
       select: { id: true },
     });
@@ -198,11 +240,7 @@ export async function createArticle(fd: FormData): Promise<ActionResult> {
         details: { fieldErrors: { slug: ["Slug уже занят"] } },
       };
     }
-    if (isKnownPrismaError(e)) {
-      console.error("Prisma error:", e.code, e.meta);
-    } else {
-      console.error("Unknown error:", e);
-    }
+    console.error("Create article error:", e);
     return { ok: false, error: "Не удалось сохранить запись" };
   }
 }
@@ -213,9 +251,7 @@ export async function createArticleAndRedirect(fd: FormData): Promise<void> {
     revalidatePath("/admin/news");
     redirect("/admin/news");
   }
-  throw new Error(
-    (res as ActionFail).error || "Не удалось сохранить запись (unknown)"
-  );
+  throw new Error((res as ActionFail).error || "Не удалось сохранить запись");
 }
 
 /* =========================
@@ -224,26 +260,45 @@ export async function createArticleAndRedirect(fd: FormData): Promise<void> {
 
 export async function updateArticle(
   id: string,
-  fd: FormData
+  fd: FormData,
 ): Promise<ActionResult> {
   const prep = await prepareData(fd);
   if (!prep.ok) return prep;
 
   try {
+    const d = prep.data;
+
+    const finalVideoUrl = prep.videoSrc || d.videoUrl || undefined;
+    const finalVideoType = prep.videoSrc
+      ? "UPLOAD"
+      : d.videoType || undefined;
+
     await prisma.article.update({
       where: { id },
       data: {
-        type: prep.data.type,
-        title: prep.data.title,
-        slug: prep.data.slug,
-        excerpt: prep.data.excerpt || undefined,
-        content: prep.data.body,            // ← пишем в content
+        type: d.type,
+        title: d.title,
+        slug: d.slug,
+        excerpt: d.excerpt || undefined,
+        content: d.body,
         ...(prep.coverSrc === undefined ? {} : { cover: prep.coverSrc ?? null }),
         publishedAt:
           prep.publishedAt === null ? null : prep.publishedAt ?? undefined,
         expiresAt:
           prep.expiresAt === null ? null : prep.expiresAt ?? undefined,
-        // SEO-поля намеренно не пишем
+        // SEO
+        seoTitle: d.seoTitle || null,
+        seoDescription: d.seoDescription || null,
+        ogTitle: d.ogTitle || null,
+        ogDescription: d.ogDescription || null,
+        ...(prep.ogImageSrc === undefined ? {} : { ogImage: prep.ogImageSrc }),
+        // Закрепление
+        isPinned: d.isPinned,
+        sortOrder: d.sortOrder,
+        // Видео
+        ...(finalVideoUrl !== undefined
+          ? { videoUrl: finalVideoUrl || null, videoType: (finalVideoType as any) || null }
+          : {}),
       },
       select: { id: true },
     });
@@ -257,27 +312,21 @@ export async function updateArticle(
         details: { fieldErrors: { slug: ["Slug уже занят"] } },
       };
     }
-    if (isKnownPrismaError(e)) {
-      console.error("Prisma error:", e.code, e.meta);
-    } else {
-      console.error("Unknown error:", e);
-    }
+    console.error("Update article error:", e);
     return { ok: false, error: "Не удалось сохранить запись" };
   }
 }
 
 export async function updateArticleAndRedirect(
   id: string,
-  fd: FormData
+  fd: FormData,
 ): Promise<void> {
   const res = await updateArticle(id, fd);
   if (res.ok) {
     revalidatePath("/admin/news");
     redirect("/admin/news");
   }
-  throw new Error(
-    (res as ActionFail).error || "Не удалось сохранить запись (unknown)"
-  );
+  throw new Error((res as ActionFail).error || "Не удалось сохранить запись");
 }
 
 /* =========================
@@ -292,23 +341,357 @@ export async function deleteArticle(fd: FormData): Promise<ActionResult> {
     await prisma.article.delete({ where: { id } });
     return { ok: true, id };
   } catch (e: unknown) {
-    if (isKnownPrismaError(e)) {
-      console.error("Prisma error:", e.code, e.meta);
-    } else {
-      console.error("Unknown error:", e);
-    }
+    console.error("Delete article error:", e);
     return { ok: false, error: "Не удалось удалить запись" };
   }
 }
 
 export async function deleteArticleAndRefresh(fd: FormData): Promise<void> {
   const res = await deleteArticle(fd);
-  if (!res.ok) {
-    console.warn("deleteArticle fail:", res.error);
-  }
+  if (!res.ok) console.warn("deleteArticle fail:", res.error);
   revalidatePath("/admin/news");
   redirect("/admin/news");
 }
+
+/* =========================
+ * TOGGLE PIN (для быстрого закрепления из списка)
+ * =======================*/
+
+export async function togglePinArticle(id: string): Promise<ActionResult> {
+  try {
+    const article = await prisma.article.findUnique({
+      where: { id },
+      select: { isPinned: true },
+    });
+    if (!article) return { ok: false, error: "Статья не найдена" };
+
+    await prisma.article.update({
+      where: { id },
+      data: { isPinned: !article.isPinned },
+    });
+
+    revalidatePath("/admin/news");
+    return { ok: true, id };
+  } catch (e) {
+    console.error("Toggle pin error:", e);
+    return { ok: false, error: "Не удалось изменить закрепление" };
+  }
+}
+
+
+
+//-----14.02.26 добавляем возможность загружать видео
+// // src/app/admin/news/actions.ts
+// "use server";
+
+// import { prisma } from "@/lib/db";
+// import { saveImageFile } from "@/lib/upload";
+// import { ArticleType, Prisma } from "@prisma/client";
+// import { z } from "zod";
+// import { revalidatePath } from "next/cache";
+// import { redirect } from "next/navigation";
+
+// /* =========================
+//  * ВСПОМОГАТЕЛЬНЫЕ ТИПЫ
+//  * =======================*/
+
+// export type FieldErrors = Record<string, string[]>;
+
+// export type ActionOk = { ok: true; id?: string };
+// export type ActionFail = {
+//   ok: false;
+//   error: string;
+//   details?: { fieldErrors?: FieldErrors };
+// };
+// export type ActionResult = ActionOk | ActionFail;
+
+// /* =========================
+//  * TYPE GUARD ДЛЯ ОШИБОК PRISMA
+//  * =======================*/
+
+// function isKnownPrismaError(
+//   e: unknown,
+//   code?: string
+// ): e is Prisma.PrismaClientKnownRequestError {
+//   return (
+//     e instanceof Prisma.PrismaClientKnownRequestError &&
+//     (code ? e.code === code : true)
+//   );
+// }
+
+// /* =========================
+//  * ВАЛИДАЦИЯ ПОЛЕЙ ФОРМЫ (Zod)
+//  * =======================*/
+
+// const ArticleSchema = z.object({
+//   type: z
+//     .nativeEnum(ArticleType)
+//     .optional()
+//     .transform((v) => v ?? ArticleType.ARTICLE),
+
+//   title: z.string().min(1, "Укажите заголовок"),
+//   slug: z
+//     .string()
+//     .min(1, "Укажите slug")
+//     .regex(/^[a-z0-9-]+$/, "Только строчные латинские буквы, цифры и дефисы"),
+//   excerpt: z.string().optional(),
+//   body: z.string().min(1, "Текст обязателен"),
+
+//   // значения из <input type="datetime-local">
+//   publishedAt: z.string().optional(),
+//   expiresAt: z.string().optional(),
+
+//   // Эти поля можно оставить в форме, но в БД их нет — игнорируем
+//   seoTitle: z.string().optional(),
+//   seoDesc: z.string().optional(),
+//   ogTitle: z.string().optional(),
+//   ogDesc: z.string().optional(),
+// });
+
+// /* =========================
+//  * ПАРСИНГ ДАТ ИЗ СТРОК ФОРМЫ
+//  * =======================*/
+
+// function toDates(input: { publishedAt?: string; expiresAt?: string }): {
+//   publishedAt: Date | null;
+//   expiresAt: Date | null;
+// } {
+//   const input_published = (input.publishedAt ?? "").trim();
+//   const input_expires = (input.expiresAt ?? "").trim();
+
+//   // Добавляем 'Z' чтобы интерпретировать как UTC (форма показывает UTC)
+//   const publishedAt =
+//     input_published !== "" ? new Date(input_published + ":00Z") : null;
+//   const expiresAt = 
+//     input_expires !== "" ? new Date(input_expires + ":00Z") : null;
+
+//   return { publishedAt, expiresAt };
+// }
+
+// /* =========================
+//  * ПОДГОТОВКА ДАННЫХ ИЗ FormData
+//  * =======================*/
+
+// async function prepareData(
+//   fd: FormData
+// ): Promise<
+//   | {
+//       ok: true;
+//       data: z.infer<typeof ArticleSchema>;
+//       publishedAt: Date | null;
+//       expiresAt: Date | null;
+//       coverSrc?: string | null; // undefined — не трогаем; null — очистить; string — обновить
+//     }
+//   | ActionFail
+// > {
+//   const raw = {
+//     type: fd.get("type")?.toString(),
+//     title: fd.get("title")?.toString() ?? "",
+//     slug: fd.get("slug")?.toString() ?? "",
+//     excerpt: fd.get("excerpt")?.toString() ?? "",
+//     body: fd.get("body")?.toString() ?? "",
+
+//     publishedAt: fd.get("publishedAt")?.toString(),
+//     expiresAt: fd.get("expiresAt")?.toString(),
+
+//     // SEO поля могут присутствовать в форме, но дальше не пишем их в БД
+//     seoTitle: fd.get("seoTitle")?.toString() ?? "",
+//     seoDesc: fd.get("seoDesc")?.toString() ?? "",
+//     ogTitle: fd.get("ogTitle")?.toString() ?? "",
+//     ogDesc: fd.get("ogDesc")?.toString() ?? "",
+//   };
+
+//   const parsed = ArticleSchema.safeParse(raw);
+//   if (!parsed.success) {
+//     const fieldErrors: FieldErrors = {};
+//     for (const issue of parsed.error.issues) {
+//       const key = issue.path.join(".") || "form";
+//       (fieldErrors[key] ??= []).push(issue.message);
+//     }
+//     return {
+//       ok: false,
+//       error: "Некорректные поля формы",
+//       details: { fieldErrors },
+//     };
+//   }
+
+//   const { publishedAt, expiresAt } = toDates(parsed.data);
+
+//   let coverSrc: string | null | undefined = undefined;
+//   const coverCandidate = fd.get("coverFile") ?? fd.get("cover");
+  
+//   if (coverCandidate instanceof File) {
+//     if (coverCandidate.size > 0) {
+//       try {
+//         const saved = await saveImageFile(coverCandidate, { dir: "uploads" });
+//         coverSrc = saved.src;
+//       } catch {
+//         return { ok: false, error: "Не удалось сохранить изображение" };
+//       }
+//     } else {
+//       coverSrc = undefined;
+//     }
+//   } else if (coverCandidate === null) {
+//     coverSrc = undefined;
+//   } else if (typeof coverCandidate === "string" && coverCandidate === "") {
+//     coverSrc = null;
+//   }
+
+//   return {
+//     ok: true,
+//     data: parsed.data,
+//     publishedAt,
+//     expiresAt,
+//     coverSrc,
+//   };
+// }
+
+// /* =========================
+//  * СОЗДАНИЕ
+//  * =======================*/
+
+// export async function createArticle(fd: FormData): Promise<ActionResult> {
+//   const prep = await prepareData(fd);
+//   if (!prep.ok) return prep;
+
+//   try {
+//     const publishedAtFinal = prep.publishedAt ?? new Date();
+
+//     const created = await prisma.article.create({
+//       data: {
+//         type: prep.data.type,
+//         title: prep.data.title,
+//         slug: prep.data.slug,
+//         excerpt: prep.data.excerpt || undefined,
+//         content: prep.data.body,            // ← пишем в content
+//         cover: prep.coverSrc ?? undefined,
+//         publishedAt: publishedAtFinal,
+//         expiresAt: prep.expiresAt ?? undefined,
+//         // SEO-поля намеренно не пишем — их нет в схеме
+//       },
+//       select: { id: true },
+//     });
+
+//     return { ok: true, id: created.id };
+//   } catch (e: unknown) {
+//     if (isKnownPrismaError(e, "P2002")) {
+//       return {
+//         ok: false,
+//         error: "Публикация с таким slug уже существует",
+//         details: { fieldErrors: { slug: ["Slug уже занят"] } },
+//       };
+//     }
+//     if (isKnownPrismaError(e)) {
+//       console.error("Prisma error:", e.code, e.meta);
+//     } else {
+//       console.error("Unknown error:", e);
+//     }
+//     return { ok: false, error: "Не удалось сохранить запись" };
+//   }
+// }
+
+// export async function createArticleAndRedirect(fd: FormData): Promise<void> {
+//   const res = await createArticle(fd);
+//   if (res.ok) {
+//     revalidatePath("/admin/news");
+//     redirect("/admin/news");
+//   }
+//   throw new Error(
+//     (res as ActionFail).error || "Не удалось сохранить запись (unknown)"
+//   );
+// }
+
+// /* =========================
+//  * ОБНОВЛЕНИЕ
+//  * =======================*/
+
+// export async function updateArticle(
+//   id: string,
+//   fd: FormData
+// ): Promise<ActionResult> {
+//   const prep = await prepareData(fd);
+//   if (!prep.ok) return prep;
+
+//   try {
+//     await prisma.article.update({
+//       where: { id },
+//       data: {
+//         type: prep.data.type,
+//         title: prep.data.title,
+//         slug: prep.data.slug,
+//         excerpt: prep.data.excerpt || undefined,
+//         content: prep.data.body,            // ← пишем в content
+//         ...(prep.coverSrc === undefined ? {} : { cover: prep.coverSrc ?? null }),
+//         publishedAt:
+//           prep.publishedAt === null ? null : prep.publishedAt ?? undefined,
+//         expiresAt:
+//           prep.expiresAt === null ? null : prep.expiresAt ?? undefined,
+//         // SEO-поля намеренно не пишем
+//       },
+//       select: { id: true },
+//     });
+
+//     return { ok: true, id };
+//   } catch (e: unknown) {
+//     if (isKnownPrismaError(e, "P2002")) {
+//       return {
+//         ok: false,
+//         error: "Публикация с таким slug уже существует",
+//         details: { fieldErrors: { slug: ["Slug уже занят"] } },
+//       };
+//     }
+//     if (isKnownPrismaError(e)) {
+//       console.error("Prisma error:", e.code, e.meta);
+//     } else {
+//       console.error("Unknown error:", e);
+//     }
+//     return { ok: false, error: "Не удалось сохранить запись" };
+//   }
+// }
+
+// export async function updateArticleAndRedirect(
+//   id: string,
+//   fd: FormData
+// ): Promise<void> {
+//   const res = await updateArticle(id, fd);
+//   if (res.ok) {
+//     revalidatePath("/admin/news");
+//     redirect("/admin/news");
+//   }
+//   throw new Error(
+//     (res as ActionFail).error || "Не удалось сохранить запись (unknown)"
+//   );
+// }
+
+// /* =========================
+//  * УДАЛЕНИЕ
+//  * =======================*/
+
+// export async function deleteArticle(fd: FormData): Promise<ActionResult> {
+//   const id = fd.get("id")?.toString();
+//   if (!id) return { ok: false, error: "Не указан id" };
+
+//   try {
+//     await prisma.article.delete({ where: { id } });
+//     return { ok: true, id };
+//   } catch (e: unknown) {
+//     if (isKnownPrismaError(e)) {
+//       console.error("Prisma error:", e.code, e.meta);
+//     } else {
+//       console.error("Unknown error:", e);
+//     }
+//     return { ok: false, error: "Не удалось удалить запись" };
+//   }
+// }
+
+// export async function deleteArticleAndRefresh(fd: FormData): Promise<void> {
+//   const res = await deleteArticle(fd);
+//   if (!res.ok) {
+//     console.warn("deleteArticle fail:", res.error);
+//   }
+//   revalidatePath("/admin/news");
+//   redirect("/admin/news");
+// }
 
 
 
