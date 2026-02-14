@@ -1,17 +1,21 @@
 // src/app/contacts/page.tsx
 import type { Metadata } from "next";
-import { cookies } from "next/headers";
 
 import Section from "@/components/section";
 import ContactsMapEmbed from "@/components/ContactsMapEmbed";
 import AnimatedContactsContent from "@/components/contacts/AnimatedContactsContent";
 import AnimatedContactCards from "@/components/contacts/AnimatedContactCards";
-import { DEFAULT_LOCALE, LOCALES, type Locale } from "@/i18n/locales";
 import { translate } from "@/i18n/messages";
+import {
+  resolveUrlLocale,
+  resolveContentLocale,
+  buildAlternates,
+  BASE_URL,
+  type SeoLocale,
+  type SearchParamsPromise,
+} from "@/lib/seo-locale";
 
 import styles from "./contacts.module.css";
-
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://permanent-halle.de";
 
 const SALON = {
   name: "Salon Elen",
@@ -26,39 +30,7 @@ const SALON = {
   mapsQuery: "Lessingstraße 37, 06114 Halle (Saale)",
 };
 
-type SearchParams = Record<string, string | string[] | undefined>;
-type SearchParamsPromise = Promise<SearchParams>;
-
-function isLocale(v: unknown): v is Locale {
-  return typeof v === "string" && (LOCALES as readonly string[]).includes(v);
-}
-
-async function getLangFromSearchParams(
-  searchParams?: SearchParamsPromise,
-): Promise<string | undefined> {
-  const sp = searchParams ? await searchParams : undefined;
-  const raw = sp?.lang;
-  if (Array.isArray(raw)) return raw[0];
-  return raw;
-}
-
-async function resolveLocale(searchParams?: SearchParamsPromise): Promise<Locale> {
-  const urlLang = await getLangFromSearchParams(searchParams);
-  if (isLocale(urlLang)) return urlLang;
-
-  const cookieStore = await cookies();
-  const cookieLocale = cookieStore.get("locale")?.value;
-  if (isLocale(cookieLocale)) return cookieLocale;
-
-  return DEFAULT_LOCALE;
-}
-
-function pageUrl(locale: Locale) {
-  if (locale === "de") return `${SITE_URL}/contacts`;
-  return `${SITE_URL}/contacts?lang=${locale}`;
-}
-
-function localeHref(path: string, locale: Locale) {
+function localeHref(path: string, locale: SeoLocale) {
   if (locale === "de") return path;
   const hasQuery = path.includes("?");
   return `${path}${hasQuery ? "&" : "?"}lang=${locale}`;
@@ -69,7 +41,8 @@ export async function generateMetadata({
 }: {
   searchParams?: SearchParamsPromise;
 }): Promise<Metadata> {
-  const locale = await resolveLocale(searchParams);
+  const locale = await resolveUrlLocale(searchParams);
+  const alts = buildAlternates("/contacts", locale);
 
   const title =
     locale === "de"
@@ -84,19 +57,12 @@ export async function generateMetadata({
     metadataBase: undefined,
     title,
     description,
-    alternates: {
-      canonical: pageUrl(locale),
-      languages: {
-        de: pageUrl("de"),
-        en: pageUrl("en"),
-        ru: pageUrl("ru"),
-      },
-    },
+    alternates: alts,
     openGraph: {
       title,
       description,
-      url: pageUrl(locale),
-      images: ["/images/hero.webp"],
+      url: alts.canonical,
+      images: [`${BASE_URL}/images/hero.webp`],
       siteName: "Salon Elen",
       locale: locale === "de" ? "de_DE" : locale === "en" ? "en_US" : "ru_RU",
       type: "website",
@@ -104,7 +70,8 @@ export async function generateMetadata({
   };
 }
 
-function jsonLd(locale: Locale) {
+function jsonLd(locale: SeoLocale) {
+  const alts = buildAlternates("/contacts", locale);
   const data = {
     "@context": "https://schema.org",
     "@type": ["BeautySalon", "LocalBusiness"],
@@ -118,7 +85,7 @@ function jsonLd(locale: Locale) {
       addressLocality: SALON.addressLocality,
       addressCountry: SALON.addressCountry,
     },
-    url: pageUrl(locale),
+    url: alts.canonical,
     openingHoursSpecification: [
       {
         "@type": "OpeningHoursSpecification",
@@ -137,7 +104,7 @@ function jsonLd(locale: Locale) {
   return JSON.stringify(data);
 }
 
-function mailtoLink(locale: Locale) {
+function mailtoLink(locale: SeoLocale) {
   const subject =
     locale === "de"
       ? "Anfrage – Salon Elen"
@@ -155,7 +122,7 @@ function mailtoLink(locale: Locale) {
   return `mailto:${SALON.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
 }
 
-function whatsappLink(locale: Locale) {
+function whatsappLink(locale: SeoLocale) {
   const text =
     locale === "de"
       ? "Hallo! Ich möchte einen Termin vereinbaren."
@@ -170,7 +137,7 @@ export default async function ContactsPage({
 }: {
   searchParams?: SearchParamsPromise;
 }) {
-  const locale = await resolveLocale(searchParams);
+  const locale = await resolveContentLocale(searchParams);
   const t = (k: Parameters<typeof translate>[1]) => translate(locale, k);
 
   const mapsUrl =
@@ -282,6 +249,294 @@ export default async function ContactsPage({
     </main>
   );
 }
+
+
+
+//-----работал до 14.02.26 исправляем для SEO
+// // src/app/contacts/page.tsx
+// import type { Metadata } from "next";
+// import { cookies } from "next/headers";
+
+// import Section from "@/components/section";
+// import ContactsMapEmbed from "@/components/ContactsMapEmbed";
+// import AnimatedContactsContent from "@/components/contacts/AnimatedContactsContent";
+// import AnimatedContactCards from "@/components/contacts/AnimatedContactCards";
+// import { DEFAULT_LOCALE, LOCALES, type Locale } from "@/i18n/locales";
+// import { translate } from "@/i18n/messages";
+
+// import styles from "./contacts.module.css";
+
+// const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://permanent-halle.de";
+
+// const SALON = {
+//   name: "Salon Elen",
+//   streetAddress: "Lessingstraße 37",
+//   postalCode: "06114",
+//   addressLocality: "Halle (Saale)",
+//   addressCountry: "DE",
+//   phone: "+49 177 899 51 06",
+//   email: "elen69@web.de",
+//   whatsapp: "491778995106",
+//   telegram: "salonelen",
+//   mapsQuery: "Lessingstraße 37, 06114 Halle (Saale)",
+// };
+
+// type SearchParams = Record<string, string | string[] | undefined>;
+// type SearchParamsPromise = Promise<SearchParams>;
+
+// function isLocale(v: unknown): v is Locale {
+//   return typeof v === "string" && (LOCALES as readonly string[]).includes(v);
+// }
+
+// async function getLangFromSearchParams(
+//   searchParams?: SearchParamsPromise,
+// ): Promise<string | undefined> {
+//   const sp = searchParams ? await searchParams : undefined;
+//   const raw = sp?.lang;
+//   if (Array.isArray(raw)) return raw[0];
+//   return raw;
+// }
+
+// async function resolveLocale(searchParams?: SearchParamsPromise): Promise<Locale> {
+//   const urlLang = await getLangFromSearchParams(searchParams);
+//   if (isLocale(urlLang)) return urlLang;
+
+//   const cookieStore = await cookies();
+//   const cookieLocale = cookieStore.get("locale")?.value;
+//   if (isLocale(cookieLocale)) return cookieLocale;
+
+//   return DEFAULT_LOCALE;
+// }
+
+// function pageUrl(locale: Locale) {
+//   if (locale === "de") return `${SITE_URL}/contacts`;
+//   return `${SITE_URL}/contacts?lang=${locale}`;
+// }
+
+// function localeHref(path: string, locale: Locale) {
+//   if (locale === "de") return path;
+//   const hasQuery = path.includes("?");
+//   return `${path}${hasQuery ? "&" : "?"}lang=${locale}`;
+// }
+
+// export async function generateMetadata({
+//   searchParams,
+// }: {
+//   searchParams?: SearchParamsPromise;
+// }): Promise<Metadata> {
+//   const locale = await resolveLocale(searchParams);
+
+//   const title =
+//     locale === "de"
+//       ? "Kontakt — Salon Elen"
+//       : locale === "en"
+//         ? "Contact — Salon Elen"
+//         : "Контакты — Salon Elen";
+
+//   const description = translate(locale, "contacts_seo_description");
+
+//   return {
+//     metadataBase: undefined,
+//     title,
+//     description,
+//     alternates: {
+//       canonical: pageUrl(locale),
+//       languages: {
+//         de: pageUrl("de"),
+//         en: pageUrl("en"),
+//         ru: pageUrl("ru"),
+//       },
+//     },
+//     openGraph: {
+//       title,
+//       description,
+//       url: pageUrl(locale),
+//       images: ["/images/hero.webp"],
+//       siteName: "Salon Elen",
+//       locale: locale === "de" ? "de_DE" : locale === "en" ? "en_US" : "ru_RU",
+//       type: "website",
+//     },
+//   };
+// }
+
+// function jsonLd(locale: Locale) {
+//   const data = {
+//     "@context": "https://schema.org",
+//     "@type": ["BeautySalon", "LocalBusiness"],
+//     name: SALON.name,
+//     telephone: SALON.phone,
+//     email: SALON.email,
+//     address: {
+//       "@type": "PostalAddress",
+//       streetAddress: SALON.streetAddress,
+//       postalCode: SALON.postalCode,
+//       addressLocality: SALON.addressLocality,
+//       addressCountry: SALON.addressCountry,
+//     },
+//     url: pageUrl(locale),
+//     openingHoursSpecification: [
+//       {
+//         "@type": "OpeningHoursSpecification",
+//         dayOfWeek: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
+//         opens: "10:00",
+//         closes: "19:00",
+//       },
+//       {
+//         "@type": "OpeningHoursSpecification",
+//         dayOfWeek: "Saturday",
+//         opens: "10:00",
+//         closes: "16:00",
+//       },
+//     ],
+//   };
+//   return JSON.stringify(data);
+// }
+
+// function mailtoLink(locale: Locale) {
+//   const subject =
+//     locale === "de"
+//       ? "Anfrage – Salon Elen"
+//       : locale === "en"
+//         ? "Inquiry – Salon Elen"
+//         : "Запрос — Salon Elen";
+
+//   const body =
+//     locale === "de"
+//       ? "Hallo!\n\nIch möchte einen Termin / eine Beratung.\n\nName:\nTelefon:\nNachricht:\n\nVielen Dank!"
+//       : locale === "en"
+//         ? "Hi!\n\nI'd like to book an appointment / ask a question.\n\nName:\nPhone:\nMessage:\n\nThank you!"
+//         : "Здравствуйте!\n\nХочу записаться / задать вопрос.\n\nИмя:\nТелефон:\nСообщение:\n\nСпасибо!";
+
+//   return `mailto:${SALON.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+// }
+
+// function whatsappLink(locale: Locale) {
+//   const text =
+//     locale === "de"
+//       ? "Hallo! Ich möchte einen Termin vereinbaren."
+//       : locale === "en"
+//         ? "Hello! I'd like to book an appointment."
+//         : "Здравствуйте! Хочу записаться на приём.";
+//   return `https://wa.me/${SALON.whatsapp}?text=${encodeURIComponent(text)}`;
+// }
+
+// export default async function ContactsPage({
+//   searchParams,
+// }: {
+//   searchParams?: SearchParamsPromise;
+// }) {
+//   const locale = await resolveLocale(searchParams);
+//   const t = (k: Parameters<typeof translate>[1]) => translate(locale, k);
+
+//   const mapsUrl =
+//     "https://www.google.com/maps/search/?api=1&query=" +
+//     encodeURIComponent(SALON.mapsQuery);
+
+//   const embedUrl =
+//     "https://www.google.com/maps?q=" +
+//     encodeURIComponent(SALON.mapsQuery) +
+//     "&z=15&output=embed";
+
+//   const localizedLocaleHref = (path: string) => localeHref(path, locale);
+
+//   return (
+//     <main className="relative bg-gradient-to-b from-pink-50/60 via-rose-50/30 to-white dark:from-transparent dark:via-transparent dark:to-transparent">
+//       {/* Background gradients */}
+//       <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
+//         <div
+//           className={[
+//             "absolute -top-28 left-1/2 h-[560px] w-[560px] -translate-x-1/2 rounded-full blur-3xl",
+//             "bg-[radial-gradient(circle_at_center,rgba(236,72,153,0.22),transparent_60%)]",
+//             "dark:bg-[radial-gradient(circle_at_center,rgba(255,193,7,0.14),transparent_60%)]",
+//             styles.orbFloat,
+//           ].join(" ")}
+//         />
+//         <div
+//           className={[
+//             "absolute -bottom-28 -left-28 h-[520px] w-[520px] rounded-full blur-3xl",
+//             "bg-[radial-gradient(circle_at_center,rgba(251,113,133,0.20),transparent_60%)]",
+//             "dark:bg-[radial-gradient(circle_at_center,rgba(236,72,153,0.10),transparent_60%)]",
+//             styles.orbFloat2,
+//           ].join(" ")}
+//         />
+//         <div
+//           className={[
+//             "absolute -bottom-40 right-[-80px] h-[620px] w-[620px] rounded-full blur-3xl",
+//             "bg-[radial-gradient(circle_at_center,rgba(251,191,36,0.15),transparent_60%)]",
+//             "dark:bg-[radial-gradient(circle_at_center,rgba(56,189,248,0.10),transparent_60%)]",
+//             styles.orbFloat3,
+//           ].join(" ")}
+//         />
+//         <div className={["absolute inset-0", styles.noiseMask].join(" ")} />
+//       </div>
+
+//       {/* HERO */}
+//       <section className="relative pt-8 sm:pt-12 lg:pt-14">
+//         <div className="container">
+//           <div className="relative overflow-hidden rounded-3xl border border-pink-200/40 bg-white/80 shadow-lg shadow-pink-100/15 backdrop-blur-xl dark:border-gray-800 dark:bg-gray-900/60 dark:shadow-none">
+//             {/* Inner gradients */}
+//             <div className="absolute inset-0">
+//               <div className="absolute inset-0 bg-[radial-gradient(900px_circle_at_12%_18%,rgba(236,72,153,0.12),transparent_60%),radial-gradient(900px_circle_at_88%_28%,rgba(251,191,36,0.10),transparent_60%),radial-gradient(900px_circle_at_40%_98%,rgba(244,114,182,0.08),transparent_60%)] dark:bg-[radial-gradient(900px_circle_at_12%_18%,rgba(255,193,7,0.10),transparent_62%),radial-gradient(900px_circle_at_88%_28%,rgba(168,85,247,0.10),transparent_62%),radial-gradient(900px_circle_at_40%_98%,rgba(56,189,248,0.08),transparent_62%)]" />
+//               <div className={["absolute inset-0", styles.shimmerLine].join(" ")} />
+//             </div>
+
+//             <AnimatedContactsContent
+//              locale={locale}
+//              salon={SALON}
+//               mapsUrl={mapsUrl}
+//              mailtoLink={mailtoLink(locale)}
+//              whatsappLink={whatsappLink(locale)}
+//             />
+
+//             <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-pink-300/20 to-transparent dark:via-white/10" />
+//           </div>
+//         </div>
+//       </section>
+
+//       {/* Map & Contact Section */}
+//       <Section title={t("contacts_map_title")} subtitle={t("contacts_quick_title")} className="relative">
+//         <div className="grid gap-6 lg:grid-cols-2">
+//           <ContactsMapEmbed
+//             title={t("contacts_map_title")}
+//             caption={t("contacts_map_caption")}
+//             openMapsLabel={t("contacts_open_maps")}
+//             showMapLabel={t("contacts_show_map")}
+//             privacyNote={t("contacts_map_privacy")}
+//             previewImageSrc="/images/cta.jpg"
+//             previewAlt={t("contacts_map_title")}
+//             mapsUrl={mapsUrl}
+//             embedUrl={embedUrl}
+//             eagerDesktop
+//           />
+
+//           {/* Contact Cards */}
+//           <div className="relative overflow-hidden rounded-3xl border border-pink-200/30 bg-white/85 shadow-lg shadow-pink-100/15 backdrop-blur-xl dark:border-white/10 dark:bg-gray-900/60 dark:shadow-none">
+//             <div className="absolute inset-0 bg-[radial-gradient(650px_circle_at_25%_15%,rgba(236,72,153,0.10),transparent_60%),radial-gradient(650px_circle_at_85%_35%,rgba(251,191,36,0.08),transparent_60%)] dark:bg-[radial-gradient(650px_circle_at_25%_15%,rgba(255,193,7,0.10),transparent_62%),radial-gradient(650px_circle_at_85%_35%,rgba(56,189,248,0.08),transparent_62%)]" />
+//             <div className="relative p-5 sm:p-6">
+//               <h2 className="text-xl font-semibold tracking-tight text-gray-950 dark:text-white">
+//                 {t("contacts_form_title")}
+//               </h2>
+//               <p className="mt-1 text-sm text-gray-700 dark:text-gray-300">
+//                 {t("contacts_form_note")}
+//               </p>
+
+//               <div className="mt-6">
+//                 <AnimatedContactCards
+//                   locale={locale}
+//                   salon={SALON}
+//                   mailtoLink={mailtoLink(locale)}
+//                   whatsappLink={whatsappLink(locale)}
+//                 />
+//               </div>
+//             </div>
+//           </div>
+//         </div>
+
+//         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLd(locale) }} />
+//       </Section>
+//     </main>
+//   );
+// }
 
 
 //--------пробую улучшить анимацию заднего фона херо, добавив звёздное небо, на тёмном фоне хорошо а белая тема не очень

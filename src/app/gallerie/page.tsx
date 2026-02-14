@@ -1,67 +1,44 @@
 // src/app/gallerie/page.tsx
 import type { Metadata } from "next";
-import { cookies } from "next/headers";
 import { prisma } from "@/lib/db";
-import { DEFAULT_LOCALE, LOCALES, type Locale } from "@/i18n/locales";
+import { type Locale } from "@/i18n/locales";
 import GallerieClient from "./GallerieClient";
+import {
+  resolveUrlLocale,
+  resolveContentLocale,
+  buildAlternates,
+  BASE_URL,
+  type SeoLocale,
+  type SearchParamsPromise,
+} from "@/lib/seo-locale";
 
 export const dynamic = "force-dynamic";
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://permanent-halle.de";
-const PAGE_PATH = "/gallerie";
-
-type SearchParams = Record<string, string | string[] | undefined>;
-type SearchParamsPromise = Promise<SearchParams>;
-
-function isLocale(v: unknown): v is Locale {
-  return typeof v === "string" && (LOCALES as readonly string[]).includes(v);
-}
-
-async function getLangFromSearchParams(sp?: SearchParamsPromise): Promise<string | undefined> {
-  const resolved = sp ? await sp : undefined;
-  const raw = resolved?.lang;
-  return Array.isArray(raw) ? raw[0] : raw;
-}
-
-async function resolveLocale(searchParams?: SearchParamsPromise): Promise<Locale> {
-  const urlLang = await getLangFromSearchParams(searchParams);
-  if (isLocale(urlLang)) return urlLang;
-  const cookieStore = await cookies();
-  const cookieLocale = cookieStore.get("locale")?.value;
-  if (isLocale(cookieLocale)) return cookieLocale;
-  return DEFAULT_LOCALE;
-}
-
-function pageUrl(locale: Locale) {
-  return locale === "de" ? `${SITE_URL}${PAGE_PATH}` : `${SITE_URL}${PAGE_PATH}?lang=${locale}`;
-}
-
-const metaTitles: Record<Locale, string> = {
+const metaTitles: Record<SeoLocale, string> = {
   de: "Galerie — Salon Elen | Unsere Arbeiten in Halle (Saale)",
   ru: "Галерея — Salon Elen | Наши работы в Галле (Заале)",
   en: "Gallery — Salon Elen | Our Works in Halle (Saale)",
 };
 
-const metaDescriptions: Record<Locale, string> = {
+const metaDescriptions: Record<SeoLocale, string> = {
   de: "Entdecken Sie unsere Arbeiten: Permanent Make-up, Nageldesign, Wimpernverlängerung, Microneedling und mehr.",
   ru: "Посмотрите наши работы: перманентный макияж, дизайн ногтей, наращивание ресниц и многое другое.",
   en: "Discover our works: permanent make-up, nail design, eyelash extensions, microneedling and more.",
 };
 
 export async function generateMetadata({ searchParams }: { searchParams?: SearchParamsPromise }): Promise<Metadata> {
-  const locale = await resolveLocale(searchParams);
+  const locale = await resolveUrlLocale(searchParams);
+  const alts = buildAlternates("/gallerie", locale);
+
   return {
     title: metaTitles[locale],
     description: metaDescriptions[locale],
-    alternates: {
-      canonical: pageUrl(locale),
-      languages: { de: pageUrl("de"), en: pageUrl("en"), ru: pageUrl("ru") },
-    },
+    alternates: alts,
     openGraph: {
       title: metaTitles[locale],
       description: metaDescriptions[locale],
-      url: pageUrl(locale),
-      images: ["/images/hero.webp"],
+      url: alts.canonical,
+      images: [`${BASE_URL}/images/hero.webp`],
       siteName: "Salon Elen",
       locale: locale === "de" ? "de_DE" : locale === "en" ? "en_US" : "ru_RU",
       type: "website",
@@ -69,7 +46,7 @@ export async function generateMetadata({ searchParams }: { searchParams?: Search
   };
 }
 
-async function getGalleryData(locale: Locale) {
+async function getGalleryData(locale: SeoLocale) {
   const categories = await prisma.service.findMany({
     where: { parentId: null, isArchived: false, isActive: true },
     orderBy: { name: "asc" },
@@ -114,16 +91,17 @@ async function getGalleryData(locale: Locale) {
 }
 
 export default async function GalleriePage({ searchParams }: { searchParams?: SearchParamsPromise }) {
-  const locale = await resolveLocale(searchParams);
+  const locale = await resolveContentLocale(searchParams);
   const categories = await getGalleryData(locale);
   const totalImages = categories.reduce((sum, c) => sum + c.images.length, 0);
+  const alts = buildAlternates("/gallerie", locale);
 
   const jsonLd = JSON.stringify({
     "@context": "https://schema.org",
     "@type": "ImageGallery",
     name: metaTitles[locale],
     description: metaDescriptions[locale],
-    url: pageUrl(locale),
+    url: alts.canonical,
     numberOfItems: totalImages,
     provider: {
       "@type": "BeautySalon", name: "Salon Elen",
@@ -138,6 +116,151 @@ export default async function GalleriePage({ searchParams }: { searchParams?: Se
     </>
   );
 }
+
+
+
+
+//-----------работал до 14.02.26 исправляем для SEO
+// // src/app/gallerie/page.tsx
+// import type { Metadata } from "next";
+// import { cookies } from "next/headers";
+// import { prisma } from "@/lib/db";
+// import { DEFAULT_LOCALE, LOCALES, type Locale } from "@/i18n/locales";
+// import GallerieClient from "./GallerieClient";
+
+// export const dynamic = "force-dynamic";
+
+// const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://permanent-halle.de";
+// const PAGE_PATH = "/gallerie";
+
+// type SearchParams = Record<string, string | string[] | undefined>;
+// type SearchParamsPromise = Promise<SearchParams>;
+
+// function isLocale(v: unknown): v is Locale {
+//   return typeof v === "string" && (LOCALES as readonly string[]).includes(v);
+// }
+
+// async function getLangFromSearchParams(sp?: SearchParamsPromise): Promise<string | undefined> {
+//   const resolved = sp ? await sp : undefined;
+//   const raw = resolved?.lang;
+//   return Array.isArray(raw) ? raw[0] : raw;
+// }
+
+// async function resolveLocale(searchParams?: SearchParamsPromise): Promise<Locale> {
+//   const urlLang = await getLangFromSearchParams(searchParams);
+//   if (isLocale(urlLang)) return urlLang;
+//   const cookieStore = await cookies();
+//   const cookieLocale = cookieStore.get("locale")?.value;
+//   if (isLocale(cookieLocale)) return cookieLocale;
+//   return DEFAULT_LOCALE;
+// }
+
+// function pageUrl(locale: Locale) {
+//   return locale === "de" ? `${SITE_URL}${PAGE_PATH}` : `${SITE_URL}${PAGE_PATH}?lang=${locale}`;
+// }
+
+// const metaTitles: Record<Locale, string> = {
+//   de: "Galerie — Salon Elen | Unsere Arbeiten in Halle (Saale)",
+//   ru: "Галерея — Salon Elen | Наши работы в Галле (Заале)",
+//   en: "Gallery — Salon Elen | Our Works in Halle (Saale)",
+// };
+
+// const metaDescriptions: Record<Locale, string> = {
+//   de: "Entdecken Sie unsere Arbeiten: Permanent Make-up, Nageldesign, Wimpernverlängerung, Microneedling und mehr.",
+//   ru: "Посмотрите наши работы: перманентный макияж, дизайн ногтей, наращивание ресниц и многое другое.",
+//   en: "Discover our works: permanent make-up, nail design, eyelash extensions, microneedling and more.",
+// };
+
+// export async function generateMetadata({ searchParams }: { searchParams?: SearchParamsPromise }): Promise<Metadata> {
+//   const locale = await resolveLocale(searchParams);
+//   return {
+//     title: metaTitles[locale],
+//     description: metaDescriptions[locale],
+//     alternates: {
+//       canonical: pageUrl(locale),
+//       languages: { de: pageUrl("de"), en: pageUrl("en"), ru: pageUrl("ru") },
+//     },
+//     openGraph: {
+//       title: metaTitles[locale],
+//       description: metaDescriptions[locale],
+//       url: pageUrl(locale),
+//       images: ["/images/hero.webp"],
+//       siteName: "Salon Elen",
+//       locale: locale === "de" ? "de_DE" : locale === "en" ? "en_US" : "ru_RU",
+//       type: "website",
+//     },
+//   };
+// }
+
+// async function getGalleryData(locale: Locale) {
+//   const categories = await prisma.service.findMany({
+//     where: { parentId: null, isArchived: false, isActive: true },
+//     orderBy: { name: "asc" },
+//     select: {
+//       id: true, slug: true, name: true, cover: true,
+//       translations: { where: { locale }, select: { name: true } },
+//       gallery: { orderBy: { sortOrder: "asc" }, select: { id: true, image: true, caption: true } },
+//       children: {
+//         where: { isActive: true, isArchived: false },
+//         select: {
+//           id: true, name: true, slug: true, cover: true,
+//           translations: { where: { locale }, select: { name: true } },
+//           gallery: { orderBy: { sortOrder: "asc" }, select: { id: true, image: true, caption: true } },
+//         },
+//       },
+//     },
+//   });
+
+//   return categories
+//     .map((cat) => {
+//       const images: { id: string; src: string; caption: string | null; serviceName: string }[] = [];
+
+//       for (const g of cat.gallery) {
+//         images.push({ id: g.id, src: g.image, caption: g.caption, serviceName: cat.translations[0]?.name || cat.name });
+//       }
+//       if (cat.cover) {
+//         images.push({ id: `cover-${cat.id}`, src: cat.cover, caption: null, serviceName: cat.translations[0]?.name || cat.name });
+//       }
+//       for (const child of cat.children) {
+//         const childName = child.translations[0]?.name || child.name;
+//         if (child.cover) {
+//           images.push({ id: `cover-${child.id}`, src: child.cover, caption: null, serviceName: childName });
+//         }
+//         for (const g of child.gallery) {
+//           images.push({ id: g.id, src: g.image, caption: g.caption, serviceName: childName });
+//         }
+//       }
+
+//       return { id: cat.id, slug: cat.slug, name: cat.translations[0]?.name || cat.name, images };
+//     })
+//     .filter((c) => c.images.length > 0);
+// }
+
+// export default async function GalleriePage({ searchParams }: { searchParams?: SearchParamsPromise }) {
+//   const locale = await resolveLocale(searchParams);
+//   const categories = await getGalleryData(locale);
+//   const totalImages = categories.reduce((sum, c) => sum + c.images.length, 0);
+
+//   const jsonLd = JSON.stringify({
+//     "@context": "https://schema.org",
+//     "@type": "ImageGallery",
+//     name: metaTitles[locale],
+//     description: metaDescriptions[locale],
+//     url: pageUrl(locale),
+//     numberOfItems: totalImages,
+//     provider: {
+//       "@type": "BeautySalon", name: "Salon Elen",
+//       address: { "@type": "PostalAddress", streetAddress: "Lessingstraße 37", postalCode: "06114", addressLocality: "Halle (Saale)", addressCountry: "DE" },
+//     },
+//   });
+
+//   return (
+//     <>
+//       <GallerieClient locale={locale} categories={categories} />
+//       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLd }} />
+//     </>
+//   );
+// }
 
 
 
