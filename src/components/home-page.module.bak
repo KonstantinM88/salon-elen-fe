@@ -1,0 +1,240 @@
+/* src/components/home-page.module.css */
+
+.orbA {
+  background: radial-gradient(circle at center, rgba(255, 193, 7, 0.28), transparent 60%);
+  animation: floatA 10s ease-in-out infinite;
+}
+.orbB {
+  background: radial-gradient(circle at center, rgba(236, 72, 153, 0.18), transparent 60%);
+  animation: floatB 12s ease-in-out infinite;
+}
+.orbC {
+  background: radial-gradient(circle at center, rgba(56, 189, 248, 0.16), transparent 60%);
+  animation: floatC 14s ease-in-out infinite;
+}
+
+:global(.dark) .orbA {
+  background: radial-gradient(circle at center, rgba(255, 193, 7, 0.14), transparent 62%);
+}
+:global(.dark) .orbB {
+  background: radial-gradient(circle at center, rgba(168, 85, 247, 0.12), transparent 62%);
+}
+:global(.dark) .orbC {
+  background: radial-gradient(circle at center, rgba(56, 189, 248, 0.10), transparent 62%);
+}
+
+@keyframes floatA {
+  0%,100% { transform: translate3d(-50%, 0, 0) scale(1); }
+  50% { transform: translate3d(-50%, -18px, 0) scale(1.03); }
+}
+@keyframes floatB {
+  0%,100% { transform: translate3d(0, 0, 0) scale(1); }
+  50% { transform: translate3d(16px, -10px, 0) scale(1.03); }
+}
+@keyframes floatC {
+  0%,100% { transform: translate3d(0, 0, 0) scale(1); }
+  50% { transform: translate3d(-14px, -14px, 0) scale(1.03); }
+}
+
+.noise {
+  opacity: 0.10;
+  mix-blend-mode: soft-light;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='240' height='240' filter='url(%23n)' opacity='.45'/%3E%3C/svg%3E");
+}
+:global(.dark) .noise { opacity: 0.08; }
+
+.shimmer {
+  opacity: .55;
+  background: linear-gradient(115deg, transparent 30%, rgba(255,255,255,.16) 45%, transparent 60%);
+  transform: translateX(-35%);
+  animation: shimmer 5.5s ease-in-out infinite;
+}
+@keyframes shimmer {
+  0% { transform: translateX(-35%); }
+  50% { transform: translateX(35%); }
+  100% { transform: translateX(-35%); }
+}
+
+.glassLine::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,.22), transparent);
+  opacity: 0.22;
+  transform: translateX(-50%);
+  animation: glassLine 6.5s ease-in-out infinite;
+  pointer-events: none;
+}
+@keyframes glassLine {
+  0% { transform: translateX(-55%); }
+  50% { transform: translateX(55%); }
+  100% { transform: translateX(-55%); }
+}
+
+.cardHover {
+  transition: transform .25s ease, box-shadow .25s ease;
+}
+.cardHover:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 18px 40px rgba(0,0,0,.08);
+}
+:global(.dark) .cardHover:hover {
+  box-shadow: 0 18px 40px rgba(0,0,0,.22);
+}
+
+.cardGlow {
+  background:
+    radial-gradient(650px circle at 20% 15%, rgba(255,193,7,0.18), transparent 60%),
+    radial-gradient(650px circle at 80% 35%, rgba(236,72,153,0.12), transparent 60%);
+}
+:global(.dark) .cardGlow {
+  background:
+    radial-gradient(650px circle at 20% 15%, rgba(255,193,7,0.10), transparent 62%),
+    radial-gradient(650px circle at 80% 35%, rgba(56,189,248,0.08), transparent 62%);
+}
+
+.processGlow {
+  opacity: .9;
+  background:
+    radial-gradient(900px circle at 12% 18%, rgba(255,193,7,0.18), transparent 60%),
+    radial-gradient(900px circle at 88% 28%, rgba(56,189,248,0.12), transparent 60%);
+}
+:global(.dark) .processGlow {
+  opacity: .7;
+  background:
+    radial-gradient(900px circle at 12% 18%, rgba(255,193,7,0.10), transparent 62%),
+    radial-gradient(900px circle at 88% 28%, rgba(56,189,248,0.08), transparent 62%);
+}
+
+.ctaCard {
+  transition: transform .25s ease, box-shadow .25s ease;
+}
+.ctaCard:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 22px 54px rgba(0,0,0,.10);
+}
+:global(.dark) .ctaCard:hover {
+  box-shadow: 0 22px 54px rgba(0,0,0,.28);
+}
+
+.ctaGlow {
+  background:
+    radial-gradient(900px circle at 10% 30%, rgba(255,193,7,0.18), transparent 60%),
+    radial-gradient(900px circle at 90% 60%, rgba(236,72,153,0.12), transparent 60%);
+}
+:global(.dark) .ctaGlow {
+  background:
+    radial-gradient(900px circle at 10% 30%, rgba(255,193,7,0.10), transparent 62%),
+    radial-gradient(900px circle at 90% 60%, rgba(56,189,248,0.08), transparent 62%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .orbA, .orbB, .orbC, .shimmer { animation: none; }
+  .cardHover, .ctaCard { transition: none; }
+  .glassLine::after { animation: none; }
+}
+
+/* --- Brands marquee --- */
+.marqueeFrame {
+  position: relative;
+}
+
+.marqueeTrack {
+  display: flex;
+  gap: 14px;
+  padding: 14px;
+  width: max-content;
+  animation: marquee 18s linear infinite;
+}
+
+.marqueeFrame:hover .marqueeTrack {
+  animation-play-state: paused;
+}
+
+.brandPill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 14px;
+  border-radius: 999px;
+  font-weight: 800;
+  font-size: 12px;
+  letter-spacing: .04em;
+  border: 1px solid rgba(15, 23, 42, 0.10);
+  background: rgba(255,255,255,0.75);
+  color: rgba(2, 6, 23, 0.85);
+  box-shadow: 0 10px 28px rgba(0,0,0,.06);
+  backdrop-filter: blur(10px);
+}
+
+:global(.dark) .brandPill {
+  border-color: rgba(255,255,255,0.10);
+  background: rgba(17, 24, 39, 0.55);
+  color: rgba(255,255,255,0.85);
+  box-shadow: 0 12px 34px rgba(0,0,0,.24);
+}
+
+@keyframes marquee {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+/* --- Before/After corner badge --- */
+.badgeCorner {
+  position: absolute;
+  left: 10px;
+  top: 10px;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,.18);
+  background: rgba(0,0,0,.35);
+  color: rgba(255,255,255,.92);
+  backdrop-filter: blur(10px);
+}
+
+/* --- Lightbox --- */
+.lightboxOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(0,0,0,.62);
+  backdrop-filter: blur(10px);
+}
+
+.lightboxPanel {
+  width: min(980px, 94vw);
+  border-radius: 24px;
+  border: 1px solid rgba(255,255,255,.12);
+  background: rgba(10, 10, 16, .75);
+  box-shadow: 0 30px 90px rgba(0,0,0,.55);
+  padding: 14px;
+  position: relative;
+}
+
+.lightboxClose {
+  position: absolute;
+  right: 12px;
+  top: 12px;
+  height: 40px;
+  width: 40px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,.16);
+  background: rgba(255,255,255,.08);
+  color: rgba(255,255,255,.9);
+  font-weight: 900;
+}
+.lightboxClose:hover {
+  background: rgba(255,255,255,.14);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .marqueeTrack { animation: none; }
+}
+

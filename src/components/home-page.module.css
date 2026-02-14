@@ -1,0 +1,150 @@
+/* src/components/home-page.module.css */
+
+/* ── Hero spotlight / shimmer ── */
+.shimmer {
+  z-index: 2;
+  opacity: 0.55;
+  background: linear-gradient(
+    115deg,
+    transparent 20%,
+    rgba(255, 255, 255, 0.08) 35%,
+    rgba(255, 255, 255, 0.18) 45%,
+    rgba(255, 255, 255, 0.08) 55%,
+    transparent 70%
+  );
+  transform: translateX(-45%);
+  animation: shimmer 5.5s ease-in-out infinite;
+  pointer-events: none;
+}
+@keyframes shimmer {
+  0%   { transform: translateX(-45%); }
+  50%  { transform: translateX(45%); }
+  100% { transform: translateX(-45%); }
+}
+
+/* ── Floating decorative orbs ── */
+.orbA {
+  background: radial-gradient(circle at center, rgba(255, 193, 7, 0.28), transparent 60%);
+  animation: floatA 10s ease-in-out infinite;
+  pointer-events: none;
+}
+.orbB {
+  background: radial-gradient(circle at center, rgba(236, 72, 153, 0.18), transparent 60%);
+  animation: floatB 12s ease-in-out infinite;
+  pointer-events: none;
+}
+.orbC {
+  background: radial-gradient(circle at center, rgba(56, 189, 248, 0.16), transparent 60%);
+  animation: floatC 14s ease-in-out infinite;
+  pointer-events: none;
+}
+
+:global(.dark) .orbA {
+  background: radial-gradient(circle at center, rgba(255, 193, 7, 0.14), transparent 62%);
+}
+:global(.dark) .orbB {
+  background: radial-gradient(circle at center, rgba(168, 85, 247, 0.12), transparent 62%);
+}
+:global(.dark) .orbC {
+  background: radial-gradient(circle at center, rgba(56, 189, 248, 0.10), transparent 62%);
+}
+
+@keyframes floatA {
+  0%, 100% { transform: translate3d(-50%, 0, 0) scale(1); }
+  50%      { transform: translate3d(-50%, -18px, 0) scale(1.03); }
+}
+@keyframes floatB {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+  50%      { transform: translate3d(16px, -10px, 0) scale(1.03); }
+}
+@keyframes floatC {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+  50%      { transform: translate3d(-14px, -14px, 0) scale(1.03); }
+}
+
+/* ── Glass line sweep (trust strip / CTA) ── */
+.glassLine {
+  position: relative;
+}
+.glassLine::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.22),
+    transparent
+  );
+  opacity: 0.22;
+  transform: translateX(-55%);
+  animation: glassLine 6.5s ease-in-out infinite;
+  pointer-events: none;
+  z-index: 5;
+}
+@keyframes glassLine {
+  0%   { transform: translateX(-55%); }
+  50%  { transform: translateX(55%); }
+  100% { transform: translateX(-55%); }
+}
+
+/* ── Film grain / noise overlay ── */
+.noise {
+  opacity: 0.10;
+  mix-blend-mode: soft-light;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='240' height='240' filter='url(%23n)' opacity='.45'/%3E%3C/svg%3E");
+}
+:global(.dark) .noise { opacity: 0.08; }
+
+/* ── Card hover lift ── */
+.cardHover {
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+.cardHover:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.08);
+}
+:global(.dark) .cardHover:hover {
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.22);
+}
+
+/* ── CTA glow background ── */
+.ctaGlow {
+  background:
+    radial-gradient(900px circle at 10% 30%, rgba(255, 193, 7, 0.18), transparent 60%),
+    radial-gradient(900px circle at 90% 60%, rgba(236, 72, 153, 0.12), transparent 60%);
+}
+:global(.dark) .ctaGlow {
+  background:
+    radial-gradient(900px circle at 10% 30%, rgba(255, 193, 7, 0.10), transparent 62%),
+    radial-gradient(900px circle at 90% 60%, rgba(56, 189, 248, 0.08), transparent 62%);
+}
+
+/* ── Reduced motion ── */
+@media (prefers-reduced-motion: reduce) {
+  .orbA, .orbB, .orbC, .shimmer { animation: none; }
+  .cardHover { transition: none; }
+  .glassLine::after { animation: none; }
+}
+
+/* ── Diagonal accent stripe (decorative) ── */
+.accentStripe {
+  background: repeating-linear-gradient(
+    -45deg,
+    transparent,
+    transparent 10px,
+    rgba(244, 63, 94, 0.03) 10px,
+    rgba(244, 63, 94, 0.03) 20px
+  );
+}
+:global(.dark) .accentStripe {
+  background: repeating-linear-gradient(
+    -45deg,
+    transparent,
+    transparent 10px,
+    rgba(251, 191, 36, 0.02) 10px,
+    rgba(251, 191, 36, 0.02) 20px
+  );
+}
