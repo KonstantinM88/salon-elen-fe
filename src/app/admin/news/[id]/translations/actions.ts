@@ -10,6 +10,10 @@ type SaveTranslationInput = {
   title: string;
   excerpt: string;
   content: string;
+  seoTitle: string;
+  seoDescription: string;
+  ogTitle: string;
+  ogDescription: string;
 };
 
 type ActionResult = 
@@ -19,7 +23,17 @@ type ActionResult =
 export async function saveArticleTranslation(
   input: SaveTranslationInput
 ): Promise<ActionResult> {
-  const { articleId, locale, title, excerpt, content } = input;
+  const {
+    articleId,
+    locale,
+    title,
+    excerpt,
+    content,
+    seoTitle,
+    seoDescription,
+    ogTitle,
+    ogDescription,
+  } = input;
 
   if (!title.trim()) {
     return { ok: false, error: "Заголовок обязателен" };
@@ -37,6 +51,10 @@ export async function saveArticleTranslation(
         title: title.trim(),
         excerpt: excerpt.trim() || null,
         content: content.trim() || null,
+        seoTitle: seoTitle.trim() || null,
+        seoDescription: seoDescription.trim() || null,
+        ogTitle: ogTitle.trim() || null,
+        ogDescription: ogDescription.trim() || null,
       },
       create: {
         articleId,
@@ -44,6 +62,10 @@ export async function saveArticleTranslation(
         title: title.trim(),
         excerpt: excerpt.trim() || null,
         content: content.trim() || null,
+        seoTitle: seoTitle.trim() || null,
+        seoDescription: seoDescription.trim() || null,
+        ogTitle: ogTitle.trim() || null,
+        ogDescription: ogDescription.trim() || null,
       },
     });
 

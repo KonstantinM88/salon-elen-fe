@@ -3,7 +3,7 @@
 
 import { prisma } from "@/lib/db";
 import { saveImageFile, saveVideoFile } from "@/lib/upload";
-import { ArticleType, Prisma } from "@prisma/client";
+import { ArticleType, Prisma, VideoType } from "@prisma/client";
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -74,7 +74,7 @@ const ArticleSchema = z.object({
 
   // Видео (URL для YouTube/Vimeo)
   videoUrl: z.string().optional(),
-  videoType: z.string().optional(),
+  videoType: z.nativeEnum(VideoType).optional(),
 });
 
 /* =========================
@@ -201,8 +201,8 @@ export async function createArticle(fd: FormData): Promise<ActionResult> {
 
     // Определяем videoUrl — либо загруженное видео, либо внешняя ссылка
     const finalVideoUrl = prep.videoSrc || d.videoUrl || undefined;
-    const finalVideoType = prep.videoSrc
-      ? "UPLOAD"
+    const finalVideoType: VideoType | undefined = prep.videoSrc
+      ? VideoType.UPLOAD
       : d.videoType || undefined;
 
     const created = await prisma.article.create({
@@ -226,7 +226,7 @@ export async function createArticle(fd: FormData): Promise<ActionResult> {
         sortOrder: d.sortOrder,
         // Видео
         videoUrl: finalVideoUrl,
-        videoType: finalVideoType as any,
+        videoType: finalVideoType,
       },
       select: { id: true },
     });
@@ -269,8 +269,8 @@ export async function updateArticle(
     const d = prep.data;
 
     const finalVideoUrl = prep.videoSrc || d.videoUrl || undefined;
-    const finalVideoType = prep.videoSrc
-      ? "UPLOAD"
+    const finalVideoType: VideoType | undefined = prep.videoSrc
+      ? VideoType.UPLOAD
       : d.videoType || undefined;
 
     await prisma.article.update({
@@ -297,7 +297,7 @@ export async function updateArticle(
         sortOrder: d.sortOrder,
         // Видео
         ...(finalVideoUrl !== undefined
-          ? { videoUrl: finalVideoUrl || null, videoType: (finalVideoType as any) || null }
+          ? { videoUrl: finalVideoUrl || null, videoType: finalVideoType ?? null }
           : {}),
       },
       select: { id: true },

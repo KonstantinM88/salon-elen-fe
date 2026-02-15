@@ -27,7 +27,7 @@ export type SaveImageOptions = {
 };
 
 function safeDir(d: string): string {
-  return d.replace(/^\/*/, "").replace(/\.\.(\\/|\\\\)/g, "").trim() || "uploads";
+  return d.replace(/^\/*/, "").replace(/\.\.(\/|\\)/g, "").trim() || "uploads";
 }
 
 export async function saveImageFile(

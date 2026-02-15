@@ -20,23 +20,14 @@ model Article {
   expiresAt      DateTime?
   createdAt      DateTime             @default(now())
   updatedAt      DateTime             @updatedAt
-  /// <title> для Google (30-60 символов)
   seoTitle       String?
-  /// meta description для Google (70-160 символов)
   seoDescription String?
-  /// Заголовок при шеринге в соцсетях
   ogTitle        String?
-  /// Описание при шеринге в соцсетях
   ogDescription  String?
-  /// OG-картинка (1200×630, авто из cover если пусто)
   ogImage        String?
-  /// Закреплённая новость — всегда наверху
   isPinned       Boolean              @default(false)
-  /// Ручная сортировка (выше = приоритетнее)
   sortOrder      Int                  @default(0)
-  /// URL видео (загруженное .webm или внешнее YouTube/Vimeo)
   videoUrl       String?
-  /// Тип видео: UPLOAD, YOUTUBE, VIMEO
   videoType      VideoType?
   translations   ArticleTranslation[]
 
@@ -54,13 +45,9 @@ model ArticleTranslation {
   content        String?
   createdAt      DateTime @default(now())
   updatedAt      DateTime @default(now()) @updatedAt
-  /// <title> для Google на этом языке
   seoTitle       String?
-  /// meta description на этом языке
   seoDescription String?
-  /// OG-заголовок на этом языке
   ogTitle        String?
-  /// OG-описание на этом языке
   ogDescription  String?
   article        Article  @relation(fields: [articleId], references: [id], onDelete: Cascade)
 
@@ -88,8 +75,10 @@ model Service {
   updatedAt             DateTime               @updatedAt
   isActive              Boolean                @default(true)
   parentId              String?
+  /// Мягкое удаление: скрываем из интерфейса,
+  /// данные и связи остаются (для истории).
   isArchived            Boolean                @default(false)
-  name                  String?                @map("title")
+  name                  String                 @map("title")
   description           String?
   cover                 String?
   appointments          Appointment[]
@@ -182,6 +171,7 @@ model Master {
 model MasterWorkingHours {
   id           String   @id @default(cuid())
   masterId     String
+  /// 0 = Sunday ... 6 = Saturday
   weekday      Int
   startMinutes Int
   endMinutes   Int
@@ -195,6 +185,7 @@ model MasterWorkingHours {
 model MasterTimeOff {
   id           String   @id @default(cuid())
   masterId     String
+  /// Дата (обычно полночь локальной TZ) + интервал
   date         DateTime
   startMinutes Int
   endMinutes   Int
@@ -217,12 +208,14 @@ model Appointment {
   status               AppointmentStatus      @default(PENDING)
   createdAt            DateTime               @default(now())
   clientId             String?
+  /// Связь с мастером (optional — для обратной совместимости)
   masterId             String?
   birthDate            DateTime?
   referral             String?
   paymentStatus        PaymentStatus          @default(PENDING)
   deletedAt            DateTime?              @db.Timestamp(6)
   deletedBy            String?
+  /// Язык клиента при бронировании (для email/sms уведомлений): "de", "ru", "en"
   locale               String?                @default("de")
   client               Client?                @relation(fields: [clientId], references: [id])
   master               Master?                @relation(fields: [masterId], references: [id])
@@ -385,6 +378,7 @@ model BookingDraft {
   referral     String?
   notes        String?
   createdAt    DateTime  @default(now())
+  /// Язык клиента при бронировании: "de", "ru", "en"
   locale       String?   @default("de")
 
   @@index([serviceId])
@@ -436,6 +430,7 @@ model GoogleQuickRegistration {
   createdAt     DateTime  @default(now())
   birthDate     DateTime?
   customerName  String?
+  /// Язык клиента при бронировании: "de", "ru", "en"
   locale        String?   @default("de")
 
   @@index([state])
@@ -461,6 +456,7 @@ model SmsPhoneRegistration {
   appointmentId String?      @unique
   expiresAt     DateTime
   createdAt     DateTime     @default(now())
+  /// Язык клиента при бронировании: "de", "ru", "en"
   locale        String?      @default("de")
   appointment   Appointment? @relation(fields: [appointmentId], references: [id])
   master        Master       @relation(fields: [masterId], references: [id], onDelete: Cascade)
@@ -487,6 +483,7 @@ model TelegramVerification {
   appointmentId  String?      @unique
   createdAt      DateTime     @default(now())
   expiresAt      DateTime
+  /// Язык клиента при бронировании: "de", "ru", "en"
   locale         String?      @default("de")
   appointment    Appointment? @relation(fields: [appointmentId], references: [id])
 
@@ -524,6 +521,7 @@ model TemporarySlotReservation {
   @@index([expiresAt])
 }
 
+/// История изменений статуса заявок
 model AppointmentStatusLog {
   id             String             @id @default(cuid())
   appointmentId  String

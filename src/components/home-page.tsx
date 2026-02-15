@@ -710,18 +710,18 @@ export default function HomePage({ latest }: Props) {
           <div className="relative overflow-hidden mb-3 sm:mb-4">
             <div className="flex gap-3 sm:gap-4 animate-[scroll_35s_linear_infinite] hover:[animation-play-state:paused] w-max">
               {[
-                "/images/services/haircut.webp",
-                "/images/gallery/g1.jpg",
-                "/images/services/makeup.webp",
-                "/images/gallery/g2.jpg",
-                "/images/services/manicure.webp",
-                "/images/gallery/g3.jpg",
-                "/images/services/haircut.webp",
-                "/images/gallery/g1.jpg",
-                "/images/services/makeup.webp",
-                "/images/gallery/g2.jpg",
-                "/images/services/manicure.webp",
-                "/images/gallery/g3.jpg",
+                "/images/gallery/injection_1.webp",
+                "/images/gallery/g1.webp",
+                "/images/gallery/beauty_8.webp",
+                "/images/gallery/g2.webp",
+                "/images/gallery/brow_1.webp",
+                "/images/gallery/beauty_1.webp",
+                "/images/gallery/beauty_3.webp",
+                "/images/gallery/pmu_2.webp",
+                "/images/gallery/beauty_5.webp",
+                "/images/gallery/g2.webp",
+                "/images/gallery/manicure_1.webp",
+                "/images/gallery/beauty_2.webp",
               ].map((src, i) => (
                 <div
                   key={`r1-${i}`}
@@ -748,18 +748,18 @@ export default function HomePage({ latest }: Props) {
           <div className="relative overflow-hidden">
             <div className="flex gap-3 sm:gap-4 animate-[scrollReverse_40s_linear_infinite] hover:[animation-play-state:paused] w-max">
               {[
-                "/images/gallery/g4.jpg",
-                "/images/hero.webp",
-                "/images/gallery/g5.jpg",
-                "/images/services/haircut.webp",
-                "/images/gallery/g1.jpg",
-                "/images/services/makeup.webp",
-                "/images/gallery/g4.jpg",
-                "/images/hero.webp",
-                "/images/gallery/g5.jpg",
-                "/images/services/haircut.webp",
-                "/images/gallery/g1.jpg",
-                "/images/services/makeup.webp",
+                "/images/gallery/beauty_3.webp",
+                "/images/gallery/injection_2.webp",
+                "/images/gallery/beauty_5.webp",
+                "/images/gallery/brow_2.webp",
+                "/images/gallery/g1.webp",
+                "/images/gallery/beauty_7.webp",
+                "/images/gallery/beauty_4.webp",
+                "/images/gallery/pmu_1.webp",
+                "/images/gallery/beauty_6.webp",
+                "/images/gallery/beauty_8.webp",
+                "/images/gallery/pmu_3.webp",
+                "/images/gallery/beauty_2.webp",
               ].map((src, i) => (
                 <div
                   key={`r2-${i}`}
