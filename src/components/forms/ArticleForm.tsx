@@ -33,7 +33,7 @@ type Props = {
 };
 
 const LIMITS = {
-  titleMax: 120,
+  titleMax: 130,
   slugMax: 120,
   excerptMax: 300,
   seoTitleMin: 30,

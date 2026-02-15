@@ -74,7 +74,10 @@ const ArticleSchema = z.object({
 
   // Видео (URL для YouTube/Vimeo)
   videoUrl: z.string().optional(),
-  videoType: z.nativeEnum(VideoType).optional(),
+  videoType: z.preprocess(
+    (v) => (typeof v === "string" && v.trim() === "" ? undefined : v),
+    z.nativeEnum(VideoType).optional(),
+  ),
 });
 
 /* =========================

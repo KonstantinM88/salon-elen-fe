@@ -68,26 +68,51 @@ const noImage: Record<string, string> = {
   en: "No image",
 };
 
+const pageSize = 6;
+const prevPageText: Record<string, string> = {
+  de: "← Zurück",
+  ru: "← Назад",
+  en: "← Previous",
+};
+const nextPageText: Record<string, string> = {
+  de: "Weiter →",
+  ru: "Далее →",
+  en: "Next →",
+};
+
 export default async function Page({
   searchParams,
 }: {
   searchParams?: SearchParamsPromise;
 }) {
+  const sp = searchParams ? await searchParams : {};
   const locale = await resolveContentLocale(searchParams);
+  const rawPage = Array.isArray(sp.page) ? sp.page[0] : sp.page;
+  const parsedPage = Number(rawPage ?? "1");
+  const requestedPage =
+    Number.isFinite(parsedPage) && parsedPage > 0 ? Math.floor(parsedPage) : 1;
+
+  const where = {
+    AND: [
+      { OR: [{ publishedAt: null }, { publishedAt: { lte: new Date() } }] },
+      { OR: [{ expiresAt: null }, { expiresAt: { gte: new Date() } }] },
+    ],
+  };
+
+  const totalItems = await prisma.article.count({ where });
+  const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+  const currentPage = Math.min(requestedPage, totalPages);
+  const skip = (currentPage - 1) * pageSize;
 
   const items = await prisma.article.findMany({
-    where: {
-      AND: [
-        { OR: [{ publishedAt: null }, { publishedAt: { lte: new Date() } }] },
-        { OR: [{ expiresAt: null }, { expiresAt: { gte: new Date() } }] },
-      ],
-    },
+    where,
     orderBy: [
       { isPinned: "desc" },       // закреплённые первыми
       { sortOrder: "desc" },       // по приоритету среди закреплённых
       { publishedAt: "desc" },     // затем по дате
     ],
-    take: 30,
+    skip,
+    take: pageSize,
     include: {
       translations: {
         where: { locale },
@@ -95,6 +120,22 @@ export default async function Page({
       },
     },
   });
+
+  const baseParams = new URLSearchParams();
+  for (const [key, value] of Object.entries(sp)) {
+    if (key === "page") continue;
+    if (Array.isArray(value)) {
+      if (value[0]) baseParams.set(key, value[0]);
+      continue;
+    }
+    if (typeof value === "string" && value !== "") baseParams.set(key, value);
+  }
+  const pageHref = (page: number) => {
+    const params = new URLSearchParams(baseParams);
+    if (page > 1) params.set("page", String(page));
+    const qs = params.toString();
+    return qs ? `/news?${qs}` : "/news";
+  };
 
   return (
     <main className="px-4">
@@ -173,6 +214,40 @@ export default async function Page({
             );
           })}
         </div>
+
+        {totalPages > 1 && (
+          <nav className="mt-8 flex items-center justify-center gap-3">
+            {currentPage > 1 ? (
+              <Link
+                href={pageHref(currentPage - 1)}
+                className="rounded-full border px-4 py-2 text-sm transition-colors hover:bg-white/5"
+              >
+                {prevPageText[locale] || prevPageText.de}
+              </Link>
+            ) : (
+              <span className="rounded-full border px-4 py-2 text-sm opacity-40">
+                {prevPageText[locale] || prevPageText.de}
+              </span>
+            )}
+
+            <span className="text-sm opacity-70">
+              {currentPage} / {totalPages}
+            </span>
+
+            {currentPage < totalPages ? (
+              <Link
+                href={pageHref(currentPage + 1)}
+                className="rounded-full border px-4 py-2 text-sm transition-colors hover:bg-white/5"
+              >
+                {nextPageText[locale] || nextPageText.de}
+              </Link>
+            ) : (
+              <span className="rounded-full border px-4 py-2 text-sm opacity-40">
+                {nextPageText[locale] || nextPageText.de}
+              </span>
+            )}
+          </nav>
+        )}
       </section>
     </main>
   );
