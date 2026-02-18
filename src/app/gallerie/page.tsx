@@ -1,7 +1,6 @@
 // src/app/gallerie/page.tsx
 import type { Metadata } from "next";
 import { prisma } from "@/lib/db";
-import { type Locale } from "@/i18n/locales";
 import GallerieClient from "./GallerieClient";
 import {
   resolveUrlLocale,
@@ -67,16 +66,17 @@ async function getGalleryData(locale: SeoLocale) {
 
   return categories
     .map((cat) => {
+      const categoryName = cat.translations[0]?.name ?? cat.name ?? "Service";
       const images: { id: string; src: string; caption: string | null; serviceName: string }[] = [];
 
       for (const g of cat.gallery) {
-        images.push({ id: g.id, src: g.image, caption: g.caption, serviceName: cat.translations[0]?.name || cat.name });
+        images.push({ id: g.id, src: g.image, caption: g.caption, serviceName: categoryName });
       }
       if (cat.cover) {
-        images.push({ id: `cover-${cat.id}`, src: cat.cover, caption: null, serviceName: cat.translations[0]?.name || cat.name });
+        images.push({ id: `cover-${cat.id}`, src: cat.cover, caption: null, serviceName: categoryName });
       }
       for (const child of cat.children) {
-        const childName = child.translations[0]?.name || child.name;
+        const childName = child.translations[0]?.name ?? child.name ?? categoryName;
         if (child.cover) {
           images.push({ id: `cover-${child.id}`, src: child.cover, caption: null, serviceName: childName });
         }
@@ -85,7 +85,7 @@ async function getGalleryData(locale: SeoLocale) {
         }
       }
 
-      return { id: cat.id, slug: cat.slug, name: cat.translations[0]?.name || cat.name, images };
+      return { id: cat.id, slug: cat.slug, name: categoryName, images };
     })
     .filter((c) => c.images.length > 0);
 }

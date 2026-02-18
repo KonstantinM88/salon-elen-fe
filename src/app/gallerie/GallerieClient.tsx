@@ -261,10 +261,17 @@ export default function GallerieClient({ locale, categories }: Props) {
     index: number;
   } | null>(null);
 
-  const allImages = categories.flatMap((c) => c.images);
-  const filteredImages = activeCategory
-    ? categories.find((c) => c.id === activeCategory)?.images ?? []
-    : allImages;
+  const allImages = useMemo(
+    () => categories.flatMap((c) => c.images),
+    [categories],
+  );
+  const filteredImages = useMemo(
+    () =>
+      activeCategory
+        ? categories.find((c) => c.id === activeCategory)?.images ?? []
+        : allImages,
+    [activeCategory, categories, allImages],
+  );
 
   const totalImages = allImages.length;
 
