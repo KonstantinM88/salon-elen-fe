@@ -1659,3 +1659,117 @@ html { scroll-behavior: smooth; }
 :root:not(.dark) .admin-shell .border-purple-500\/30 {
   border-color: rgba(168,85,247,0.25) !important;
 }
+
+/* ===================================================================
+   ADMIN LIGHT THEME — FINAL NEUTRAL OVERRIDES
+   Keep this block LAST so it wins over earlier light-theme patches.
+   Dark theme remains untouched.
+=================================================================== */
+:root:not(.dark) .admin-shell {
+  --admin-light-bg: #e7dbcf;
+  --admin-light-surface: rgba(240, 226, 212, 0.92);
+  --admin-light-surface-strong: rgba(246, 235, 223, 0.97);
+  --admin-light-border: rgba(122, 90, 62, 0.33);
+  --admin-light-text: rgb(60, 43, 30);
+  --admin-light-muted: rgb(97, 75, 57);
+
+  color: var(--admin-light-text);
+  background-color: var(--admin-light-bg);
+  background-image:
+    radial-gradient(1200px 520px at 10% -10%, rgba(128, 90, 58, 0.22), transparent 60%),
+    radial-gradient(900px 420px at 100% 0%, rgba(161, 118, 80, 0.16), transparent 62%),
+    linear-gradient(180deg, #ede0d2 0%, #dfcfbe 100%);
+}
+
+:root:not(.dark) .admin-shell :is(.card-glass, .card-glass-hover, .admin-card, .admin-section, .popover-panel) {
+  background: var(--admin-light-surface) !important;
+  border-color: var(--admin-light-border) !important;
+  box-shadow:
+    0 1px 2px rgba(78, 55, 36, 0.1),
+    0 10px 24px rgba(78, 55, 36, 0.09) !important;
+}
+
+:root:not(.dark) .admin-shell .card-glow {
+  box-shadow:
+    0 1px 2px rgba(78, 55, 36, 0.1),
+    0 12px 28px rgba(78, 55, 36, 0.1) !important;
+}
+
+:root:not(.dark) .admin-shell :is(.card-glow, .card-glass, .card-glass-hover)::before,
+:root:not(.dark) .admin-shell .card-glass-accent::after {
+  display: none !important;
+}
+
+:root:not(.dark) .admin-shell :is(
+  .bg-slate-950\/60,
+  .bg-slate-950\/50,
+  .bg-slate-950\/40,
+  .bg-slate-950,
+  .bg-slate-900\/95,
+  .bg-slate-900\/80,
+  .bg-slate-900\/60,
+  .bg-slate-800,
+  .bg-slate-800\/70,
+  .bg-slate-800\/60,
+  .bg-slate-800\/50,
+  .bg-slate-800\/40,
+  .bg-slate-800\/30
+) {
+  background-color: var(--admin-light-surface) !important;
+}
+
+:root:not(.dark) .admin-shell :is(
+  .text-white,
+  .text-slate-100,
+  .text-slate-200
+) {
+  color: var(--admin-light-text) !important;
+}
+
+:root:not(.dark) .admin-shell :is(
+  .text-white\/80,
+  .text-white\/70,
+  .text-white\/60,
+  .text-white\/50,
+  .text-white\/40,
+  .text-slate-300,
+  .text-slate-400,
+  .text-slate-500
+) {
+  color: var(--admin-light-muted) !important;
+}
+
+:root:not(.dark) .admin-shell :is(
+  input[type="text"],
+  input[type="email"],
+  input[type="tel"],
+  input[type="number"],
+  input[type="password"],
+  input[type="datetime-local"],
+  input[type="date"],
+  input[type="time"],
+  input[type="url"],
+  input[type="search"],
+  textarea,
+  select,
+  .admin-input,
+  .admin-select,
+  .admin-textarea
+) {
+  background-color: var(--admin-light-surface-strong) !important;
+  border-color: var(--admin-light-border) !important;
+  color: var(--admin-light-text) !important;
+}
+
+:root:not(.dark) .admin-shell :is(input:focus, textarea:focus, select:focus) {
+  border-color: rgba(156, 103, 61, 0.58) !important;
+  box-shadow: 0 0 0 2px rgba(156, 103, 61, 0.22) !important;
+}
+
+:root:not(.dark) .admin-shell :is(.table-glass thead, .thead-base) {
+  background-color: rgba(92, 68, 47, 0.11) !important;
+}
+
+:root:not(.dark) .admin-shell :is(.row-base, .table-glass tr, .border-white\/10, .border-slate-700\/50) {
+  border-color: var(--admin-light-border) !important;
+}

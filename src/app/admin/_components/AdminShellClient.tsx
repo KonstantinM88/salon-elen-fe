@@ -1,10 +1,11 @@
 // src/app/admin/_components/AdminShellClient.tsx
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Menu, X } from "lucide-react";
 import type { Role } from "@prisma/client";
+import { useTheme } from "next-themes";
 
 import AdminNav from "@/components/admin/AdminNav";
 import AdminFooter from "../_components/AdminFooter";
@@ -21,6 +22,16 @@ export default function AdminShellClient({
   role,
 }: AdminShellClientProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState<boolean>(false);
+  const { setTheme } = useTheme();
+  const didForceDark = useRef(false);
+
+  // На входе в админку всегда стартуем с dark.
+  // Пользователь может переключить тему вручную в интерфейсе.
+  useEffect(() => {
+    if (didForceDark.current) return;
+    didForceDark.current = true;
+    setTheme("dark");
+  }, [setTheme]);
 
   return (
     <>
