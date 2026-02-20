@@ -1,3 +1,4 @@
+// src/app/admin/_components/AdminShellClient.tsx
 "use client";
 
 import { useState, type ReactNode } from "react";
@@ -23,17 +24,17 @@ export default function AdminShellClient({
 
   return (
     <>
-      {/* 🔥 МОБИЛЬНОЕ МЕНЮ - Полноэкранный оверлей */}
+      {/* ── МОБИЛЬНОЕ МЕНЮ — Полноэкранный оверлей ── */}
       <AnimatePresence>
         {mobileMenuOpen && (
           <>
-            {/* Затемнение фона */}
+            {/* Затемнение */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setMobileMenuOpen(false)}
-              className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 lg:hidden"
+              className="fixed inset-0 bg-black/40 dark:bg-black/60 backdrop-blur-sm z-40 lg:hidden"
             />
 
             {/* Панель меню */}
@@ -42,61 +43,66 @@ export default function AdminShellClient({
               animate={{ x: 0 }}
               exit={{ x: "-100%" }}
               transition={{ type: "spring", damping: 30, stiffness: 300 }}
-              className="fixed left-0 top-0 bottom-0 w-[280px] max-w-[85vw] 
-                         bg-slate-950 border-r border-slate-800 z-50 overflow-y-auto lg:hidden
-                         shadow-2xl shadow-black/50"
+              className="fixed left-0 top-0 bottom-0 w-[280px] max-w-[85vw]
+                         bg-white dark:bg-slate-950 
+                         border-r border-gray-200 dark:border-slate-800 
+                         z-50 overflow-y-auto lg:hidden
+                         shadow-2xl dark:shadow-black/50"
             >
               <div className="p-4">
-                {/* Хедер с кнопкой закрытия */}
+                {/* Хедер */}
                 <div className="flex items-center justify-between mb-6">
-                  <div className="text-sm uppercase tracking-wider text-slate-400">
+                  <div className="text-sm uppercase tracking-wider text-gray-500 dark:text-slate-400">
                     Admin Menu
                   </div>
                   <button
                     type="button"
                     onClick={() => setMobileMenuOpen(false)}
                     aria-label="Закрыть меню"
-                    className="inline-flex h-10 w-10 items-center justify-center rounded-xl 
-                               border border-white/10 bg-white/5 hover:bg-white/10 transition"
+                    className="inline-flex h-10 w-10 items-center justify-center rounded-xl
+                               border border-gray-200 dark:border-white/10 
+                               bg-gray-50 dark:bg-white/5 
+                               hover:bg-gray-100 dark:hover:bg-white/10 transition"
                   >
-                    <X className="h-5 w-5 text-slate-200" />
+                    <X className="h-5 w-5 text-gray-700 dark:text-slate-200" />
                   </button>
                 </div>
 
-                {/* Навигация */}
-                <AdminNav role={role} bookingsBadge={bookingsBadge} />
+                <AdminNav role={role} bookingsBadge={bookingsBadge} onNavigate={() => setMobileMenuOpen(false)} />
               </div>
             </motion.aside>
           </>
         )}
       </AnimatePresence>
 
-      {/* 🖥️ ОСНОВНОЙ LAYOUT */}
+      {/* ── ОСНОВНОЙ LAYOUT ── */}
       <div className="admin-shell min-h-screen p-3 sm:p-4 lg:p-6">
         <div className="grid gap-4 lg:gap-6 lg:grid-cols-[260px_1fr]">
-          {/* 📱 МОБИЛЬНАЯ ШАПКА (только на мобильных) */}
+          {/* 📱 МОБИЛЬНАЯ ШАПКА */}
           <div className="lg:hidden">
             <div className="card-glass card-glass-accent card-glow p-4 flex items-center justify-between">
-              <div className="text-sm uppercase tracking-wider text-slate-400">
+              <div className="text-sm uppercase tracking-wider text-gray-500 dark:text-slate-400">
                 Admin Panel
               </div>
               <button
                 type="button"
                 onClick={() => setMobileMenuOpen(true)}
                 aria-label="Открыть меню"
-                className="inline-flex h-10 w-10 items-center justify-center rounded-xl 
-                           border border-white/10 bg-white/5 hover:bg-white/10 transition-all
-                           hover:scale-105 active:scale-95"
+                className="inline-flex h-10 w-10 items-center justify-center rounded-xl
+                           border border-gray-200 dark:border-white/10 
+                           bg-gray-50 dark:bg-white/5 
+                           hover:bg-gray-100 dark:hover:bg-white/10 
+                           transition-all hover:scale-105 active:scale-95"
               >
-                <Menu className="h-5 w-5 text-slate-200" />
+                <Menu className="h-5 w-5 text-gray-700 dark:text-slate-200" />
               </button>
             </div>
           </div>
 
-          {/* 🖥️ ДЕСКТОПНЫЙ САЙДБАР (скрыт на мобильных) */}
+          {/* 🖥️ ДЕСКТОПНЫЙ САЙДБАР */}
           <aside className="hidden lg:block card-glass card-glass-accent card-glow p-4 h-fit sticky top-6">
             <div className="mb-4 flex items-center justify-between">
-              <div className="text-xs uppercase tracking-wider text-slate-400">
+              <div className="text-xs uppercase tracking-wider text-gray-500 dark:text-slate-400">
                 Admin
               </div>
             </div>
@@ -113,6 +119,125 @@ export default function AdminShellClient({
     </>
   );
 }
+
+
+
+//-----19.02.26 адаптируем под светлую тему
+// "use client";
+
+// import { useState, type ReactNode } from "react";
+// import { motion, AnimatePresence } from "framer-motion";
+// import { Menu, X } from "lucide-react";
+// import type { Role } from "@prisma/client";
+
+// import AdminNav from "@/components/admin/AdminNav";
+// import AdminFooter from "../_components/AdminFooter";
+
+// type AdminShellClientProps = {
+//   children: ReactNode;
+//   bookingsBadge: number;
+//   role: Role;
+// };
+
+// export default function AdminShellClient({
+//   children,
+//   bookingsBadge,
+//   role,
+// }: AdminShellClientProps) {
+//   const [mobileMenuOpen, setMobileMenuOpen] = useState<boolean>(false);
+
+//   return (
+//     <>
+//       {/* 🔥 МОБИЛЬНОЕ МЕНЮ - Полноэкранный оверлей */}
+//       <AnimatePresence>
+//         {mobileMenuOpen && (
+//           <>
+//             {/* Затемнение фона */}
+//             <motion.div
+//               initial={{ opacity: 0 }}
+//               animate={{ opacity: 1 }}
+//               exit={{ opacity: 0 }}
+//               onClick={() => setMobileMenuOpen(false)}
+//               className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 lg:hidden"
+//             />
+
+//             {/* Панель меню */}
+//             <motion.aside
+//               initial={{ x: "-100%" }}
+//               animate={{ x: 0 }}
+//               exit={{ x: "-100%" }}
+//               transition={{ type: "spring", damping: 30, stiffness: 300 }}
+//               className="fixed left-0 top-0 bottom-0 w-[280px] max-w-[85vw] 
+//                          bg-slate-950 border-r border-slate-800 z-50 overflow-y-auto lg:hidden
+//                          shadow-2xl shadow-black/50"
+//             >
+//               <div className="p-4">
+//                 {/* Хедер с кнопкой закрытия */}
+//                 <div className="flex items-center justify-between mb-6">
+//                   <div className="text-sm uppercase tracking-wider text-slate-400">
+//                     Admin Menu
+//                   </div>
+//                   <button
+//                     type="button"
+//                     onClick={() => setMobileMenuOpen(false)}
+//                     aria-label="Закрыть меню"
+//                     className="inline-flex h-10 w-10 items-center justify-center rounded-xl 
+//                                border border-white/10 bg-white/5 hover:bg-white/10 transition"
+//                   >
+//                     <X className="h-5 w-5 text-slate-200" />
+//                   </button>
+//                 </div>
+
+//                 {/* Навигация */}
+//                 <AdminNav role={role} bookingsBadge={bookingsBadge} />
+//               </div>
+//             </motion.aside>
+//           </>
+//         )}
+//       </AnimatePresence>
+
+//       {/* 🖥️ ОСНОВНОЙ LAYOUT */}
+//       <div className="admin-shell min-h-screen p-3 sm:p-4 lg:p-6">
+//         <div className="grid gap-4 lg:gap-6 lg:grid-cols-[260px_1fr]">
+//           {/* 📱 МОБИЛЬНАЯ ШАПКА (только на мобильных) */}
+//           <div className="lg:hidden">
+//             <div className="card-glass card-glass-accent card-glow p-4 flex items-center justify-between">
+//               <div className="text-sm uppercase tracking-wider text-slate-400">
+//                 Admin Panel
+//               </div>
+//               <button
+//                 type="button"
+//                 onClick={() => setMobileMenuOpen(true)}
+//                 aria-label="Открыть меню"
+//                 className="inline-flex h-10 w-10 items-center justify-center rounded-xl 
+//                            border border-white/10 bg-white/5 hover:bg-white/10 transition-all
+//                            hover:scale-105 active:scale-95"
+//               >
+//                 <Menu className="h-5 w-5 text-slate-200" />
+//               </button>
+//             </div>
+//           </div>
+
+//           {/* 🖥️ ДЕСКТОПНЫЙ САЙДБАР (скрыт на мобильных) */}
+//           <aside className="hidden lg:block card-glass card-glass-accent card-glow p-4 h-fit sticky top-6">
+//             <div className="mb-4 flex items-center justify-between">
+//               <div className="text-xs uppercase tracking-wider text-slate-400">
+//                 Admin
+//               </div>
+//             </div>
+//             <AdminNav role={role} bookingsBadge={bookingsBadge} />
+//           </aside>
+
+//           {/* 📄 КОНТЕНТ */}
+//           <section className="card-glass card-glass-accent card-glow p-4 sm:p-5 lg:p-6 overflow-x-auto overflow-y-visible">
+//             {children}
+//             <AdminFooter />
+//           </section>
+//         </div>
+//       </div>
+//     </>
+//   );
+// }
 
 
 

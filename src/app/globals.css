@@ -820,3 +820,842 @@ html { scroll-behavior: smooth; }
   :root:not([data-allow-motion="true"]) .rainbow-animate-idle::before,
   :root:not([data-allow-motion="true"]) .rainbow-animate-idle::after { animation: none !important; }
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   ADMIN PANEL — LIGHT THEME SUPPORT
+   Append this block to the END of globals.css
+   All admin utility classes now work in both light and dark themes.
+═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Card Glass: Light theme ── */
+:root:not(.dark) .card-glass {
+  @apply border-gray-200/80 bg-white/80 shadow-sm;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 0 0 1px rgba(0,0,0,0.04);
+}
+:root:not(.dark) .card-glass-hover {
+  @apply border-gray-200/80 bg-white/80 shadow-sm hover:border-gray-300 hover:shadow-md;
+}
+:root:not(.dark) .card-glow {
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08), 0 0 0 1px rgba(0,0,0,0.04);
+}
+:root:not(.dark) .card-glow::before {
+  background: linear-gradient(135deg, rgba(16,185,129,0.15), rgba(56,189,248,0.12), rgba(217,70,239,0.12));
+}
+:root:not(.dark) .card-glass-accent::after {
+  @apply bg-gradient-to-r from-transparent via-sky-400/30 to-transparent;
+}
+
+/* ── Admin Shell inherited cards ── */
+:root:not(.dark) .admin-shell :is(.rounded-2xl.border, .rounded-3xl.border, .admin-card, .admin-section):not(.card-glow) {
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 0 0 1px rgba(0,0,0,0.04);
+}
+:root:not(.dark) .admin-shell :is(.rounded-2xl.border, .rounded-3xl.border, .admin-card, .admin-section):not(.card-glow)::before {
+  background: linear-gradient(135deg, rgba(16,185,129,0.12), rgba(56,189,248,0.10), rgba(217,70,239,0.10));
+}
+
+/* ── Admin utility classes: Light theme ── */
+@utility admin-card-light {
+  @apply rounded-2xl border border-gray-200 bg-white shadow-sm;
+}
+:root:not(.dark) .admin-card {
+  @apply border-gray-200 bg-white shadow-sm;
+}
+:root:not(.dark) .admin-section {
+  @apply border-gray-200 bg-white shadow-sm;
+}
+:root:not(.dark) .admin-input {
+  @apply border-gray-300 bg-white text-gray-900 focus:ring-violet-500/40;
+}
+:root:not(.dark) .admin-select {
+  @apply border-gray-300 bg-white text-gray-900;
+}
+
+/* ── Input Glass: Light theme ── */
+:root:not(.dark) .input-glass {
+  @apply bg-gray-50 border-gray-300 text-gray-900 placeholder:text-gray-400
+         focus:bg-white focus:border-gray-400 focus:ring-sky-500/30;
+}
+:root:not(.dark) .input-glass:hover {
+  @apply bg-gray-100/80 border-gray-300;
+}
+:root:not(.dark) .input-glass option {
+  @apply bg-white text-gray-900;
+}
+
+/* ── Button Glass: Light theme ── */
+:root:not(.dark) .btn-glass {
+  @apply bg-gray-50 border-gray-200 text-gray-700
+         hover:bg-gray-100 hover:border-gray-300;
+}
+
+/* ── Table Glass: Light theme ── */
+:root:not(.dark) .table-glass thead {
+  @apply bg-gray-50 border-b border-gray-200;
+}
+:root:not(.dark) .table-glass th {
+  @apply text-gray-600;
+}
+:root:not(.dark) .table-glass tbody {
+  @apply divide-y divide-gray-100;
+}
+:root:not(.dark) .table-glass tr {
+  @apply hover:bg-gray-50/80;
+}
+:root:not(.dark) .table-actions-sticky {
+  @apply bg-white/95;
+}
+:root:not(.dark) .table-glass tr:hover .table-actions-sticky {
+  @apply bg-gray-50/95;
+}
+
+/* ── Table utility classes: Light theme ── */
+:root:not(.dark) .thead-base { @apply bg-gray-50; }
+:root:not(.dark) .th-base { @apply text-gray-600; }
+:root:not(.dark) .row-base { @apply border-t border-gray-200; }
+
+/* ── Button utilities: Light theme ── */
+:root:not(.dark) .btn-primary { @apply border-emerald-300 text-emerald-700 hover:bg-emerald-50; }
+:root:not(.dark) .btn-secondary { @apply border-gray-300 text-gray-700 hover:bg-gray-50; }
+:root:not(.dark) .btn-danger { @apply border-rose-300 text-rose-700 hover:bg-rose-50; }
+:root:not(.dark) .tag-active { @apply border-emerald-300 text-emerald-700; }
+
+/* ── Icon Glow: Light theme (softer, no dark bg) ── */
+:root:not(.dark) .icon-glow {
+  border-color: rgba(0,0,0,0.08);
+  background: rgba(255,255,255,0.9);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+}
+:root:not(.dark) .icon-glow::before {
+  opacity: 0.4;
+  filter: blur(8px);
+}
+
+/* ── Gradient lines & backgrounds: Light theme ── */
+:root:not(.dark) .gradient-line-top {
+  @apply opacity-30;
+}
+:root:not(.dark) .gradient-bg-radial {
+  opacity: 0.5;
+}
+
+/* ── Shimmer: Light theme ── */
+:root:not(.dark) .shimmer::after {
+  background: linear-gradient(90deg, rgba(0,0,0,0) 0, rgba(0,0,0,0.02) 20%, rgba(0,0,0,0.04) 60%, rgba(0,0,0,0));
+}
+
+/* ── Popover: Light theme ── */
+:root:not(.dark) .popover-panel {
+  @apply bg-white border-gray-200 shadow-xl;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   ADMIN SHELL — Universal color overrides for inline Tailwind
+   These use the :root (light) selector to override dark-only Tailwind classes
+   used INSIDE the .admin-shell wrapper.
+═══════════════════════════════════════════════════════════════════════════ */
+
+/* Text colors: make dark-theme-only text readable in light theme */
+:root:not(.dark) .admin-shell {
+  color: var(--foreground);
+}
+
+/* Fix hardcoded bg-slate-950 backgrounds within admin */
+:root:not(.dark) .admin-shell .bg-slate-950\/60,
+:root:not(.dark) .admin-shell .bg-slate-950\/50,
+:root:not(.dark) .admin-shell .bg-slate-950\/40,
+:root:not(.dark) .admin-shell .bg-slate-950 {
+  background-color: rgba(255,255,255,0.85) !important;
+}
+
+/* Fix hardcoded border-slate-800 */
+:root:not(.dark) .admin-shell .border-slate-800,
+:root:not(.dark) .admin-shell .border-slate-800\/80 {
+  border-color: var(--border) !important;
+}
+
+/* Fix hardcoded text-white in admin context */
+:root:not(.dark) .admin-shell .text-white {
+  color: var(--foreground) !important;
+}
+:root:not(.dark) .admin-shell .text-white\/60,
+:root:not(.dark) .admin-shell .text-white\/70,
+:root:not(.dark) .admin-shell .text-white\/80 {
+  color: var(--muted-foreground) !important;
+}
+
+/* Fix text-slate-* colors */
+:root:not(.dark) .admin-shell .text-slate-100,
+:root:not(.dark) .admin-shell .text-slate-200 {
+  color: var(--foreground) !important;
+}
+:root:not(.dark) .admin-shell .text-slate-300 {
+  color: color-mix(in srgb, var(--foreground), transparent 25%) !important;
+}
+:root:not(.dark) .admin-shell .text-slate-400 {
+  color: var(--muted-foreground) !important;
+}
+:root:not(.dark) .admin-shell .text-slate-500 {
+  color: var(--muted-foreground) !important;
+}
+
+/* Fix bg-white/[0.0x] transparent backgrounds */
+:root:not(.dark) .admin-shell [class*="bg-white/[0.0"],
+:root:not(.dark) .admin-shell [class*="bg-white/5"] {
+  background-color: rgba(0,0,0,0.02) !important;
+}
+:root:not(.dark) .admin-shell [class*="bg-white/10"],
+:root:not(.dark) .admin-shell [class*="bg-white/[0.1"] {
+  background-color: rgba(0,0,0,0.04) !important;
+}
+
+/* Fix border-white/X borders */
+:root:not(.dark) .admin-shell .border-white\/5,
+:root:not(.dark) .admin-shell .border-white\/10,
+:root:not(.dark) .admin-shell .border-white\/15,
+:root:not(.dark) .admin-shell .border-white\/20 {
+  border-color: var(--border) !important;
+}
+
+/* Fix ring-white/X */
+:root:not(.dark) .admin-shell .ring-white\/5,
+:root:not(.dark) .admin-shell .ring-white\/10 {
+  --tw-ring-color: var(--border) !important;
+}
+
+/* Fix divide-white */
+:root:not(.dark) .admin-shell .divide-white\/5 > :not([hidden]) ~ :not([hidden]),
+:root:not(.dark) .admin-shell .divide-white\/10 > :not([hidden]) ~ :not([hidden]) {
+  border-color: var(--border) !important;
+}
+
+/* Fix bg-black/* overlays */
+:root:not(.dark) .admin-shell .bg-black\/20,
+:root:not(.dark) .admin-shell .bg-black\/60 {
+  background-color: rgba(0,0,0,0.05) !important;
+}
+
+/* ── Colored text: soften for light theme ── */
+:root:not(.dark) .admin-shell .text-emerald-300 { color: rgb(5,150,105) !important; }
+:root:not(.dark) .admin-shell .text-emerald-400 { color: rgb(16,185,129) !important; }
+:root:not(.dark) .admin-shell .text-sky-300 { color: rgb(2,132,199) !important; }
+:root:not(.dark) .admin-shell .text-violet-300 { color: rgb(109,40,217) !important; }
+:root:not(.dark) .admin-shell .text-cyan-300 { color: rgb(8,145,178) !important; }
+:root:not(.dark) .admin-shell .text-rose-300 { color: rgb(225,29,72) !important; }
+:root:not(.dark) .admin-shell .text-amber-300 { color: rgb(217,119,6) !important; }
+:root:not(.dark) .admin-shell .text-teal-300 { color: rgb(13,148,136) !important; }
+:root:not(.dark) .admin-shell .text-indigo-300 { color: rgb(67,56,202) !important; }
+:root:not(.dark) .admin-shell .text-lime-300 { color: rgb(77,124,15) !important; }
+:root:not(.dark) .admin-shell .text-fuchsia-300 { color: rgb(162,28,175) !important; }
+:root:not(.dark) .admin-shell .text-orange-300 { color: rgb(194,65,12) !important; }
+:root:not(.dark) .admin-shell .text-blue-400 { color: rgb(37,99,235) !important; }
+:root:not(.dark) .admin-shell .text-red-400 { color: rgb(220,38,38) !important; }
+:root:not(.dark) .admin-shell .text-red-500 { color: rgb(185,28,28) !important; }
+
+/* ── Colored backgrounds: soften for light ── */
+:root:not(.dark) .admin-shell .bg-emerald-500\/20 { background-color: rgba(16,185,129,0.1) !important; }
+:root:not(.dark) .admin-shell .bg-emerald-500\/10 { background-color: rgba(16,185,129,0.06) !important; }
+:root:not(.dark) .admin-shell .bg-emerald-600 { background-color: rgb(5,150,105) !important; }
+:root:not(.dark) .admin-shell .bg-blue-600\/20 { background-color: rgba(37,99,235,0.1) !important; }
+:root:not(.dark) .admin-shell .bg-blue-500\/30 { background-color: rgba(59,130,246,0.15) !important; }
+:root:not(.dark) .admin-shell .bg-red-500\/10 { background-color: rgba(239,68,68,0.08) !important; }
+:root:not(.dark) .admin-shell .bg-red-500\/20 { background-color: rgba(239,68,68,0.1) !important; }
+:root:not(.dark) .admin-shell .bg-amber-500\/5 { background-color: rgba(245,158,11,0.06) !important; }
+:root:not(.dark) .admin-shell .bg-amber-500\/90 { background-color: rgba(245,158,11,0.85) !important; }
+:root:not(.dark) .admin-shell .bg-rose-600 { background-color: rgb(225,29,72) !important; }
+:root:not(.dark) .admin-shell .bg-slate-700 { background-color: rgb(241,245,249) !important; }
+:root:not(.dark) .admin-shell .bg-slate-900\/95 { background-color: rgba(248,250,252,0.95) !important; }
+
+/* ── Keep gradient buttons visible ── */
+:root:not(.dark) .admin-shell .bg-gradient-to-r.from-fuchsia-600 { color: white !important; }
+:root:not(.dark) .admin-shell .bg-gradient-to-r.from-violet-600 { color: white !important; }
+:root:not(.dark) .admin-shell .bg-gradient-to-r.from-sky-600 { color: white !important; }
+:root:not(.dark) .admin-shell .bg-gradient-to-r.from-emerald-600 { color: white !important; }
+
+/* ── Fix bg-slate-700 used as button background ── */
+:root:not(.dark) .admin-shell .bg-slate-700.text-slate-100 {
+  background-color: rgb(226,232,240) !important;
+  color: rgb(30,41,59) !important;
+}
+
+/* ── Fix opacity text ── */
+:root:not(.dark) .admin-shell .opacity-70 {
+  opacity: 0.6;
+}
+:root:not(.dark) .admin-shell .opacity-50 {
+  opacity: 0.45;
+}
+
+/* ── Admin form fields in light theme ── */
+:root:not(.dark) .admin-shell input[type="text"],
+:root:not(.dark) .admin-shell input[type="email"],
+:root:not(.dark) .admin-shell input[type="tel"],
+:root:not(.dark) .admin-shell input[type="number"],
+:root:not(.dark) .admin-shell input[type="password"],
+:root:not(.dark) .admin-shell input[type="datetime-local"],
+:root:not(.dark) .admin-shell input[type="date"],
+:root:not(.dark) .admin-shell input[type="time"],
+:root:not(.dark) .admin-shell input[type="url"],
+:root:not(.dark) .admin-shell input[type="search"],
+:root:not(.dark) .admin-shell textarea,
+:root:not(.dark) .admin-shell select {
+  background-color: var(--card) !important;
+  color: var(--foreground) !important;
+  border-color: var(--border) !important;
+}
+
+:root:not(.dark) .admin-shell input:focus,
+:root:not(.dark) .admin-shell textarea:focus,
+:root:not(.dark) .admin-shell select:focus {
+  border-color: var(--ring) !important;
+}
+
+/* ── bg-muted for tables ── */
+:root:not(.dark) .admin-shell .bg-muted\/50 {
+  background-color: rgb(248,250,252) !important;
+}
+:root:not(.dark) .admin-shell .text-muted-foreground {
+  color: var(--muted-foreground) !important;
+}
+
+/* ── Fix rounded-full pill buttons with white text ── */
+:root:not(.dark) .admin-shell .rounded-full.bg-emerald-600,
+:root:not(.dark) .admin-shell .rounded-full.bg-rose-600 {
+  color: white !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   MOBILE RESPONSIVENESS FIXES
+═══════════════════════════════════════════════════════════════════════════ */
+
+/* Better mobile table scrolling */
+@media (max-width: 768px) {
+  .admin-shell table {
+    font-size: 0.8125rem;
+  }
+  .admin-shell th,
+  .admin-shell td {
+    padding: 0.5rem 0.625rem;
+  }
+  /* Stack action buttons on mobile */
+  .admin-shell td .flex.items-center.gap-2,
+  .admin-shell td .flex.items-center.gap-3 {
+    flex-wrap: wrap;
+    gap: 0.375rem;
+  }
+}
+
+/* Fix overflow on very small screens */
+@media (max-width: 480px) {
+  .admin-shell .overflow-x-auto {
+    margin-left: -0.5rem;
+    margin-right: -0.5rem;
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   ADMIN PANEL — ADDITIONAL LIGHT THEME FIXES (Patch #2)
+   Append to END of globals.css (after admin-light-theme.css block)
+═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── FIX: admin-card / admin-section use bg-[#0b1220]/90 ── */
+:root:not(.dark) .admin-card,
+:root:not(.dark) .admin-section {
+  background-color: rgba(255,255,255,0.9) !important;
+  border-color: var(--border) !important;
+}
+
+/* ── FIX: bg-slate-900/60 (users page sections) ── */
+:root:not(.dark) .admin-shell .bg-slate-900\/60 {
+  background-color: rgba(255,255,255,0.85) !important;
+}
+
+/* ── FIX: bg-slate-800/60 (users page inputs) ── */
+:root:not(.dark) .admin-shell .bg-slate-800\/60 {
+  background-color: var(--card) !important;
+}
+
+/* ── FIX: text-slate-200 in labels ── */
+:root:not(.dark) .admin-shell .text-slate-200 {
+  color: var(--foreground) !important;
+}
+
+/* ── FIX: text-red-200 (delete button) ── */
+:root:not(.dark) .admin-shell .text-red-200 {
+  color: rgb(185,28,28) !important;
+}
+:root:not(.dark) .admin-shell .bg-red-500\/10 {
+  background-color: rgba(239,68,68,0.08) !important;
+}
+:root:not(.dark) .admin-shell .border-red-500\/30 {
+  border-color: rgba(239,68,68,0.3) !important;
+}
+
+/* ── FIX: text-yellow-300 (translation badge) ── */
+:root:not(.dark) .admin-shell .text-yellow-300 {
+  color: rgb(161,98,7) !important;
+}
+:root:not(.dark) .admin-shell .bg-yellow-500\/20 {
+  background-color: rgba(234,179,8,0.12) !important;
+}
+
+/* ── FIX: bg-fuchsia-500/30 (filter badge) ── */
+:root:not(.dark) .admin-shell .bg-fuchsia-500\/30 {
+  background-color: rgba(217,70,239,0.15) !important;
+}
+
+/* ── FIX: bg-violet-600/20 (translation button) ── */
+:root:not(.dark) .admin-shell .bg-violet-600\/20 {
+  background-color: rgba(124,58,237,0.1) !important;
+}
+:root:not(.dark) .admin-shell .border-violet-500\/30 {
+  border-color: rgba(124,58,237,0.25) !important;
+}
+
+/* ── FIX: stats page colored cards ── */
+:root:not(.dark) .admin-shell .bg-pink-500\/10 { background-color: rgba(236,72,153,0.08) !important; }
+:root:not(.dark) .admin-shell .text-pink-300 { color: rgb(190,24,93) !important; }
+:root:not(.dark) .admin-shell .border-pink-400\/20 { border-color: rgba(244,114,182,0.25) !important; }
+
+:root:not(.dark) .admin-shell .bg-blue-500\/10 { background-color: rgba(59,130,246,0.08) !important; }
+:root:not(.dark) .admin-shell .text-blue-300 { color: rgb(29,78,216) !important; }
+:root:not(.dark) .admin-shell .border-blue-400\/20 { border-color: rgba(96,165,250,0.25) !important; }
+
+/* ── FIX: stats KPI cards ── */
+:root:not(.dark) .admin-shell .from-red-500\/5 { --tw-gradient-from: rgba(239,68,68,0.03) !important; }
+:root:not(.dark) .admin-shell .from-green-500\/5 { --tw-gradient-from: rgba(34,197,94,0.03) !important; }
+
+/* ── FIX: popover panel ── */
+:root:not(.dark) .popover-panel {
+  background-color: white !important;
+  border-color: var(--border) !important;
+}
+
+/* ── FIX: stats page — bg-slate-800/50 (table head) ── */
+:root:not(.dark) .admin-shell .bg-slate-800\/50 {
+  background-color: rgb(248,250,252) !important;
+}
+:root:not(.dark) .admin-shell .bg-slate-800\/30 {
+  background-color: rgba(0,0,0,0.02) !important;
+}
+
+/* ── FIX: border-slate-700/50 ── */
+:root:not(.dark) .admin-shell .border-slate-700\/50 {
+  border-color: var(--border) !important;
+}
+
+/* ── FIX: divide-slate-700/50 ── */
+:root:not(.dark) .admin-shell .divide-slate-700\/50 > :not([hidden]) ~ :not([hidden]) {
+  border-color: var(--border) !important;
+}
+
+/* ── FIX: text-white as heading on stats ── */
+:root:not(.dark) .admin-shell .text-white.font-bold,
+:root:not(.dark) .admin-shell .text-white.font-semibold {
+  color: var(--foreground) !important;
+}
+
+/* ── FIX: bg-slate-700/30 (loading skeleton) ── */
+:root:not(.dark) .admin-shell .bg-slate-700\/30 {
+  background-color: rgba(0,0,0,0.06) !important;
+}
+
+/* ── FIX: stat KPICard text-slate-500 trend label ── */
+:root:not(.dark) .admin-shell .text-slate-500 {
+  color: var(--muted-foreground) !important;
+}
+
+/* ── FIX: services SubservicesPanel card backgrounds ── */
+:root:not(.dark) .admin-shell .bg-gradient-to-br.from-fuchsia-700\/30 {
+  background-image: linear-gradient(to bottom right, rgba(192,38,211,0.08), rgba(67,56,202,0.05), rgba(8,145,178,0.05)) !important;
+}
+
+/* ── FIX: Accent colors used as text in stats ── */
+:root:not(.dark) .admin-shell .text-amber-400 { color: rgb(180,83,9) !important; }
+:root:not(.dark) .admin-shell .text-purple-400 { color: rgb(126,34,206) !important; }
+:root:not(.dark) .admin-shell .text-blue-400 { color: rgb(37,99,235) !important; }
+:root:not(.dark) .admin-shell .text-red-400 { color: rgb(220,38,38) !important; }
+
+/* ── FIX: KPICard colored backgrounds for light theme ── */
+:root:not(.dark) .admin-shell .from-amber-500\/20 { --tw-gradient-from: rgba(245,158,11,0.1) !important; }
+:root:not(.dark) .admin-shell .to-yellow-500\/20 { --tw-gradient-to: rgba(234,179,8,0.1) !important; }
+:root:not(.dark) .admin-shell .border-amber-500\/30 { border-color: rgba(245,158,11,0.25) !important; }
+
+:root:not(.dark) .admin-shell .from-blue-500\/20 { --tw-gradient-from: rgba(59,130,246,0.1) !important; }
+:root:not(.dark) .admin-shell .to-cyan-500\/20 { --tw-gradient-to: rgba(6,182,212,0.1) !important; }
+:root:not(.dark) .admin-shell .border-blue-500\/30 { border-color: rgba(59,130,246,0.25) !important; }
+
+:root:not(.dark) .admin-shell .from-purple-500\/20 { --tw-gradient-from: rgba(168,85,247,0.1) !important; }
+:root:not(.dark) .admin-shell .to-pink-500\/20 { --tw-gradient-to: rgba(236,72,153,0.1) !important; }
+:root:not(.dark) .admin-shell .border-purple-500\/30 { border-color: rgba(168,85,247,0.25) !important; }
+
+:root:not(.dark) .admin-shell .from-emerald-500\/20 { --tw-gradient-from: rgba(16,185,129,0.1) !important; }
+:root:not(.dark) .admin-shell .to-green-500\/20 { --tw-gradient-to: rgba(34,197,94,0.1) !important; }
+:root:not(.dark) .admin-shell .border-emerald-500\/30 { border-color: rgba(16,185,129,0.25) !important; }
+
+:root:not(.dark) .admin-shell .from-rose-500\/20 { --tw-gradient-from: rgba(244,63,94,0.1) !important; }
+:root:not(.dark) .admin-shell .border-rose-500\/30 { border-color: rgba(244,63,94,0.25) !important; }
+
+/* ── FIX: Stat trend badges ── */
+:root:not(.dark) .admin-shell .bg-emerald-500\/20.text-emerald-400 {
+  background-color: rgba(16,185,129,0.1) !important;
+  color: rgb(5,150,105) !important;
+}
+:root:not(.dark) .admin-shell .bg-red-500\/20.text-red-400 {
+  background-color: rgba(239,68,68,0.1) !important;
+  color: rgb(220,38,38) !important;
+}
+:root:not(.dark) .admin-shell .bg-slate-500\/20.text-slate-400 {
+  background-color: rgba(100,116,139,0.1) !important;
+  color: rgb(71,85,105) !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   ADMIN PANEL — PATCH #3: Inline Style Overrides
+   Append to END of globals.css
+   Fixes cards with hardcoded inline dark backgrounds
+═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── FIX: SubservicesPanel card inline background gradient ── */
+:root:not(.dark) .admin-shell article.admin-card {
+  background: linear-gradient(to bottom right, rgba(255,255,255,0.95), rgba(248,250,252,0.9)) !important;
+  border-color: var(--border) !important;
+}
+:root:not(.dark) .admin-shell article.admin-card:hover {
+  border-color: rgba(0,0,0,0.15) !important;
+}
+
+/* ── FIX: All elements with inline dark backgrounds ── */
+:root:not(.dark) .admin-shell [style*="rgba(15, 23, 42"],
+:root:not(.dark) .admin-shell [style*="rgba(30, 41, 59"] {
+  background: rgba(255,255,255,0.92) !important;
+}
+:root:not(.dark) .admin-shell [style*="rgba(255, 255, 255, 0.03)"] {
+  background-color: rgba(0,0,0,0.03) !important;
+}
+:root:not(.dark) .admin-shell [style*="rgba(255, 255, 255, 0.1)"] {
+  border-color: var(--border) !important;
+}
+
+/* ── FIX: text-cyan-400 (duration) ── */
+:root:not(.dark) .admin-shell .text-cyan-400 {
+  color: rgb(8,145,178) !important;
+}
+
+/* ── FIX: text-amber-400 (price) ── */
+:root:not(.dark) .admin-shell .text-amber-400 {
+  color: rgb(180,83,9) !important;
+}
+
+/* ── FIX: text-white/40 (slug) ── */
+:root:not(.dark) .admin-shell .text-white\/40 {
+  color: var(--muted-foreground) !important;
+}
+
+/* ── FIX: text-white/50 ── */
+:root:not(.dark) .admin-shell .text-white\/50 {
+  color: var(--muted-foreground) !important;
+}
+
+/* ── FIX: text-white/60 ── */
+:root:not(.dark) .admin-shell .text-white\/60 {
+  color: color-mix(in srgb, var(--foreground), transparent 40%) !important;
+}
+
+/* ── FIX: text-white/70 ── */
+:root:not(.dark) .admin-shell .text-white\/70 {
+  color: color-mix(in srgb, var(--foreground), transparent 30%) !important;
+}
+
+/* ── FIX: bg-white/10 toggle buttons ── */
+:root:not(.dark) .admin-shell .bg-white\/10 {
+  background-color: rgba(0,0,0,0.06) !important;
+}
+
+/* ── FIX: hover states ── */
+:root:not(.dark) .admin-shell .hover\:bg-white\/5:hover {
+  background-color: rgba(0,0,0,0.03) !important;
+}
+:root:not(.dark) .admin-shell .hover\:bg-white\/10:hover {
+  background-color: rgba(0,0,0,0.06) !important;
+}
+:root:not(.dark) .admin-shell .hover\:border-white\/20:hover {
+  border-color: rgba(0,0,0,0.15) !important;
+}
+
+/* ── FIX: search icon SVG color ── */
+:root:not(.dark) .admin-shell svg.text-white\/40 {
+  color: var(--muted-foreground) !important;
+}
+
+/* ── FIX: admin-select / admin-input ── */
+:root:not(.dark) .admin-select {
+  background-color: var(--card) !important;
+  border-color: var(--border) !important;
+  color: var(--foreground) !important;
+}
+:root:not(.dark) .admin-input {
+  background-color: var(--card) !important;
+  border-color: var(--border) !important;
+  color: var(--foreground) !important;
+}
+
+/* ── FIX: services header gradient ── */
+:root:not(.dark) .admin-shell .bg-gradient-to-br.from-fuchsia-700\/30 {
+  background-image: linear-gradient(to bottom right,
+    rgba(192,38,211,0.06),
+    rgba(67,56,202,0.04),
+    rgba(8,145,178,0.04)) !important;
+}
+
+/* ── FIX: table header text ── */
+:root:not(.dark) .admin-shell .text-amber-500\/85 {
+  color: rgb(146,64,14) !important;
+}
+
+/* ── FIX: modals backgrounds ── */
+:root:not(.dark) .admin-shell .bg-slate-900\/80 {
+  background-color: rgba(255,255,255,0.95) !important;
+}
+:root:not(.dark) .admin-shell .bg-slate-800 {
+  background-color: rgb(241,245,249) !important;
+}
+:root:not(.dark) .admin-shell .bg-slate-800\/70 {
+  background-color: rgba(241,245,249,0.8) !important;
+}
+
+/* ── FIX: MobileTableCards ── */
+:root:not(.dark) .admin-shell .bg-white\/\[0\.02\] {
+  background-color: rgba(255,255,255,0.9) !important;
+  border-color: var(--border) !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   ADMIN PANEL — PATCH #4: Stats Page Light Theme
+   Append to END of globals.css
+═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Stats wrapper cards: gradient bg → light ── */
+:root:not(.dark) .admin-shell .bg-gradient-to-br.from-slate-900\/60 {
+  background-image: none !important;
+  background-color: rgba(255,255,255,0.9) !important;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 0 0 1px rgba(0,0,0,0.04);
+}
+
+/* ── bg-slate-900/60 sections (filter, export, detail tables) ── */
+:root:not(.dark) .admin-shell .bg-slate-900\/60 {
+  background-color: rgba(255,255,255,0.9) !important;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+}
+
+/* ── bg-slate-900/95 tooltips ── */
+:root:not(.dark) .admin-shell .bg-slate-900\/95 {
+  background-color: rgba(255,255,255,0.97) !important;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.12);
+}
+
+/* ── bg-slate-800/* ── */
+:root:not(.dark) .admin-shell .bg-slate-800\/50 {
+  background-color: rgb(248,250,252) !important;
+}
+:root:not(.dark) .admin-shell .bg-slate-800\/40 {
+  background-color: rgba(248,250,252,0.8) !important;
+}
+:root:not(.dark) .admin-shell .bg-slate-800\/60 {
+  background-color: rgba(241,245,249,0.8) !important;
+}
+:root:not(.dark) .admin-shell .bg-slate-800\/30 {
+  background-color: rgba(0,0,0,0.02) !important;
+}
+:root:not(.dark) .admin-shell .bg-slate-800 {
+  background-color: rgb(241,245,249) !important;
+}
+:root:not(.dark) .admin-shell .hover\:bg-slate-800\/30:hover {
+  background-color: rgba(0,0,0,0.03) !important;
+}
+:root:not(.dark) .admin-shell .hover\:bg-slate-800\/60:hover {
+  background-color: rgba(241,245,249,0.9) !important;
+}
+:root:not(.dark) .admin-shell .hover\:bg-slate-800\/70:hover {
+  background-color: rgba(226,232,240,0.8) !important;
+}
+:root:not(.dark) .admin-shell .hover\:bg-slate-700:hover {
+  background-color: rgb(226,232,240) !important;
+}
+
+/* ── border-slate-700/50 ── */
+:root:not(.dark) .admin-shell .border-slate-700\/50 {
+  border-color: var(--border) !important;
+}
+:root:not(.dark) .admin-shell .hover\:border-blue-500\/30:hover {
+  border-color: rgba(59,130,246,0.3) !important;
+}
+
+/* ── divide-slate-700/50 ── */
+:root:not(.dark) .admin-shell .divide-slate-700\/50 > :not([hidden]) ~ :not([hidden]) {
+  border-color: var(--border) !important;
+}
+
+/* ── Colored accent borders on chart cards ── */
+:root:not(.dark) .admin-shell .border-amber-500\/20 {
+  border-color: rgba(245,158,11,0.2) !important;
+}
+:root:not(.dark) .admin-shell .border-purple-500\/20 {
+  border-color: rgba(168,85,247,0.2) !important;
+}
+:root:not(.dark) .admin-shell .border-blue-500\/20 {
+  border-color: rgba(59,130,246,0.2) !important;
+}
+
+/* ── Icon background chips ── */
+:root:not(.dark) .admin-shell .bg-amber-500\/10 {
+  background-color: rgba(245,158,11,0.08) !important;
+}
+:root:not(.dark) .admin-shell .bg-purple-500\/10 {
+  background-color: rgba(168,85,247,0.08) !important;
+}
+:root:not(.dark) .admin-shell .bg-blue-500\/10 {
+  background-color: rgba(59,130,246,0.08) !important;
+}
+
+/* ── text-slate-300 (form labels, table headers) ── */
+:root:not(.dark) .admin-shell .text-slate-300 {
+  color: rgb(71,85,105) !important;
+}
+
+/* ── text-slate-400 (descriptions, period label) ── */
+:root:not(.dark) .admin-shell .text-slate-400 {
+  color: rgb(100,116,139) !important;
+}
+
+/* ── text-slate-500 (muted text, tooltip counts) ── */
+:root:not(.dark) .admin-shell .text-slate-500 {
+  color: rgb(148,163,184) !important;
+}
+
+/* ── text-white (headings, values) ── */
+:root:not(.dark) .admin-shell .text-white {
+  color: var(--foreground) !important;
+}
+
+/* ── Colored accent text ── */
+:root:not(.dark) .admin-shell .text-amber-400 {
+  color: rgb(180,83,9) !important;
+}
+:root:not(.dark) .admin-shell .text-purple-400 {
+  color: rgb(126,34,206) !important;
+}
+:root:not(.dark) .admin-shell .text-blue-400 {
+  color: rgb(37,99,235) !important;
+}
+:root:not(.dark) .admin-shell .text-emerald-400 {
+  color: rgb(5,150,105) !important;
+}
+:root:not(.dark) .admin-shell .text-rose-400 {
+  color: rgb(225,29,72) !important;
+}
+:root:not(.dark) .admin-shell .text-red-400 {
+  color: rgb(220,38,38) !important;
+}
+:root:not(.dark) .admin-shell .text-cyan-400 {
+  color: rgb(8,145,178) !important;
+}
+
+/* ── KPICard gradient backgrounds → softer in light ── */
+:root:not(.dark) .admin-shell .from-amber-500\/20 { --tw-gradient-from: rgba(245,158,11,0.1) !important; }
+:root:not(.dark) .admin-shell .to-yellow-500\/20 { --tw-gradient-to: rgba(234,179,8,0.1) !important; }
+:root:not(.dark) .admin-shell .border-amber-500\/30 { border-color: rgba(245,158,11,0.25) !important; }
+
+:root:not(.dark) .admin-shell .from-blue-500\/20 { --tw-gradient-from: rgba(59,130,246,0.1) !important; }
+:root:not(.dark) .admin-shell .to-cyan-500\/20 { --tw-gradient-to: rgba(6,182,212,0.1) !important; }
+:root:not(.dark) .admin-shell .border-blue-500\/30 { border-color: rgba(59,130,246,0.25) !important; }
+
+:root:not(.dark) .admin-shell .from-purple-500\/20 { --tw-gradient-from: rgba(168,85,247,0.1) !important; }
+:root:not(.dark) .admin-shell .to-pink-500\/20 { --tw-gradient-to: rgba(236,72,153,0.1) !important; }
+:root:not(.dark) .admin-shell .border-purple-500\/30 { border-color: rgba(168,85,247,0.25) !important; }
+
+:root:not(.dark) .admin-shell .from-emerald-500\/20 { --tw-gradient-from: rgba(16,185,129,0.1) !important; }
+:root:not(.dark) .admin-shell .to-green-500\/20 { --tw-gradient-to: rgba(34,197,94,0.1) !important; }
+:root:not(.dark) .admin-shell .border-emerald-500\/30 { border-color: rgba(16,185,129,0.25) !important; }
+
+:root:not(.dark) .admin-shell .from-rose-500\/20 { --tw-gradient-from: rgba(244,63,94,0.1) !important; }
+:root:not(.dark) .admin-shell .border-rose-500\/30 { border-color: rgba(244,63,94,0.25) !important; }
+
+/* ── KPICard trend badges ── */
+:root:not(.dark) .admin-shell .bg-emerald-500\/20 {
+  background-color: rgba(16,185,129,0.1) !important;
+}
+:root:not(.dark) .admin-shell .bg-red-500\/20 {
+  background-color: rgba(239,68,68,0.1) !important;
+}
+:root:not(.dark) .admin-shell .bg-slate-500\/20 {
+  background-color: rgba(100,116,139,0.1) !important;
+}
+
+/* ── bg-slate-700/30 loading skeleton ── */
+:root:not(.dark) .admin-shell .bg-slate-700\/30 {
+  background-color: rgba(0,0,0,0.06) !important;
+}
+
+/* ── Progress bar background ── */
+:root:not(.dark) .admin-shell .bg-slate-700\/50 {
+  background-color: rgba(0,0,0,0.06) !important;
+}
+
+/* ── Stats tables status badges ── */
+:root:not(.dark) .admin-shell .bg-emerald-950\/40 {
+  background-color: rgba(16,185,129,0.08) !important;
+}
+:root:not(.dark) .admin-shell .bg-rose-950\/40 {
+  background-color: rgba(244,63,94,0.08) !important;
+}
+:root:not(.dark) .admin-shell .bg-sky-950\/40 {
+  background-color: rgba(14,165,233,0.08) !important;
+}
+:root:not(.dark) .admin-shell .bg-slate-600\/50 {
+  background-color: rgba(100,116,139,0.12) !important;
+}
+:root:not(.dark) .admin-shell .bg-slate-400\/60 {
+  background-color: rgba(148,163,184,0.15) !important;
+}
+
+/* ── Keep gradient buttons visible ── */
+:root:not(.dark) .admin-shell .bg-gradient-to-r.from-amber-500 {
+  color: white !important;
+}
+:root:not(.dark) .admin-shell .bg-gradient-to-r.from-amber-400 {
+  color: white !important;
+}
+:root:not(.dark) .admin-shell .bg-gradient-to-br.from-amber-400 {
+  color: rgb(30,41,59) !important;
+}
+
+/* ── Decorative glow: hide in light ── */
+:root:not(.dark) .admin-shell .bg-amber-500\/10.rounded-full.blur-3xl,
+:root:not(.dark) .admin-shell .bg-purple-500\/10.rounded-full.blur-3xl,
+:root:not(.dark) .admin-shell .bg-blue-500\/10.rounded-full.blur-3xl {
+  opacity: 0 !important;
+}
+
+/* ── Select/Input in stats form ── */
+:root:not(.dark) .admin-shell select,
+:root:not(.dark) .admin-shell input[type="date"] {
+  background-color: var(--card) !important;
+  border-color: var(--border) !important;
+  color: var(--foreground) !important;
+}
+
+/* ── Tooltip text colors in light theme ── */
+:root:not(.dark) .admin-shell .bg-slate-900\/95 .text-amber-400 {
+  color: rgb(180,83,9) !important;
+}
+:root:not(.dark) .admin-shell .bg-slate-900\/95 .text-purple-400 {
+  color: rgb(126,34,206) !important;
+}
+:root:not(.dark) .admin-shell .border-amber-500\/30 {
+  border-color: rgba(245,158,11,0.25) !important;
+}
+:root:not(.dark) .admin-shell .border-purple-500\/30 {
+  border-color: rgba(168,85,247,0.25) !important;
+}
