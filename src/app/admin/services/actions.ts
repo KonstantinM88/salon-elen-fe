@@ -3,10 +3,88 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
+import { isSeoLocale, type SeoLocale } from "@/lib/seo-locale";
 
 export type ActionResult =
   | { ok: true; message?: string }
   | { ok: false; message: string };
+
+type ServicesActionCopy = {
+  enterName: string;
+  selectCategoryForService: string;
+  minutesMustBeNonNegative: string;
+  created: string;
+  createFailed: string;
+  idNotFound: string;
+  saved: string;
+  updateCategoryFailed: string;
+  selectCategory: string;
+  updateServiceFailed: string;
+  serviceNotFound: string;
+  archivedBranch: string;
+  deleted: string;
+  movedToArchive: string;
+  deleteOrArchiveFailed: string;
+};
+
+const SERVICES_ACTION_COPY: Record<SeoLocale, ServicesActionCopy> = {
+  de: {
+    enterName: "Name eingeben.",
+    selectCategoryForService: "Kategorie fuer die Leistung auswaehlen.",
+    minutesMustBeNonNegative: "Minuten muessen eine nicht-negative Zahl sein.",
+    created: "Erstellt.",
+    createFailed: "Eintrag konnte nicht erstellt werden.",
+    idNotFound: "ID nicht gefunden.",
+    saved: "Gespeichert.",
+    updateCategoryFailed: "Kategorie konnte nicht aktualisiert werden.",
+    selectCategory: "Kategorie auswaehlen.",
+    updateServiceFailed: "Leistung konnte nicht aktualisiert werden.",
+    serviceNotFound: "Leistung nicht gefunden.",
+    archivedBranch: "Verknuepfungen gefunden - Zweig ausgeblendet (Archiv).",
+    deleted: "Geloescht.",
+    movedToArchive: "In Archiv verschoben.",
+    deleteOrArchiveFailed: "Loeschen/Archivieren fehlgeschlagen.",
+  },
+  ru: {
+    enterName: "Введите название.",
+    selectCategoryForService: "Выберите категорию для услуги.",
+    minutesMustBeNonNegative: "Минуты должны быть неотрицательным числом.",
+    created: "Создано.",
+    createFailed: "Не удалось создать запись.",
+    idNotFound: "Не найден ID.",
+    saved: "Сохранено.",
+    updateCategoryFailed: "Не удалось обновить категорию.",
+    selectCategory: "Выберите категорию.",
+    updateServiceFailed: "Не удалось обновить услугу.",
+    serviceNotFound: "Услуга не найдена.",
+    archivedBranch: "Связи обнаружены — ветка скрыта (архив).",
+    deleted: "Удалено.",
+    movedToArchive: "Перемещено в архив.",
+    deleteOrArchiveFailed: "Не удалось удалить/архивировать.",
+  },
+  en: {
+    enterName: "Enter name.",
+    selectCategoryForService: "Select a category for the service.",
+    minutesMustBeNonNegative: "Minutes must be a non-negative number.",
+    created: "Created.",
+    createFailed: "Failed to create record.",
+    idNotFound: "ID not found.",
+    saved: "Saved.",
+    updateCategoryFailed: "Failed to update category.",
+    selectCategory: "Select category.",
+    updateServiceFailed: "Failed to update service.",
+    serviceNotFound: "Service not found.",
+    archivedBranch: "Relations detected - branch was hidden (archive).",
+    deleted: "Deleted.",
+    movedToArchive: "Moved to archive.",
+    deleteOrArchiveFailed: "Failed to delete/archive.",
+  },
+};
+
+function localeFromFormData(formData: FormData): SeoLocale {
+  const raw = formData.get("locale");
+  return isSeoLocale(raw) ? raw : "de";
+}
 
 /* ───────────────── helpers ───────────────── */
 
@@ -55,6 +133,7 @@ async function archiveSubtree(serviceId: string): Promise<void> {
 
 /** Создание категории или подуслуги (определяется по `kind`) */
 export async function createService(formData: FormData): Promise<ActionResult> {
+  const t = SERVICES_ACTION_COPY[localeFromFormData(formData)];
   try {
     const kind = String(formData.get("kind") ?? "category"); // "category" | "service"
     const name = String(formData.get("name") ?? "").trim();
@@ -62,7 +141,7 @@ export async function createService(formData: FormData): Promise<ActionResult> {
       (formData.get("description")?.toString().trim() ?? "") || null;
     const isActive = formData.get("isActive") ? true : false;
 
-    if (!name) return { ok: false, message: "Введите название." };
+    if (!name) return { ok: false, message: t.enterName };
 
     if (kind === "category") {
       // категория: без parentId, без цены, минуты = 0
@@ -89,10 +168,10 @@ export async function createService(formData: FormData): Promise<ActionResult> {
         priceStr === "" ? null : Math.round(Number(priceStr.replace(",", ".")) * 100);
 
       if (!parentId) {
-        return { ok: false, message: "Выберите категорию для услуги." };
+        return { ok: false, message: t.selectCategoryForService };
       }
       if (!Number.isFinite(durationMin) || durationMin < 0) {
-        return { ok: false, message: "Минуты должны быть неотрицательным числом." };
+        return { ok: false, message: t.minutesMustBeNonNegative };
       }
 
       const slug = await ensureUniqueSlug(name);
@@ -111,14 +190,15 @@ export async function createService(formData: FormData): Promise<ActionResult> {
     }
 
     revalidatePath("/admin/services");
-    return { ok: true, message: "Создано." };
+    return { ok: true, message: t.created };
   } catch {
-    return { ok: false, message: "Не удалось создать запись." };
+    return { ok: false, message: t.createFailed };
   }
 }
 
 /** Обновление КАТЕГОРИИ (parentId: null) */
 export async function updateCategory(formData: FormData): Promise<ActionResult> {
+  const t = SERVICES_ACTION_COPY[localeFromFormData(formData)];
   try {
     const id = String(formData.get("id") ?? "");
     const name = String(formData.get("name") ?? "").trim();
@@ -126,8 +206,8 @@ export async function updateCategory(formData: FormData): Promise<ActionResult> 
       (formData.get("description")?.toString().trim() ?? "") || null;
     const isActive = formData.get("isActive") ? true : false;
 
-    if (!id) return { ok: false, message: "Не найден ID." };
-    if (!name) return { ok: false, message: "Введите название." };
+    if (!id) return { ok: false, message: t.idNotFound };
+    if (!name) return { ok: false, message: t.enterName };
 
     await prisma.service.update({
       where: { id },
@@ -143,9 +223,9 @@ export async function updateCategory(formData: FormData): Promise<ActionResult> 
     });
 
     revalidatePath("/admin/services");
-    return { ok: true, message: "Сохранено." };
+    return { ok: true, message: t.saved };
   } catch {
-    return { ok: false, message: "Не удалось обновить категорию." };
+    return { ok: false, message: t.updateCategoryFailed };
   }
 }
 
@@ -153,6 +233,7 @@ export async function updateCategory(formData: FormData): Promise<ActionResult> 
 export async function updateSubservice(
   formData: FormData
 ): Promise<ActionResult> {
+  const t = SERVICES_ACTION_COPY[localeFromFormData(formData)];
   try {
     const id = String(formData.get("id") ?? "");
     const name = String(formData.get("name") ?? "").trim();
@@ -166,11 +247,11 @@ export async function updateSubservice(
     const priceCents =
       priceStr === "" ? null : Math.round(Number(priceStr.replace(",", ".")) * 100);
 
-    if (!id) return { ok: false, message: "Не найден ID." };
-    if (!name) return { ok: false, message: "Введите название." };
-    if (!parentId) return { ok: false, message: "Выберите категорию." };
+    if (!id) return { ok: false, message: t.idNotFound };
+    if (!name) return { ok: false, message: t.enterName };
+    if (!parentId) return { ok: false, message: t.selectCategory };
     if (!Number.isFinite(durationMin) || durationMin < 0) {
-      return { ok: false, message: "Минуты должны быть неотрицательным числом." };
+      return { ok: false, message: t.minutesMustBeNonNegative };
     }
 
     await prisma.service.update({
@@ -186,23 +267,24 @@ export async function updateSubservice(
     });
 
     revalidatePath("/admin/services");
-    return { ok: true, message: "Сохранено." };
+    return { ok: true, message: t.saved };
   } catch {
-    return { ok: false, message: "Не удалось обновить услугу." };
+    return { ok: false, message: t.updateServiceFailed };
   }
 }
 
 /** Удалить (или заархивировать, если есть связи) */
 export async function deleteService(formData: FormData): Promise<ActionResult> {
+  const t = SERVICES_ACTION_COPY[localeFromFormData(formData)];
   try {
     const id = String(formData.get("id") ?? "");
-    if (!id) return { ok: false, message: "Не найден ID." };
+    if (!id) return { ok: false, message: t.idNotFound };
 
     const svc = await prisma.service.findUnique({
       where: { id },
       select: { id: true, isArchived: true },
     });
-    if (!svc) return { ok: false, message: "Услуга не найдена." };
+    if (!svc) return { ok: false, message: t.serviceNotFound };
 
     const [children, appts, masters] = await Promise.all([
       prisma.service.count({ where: { parentId: id, isArchived: false } }),
@@ -219,23 +301,22 @@ export async function deleteService(formData: FormData): Promise<ActionResult> {
       revalidatePath("/admin/services");
       return {
         ok: true,
-        message:
-          "Связи обнаружены — ветка скрыта (архив).",
+        message: t.archivedBranch,
       };
     }
 
     await prisma.service.delete({ where: { id } });
     revalidatePath("/admin/services");
-    return { ok: true, message: "Удалено." };
+    return { ok: true, message: t.deleted };
   } catch {
     // страховка: если FK помешали — архивируем
     try {
       const id = String(formData.get("id") ?? "");
       if (id) await archiveSubtree(id);
       revalidatePath("/admin/services");
-      return { ok: true, message: "Перемещено в архив." };
+      return { ok: true, message: t.movedToArchive };
     } catch {
-      return { ok: false, message: "Не удалось удалить/архивировать." };
+      return { ok: false, message: t.deleteOrArchiveFailed };
     }
   }
 }

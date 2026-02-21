@@ -9,21 +9,57 @@ import { useTheme } from "next-themes";
 
 import AdminNav from "@/components/admin/AdminNav";
 import AdminFooter from "../_components/AdminFooter";
+import type { SeoLocale } from "@/lib/seo-locale";
 
 type AdminShellClientProps = {
   children: ReactNode;
   bookingsBadge: number;
   role: Role;
+  locale: SeoLocale;
+};
+
+type AdminShellCopy = {
+  adminMenu: string;
+  closeMenu: string;
+  adminPanel: string;
+  openMenu: string;
+  adminShort: string;
+};
+
+const ADMIN_SHELL_COPY: Record<SeoLocale, AdminShellCopy> = {
+  de: {
+    adminMenu: "Admin-Menue",
+    closeMenu: "Menue schliessen",
+    adminPanel: "Admin-Panel",
+    openMenu: "Menue oeffnen",
+    adminShort: "Admin",
+  },
+  ru: {
+    adminMenu: "Меню админки",
+    closeMenu: "Закрыть меню",
+    adminPanel: "Панель админа",
+    openMenu: "Открыть меню",
+    adminShort: "Админ",
+  },
+  en: {
+    adminMenu: "Admin Menu",
+    closeMenu: "Close menu",
+    adminPanel: "Admin Panel",
+    openMenu: "Open menu",
+    adminShort: "Admin",
+  },
 };
 
 export default function AdminShellClient({
   children,
   bookingsBadge,
   role,
+  locale,
 }: AdminShellClientProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState<boolean>(false);
   const { setTheme } = useTheme();
   const didForceDark = useRef(false);
+  const t = ADMIN_SHELL_COPY[locale];
 
   // На входе в админку всегда стартуем с dark.
   // Пользователь может переключить тему вручную в интерфейсе.
@@ -64,12 +100,12 @@ export default function AdminShellClient({
                 {/* Хедер */}
                 <div className="flex items-center justify-between mb-6">
                   <div className="text-sm uppercase tracking-wider text-gray-500 dark:text-slate-400">
-                    Admin Menu
+                    {t.adminMenu}
                   </div>
                   <button
                     type="button"
                     onClick={() => setMobileMenuOpen(false)}
-                    aria-label="Закрыть меню"
+                    aria-label={t.closeMenu}
                     className="inline-flex h-10 w-10 items-center justify-center rounded-xl
                                border border-gray-200 dark:border-white/10 
                                bg-gray-50 dark:bg-white/5 
@@ -79,7 +115,12 @@ export default function AdminShellClient({
                   </button>
                 </div>
 
-                <AdminNav role={role} bookingsBadge={bookingsBadge} onNavigate={() => setMobileMenuOpen(false)} />
+                <AdminNav
+                  role={role}
+                  bookingsBadge={bookingsBadge}
+                  onNavigate={() => setMobileMenuOpen(false)}
+                  locale={locale}
+                />
               </div>
             </motion.aside>
           </>
@@ -93,12 +134,12 @@ export default function AdminShellClient({
           <div className="lg:hidden">
             <div className="card-glass card-glass-accent card-glow p-4 flex items-center justify-between">
               <div className="text-sm uppercase tracking-wider text-gray-500 dark:text-slate-400">
-                Admin Panel
+                {t.adminPanel}
               </div>
               <button
                 type="button"
                 onClick={() => setMobileMenuOpen(true)}
-                aria-label="Открыть меню"
+                aria-label={t.openMenu}
                 className="inline-flex h-10 w-10 items-center justify-center rounded-xl
                            border border-gray-200 dark:border-white/10 
                            bg-gray-50 dark:bg-white/5 
@@ -114,16 +155,16 @@ export default function AdminShellClient({
           <aside className="hidden lg:block card-glass card-glass-accent card-glow p-4 h-fit sticky top-6">
             <div className="mb-4 flex items-center justify-between">
               <div className="text-xs uppercase tracking-wider text-gray-500 dark:text-slate-400">
-                Admin
+                {t.adminShort}
               </div>
             </div>
-            <AdminNav role={role} bookingsBadge={bookingsBadge} />
+            <AdminNav role={role} bookingsBadge={bookingsBadge} locale={locale} />
           </aside>
 
           {/* 📄 КОНТЕНТ */}
           <section className="card-glass card-glass-accent card-glow p-4 sm:p-5 lg:p-6 overflow-x-auto overflow-y-visible">
             {children}
-            <AdminFooter />
+            <AdminFooter locale={locale} />
           </section>
         </div>
       </div>

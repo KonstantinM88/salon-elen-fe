@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { CreditCard, RefreshCw, ExternalLink, AlertTriangle } from 'lucide-react';
 import { IconGlow } from '@/components/admin/IconGlow';
+import type { SeoLocale } from '@/lib/seo-locale';
 
 interface BalanceData {
   balance?: number | string;
@@ -20,7 +21,87 @@ interface BalanceResponse {
   error?: string;
 }
 
-export function ZadarmaBalanceCard() {
+type BalanceCardCopy = {
+  title: string;
+  subtitle: string;
+  refreshTitle: string;
+  loadErrorTitle: string;
+  retry: string;
+  updated: string;
+  refill: string;
+  fallbackLoadBalance: string;
+  fallbackLoad: string;
+  status: {
+    good: string;
+    warning: string;
+    critical: string;
+  };
+};
+
+const INTL_BY_LOCALE: Record<SeoLocale, string> = {
+  de: 'de-DE',
+  ru: 'ru-RU',
+  en: 'en-US',
+};
+
+const BALANCE_COPY: Record<SeoLocale, BalanceCardCopy> = {
+  de: {
+    title: 'Zadarma-Guthaben',
+    subtitle: 'SMS / VoIP',
+    refreshTitle: 'Aktualisieren',
+    loadErrorTitle: 'Fehler beim Laden',
+    retry: 'Erneut versuchen',
+    updated: 'Aktualisiert:',
+    refill: 'Guthaben aufladen',
+    fallbackLoadBalance: 'Fehler beim Laden des Guthabens',
+    fallbackLoad: 'Fehler beim Laden',
+    status: {
+      good: 'Ausreichendes Guthaben',
+      warning: 'Bald aufgebraucht',
+      critical: 'Aufladung erforderlich',
+    },
+  },
+  ru: {
+    title: 'Баланс Zadarma',
+    subtitle: 'SMS / VoIP',
+    refreshTitle: 'Обновить',
+    loadErrorTitle: 'Ошибка загрузки',
+    retry: 'Попробовать снова',
+    updated: 'Обновлено:',
+    refill: 'Пополнить баланс',
+    fallbackLoadBalance: 'Ошибка загрузки баланса',
+    fallbackLoad: 'Ошибка загрузки',
+    status: {
+      good: 'Достаточно средств',
+      warning: 'Скоро закончатся',
+      critical: 'Требуется пополнение',
+    },
+  },
+  en: {
+    title: 'Zadarma Balance',
+    subtitle: 'SMS / VoIP',
+    refreshTitle: 'Refresh',
+    loadErrorTitle: 'Load error',
+    retry: 'Try again',
+    updated: 'Updated:',
+    refill: 'Top up balance',
+    fallbackLoadBalance: 'Failed to load balance',
+    fallbackLoad: 'Load error',
+    status: {
+      good: 'Sufficient balance',
+      warning: 'Running low soon',
+      critical: 'Top-up required',
+    },
+  },
+};
+
+type ZadarmaBalanceCardProps = {
+  locale?: SeoLocale;
+};
+
+export function ZadarmaBalanceCard({ locale = 'de' }: ZadarmaBalanceCardProps) {
+  const t = BALANCE_COPY[locale];
+  const intlLocale = INTL_BY_LOCALE[locale];
   const [data, setData] = useState<BalanceData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -34,7 +115,7 @@ export function ZadarmaBalanceCard() {
       const result: BalanceResponse = await response.json();
 
       if (!response.ok || !result.success) {
-        throw new Error(result.error || 'Ошибка загрузки баланса');
+        throw new Error(result.error || t.fallbackLoadBalance);
       }
 
       setData({
@@ -45,7 +126,7 @@ export function ZadarmaBalanceCard() {
       setLastUpdate(new Date());
     } catch (err) {
       console.error('Error fetching Zadarma balance:', err);
-      setError(err instanceof Error ? err.message : 'Ошибка загрузки');
+      setError(err instanceof Error ? err.message : t.fallbackLoad);
     } finally {
       setLoading(false);
     }
@@ -74,7 +155,7 @@ export function ZadarmaBalanceCard() {
 
   const formatBalance = (balance: number | string, currency: string = 'EUR'): string => {
     const num = typeof balance === 'string' ? parseFloat(balance) : balance;
-    return new Intl.NumberFormat('ru-RU', {
+    return new Intl.NumberFormat(intlLocale, {
       style: 'currency',
       currency,
       minimumFractionDigits: 2,
@@ -83,7 +164,7 @@ export function ZadarmaBalanceCard() {
   };
 
   const formatTime = (date: Date): string => {
-    return date.toLocaleTimeString('ru-RU', {
+    return date.toLocaleTimeString(intlLocale, {
       hour: '2-digit',
       minute: '2-digit',
     });
@@ -95,19 +176,19 @@ export function ZadarmaBalanceCard() {
 
   const statusConfig = {
     good: {
-      text: 'Достаточно средств',
+      text: t.status.good,
       color: 'text-emerald-600',
       bg: 'bg-emerald-500/10',
       indicator: 'bg-emerald-500',
     },
     warning: {
-      text: 'Скоро закончатся',
+      text: t.status.warning,
       color: 'text-amber-600',
       bg: 'bg-amber-500/10',
       indicator: 'bg-amber-500',
     },
     critical: {
-      text: 'Требуется пополнение!',
+      text: t.status.critical,
       color: 'text-rose-600',
       bg: 'bg-rose-500/10',
       indicator: 'bg-rose-500 animate-pulse',
@@ -131,8 +212,8 @@ export function ZadarmaBalanceCard() {
               <CreditCard className="h-6 w-6 text-amber-400" />
             </IconGlow>
             <div>
-              <h3 className="text-lg font-semibold text-white">Баланс Zadarma</h3>
-              <p className="text-sm text-gray-300">SMS / VoIP</p>
+              <h3 className="text-lg font-semibold text-white">{t.title}</h3>
+              <p className="text-sm text-gray-300">{t.subtitle}</p>
             </div>
           </div>
 
@@ -140,7 +221,7 @@ export function ZadarmaBalanceCard() {
             onClick={handleRefresh}
             disabled={loading}
             className="rounded-lg p-2 transition-all hover:bg-amber-50/10 disabled:opacity-50"
-            title="Обновить"
+            title={t.refreshTitle}
           >
             <RefreshCw className={`h-5 w-5 text-amber-400 ${loading ? 'animate-spin' : ''}`} />
           </button>
@@ -157,13 +238,13 @@ export function ZadarmaBalanceCard() {
             <div className="flex items-start gap-3">
               <AlertTriangle className="h-5 w-5 flex-shrink-0 text-rose-400" />
               <div>
-                <p className="font-medium text-rose-200">Ошибка загрузки</p>
+                <p className="font-medium text-rose-200">{t.loadErrorTitle}</p>
                 <p className="text-sm text-rose-300">{error}</p>
                 <button
                   onClick={handleRefresh}
                   className="mt-2 text-sm text-rose-300 underline hover:text-rose-200"
                 >
-                  Попробовать снова
+                  {t.retry}
                 </button>
               </div>
             </div>
@@ -188,7 +269,7 @@ export function ZadarmaBalanceCard() {
             {/* Footer */}
             <div className="flex items-center justify-between border-t border-white/10 pt-4">
               <div className="text-xs text-gray-300">
-                Обновлено: {lastUpdate ? formatTime(lastUpdate) : '—'}
+                {t.updated} {lastUpdate ? formatTime(lastUpdate) : '—'}
               </div>
 
               <a
@@ -197,7 +278,7 @@ export function ZadarmaBalanceCard() {
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-1 text-sm text-amber-400 transition-colors hover:text-amber-300"
               >
-                Пополнить баланс
+                {t.refill}
                 <ExternalLink className="h-4 w-4" />
               </a>
             </div>

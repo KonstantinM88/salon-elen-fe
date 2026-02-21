@@ -6,6 +6,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { Languages, Loader2, Save, X } from 'lucide-react';
 import ClientPortal from '@/components/ui/ClientPortal';
 import { LOCALE_FLAGS, LOCALE_NAMES, SUPPORTED_LOCALES, type Locale } from '@/lib/i18n-utils';
+import type { SeoLocale } from '@/lib/seo-locale';
 
 type TranslationInput = {
   locale: string;
@@ -17,6 +18,7 @@ type Props = {
   serviceId: string;
   serviceName: string;
   translations: TranslationInput[];
+  locale?: SeoLocale;
   onClose: () => void;
   onSave: () => void;
 };
@@ -50,13 +52,83 @@ function buildInitialForm(translations: TranslationInput[]): FormState {
   return base;
 }
 
+type TranslationEditorCopy = {
+  saveError: string;
+  title: string;
+  filled: string;
+  filledLangs: string;
+  close: string;
+  name: string;
+  description: string;
+  enterNameOn: string;
+  enterDescriptionOn: string;
+  hintTitle: string;
+  hintText: string;
+  cancel: string;
+  saving: string;
+  save: string;
+};
+
+const TRANSLATION_EDITOR_COPY: Record<SeoLocale, TranslationEditorCopy> = {
+  de: {
+    saveError: 'Speichern fehlgeschlagen',
+    title: 'Uebersetzungen bearbeiten',
+    filled: 'Ausgefuellt:',
+    filledLangs: 'Sprachen',
+    close: 'Schliessen',
+    name: 'Name',
+    description: 'Beschreibung',
+    enterNameOn: 'Name eingeben auf',
+    enterDescriptionOn: 'Beschreibung eingeben auf',
+    hintTitle: 'Hinweis',
+    hintText: 'Leere Uebersetzungen werden nicht gespeichert. Fuellen Sie mindestens "Name" aus.',
+    cancel: 'Abbrechen',
+    saving: 'Speichern...',
+    save: 'Speichern',
+  },
+  ru: {
+    saveError: 'Ошибка сохранения',
+    title: 'Редактировать переводы',
+    filled: 'Заполнено:',
+    filledLangs: 'языков',
+    close: 'Закрыть',
+    name: 'Название',
+    description: 'Описание',
+    enterNameOn: 'Введите название на',
+    enterDescriptionOn: 'Введите описание на',
+    hintTitle: 'Подсказка',
+    hintText: 'Пустые переводы не сохраняются. Заполните хотя бы “Название”.',
+    cancel: 'Отмена',
+    saving: 'Сохранение...',
+    save: 'Сохранить',
+  },
+  en: {
+    saveError: 'Save failed',
+    title: 'Edit translations',
+    filled: 'Filled:',
+    filledLangs: 'languages',
+    close: 'Close',
+    name: 'Name',
+    description: 'Description',
+    enterNameOn: 'Enter name in',
+    enterDescriptionOn: 'Enter description in',
+    hintTitle: 'Hint',
+    hintText: 'Empty translations are not saved. Fill at least "Name".',
+    cancel: 'Cancel',
+    saving: 'Saving...',
+    save: 'Save',
+  },
+};
+
 export default function TranslationEditor({
   serviceId,
   serviceName,
   translations,
+  locale = 'de',
   onClose,
   onSave,
 }: Props) {
+  const t = TRANSLATION_EDITOR_COPY[locale];
   // Escape / body scroll lock
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
@@ -126,13 +198,13 @@ export default function TranslationEditor({
 
       if (!res.ok) {
         const msg = await res.text().catch(() => '');
-        throw new Error(msg || 'Ошибка сохранения');
+        throw new Error(msg || t.saveError);
       }
 
       onSave();
       onClose();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Ошибка сохранения');
+      setError(err instanceof Error ? err.message : t.saveError);
     } finally {
       setSaving(false);
     }
@@ -189,11 +261,11 @@ export default function TranslationEditor({
 
                   <div className="min-w-0">
                     <h2 className="text-lg sm:text-xl font-semibold text-white">
-                      Редактировать переводы
+                      {t.title}
                     </h2>
                     <p className="text-xs sm:text-sm mt-1 truncate text-white/60">{serviceName}</p>
                     <p className="text-xs mt-1 text-violet-200/90">
-                      Заполнено: {filledCount}/3 языков
+                      {t.filled} {filledCount}/3 {t.filledLangs}
                     </p>
                   </div>
                 </div>
@@ -202,8 +274,8 @@ export default function TranslationEditor({
                   onClick={onClose}
                   className="p-2 rounded-lg transition-all hover:bg-white/10 shrink-0"
                   type="button"
-                  aria-label="Закрыть"
-                  title="Закрыть (Esc)"
+                  aria-label={t.close}
+                  title={`${t.close} (Esc)`}
                 >
                   <X className="h-5 w-5 text-white" />
                 </button>
@@ -252,13 +324,13 @@ export default function TranslationEditor({
                         {/* Name */}
                         <div className="mb-3">
                           <label className="block text-sm font-medium mb-1.5 text-white/80">
-                            Название
+                            {t.name}
                           </label>
                           <input
                             type="text"
                             value={form[locale].name}
                             onChange={(e) => updateField(locale, 'name', e.target.value)}
-                            placeholder={`Введите название на ${LOCALE_NAMES[locale].toLowerCase()}`}
+                            placeholder={`${t.enterNameOn} ${LOCALE_NAMES[locale].toLowerCase()}`}
                             className="w-full px-3 py-2 rounded-lg text-sm text-white bg-slate-950/40 border border-white/10 outline-none focus:border-violet-400/50 focus:ring-2 focus:ring-violet-500/10"
                           />
                         </div>
@@ -266,12 +338,12 @@ export default function TranslationEditor({
                         {/* Description */}
                         <div>
                           <label className="block text-sm font-medium mb-1.5 text-white/80">
-                            Описание
+                            {t.description}
                           </label>
                           <textarea
                             value={form[locale].description}
                             onChange={(e) => updateField(locale, 'description', e.target.value)}
-                            placeholder={`Введите описание на ${LOCALE_NAMES[locale].toLowerCase()}`}
+                            placeholder={`${t.enterDescriptionOn} ${LOCALE_NAMES[locale].toLowerCase()}`}
                             rows={4}
                             className="w-full px-3 py-2 rounded-lg text-sm text-white bg-slate-950/40 border border-white/10 outline-none resize-none focus:border-violet-400/50 focus:ring-2 focus:ring-violet-500/10"
                           />
@@ -286,9 +358,9 @@ export default function TranslationEditor({
                   <div className="flex items-start gap-2">
                     <Languages className="h-4 w-4 mt-0.5 shrink-0 text-cyan-300" />
                     <div>
-                      <p className="font-medium text-sm text-cyan-200">Подсказка</p>
+                      <p className="font-medium text-sm text-cyan-200">{t.hintTitle}</p>
                       <p className="text-xs mt-1 text-cyan-200/80">
-                        Пустые переводы не сохраняются. Заполните хотя бы “Название”.
+                        {t.hintText}
                       </p>
                     </div>
                   </div>
@@ -311,7 +383,7 @@ export default function TranslationEditor({
                     disabled={saving}
                     className="w-full sm:flex-1 px-4 py-2.5 rounded-xl font-medium text-sm sm:text-base transition-all border border-white/10 text-white hover:bg-white/5 disabled:opacity-50"
                   >
-                    Отмена
+                    {t.cancel}
                   </button>
 
                   <button
@@ -330,12 +402,12 @@ export default function TranslationEditor({
                       {saving ? (
                         <>
                           <Loader2 className="h-4 w-4 animate-spin" />
-                          <span>Сохранение...</span>
+                          <span>{t.saving}</span>
                         </>
                       ) : (
                         <>
                           <Save className="h-4 w-4" />
-                          <span>Сохранить</span>
+                          <span>{t.save}</span>
                         </>
                       )}
                     </div>

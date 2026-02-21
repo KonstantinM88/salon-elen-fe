@@ -21,6 +21,11 @@ import {
   Save,
   ArrowLeft,
 } from 'lucide-react';
+import {
+  type SeoLocale,
+  type SearchParamsPromise,
+} from '@/lib/seo-locale';
+import { resolveContentLocale } from '@/lib/seo-locale-server';
 
 /* ───────────────────────── helpers ───────────────────────── */
 
@@ -38,9 +43,179 @@ function roleBadgeClass(r: Role): string {
   return 'bg-gray-100 dark:bg-white/10 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-white/15';
 }
 
+type UsersPageCopy = {
+  title: string;
+  total: string;
+  admins: string;
+  back: string;
+  createUser: string;
+  name: string;
+  email: string;
+  password: string;
+  passwordHint: string;
+  role: string;
+  linkToMasterOptional: string;
+  noSelect: string;
+  create: string;
+  tableName: string;
+  tableMaster: string;
+  tableActions: string;
+  saveRoleTitle: string;
+  saveShort: string;
+  notLinked: string;
+  selectShort: string;
+  linkTitle: string;
+  notLinkedTitle: string;
+  unlinkTitle: string;
+  deleteUserTitle: string;
+  cannotDeleteSelf: string;
+  lastAdmin: string;
+  delete: string;
+  roleHintBefore: string;
+  roleHintAfter: string;
+  usersList: string;
+  pieces: string;
+  noName: string;
+  masterLabel: string;
+  save: string;
+  selectMaster: string;
+  unlink: string;
+  deleteUser: string;
+};
+
+const USERS_PAGE_COPY: Record<SeoLocale, UsersPageCopy> = {
+  de: {
+    title: 'Benutzer',
+    total: 'insgesamt',
+    admins: 'Admin',
+    back: 'Zurueck',
+    createUser: 'Benutzer erstellen',
+    name: 'Name',
+    email: 'E-Mail',
+    password: 'Passwort',
+    passwordHint: 'mind. 8 Zeichen',
+    role: 'Rolle',
+    linkToMasterOptional: 'Mit Mitarbeiter verknuepfen (optional)',
+    noSelect: '— nichts auswaehlen —',
+    create: 'Erstellen',
+    tableName: 'Name',
+    tableMaster: 'Mitarbeiter',
+    tableActions: 'Aktionen',
+    saveRoleTitle: 'Rolle speichern',
+    saveShort: 'Speich.',
+    notLinked: 'nicht verknuepft',
+    selectShort: 'Auswaehlen…',
+    linkTitle: 'Verknuepfen',
+    notLinkedTitle: 'Nicht verknuepft',
+    unlinkTitle: 'Trennen',
+    deleteUserTitle: 'Benutzer loeschen',
+    cannotDeleteSelf: 'Sie koennen sich nicht selbst loeschen',
+    lastAdmin: 'Einziger Admin',
+    delete: 'Loeschen',
+    roleHintBefore: 'Fuer die Rolle ',
+    roleHintAfter:
+      ' erstellen Sie zuerst einen Mitarbeiter unter „Admin → Mitarbeiter → Neu“ und verknuepfen dann hier den Benutzer.',
+    usersList: 'Benutzerliste',
+    pieces: 'Stk.',
+    noName: '(ohne Namen)',
+    masterLabel: 'Mitarbeiter:',
+    save: 'Speichern',
+    selectMaster: 'Mitarbeiter auswaehlen…',
+    unlink: 'Trennen',
+    deleteUser: 'Benutzer loeschen',
+  },
+  ru: {
+    title: 'Пользователи',
+    total: 'всего',
+    admins: 'админ',
+    back: 'Назад',
+    createUser: 'Создать пользователя',
+    name: 'Имя',
+    email: 'Email',
+    password: 'Пароль',
+    passwordHint: 'мин. 8 символов',
+    role: 'Роль',
+    linkToMasterOptional: 'Привязать к мастеру (опционально)',
+    noSelect: '— не выбирать —',
+    create: 'Создать',
+    tableName: 'Имя',
+    tableMaster: 'Мастер',
+    tableActions: 'Действия',
+    saveRoleTitle: 'Сохранить роль',
+    saveShort: 'Сохр.',
+    notLinked: 'не привязан',
+    selectShort: 'Выбрать…',
+    linkTitle: 'Привязать',
+    notLinkedTitle: 'Не привязан',
+    unlinkTitle: 'Отвязать',
+    deleteUserTitle: 'Удалить пользователя',
+    cannotDeleteSelf: 'Нельзя удалить себя',
+    lastAdmin: 'Единственный админ',
+    delete: 'Удалить',
+    roleHintBefore: 'Для роли ',
+    roleHintAfter:
+      ' сначала создайте мастера в разделе «Админ → Мастера → Новый», затем привяжите пользователя здесь.',
+    usersList: 'Список пользователей',
+    pieces: 'шт.',
+    noName: '(без имени)',
+    masterLabel: 'Мастер:',
+    save: 'Сохранить',
+    selectMaster: 'Выбрать мастера…',
+    unlink: 'Отвязать',
+    deleteUser: 'Удалить пользователя',
+  },
+  en: {
+    title: 'Users',
+    total: 'total',
+    admins: 'admins',
+    back: 'Back',
+    createUser: 'Create User',
+    name: 'Name',
+    email: 'Email',
+    password: 'Password',
+    passwordHint: 'min. 8 characters',
+    role: 'Role',
+    linkToMasterOptional: 'Link to staff member (optional)',
+    noSelect: '— do not select —',
+    create: 'Create',
+    tableName: 'Name',
+    tableMaster: 'Staff',
+    tableActions: 'Actions',
+    saveRoleTitle: 'Save role',
+    saveShort: 'Save',
+    notLinked: 'not linked',
+    selectShort: 'Select…',
+    linkTitle: 'Link',
+    notLinkedTitle: 'Not linked',
+    unlinkTitle: 'Unlink',
+    deleteUserTitle: 'Delete user',
+    cannotDeleteSelf: 'You cannot delete yourself',
+    lastAdmin: 'Last admin',
+    delete: 'Delete',
+    roleHintBefore: 'For role ',
+    roleHintAfter:
+      ' first create a staff member in “Admin → Staff → New”, then link the user here.',
+    usersList: 'Users List',
+    pieces: 'pcs.',
+    noName: '(no name)',
+    masterLabel: 'Staff:',
+    save: 'Save',
+    selectMaster: 'Select staff…',
+    unlink: 'Unlink',
+    deleteUser: 'Delete User',
+  },
+};
+
 /* ───────────────────────── Page ───────────────────────── */
 
-export default async function AdminUsersPage() {
+type PageProps = {
+  searchParams?: SearchParamsPromise;
+};
+
+export default async function AdminUsersPage({ searchParams }: PageProps) {
+  const locale = await resolveContentLocale(searchParams);
+  const t = USERS_PAGE_COPY[locale];
+
   const session = await getServerSession(authOptions);
   const selfId = session?.user?.id ?? '';
 
@@ -68,10 +243,10 @@ export default async function AdminUsersPage() {
           </div>
           <div>
             <h1 className="text-xl sm:text-2xl font-semibold text-gray-900 dark:text-white">
-              Пользователи
+              {t.title}
             </h1>
             <p className="text-xs text-gray-500 dark:text-white/50">
-              {users.length} всего · {adminsCount} админ
+              {users.length} {t.total} · {adminsCount} {t.admins}
             </p>
           </div>
         </div>
@@ -81,7 +256,7 @@ export default async function AdminUsersPage() {
                      hover:text-gray-900 dark:hover:text-white transition"
         >
           <ArrowLeft className="h-4 w-4" />
-          <span className="hidden sm:inline">Назад</span>
+          <span className="hidden sm:inline">{t.back}</span>
         </Link>
       </div>
 
@@ -91,7 +266,7 @@ export default async function AdminUsersPage() {
         <div className="flex items-center gap-2 mb-4">
           <UserPlus className="h-4 w-4 text-violet-500 dark:text-violet-400" />
           <h2 className="text-sm font-semibold text-gray-800 dark:text-slate-200">
-            Создать пользователя
+            {t.createUser}
           </h2>
         </div>
 
@@ -99,7 +274,7 @@ export default async function AdminUsersPage() {
           {/* Row 1: Name + Email */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <label className="space-y-1">
-              <span className="block text-xs text-gray-500 dark:text-slate-400">Имя</span>
+              <span className="block text-xs text-gray-500 dark:text-slate-400">{t.name}</span>
               <input
                 name="name"
                 required
@@ -109,7 +284,7 @@ export default async function AdminUsersPage() {
                            px-3 h-10 outline-none text-sm
                            focus:ring-2 focus:ring-violet-500/40 focus:border-violet-400
                            transition"
-                placeholder="Имя"
+                placeholder={t.name}
               />
             </label>
             <label className="space-y-1">
@@ -132,7 +307,7 @@ export default async function AdminUsersPage() {
           {/* Row 2: Password + Role */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <label className="space-y-1">
-              <span className="block text-xs text-gray-500 dark:text-slate-400">Пароль</span>
+              <span className="block text-xs text-gray-500 dark:text-slate-400">{t.password}</span>
               <input
                 type="password"
                 name="password"
@@ -144,11 +319,11 @@ export default async function AdminUsersPage() {
                            px-3 h-10 outline-none text-sm
                            focus:ring-2 focus:ring-violet-500/40 focus:border-violet-400
                            transition"
-                placeholder="мин. 8 символов"
+                placeholder={t.passwordHint}
               />
             </label>
             <label className="space-y-1">
-              <span className="block text-xs text-gray-500 dark:text-slate-400">Роль</span>
+              <span className="block text-xs text-gray-500 dark:text-slate-400">{t.role}</span>
               <select
                 name="role"
                 className="w-full rounded-xl border border-gray-300 dark:border-white/10
@@ -170,7 +345,7 @@ export default async function AdminUsersPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <label className="space-y-1">
               <span className="block text-xs text-gray-500 dark:text-slate-400">
-                Привязать к мастеру (опционально)
+                {t.linkToMasterOptional}
               </span>
               <select
                 name="masterId"
@@ -179,10 +354,10 @@ export default async function AdminUsersPage() {
                            text-gray-900 dark:text-white
                            px-3 h-10 text-sm
                            focus:ring-2 focus:ring-violet-500/40
-                           transition"
+                transition"
                 defaultValue=""
               >
-                <option value="">— не выбирать —</option>
+                <option value="">{t.noSelect}</option>
                 {masters.map((m) => (
                   <option key={m.id} value={m.id}>
                     {m.name}
@@ -200,7 +375,7 @@ export default async function AdminUsersPage() {
                            shadow-sm"
               >
                 <UserPlus className="h-4 w-4" />
-                Создать
+                {t.create}
               </button>
             </div>
           </div>
@@ -215,10 +390,10 @@ export default async function AdminUsersPage() {
             <tr className="border-b border-gray-200 dark:border-white/10
                            bg-gray-50 dark:bg-white/[0.03]">
               <th className="px-4 py-3 text-left font-medium text-gray-600 dark:text-slate-300">Email</th>
-              <th className="px-4 py-3 text-left font-medium text-gray-600 dark:text-slate-300">Имя</th>
-              <th className="px-4 py-3 text-left font-medium text-gray-600 dark:text-slate-300">Роль</th>
-              <th className="px-4 py-3 text-left font-medium text-gray-600 dark:text-slate-300">Мастер</th>
-              <th className="px-4 py-3 text-right font-medium text-gray-600 dark:text-slate-300">Действия</th>
+              <th className="px-4 py-3 text-left font-medium text-gray-600 dark:text-slate-300">{t.tableName}</th>
+              <th className="px-4 py-3 text-left font-medium text-gray-600 dark:text-slate-300">{t.role}</th>
+              <th className="px-4 py-3 text-left font-medium text-gray-600 dark:text-slate-300">{t.tableMaster}</th>
+              <th className="px-4 py-3 text-right font-medium text-gray-600 dark:text-slate-300">{t.tableActions}</th>
             </tr>
           </thead>
 
@@ -270,10 +445,10 @@ export default async function AdminUsersPage() {
                                    bg-white dark:bg-slate-900/60
                                    hover:bg-gray-50 dark:hover:bg-slate-800/70
                                    transition"
-                        title="Сохранить роль"
+                        title={t.saveRoleTitle}
                       >
                         <Save className="h-3 w-3" />
-                        Сохр.
+                        {t.saveShort}
                       </button>
                     </form>
                   </td>
@@ -289,7 +464,7 @@ export default async function AdminUsersPage() {
                           — {attached.name}
                         </>
                       ) : (
-                        <span className="text-gray-400 dark:text-slate-500">не привязан</span>
+                        <span className="text-gray-400 dark:text-slate-500">{t.notLinked}</span>
                       )}
                     </div>
                     <div className="flex items-center gap-1.5">
@@ -305,7 +480,7 @@ export default async function AdminUsersPage() {
                                      focus:ring-2 focus:ring-violet-500/40
                                      transition"
                         >
-                          <option value="">Выбрать…</option>
+                          <option value="">{t.selectShort}</option>
                           {masters.map((m) => (
                             <option key={m.id} value={m.id}>
                               {m.name}
@@ -320,7 +495,7 @@ export default async function AdminUsersPage() {
                                      bg-emerald-50 dark:bg-emerald-500/10
                                      hover:bg-emerald-100 dark:hover:bg-emerald-500/20
                                      transition"
-                          title="Привязать"
+                          title={t.linkTitle}
                         >
                           <Link2 className="h-3 w-3" />
                         </button>
@@ -336,7 +511,7 @@ export default async function AdminUsersPage() {
                                      hover:bg-gray-50 dark:hover:bg-white/5
                                      disabled:opacity-40 transition"
                           disabled={!attached}
-                          title={!attached ? 'Не привязан' : 'Отвязать'}
+                          title={!attached ? t.notLinkedTitle : t.unlinkTitle}
                         >
                           <Unlink className="h-3 w-3" />
                         </button>
@@ -359,14 +534,14 @@ export default async function AdminUsersPage() {
                         disabled={!canDelete}
                         title={
                           canDelete
-                            ? 'Удалить пользователя'
+                            ? t.deleteUserTitle
                             : u.id === selfId
-                            ? 'Нельзя удалить себя'
-                            : 'Единственный админ'
+                            ? t.cannotDeleteSelf
+                            : t.lastAdmin
                         }
                       >
                         <Trash2 className="h-3 w-3" />
-                        Удалить
+                        {t.delete}
                       </button>
                     </form>
                   </td>
@@ -378,10 +553,9 @@ export default async function AdminUsersPage() {
 
         <p className="px-4 py-3 text-xs text-gray-500 dark:text-slate-400
                        border-t border-gray-200 dark:border-white/10">
-          Для роли{' '}
+          {t.roleHintBefore}
           <strong className="text-gray-800 dark:text-slate-200">MASTER</strong>{' '}
-          сначала создайте мастера в разделе «Админ → Мастера → Новый», затем
-          привяжите пользователя здесь.
+          {t.roleHintAfter}
         </p>
       </section>
 
@@ -389,10 +563,10 @@ export default async function AdminUsersPage() {
       <section className="lg:hidden space-y-3">
         <div className="flex items-center justify-between">
           <h2 className="text-sm font-semibold text-gray-800 dark:text-slate-200">
-            Список пользователей
+            {t.usersList}
           </h2>
           <span className="text-xs text-gray-400 dark:text-slate-500">
-            {users.length} шт.
+            {users.length} {t.pieces}
           </span>
         </div>
 
@@ -414,7 +588,7 @@ export default async function AdminUsersPage() {
                     {u.email}
                   </div>
                   <div className="text-xs text-gray-500 dark:text-slate-400 mt-0.5">
-                    {u.name ?? '(без имени)'}
+                    {u.name ?? t.noName}
                   </div>
                 </div>
                 <span
@@ -428,13 +602,13 @@ export default async function AdminUsersPage() {
               {/* Master info */}
               <div className="text-xs text-gray-500 dark:text-slate-400">
                 <Shield className="inline h-3 w-3 mr-1 opacity-50" />
-                Мастер:{' '}
+                {t.masterLabel}{' '}
                 {attached ? (
                   <span className="text-gray-700 dark:text-slate-200 font-medium">
                     {attached.name}
                   </span>
                 ) : (
-                  <span className="text-gray-400 dark:text-slate-500">не привязан</span>
+                  <span className="text-gray-400 dark:text-slate-500">{t.notLinked}</span>
                 )}
               </div>
 
@@ -466,7 +640,7 @@ export default async function AdminUsersPage() {
                                transition"
                   >
                     <Save className="h-3.5 w-3.5" />
-                    Сохранить
+                    {t.save}
                   </button>
                 </form>
 
@@ -483,7 +657,7 @@ export default async function AdminUsersPage() {
                                  h-9 px-2.5 text-xs
                                  focus:ring-2 focus:ring-violet-500/40 transition"
                     >
-                      <option value="">Выбрать мастера…</option>
+                      <option value="">{t.selectMaster}</option>
                       {masters.map((m) => (
                         <option key={m.id} value={m.id}>
                           {m.name}
@@ -513,7 +687,7 @@ export default async function AdminUsersPage() {
                                  hover:bg-gray-50 dark:hover:bg-white/5
                                  disabled:opacity-40 transition"
                       disabled={!attached}
-                      title="Отвязать"
+                      title={t.unlink}
                     >
                       <Unlink className="h-3.5 w-3.5" />
                     </button>
@@ -534,7 +708,7 @@ export default async function AdminUsersPage() {
                                  transition"
                     >
                       <Trash2 className="h-3.5 w-3.5" />
-                      Удалить пользователя
+                      {t.deleteUser}
                     </button>
                   </form>
                 )}
@@ -544,9 +718,9 @@ export default async function AdminUsersPage() {
         })}
 
         <p className="text-xs text-gray-500 dark:text-slate-400 px-1">
-          Для роли{' '}
+          {t.roleHintBefore}
           <strong className="text-gray-800 dark:text-slate-200">MASTER</strong>{' '}
-          сначала создайте мастера в «Мастера → Новый», затем привяжите здесь.
+          {t.roleHintAfter}
         </p>
       </section>
     </div>

@@ -12,6 +12,7 @@ import {
   ResponsiveContainer,
   Cell,
 } from 'recharts';
+import type { SeoLocale } from '@/lib/seo-locale';
 
 interface ServiceData {
   name: string;
@@ -23,44 +24,77 @@ interface ServiceData {
 interface TopServicesChartProps {
   data: ServiceData[];
   currency?: string;
+  locale?: SeoLocale;
 }
 
-const COLORS = [
-  '#F59E0B', // amber
-  '#8B5CF6', // purple
-  '#EC4899', // pink
-  '#3B82F6', // blue
-  '#10B981', // emerald
-];
+const COLORS = ['#F59E0B', '#8B5CF6', '#EC4899', '#3B82F6', '#10B981'];
+
+const INTL_BY_LOCALE: Record<SeoLocale, string> = {
+  de: 'de-DE',
+  ru: 'ru-RU',
+  en: 'en-US',
+};
+
+const TOP_SERVICES_COPY: Record<
+  SeoLocale,
+  { title: string; subtitle: string; bookingsWord: string; empty: string }
+> = {
+  de: {
+    title: 'Top Leistungen',
+    subtitle: 'Nach Umsatz im Zeitraum',
+    bookingsWord: 'Buchungen',
+    empty: 'Keine Leistungsdaten',
+  },
+  ru: {
+    title: 'Топ услуги',
+    subtitle: 'По выручке за период',
+    bookingsWord: 'записей',
+    empty: 'Нет данных об услугах',
+  },
+  en: {
+    title: 'Top services',
+    subtitle: 'By revenue in selected period',
+    bookingsWord: 'bookings',
+    empty: 'No service data',
+  },
+};
 
 export default function TopServicesChart({
   data,
-  currency = '€',
+  currency = 'EUR',
+  locale = 'de',
 }: TopServicesChartProps) {
-  const CustomTooltip = ({ active, payload }: { active?: boolean; payload?: Array<{ payload: ServiceData }> }) => {
+  const topData = data.slice(0, 5);
+  const t = TOP_SERVICES_COPY[locale];
+  const intlLocale = INTL_BY_LOCALE[locale];
+
+  const CustomTooltip = ({
+    active,
+    payload,
+  }: {
+    active?: boolean;
+    payload?: Array<{ payload: ServiceData }>;
+  }) => {
     if (active && payload && payload.length) {
       const item = payload[0].payload;
       return (
         <div className="bg-slate-900/95 backdrop-blur-xl border border-purple-500/30 rounded-xl p-4 shadow-2xl">
           <p className="text-white font-semibold mb-2">{item.name}</p>
           <p className="text-purple-400 font-bold text-lg">
-            {new Intl.NumberFormat('ru-RU', {
+            {new Intl.NumberFormat(intlLocale, {
               style: 'currency',
-              currency: 'EUR',
+              currency,
               maximumFractionDigits: 0,
             }).format(item.revenue)}
           </p>
           <p className="text-slate-400 text-sm mt-1">
-            {item.count} записей • {item.percentage.toFixed(1)}%
+            {item.count} {t.bookingsWord} • {item.percentage.toFixed(1)}%
           </p>
         </div>
       );
     }
     return null;
   };
-
-  // Ограничиваем до топ-5
-  const topData = data.slice(0, 5);
 
   return (
     <motion.div
@@ -69,7 +103,6 @@ export default function TopServicesChart({
       transition={{ duration: 0.5, delay: 0.3 }}
       className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-slate-900/60 to-slate-800/60 backdrop-blur-xl border border-purple-500/20 p-4 sm:p-6"
     >
-      {/* Header */}
       <div className="flex items-center gap-2 sm:gap-3 mb-4 sm:mb-6">
         <div className="p-2 rounded-lg bg-purple-500/10">
           <svg
@@ -87,12 +120,11 @@ export default function TopServicesChart({
           </svg>
         </div>
         <div>
-          <h3 className="text-base sm:text-lg font-semibold text-white">Топ услуги</h3>
-          <p className="text-xs sm:text-sm text-slate-400">По выручке за период</p>
+          <h3 className="text-base sm:text-lg font-semibold text-white">{t.title}</h3>
+          <p className="text-xs sm:text-sm text-slate-400">{t.subtitle}</p>
         </div>
       </div>
 
-      {/* Chart */}
       {topData.length === 0 ? (
         <div className="h-80 flex items-center justify-center text-slate-500">
           <div className="text-center">
@@ -109,7 +141,7 @@ export default function TopServicesChart({
                 d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
               />
             </svg>
-            <p>Нет данных об услугах</p>
+            <p>{t.empty}</p>
           </div>
         </div>
       ) : (
@@ -127,7 +159,7 @@ export default function TopServicesChart({
                 style={{ fontSize: '11px' }}
                 tickLine={false}
                 tickFormatter={(value) =>
-                  new Intl.NumberFormat('ru-RU', {
+                  new Intl.NumberFormat(intlLocale, {
                     notation: 'compact',
                     compactDisplay: 'short',
                   }).format(value)
@@ -144,13 +176,12 @@ export default function TopServicesChart({
               <Tooltip content={<CustomTooltip />} />
               <Bar dataKey="revenue" radius={[0, 8, 8, 0]} animationDuration={1000}>
                 {topData.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  <Cell key={`cell-${entry.name}-${index}`} fill={COLORS[index % COLORS.length]} />
                 ))}
               </Bar>
             </BarChart>
           </ResponsiveContainer>
 
-          {/* Legend with percentages */}
           <div className="mt-4 sm:mt-6 grid grid-cols-2 gap-2 sm:gap-3">
             {topData.map((item, index) => (
               <motion.div
@@ -174,7 +205,6 @@ export default function TopServicesChart({
         </>
       )}
 
-      {/* Decorative glow */}
       <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-purple-500/10 rounded-full blur-3xl" />
     </motion.div>
   );

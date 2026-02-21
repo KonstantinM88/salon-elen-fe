@@ -15,9 +15,91 @@ import {
   Send,
 } from 'lucide-react';
 import { useCallback } from 'react';
+import type { SeoLocale } from '@/lib/seo-locale';
 
-export default function AdminFooter() {
+type AdminFooterCopy = {
+  panelTitle: string;
+  panelDescription: string;
+  quickBooking: string;
+  backToTop: string;
+  backToTopTitle: string;
+  news: string;
+  services: string;
+  bookings: string;
+  clients: string;
+  promotions: string;
+  staff: string;
+  calendar: string;
+  stats: string;
+  dashboard: string;
+  systemLabel: string;
+  support: string;
+  telegram: string;
+};
+
+const ADMIN_FOOTER_COPY: Record<SeoLocale, AdminFooterCopy> = {
+  de: {
+    panelTitle: 'Admin-Panel',
+    panelDescription: 'Schnelllinks, Support und hilfreiche Materialien sind immer griffbereit.',
+    quickBooking: 'Schnellbuchung',
+    backToTop: 'Nach oben',
+    backToTopTitle: 'Nach oben',
+    news: 'News',
+    services: 'Leistungen',
+    bookings: 'Buchungen',
+    clients: 'Kunden',
+    promotions: 'Aktionen',
+    staff: 'Mitarbeiter',
+    calendar: 'Kalender',
+    stats: 'Statistik',
+    dashboard: 'Dashboard',
+    systemLabel: 'Online-Buchungssystem und Admin-Panel',
+    support: 'Support',
+    telegram: 'Telegram',
+  },
+  ru: {
+    panelTitle: 'Панель администратора',
+    panelDescription: 'Быстрые ссылки, поддержка и полезные материалы - всегда под рукой.',
+    quickBooking: 'Быстрая запись',
+    backToTop: 'Вверх',
+    backToTopTitle: 'Наверх',
+    news: 'Новости',
+    services: 'Услуги',
+    bookings: 'Заявки',
+    clients: 'Клиенты',
+    promotions: 'Акции',
+    staff: 'Сотрудники',
+    calendar: 'Календарь',
+    stats: 'Статистика',
+    dashboard: 'Дашборд',
+    systemLabel: 'Система онлайн-записи и админ-панель',
+    support: 'Поддержка',
+    telegram: 'Telegram',
+  },
+  en: {
+    panelTitle: 'Admin Panel',
+    panelDescription: 'Quick links, support, and useful resources are always nearby.',
+    quickBooking: 'Quick Booking',
+    backToTop: 'Up',
+    backToTopTitle: 'Back to top',
+    news: 'News',
+    services: 'Services',
+    bookings: 'Bookings',
+    clients: 'Clients',
+    promotions: 'Promotions',
+    staff: 'Staff',
+    calendar: 'Calendar',
+    stats: 'Stats',
+    dashboard: 'Dashboard',
+    systemLabel: 'Online booking system and admin panel',
+    support: 'Support',
+    telegram: 'Telegram',
+  },
+};
+
+export default function AdminFooter({ locale = 'de' }: { locale?: SeoLocale }) {
   const year = new Date().getFullYear();
+  const t = ADMIN_FOOTER_COPY[locale];
 
   const scrollTop = useCallback(() => {
     try {
@@ -49,13 +131,13 @@ export default function AdminFooter() {
             </div>
             <div>
               <div className="text-base md:text-lg font-semibold text-gray-900 dark:text-white">
-                Панель администратора
+                {t.panelTitle}
                 <span className="ml-2 align-middle rounded-full bg-emerald-100 dark:bg-emerald-400/10 px-2 py-0.5 text-xs font-medium text-emerald-700 dark:text-emerald-300 ring-1 ring-emerald-200 dark:ring-emerald-400/20">
                   Online
                 </span>
               </div>
               <p className="text-[13px] text-gray-500 dark:text-white/70">
-                Быстрые ссылки, поддержка и полезные материалы — всегда под рукой.
+                {t.panelDescription}
               </p>
             </div>
           </div>
@@ -66,7 +148,7 @@ export default function AdminFooter() {
               className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-fuchsia-600 to-sky-500 px-4 py-2 text-sm font-medium text-white shadow-lg shadow-fuchsia-600/20 transition hover:brightness-110"
             >
               <Scissors className="h-4 w-4" />
-              Быстрая запись
+              {t.quickBooking}
             </Link>
             <button
               onClick={scrollTop}
@@ -74,25 +156,25 @@ export default function AdminFooter() {
                          text-gray-700 dark:text-slate-200
                          ring-1 ring-gray-200 dark:ring-white/10
                          hover:bg-gray-50 dark:hover:bg-white/5 transition"
-              title="Наверх"
+              title={t.backToTopTitle}
             >
               <ArrowUp className="h-4 w-4" />
-              Вверх
+              {t.backToTop}
             </button>
           </div>
         </div>
 
         {/* Ссылки */}
         <div className="mt-5 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
-          <FooterLink href="/admin/news" icon={<Newspaper className="h-4 w-4" />} label="Новости" />
-          <FooterLink href="/admin/services" icon={<Scissors className="h-4 w-4" />} label="Услуги" />
-          <FooterLink href="/admin/bookings" icon={<CalendarRange className="h-4 w-4" />} label="Заявки" />
-          <FooterLink href="/admin/clients" icon={<Users className="h-4 w-4" />} label="Клиенты" />
-          <FooterLink href="/admin/promotions" icon={<Users className="h-4 w-4" />} label="Акции" />
-          <FooterLink href="/admin/masters" icon={<Layers3 className="h-4 w-4" />} label="Сотрудники" />
-          <FooterLink href="/admin/calendar" icon={<CalendarRange className="h-4 w-4" />} label="Календарь" />
-          <FooterLink href="/admin/stats" icon={<BarChart3 className="h-4 w-4" />} label="Статистика" />
-          <FooterLink href="/admin" icon={<PanelsTopLeft className="h-4 w-4" />} label="Дашборд" />
+          <FooterLink href="/admin/news" icon={<Newspaper className="h-4 w-4" />} label={t.news} />
+          <FooterLink href="/admin/services" icon={<Scissors className="h-4 w-4" />} label={t.services} />
+          <FooterLink href="/admin/bookings" icon={<CalendarRange className="h-4 w-4" />} label={t.bookings} />
+          <FooterLink href="/admin/clients" icon={<Users className="h-4 w-4" />} label={t.clients} />
+          <FooterLink href="/admin/promotions" icon={<Users className="h-4 w-4" />} label={t.promotions} />
+          <FooterLink href="/admin/masters" icon={<Layers3 className="h-4 w-4" />} label={t.staff} />
+          <FooterLink href="/admin/calendar" icon={<CalendarRange className="h-4 w-4" />} label={t.calendar} />
+          <FooterLink href="/admin/stats" icon={<BarChart3 className="h-4 w-4" />} label={t.stats} />
+          <FooterLink href="/admin" icon={<PanelsTopLeft className="h-4 w-4" />} label={t.dashboard} />
         </div>
 
         {/* Нижняя строка */}
@@ -102,7 +184,7 @@ export default function AdminFooter() {
                      md:flex-row md:items-center md:justify-between"
         >
           <div className="text-[13px] text-gray-500 dark:text-white/70">
-            © {year} Salon Elen · Система онлайн-записи и админ-панель
+            © {year} Salon Elen · {t.systemLabel}
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <a
@@ -113,7 +195,7 @@ export default function AdminFooter() {
                          hover:bg-gray-50 dark:hover:bg-white/5 transition"
             >
               <LifeBuoy className="h-4 w-4" />
-              Поддержка
+              {t.support}
             </a>
             <a
               href="#"
@@ -123,7 +205,7 @@ export default function AdminFooter() {
                          hover:bg-gray-50 dark:hover:bg-white/5 transition"
             >
               <Send className="h-4 w-4" />
-              Telegram
+              {t.telegram}
             </a>
           </div>
         </div>

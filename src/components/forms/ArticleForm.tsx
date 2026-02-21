@@ -3,6 +3,7 @@
 
 import * as React from "react";
 import type { ActionResult } from "@/app/admin/news/actions";
+import type { SeoLocale } from "@/lib/seo-locale";
 
 export type Initial = {
   title?: string;
@@ -29,6 +30,7 @@ type Props = {
   initial?: Initial;
   articleId?: string;
   redirectTo?: string;
+  locale?: SeoLocale;
   onSubmit: (fd: FormData) => Promise<ActionResult>;
 };
 
@@ -81,9 +83,238 @@ function counterClass(len: number, min: number, max: number): string {
   return "text-red-500";
 }
 
+type ArticleFormCopy = {
+  fileNotSelected: string;
+  pinTop: string;
+  priority: string;
+  priorityHint: string;
+  titleLabel: string;
+  titlePlaceholder: string;
+  slugLabel: string;
+  shortDescriptionLabel: string;
+  shortDescriptionPlaceholder: string;
+  bodyLabel: string;
+  bodyPlaceholder: string;
+  wordsLabel: string;
+  aspectTooNarrow: string;
+  aspectTooWide: string;
+  coverLabel: string;
+  chooseFile: string;
+  publishFromLabel: string;
+  coverHint: string;
+  hideAfterLabel: string;
+  coverPreviewTitle: string;
+  coverPreviewAlt: string;
+  videoSectionTitle: string;
+  videoAdded: string;
+  uploadVideoLabel: string;
+  chooseVideo: string;
+  videoFormatHint: string;
+  videoOr: string;
+  videoLinkLabel: string;
+  videoLinkPlaceholder: string;
+  videoPreviewTitle: string;
+  currentVideoTitle: string;
+  seoSectionTitle: string;
+  seoFilled: string;
+  seoHintTitle: string;
+  seoHintText: string;
+  seoPreviewTitle: string;
+  seoTitleFallback: string;
+  seoDescriptionFallback: string;
+  seoTitleLabel: string;
+  seoDescriptionLabel: string;
+  seoTitlePlaceholder: string;
+  seoDescriptionPlaceholder: string;
+  seoCharsHint: string;
+  ogTitleLabel: string;
+  ogDescriptionLabel: string;
+  ogTitlePlaceholder: string;
+  ogDescriptionPlaceholder: string;
+  saving: string;
+  save: string;
+};
+
+const ARTICLE_FORM_COPY: Record<SeoLocale, ArticleFormCopy> = {
+  de: {
+    fileNotSelected: "Keine Datei gewaehlt",
+    pinTop: "📌 Oben anheften",
+    priority: "Prioritaet:",
+    priorityHint: "hoeher = weiter oben",
+    titleLabel: "Titel *",
+    titlePlaceholder: "Zum Beispiel: Unser neuer Service...",
+    slugLabel: "Slug:",
+    shortDescriptionLabel: "Kurzbeschreibung",
+    shortDescriptionPlaceholder: "Ein bis zwei Saetze als Teaser...",
+    bodyLabel: "Text *",
+    bodyPlaceholder: "Haupttext der Veroeffentlichung...",
+    wordsLabel: "Woerter:",
+    aspectTooNarrow:
+      "zu schmal/vertikal. Empfohlen 1200x675 (16:9). Ein Teil des Bildes wird beim Anzeigen beschnitten.",
+    aspectTooWide:
+      "zu breit (Panorama). Empfohlen 1200x675 (16:9).",
+    coverLabel: "Titelbild",
+    chooseFile: "Datei auswaehlen",
+    publishFromLabel: "Veroeffentlichen ab",
+    coverHint:
+      "📐 Empfohlenes Titelbild: 1200x675 (16:9) oder 1200x630 (1.91:1 fuer soziale Netzwerke). JPG/PNG/GIF/AVIF/BMP/TIFF wird automatisch in WebP konvertiert.",
+    hideAfterLabel: "Ausblenden nach",
+    coverPreviewTitle: "Titelbild-Vorschau",
+    coverPreviewAlt: "Titelbild-Vorschau",
+    videoSectionTitle: "🎬 Video",
+    videoAdded: "hinzugefuegt",
+    uploadVideoLabel: "Video hochladen",
+    chooseVideo: "Video auswaehlen",
+    videoFormatHint: "MP4, WebM, MOV - bis 100MB",
+    videoOr: "- oder -",
+    videoLinkLabel: "YouTube-/Vimeo-Link",
+    videoLinkPlaceholder: "https://www.youtube.com/watch?v=...",
+    videoPreviewTitle: "Video-Vorschau",
+    currentVideoTitle: "Aktuelles Video",
+    seoSectionTitle: "🔍 SEO",
+    seoFilled: "ausgefuellt",
+    seoHintTitle: "SEO-Tipps:",
+    seoHintText:
+      "Wenn leer, werden normaler Titel und Beschreibung verwendet.",
+    seoPreviewTitle: "Google-Vorschau:",
+    seoTitleFallback: "News-Titel",
+    seoDescriptionFallback:
+      "Die Beschreibung wird aus der Kurzbeschreibung uebernommen...",
+    seoTitleLabel: "SEO Title",
+    seoDescriptionLabel: "SEO Description",
+    seoTitlePlaceholder: "SEO-Titel",
+    seoDescriptionPlaceholder: "SEO-Beschreibung",
+    seoCharsHint: "Zeichen (empfohlen",
+    ogTitleLabel: "OG Title",
+    ogDescriptionLabel: "OG Description",
+    ogTitlePlaceholder: "Titel fuer soziale Netzwerke",
+    ogDescriptionPlaceholder: "Beschreibung fuer soziale Netzwerke",
+    saving: "Speichern...",
+    save: "Speichern",
+  },
+  ru: {
+    fileNotSelected: "Файл не выбран",
+    pinTop: "📌 Закрепить наверху",
+    priority: "Приоритет:",
+    priorityHint: "выше = первее",
+    titleLabel: "Заголовок *",
+    titlePlaceholder: "Например: Наша новая услуга…",
+    slugLabel: "Слаг:",
+    shortDescriptionLabel: "Короткое описание",
+    shortDescriptionPlaceholder: "Одно-два предложения анонса…",
+    bodyLabel: "Текст *",
+    bodyPlaceholder: "Основной текст публикации…",
+    wordsLabel: "слов:",
+    aspectTooNarrow:
+      "слишком узкое/вертикальное. Рекомендуем 1200×675 (16:9). Часть картинки будет обрезана при отображении.",
+    aspectTooWide:
+      "слишком широкое (панорама). Рекомендуем 1200×675 (16:9).",
+    coverLabel: "Обложка",
+    chooseFile: "Выберите файл",
+    publishFromLabel: "Публиковать с",
+    coverHint:
+      "📐 Рекомендуемый размер обложки: 1200×675 (16:9) или 1200×630 (1.91:1 для соцсетей). Любой формат (JPG, PNG, GIF, AVIF, BMP, TIFF) автоматически конвертируется в WebP.",
+    hideAfterLabel: "Скрыть после",
+    coverPreviewTitle: "Предпросмотр обложки",
+    coverPreviewAlt: "Превью обложки",
+    videoSectionTitle: "🎬 Видео",
+    videoAdded: "добавлено",
+    uploadVideoLabel: "Загрузить видео",
+    chooseVideo: "Выберите видео",
+    videoFormatHint: "MP4, WebM, MOV — до 100MB",
+    videoOr: "— или —",
+    videoLinkLabel: "Ссылка YouTube / Vimeo",
+    videoLinkPlaceholder: "https://www.youtube.com/watch?v=...",
+    videoPreviewTitle: "Предпросмотр видео",
+    currentVideoTitle: "Текущее видео",
+    seoSectionTitle: "🔍 SEO",
+    seoFilled: "заполнено",
+    seoHintTitle: "SEO-подсказки:",
+    seoHintText:
+      "Если оставить пустым — будет использован обычный заголовок и описание.",
+    seoPreviewTitle: "Превью в Google:",
+    seoTitleFallback: "Заголовок новости",
+    seoDescriptionFallback:
+      "Описание будет взято из краткого описания новости…",
+    seoTitleLabel: "SEO Title",
+    seoDescriptionLabel: "SEO Description",
+    seoTitlePlaceholder: "SEO заголовок",
+    seoDescriptionPlaceholder: "SEO описание",
+    seoCharsHint: "символов (рекомендуется",
+    ogTitleLabel: "OG Title",
+    ogDescriptionLabel: "OG Description",
+    ogTitlePlaceholder: "Заголовок для соцсетей",
+    ogDescriptionPlaceholder: "Описание для соцсетей",
+    saving: "Сохраняем…",
+    save: "Сохранить",
+  },
+  en: {
+    fileNotSelected: "No file selected",
+    pinTop: "📌 Pin to top",
+    priority: "Priority:",
+    priorityHint: "higher = first",
+    titleLabel: "Title *",
+    titlePlaceholder: "For example: Our new service...",
+    slugLabel: "Slug:",
+    shortDescriptionLabel: "Short description",
+    shortDescriptionPlaceholder: "One or two teaser sentences...",
+    bodyLabel: "Text *",
+    bodyPlaceholder: "Main publication text...",
+    wordsLabel: "words:",
+    aspectTooNarrow:
+      "too narrow/vertical. Recommended 1200x675 (16:9). Part of the image will be cropped.",
+    aspectTooWide:
+      "too wide (panorama). Recommended 1200x675 (16:9).",
+    coverLabel: "Cover",
+    chooseFile: "Choose file",
+    publishFromLabel: "Publish from",
+    coverHint:
+      "📐 Recommended cover size: 1200x675 (16:9) or 1200x630 (1.91:1 for social networks). JPG/PNG/GIF/AVIF/BMP/TIFF is automatically converted to WebP.",
+    hideAfterLabel: "Hide after",
+    coverPreviewTitle: "Cover preview",
+    coverPreviewAlt: "Cover preview",
+    videoSectionTitle: "🎬 Video",
+    videoAdded: "added",
+    uploadVideoLabel: "Upload video",
+    chooseVideo: "Choose video",
+    videoFormatHint: "MP4, WebM, MOV - up to 100MB",
+    videoOr: "- or -",
+    videoLinkLabel: "YouTube / Vimeo link",
+    videoLinkPlaceholder: "https://www.youtube.com/watch?v=...",
+    videoPreviewTitle: "Video preview",
+    currentVideoTitle: "Current video",
+    seoSectionTitle: "🔍 SEO",
+    seoFilled: "filled",
+    seoHintTitle: "SEO tips:",
+    seoHintText: "If left empty, regular title and description will be used.",
+    seoPreviewTitle: "Google preview:",
+    seoTitleFallback: "News title",
+    seoDescriptionFallback:
+      "Description will be taken from the short description...",
+    seoTitleLabel: "SEO Title",
+    seoDescriptionLabel: "SEO Description",
+    seoTitlePlaceholder: "SEO title",
+    seoDescriptionPlaceholder: "SEO description",
+    seoCharsHint: "chars (recommended",
+    ogTitleLabel: "OG Title",
+    ogDescriptionLabel: "OG Description",
+    ogTitlePlaceholder: "Title for social networks",
+    ogDescriptionPlaceholder: "Description for social networks",
+    saving: "Saving...",
+    save: "Save",
+  },
+};
+
 /* ═══════════════════════════════════════════════════ */
 
-export default function ArticleForm({ initial, articleId, redirectTo, onSubmit }: Props) {
+export default function ArticleForm({
+  initial,
+  articleId,
+  redirectTo,
+  locale = "de",
+  onSubmit,
+}: Props) {
+  const t = ARTICLE_FORM_COPY[locale];
   const [pending, setPending] = React.useState(false);
   const [serverError, setServerError] = React.useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = React.useState<Record<string, string[]>>({});
@@ -110,13 +341,13 @@ export default function ArticleForm({ initial, articleId, redirectTo, onSubmit }
   // Видео
   const [videoUrl, setVideoUrl] = React.useState(initial?.videoUrl ?? "");
   const [videoType, setVideoType] = React.useState(initial?.videoType ?? "");
-  const [videoFileLabel, setVideoFileLabel] = React.useState("Файл не выбран");
+  const [videoFileLabel, setVideoFileLabel] = React.useState(t.fileNotSelected);
   const [videoPreview, setVideoPreview] = React.useState<string | null>(null);
   const [videoOpen, setVideoOpen] = React.useState(!!(initial?.videoUrl));
 
   // Обложка
   const [newFilePreview, setNewFilePreview] = React.useState<string | null>(null);
-  const [fileLabel, setFileLabel] = React.useState("Файл не выбран");
+  const [fileLabel, setFileLabel] = React.useState(t.fileNotSelected);
   const [aspectWarning, setAspectWarning] = React.useState<string | null>(null);
   const currentCover = initial?.cover ?? null;
 
@@ -143,11 +374,11 @@ export default function ArticleForm({ initial, articleId, redirectTo, onSubmit }
       const ratio = img.width / img.height;
       if (ratio < 1.2) {
         setAspectWarning(
-          `${img.width}×${img.height} — слишком узкое/вертикальное. Рекомендуем 1200×675 (16:9). Часть картинки будет обрезана при отображении.`,
+          `${img.width}×${img.height} — ${t.aspectTooNarrow}`,
         );
       } else if (ratio > 2.5) {
         setAspectWarning(
-          `${img.width}×${img.height} — слишком широкое (панорама). Рекомендуем 1200×675 (16:9).`,
+          `${img.width}×${img.height} — ${t.aspectTooWide}`,
         );
       } else {
         setAspectWarning(null);
@@ -181,6 +412,7 @@ export default function ArticleForm({ initial, articleId, redirectTo, onSubmit }
     <form action={handleSubmit} className="space-y-8">
       {articleId && <input type="hidden" name="id" value={articleId} />}
       {redirectTo && <input type="hidden" name="redirectTo" value={redirectTo} />}
+      <input type="hidden" name="locale" value={locale} />
       <input type="hidden" name="slug" value={slug} />
       <input type="hidden" name="isPinned" value={isPinned ? "on" : ""} />
       <input type="hidden" name="sortOrder" value={sortOrder} />
@@ -203,12 +435,12 @@ export default function ArticleForm({ initial, articleId, redirectTo, onSubmit }
               onChange={(e) => setIsPinned(e.target.checked)}
               className="h-5 w-5 rounded border-white/20 bg-transparent text-amber-500 focus:ring-amber-500/60"
             />
-            <span className="text-sm font-medium">📌 Закрепить наверху</span>
+            <span className="text-sm font-medium">{t.pinTop}</span>
           </label>
 
           {isPinned && (
             <div className="flex items-center gap-2">
-              <label className="text-sm opacity-70">Приоритет:</label>
+              <label className="text-sm opacity-70">{t.priority}</label>
               <input
                 type="number"
                 min={0}
@@ -217,35 +449,35 @@ export default function ArticleForm({ initial, articleId, redirectTo, onSubmit }
                 onChange={(e) => setSortOrder(parseInt(e.target.value, 10) || 0)}
                 className="w-20 rounded-lg border bg-transparent px-2 py-1 text-sm outline-none focus:ring-2 focus:ring-amber-500/60"
               />
-              <span className="text-xs opacity-50">выше = первее</span>
+              <span className="text-xs opacity-50">{t.priorityHint}</span>
             </div>
           )}
         </div>
 
         {/* ═══ Заголовок ═══ */}
         <div className="md:col-span-2">
-          <label htmlFor="title" className={labelCls}>Заголовок *</label>
+          <label htmlFor="title" className={labelCls}>{t.titleLabel}</label>
           <input
             id="title" name="title" required maxLength={LIMITS.titleMax}
             value={title} onChange={(e) => setTitle(e.target.value)}
             className={inputCls}
-            placeholder="Например: Наша новая услуга…"
+            placeholder={t.titlePlaceholder}
           />
           {fieldErrors.title && <p className="mt-1 text-xs text-red-500">{fieldErrors.title[0]}</p>}
           <div className="mt-1 flex justify-between text-xs opacity-70">
-            <span>Слаг: <code className="bg-white/10 px-1 rounded">{slug || "—"}</code></span>
+            <span>{t.slugLabel} <code className="bg-white/10 px-1 rounded">{slug || "—"}</code></span>
             <span>{title.length}/{LIMITS.titleMax}</span>
           </div>
         </div>
 
         {/* ═══ Анонс ═══ */}
         <div className="md:col-span-2">
-          <label htmlFor="excerpt" className={labelCls}>Короткое описание</label>
+          <label htmlFor="excerpt" className={labelCls}>{t.shortDescriptionLabel}</label>
           <textarea
             id="excerpt" name="excerpt" rows={3} maxLength={LIMITS.excerptMax}
             value={excerpt} onChange={(e) => setExcerpt(e.target.value)}
             className={inputCls}
-            placeholder="Одно-два предложения анонса…"
+            placeholder={t.shortDescriptionPlaceholder}
           />
           {fieldErrors.excerpt && <p className="mt-1 text-xs text-red-500">{fieldErrors.excerpt[0]}</p>}
           <p className="mt-1 text-right text-xs opacity-70">{excerpt.length}/{LIMITS.excerptMax}</p>
@@ -253,20 +485,20 @@ export default function ArticleForm({ initial, articleId, redirectTo, onSubmit }
 
         {/* ═══ Текст ═══ */}
         <div className="md:col-span-2">
-          <label htmlFor="body" className={labelCls}>Текст *</label>
+          <label htmlFor="body" className={labelCls}>{t.bodyLabel}</label>
           <textarea
             id="body" name="body" required rows={12}
             value={body} onChange={(e) => setBody(e.target.value)}
             className={inputCls}
-            placeholder="Основной текст публикации…"
+            placeholder={t.bodyPlaceholder}
           />
           {fieldErrors.body && <p className="mt-1 text-xs text-red-500">{fieldErrors.body[0]}</p>}
-          <p className="mt-1 text-right text-xs opacity-70">слов: {wordCount(body)}</p>
+          <p className="mt-1 text-right text-xs opacity-70">{t.wordsLabel} {wordCount(body)}</p>
         </div>
 
         {/* ═══ Обложка ═══ */}
         <div>
-          <label htmlFor="cover" className={labelCls}>Обложка</label>
+          <label htmlFor="cover" className={labelCls}>{t.coverLabel}</label>
           <div className="mt-1 flex items-center rounded-xl border px-2 h-10">
             <input
               id="cover" name="cover" type="file"
@@ -275,7 +507,7 @@ export default function ArticleForm({ initial, articleId, redirectTo, onSubmit }
                 const f = e.currentTarget.files?.[0] ?? null;
                 if (!f) {
                   setNewFilePreview(null);
-                  setFileLabel("Файл не выбран");
+                  setFileLabel(t.fileNotSelected);
                   setAspectWarning(null);
                   return;
                 }
@@ -295,7 +527,7 @@ export default function ArticleForm({ initial, articleId, redirectTo, onSubmit }
                 bg-emerald-600 text-white text-sm font-medium cursor-pointer
                 hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-400"
             >
-              Выберите файл
+              {t.chooseFile}
             </label>
             <span className="ml-3 truncate text-sm opacity-80">{fileLabel}</span>
           </div>
@@ -306,7 +538,7 @@ export default function ArticleForm({ initial, articleId, redirectTo, onSubmit }
 
         {/* ═══ Публиковать с ═══ */}
         <div>
-          <label htmlFor="publishedAt" className={labelCls}>Публиковать с</label>
+          <label htmlFor="publishedAt" className={labelCls}>{t.publishFromLabel}</label>
           <input
             id="publishedAt" name="publishedAt" type="datetime-local"
             defaultValue={toLocalDateTimeValue(initial?.publishedAt ?? null)}
@@ -319,15 +551,12 @@ export default function ArticleForm({ initial, articleId, redirectTo, onSubmit }
 
         {/* Подсказка по обложке */}
         <div className="md:col-span-2">
-          <p className="text-xs opacity-70">
-            📐 Рекомендуемый размер обложки: <strong>1200×675</strong> (16:9) или <strong>1200×630</strong> (1.91:1 для соцсетей).
-            Любой формат (JPG, PNG, GIF, AVIF, BMP, TIFF) автоматически конвертируется в WebP.
-          </p>
+          <p className="text-xs opacity-70">{t.coverHint}</p>
         </div>
 
         {/* Скрыть после */}
         <div>
-          <label htmlFor="expiresAt" className={labelCls}>Скрыть после</label>
+          <label htmlFor="expiresAt" className={labelCls}>{t.hideAfterLabel}</label>
           <input
             id="expiresAt" name="expiresAt" type="datetime-local"
             defaultValue={toLocalDateTimeValue(initial?.expiresAt ?? null)}
@@ -344,11 +573,11 @@ export default function ArticleForm({ initial, articleId, redirectTo, onSubmit }
         {(newFilePreview || currentCover) && (
           <div className="md:col-span-2">
             <div className="mt-1 rounded-xl border p-2">
-              <div className="mb-2 text-xs opacity-70">Предпросмотр обложки</div>
+              <div className="mb-2 text-xs opacity-70">{t.coverPreviewTitle}</div>
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={newFilePreview ?? currentCover ?? ""}
-                alt="Превью обложки"
+                alt={t.coverPreviewAlt}
                 className="max-h-60 w-auto rounded-lg object-contain"
               />
             </div>
@@ -363,10 +592,10 @@ export default function ArticleForm({ initial, articleId, redirectTo, onSubmit }
             className="flex items-center gap-2 text-sm font-medium hover:text-emerald-400 transition-colors"
           >
             <span className={`transition-transform ${videoOpen ? "rotate-90" : ""}`}>▶</span>
-            🎬 Видео
+            {t.videoSectionTitle}
             {(videoUrl || initial?.videoUrl) && (
               <span className="text-xs bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-full">
-                добавлено
+                {t.videoAdded}
               </span>
             )}
           </button>
@@ -375,7 +604,7 @@ export default function ArticleForm({ initial, articleId, redirectTo, onSubmit }
             <div className="mt-3 space-y-4 rounded-xl border border-white/10 bg-white/5 p-4">
               {/* Загрузка видеофайла */}
               <div>
-                <label htmlFor="videoFile" className={labelCls}>Загрузить видео</label>
+                <label htmlFor="videoFile" className={labelCls}>{t.uploadVideoLabel}</label>
                 <div className="mt-1 flex items-center rounded-xl border px-2 h-10">
                   <input
                     id="videoFile" name="videoFile" type="file"
@@ -383,7 +612,7 @@ export default function ArticleForm({ initial, articleId, redirectTo, onSubmit }
                     onChange={(e) => {
                       const f = e.currentTarget.files?.[0] ?? null;
                       if (!f) {
-                        setVideoFileLabel("Файл не выбран");
+                        setVideoFileLabel(t.fileNotSelected);
                         setVideoPreview(null);
                         return;
                       }
@@ -404,18 +633,18 @@ export default function ArticleForm({ initial, articleId, redirectTo, onSubmit }
                       bg-blue-600 text-white text-sm font-medium cursor-pointer
                       hover:bg-blue-700"
                   >
-                    Выберите видео
+                    {t.chooseVideo}
                   </label>
                   <span className="ml-3 truncate text-sm opacity-80">{videoFileLabel}</span>
                 </div>
-                <p className="mt-1 text-xs opacity-50">MP4, WebM, MOV — до 100MB</p>
+                <p className="mt-1 text-xs opacity-50">{t.videoFormatHint}</p>
               </div>
 
-              <div className="text-center text-xs opacity-50">— или —</div>
+              <div className="text-center text-xs opacity-50">{t.videoOr}</div>
 
               {/* YouTube / Vimeo ссылка */}
               <div>
-                <label htmlFor="videoUrlInput" className={labelCls}>Ссылка YouTube / Vimeo</label>
+                <label htmlFor="videoUrlInput" className={labelCls}>{t.videoLinkLabel}</label>
                 <input
                   id="videoUrlInput"
                   value={videoUrl}
@@ -431,20 +660,20 @@ export default function ArticleForm({ initial, articleId, redirectTo, onSubmit }
                     }
                   }}
                   className={inputCls}
-                  placeholder="https://www.youtube.com/watch?v=..."
+                  placeholder={t.videoLinkPlaceholder}
                 />
               </div>
 
               {/* Предпросмотр видео */}
               {videoPreview && (
                 <div className="rounded-xl border p-2">
-                  <div className="mb-2 text-xs opacity-70">Предпросмотр видео</div>
+                  <div className="mb-2 text-xs opacity-70">{t.videoPreviewTitle}</div>
                   <video src={videoPreview} controls className="max-h-48 rounded-lg" />
                 </div>
               )}
               {initial?.videoUrl && !videoPreview && (
                 <div className="rounded-xl border p-2">
-                  <div className="mb-2 text-xs opacity-70">Текущее видео</div>
+                  <div className="mb-2 text-xs opacity-70">{t.currentVideoTitle}</div>
                   {initial.videoType === "UPLOAD" ? (
                     <video src={initial.videoUrl} controls className="max-h-48 rounded-lg" />
                   ) : (
@@ -464,10 +693,10 @@ export default function ArticleForm({ initial, articleId, redirectTo, onSubmit }
             className="flex items-center gap-2 text-sm font-medium hover:text-emerald-400 transition-colors"
           >
             <span className={`transition-transform ${seoOpen ? "rotate-90" : ""}`}>▶</span>
-            🔍 SEO и соцсети
+            {t.seoSectionTitle}
             {(seoTitle || seoDescription) && (
               <span className="text-xs bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-full">
-                заполнено
+                {t.seoFilled}
               </span>
             )}
           </button>
@@ -476,70 +705,68 @@ export default function ArticleForm({ initial, articleId, redirectTo, onSubmit }
             <div className="mt-3 space-y-6 rounded-xl border border-white/10 bg-white/5 p-4">
               {/* Справка */}
               <div className="rounded-lg bg-blue-500/10 border border-blue-500/20 p-3 text-xs space-y-1">
-                <p><strong>SEO Title</strong> — заголовок в результатах Google (синяя ссылка). 30–60 символов.</p>
-                <p><strong>SEO Description</strong> — описание под ссылкой в Google. 70–160 символов. Должно содержать ключевые слова и призыв к действию.</p>
-                <p><strong>OG Title / OG Description</strong> — заголовок и описание при шеринге в WhatsApp, Telegram, Facebook. Может быть более «цепляющим».</p>
-                <p className="opacity-70">Если оставить пустым — будет использован обычный заголовок и описание.</p>
+                <p className="font-medium text-blue-300">{t.seoHintTitle}</p>
+                <p className="opacity-70">{t.seoHintText}</p>
               </div>
 
               {/* Google Preview */}
               <div className="rounded-lg border border-white/10 p-3">
-                <div className="text-xs opacity-50 mb-2">Превью в Google:</div>
+                <div className="text-xs opacity-50 mb-2">{t.seoPreviewTitle}</div>
                 <div className="text-blue-400 text-sm font-medium truncate">
-                  {seoTitle || title || "Заголовок новости"} — Salon Elen
+                  {seoTitle || title || t.seoTitleFallback} — Salon Elen
                 </div>
                 <div className="text-emerald-600 text-xs mt-0.5">
                   permanent-halle.de › news › {slug || "..."}
                 </div>
                 <div className="text-xs opacity-70 mt-1 line-clamp-2">
-                  {seoDescription || excerpt || "Описание будет взято из краткого описания новости…"}
+                  {seoDescription || excerpt || t.seoDescriptionFallback}
                 </div>
               </div>
 
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <div>
-                  <label htmlFor="seoTitle" className={labelCls}>SEO Title</label>
+                  <label htmlFor="seoTitle" className={labelCls}>{t.seoTitleLabel}</label>
                   <input
                     id="seoTitle" name="seoTitle"
                     value={seoTitle} onChange={(e) => setSeoTitle(e.target.value)}
                     className={inputCls}
-                    placeholder={title ? `${title.slice(0, 50)}…` : "SEO заголовок"}
+                    placeholder={title ? `${title.slice(0, 50)}…` : t.seoTitlePlaceholder}
                   />
                   <p className={`mt-1 text-right text-xs ${counterClass(seoTitle.length, LIMITS.seoTitleMin, LIMITS.seoTitleMax)}`}>
-                    {seoTitle.length} символов (рекомендуется {LIMITS.seoTitleMin}–{LIMITS.seoTitleMax})
+                    {seoTitle.length} {t.seoCharsHint} {LIMITS.seoTitleMin}–{LIMITS.seoTitleMax})
                   </p>
                 </div>
 
                 <div>
-                  <label htmlFor="seoDescription" className={labelCls}>SEO Description</label>
+                  <label htmlFor="seoDescription" className={labelCls}>{t.seoDescriptionLabel}</label>
                   <input
                     id="seoDescription" name="seoDescription"
                     value={seoDescription} onChange={(e) => setSeoDescription(e.target.value)}
                     className={inputCls}
-                    placeholder={excerpt ? `${excerpt.slice(0, 100)}…` : "SEO описание"}
+                    placeholder={excerpt ? `${excerpt.slice(0, 100)}…` : t.seoDescriptionPlaceholder}
                   />
                   <p className={`mt-1 text-right text-xs ${counterClass(seoDescription.length, LIMITS.seoDescMin, LIMITS.seoDescMax)}`}>
-                    {seoDescription.length} символов (рекомендуется {LIMITS.seoDescMin}–{LIMITS.seoDescMax})
+                    {seoDescription.length} {t.seoCharsHint} {LIMITS.seoDescMin}–{LIMITS.seoDescMax})
                   </p>
                 </div>
 
                 <div>
-                  <label htmlFor="ogTitle" className={labelCls}>OG Title</label>
+                  <label htmlFor="ogTitle" className={labelCls}>{t.ogTitleLabel}</label>
                   <input
                     id="ogTitle" name="ogTitle"
                     value={ogTitle} onChange={(e) => setOgTitle(e.target.value)}
                     className={inputCls}
-                    placeholder="Заголовок для соцсетей"
+                    placeholder={t.ogTitlePlaceholder}
                   />
                 </div>
 
                 <div>
-                  <label htmlFor="ogDescription" className={labelCls}>OG Description</label>
+                  <label htmlFor="ogDescription" className={labelCls}>{t.ogDescriptionLabel}</label>
                   <input
                     id="ogDescription" name="ogDescription"
                     value={ogDescription} onChange={(e) => setOgDescription(e.target.value)}
                     className={inputCls}
-                    placeholder="Описание для соцсетей"
+                    placeholder={t.ogDescriptionPlaceholder}
                   />
                 </div>
               </div>
@@ -557,7 +784,7 @@ export default function ArticleForm({ initial, articleId, redirectTo, onSubmit }
             bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm
             disabled:opacity-60 disabled:cursor-not-allowed"
         >
-          {pending ? "Сохраняем…" : "Сохранить"}
+          {pending ? t.saving : t.save}
         </button>
       </div>
     </form>

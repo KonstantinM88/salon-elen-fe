@@ -6,6 +6,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { revalidatePath } from 'next/cache';
 import { hashPassword, verifyPassword } from '@/lib/password';
+import { isSeoLocale, type SeoLocale } from '@/lib/seo-locale';
 
 export type ActionState = {
   ok: boolean;
@@ -14,21 +15,92 @@ export type ActionState = {
 
 const initialState: ActionState = { ok: false, message: null };
 
-const profileSchema = z.object({
-  name: z.string().trim().min(1, 'Укажите имя'),
-  email: z.string().trim().email('Некорректный email'),
-});
+type ActionCopy = {
+  nameRequired: string;
+  invalidEmail: string;
+  unauthorized: string;
+  profileUpdated: string;
+  emailTaken: string;
+  profileUpdateFailed: string;
+  currentRequired: string;
+  nextMin: string;
+  confirmRequired: string;
+  mismatch: string;
+  userNotFound: string;
+  wrongCurrentPassword: string;
+  passwordUpdated: string;
+};
+
+const ACTION_COPY: Record<SeoLocale, ActionCopy> = {
+  de: {
+    nameRequired: 'Name angeben',
+    invalidEmail: 'Ungueltige E-Mail',
+    unauthorized: 'Autorisierung erforderlich',
+    profileUpdated: 'Profil aktualisiert',
+    emailTaken: 'Diese E-Mail wird bereits verwendet',
+    profileUpdateFailed: 'Profil konnte nicht aktualisiert werden',
+    currentRequired: 'Aktuelles Passwort eingeben',
+    nextMin: 'Neues Passwort mindestens 8 Zeichen',
+    confirmRequired: 'Neues Passwort bestaetigen',
+    mismatch: 'Passwoerter stimmen nicht ueberein',
+    userNotFound: 'Benutzer nicht gefunden',
+    wrongCurrentPassword: 'Aktuelles Passwort ist falsch',
+    passwordUpdated: 'Passwort aktualisiert',
+  },
+  ru: {
+    nameRequired: 'Укажите имя',
+    invalidEmail: 'Некорректный email',
+    unauthorized: 'Требуется авторизация',
+    profileUpdated: 'Профиль обновлён',
+    emailTaken: 'Такой email уже используется',
+    profileUpdateFailed: 'Не удалось обновить профиль',
+    currentRequired: 'Введите текущий пароль',
+    nextMin: 'Новый пароль минимум 8 символов',
+    confirmRequired: 'Повторите новый пароль',
+    mismatch: 'Пароли не совпадают',
+    userNotFound: 'Пользователь не найден',
+    wrongCurrentPassword: 'Неверный текущий пароль',
+    passwordUpdated: 'Пароль обновлён',
+  },
+  en: {
+    nameRequired: 'Enter a name',
+    invalidEmail: 'Invalid email',
+    unauthorized: 'Authorization required',
+    profileUpdated: 'Profile updated',
+    emailTaken: 'This email is already in use',
+    profileUpdateFailed: 'Failed to update profile',
+    currentRequired: 'Enter current password',
+    nextMin: 'New password must be at least 8 characters',
+    confirmRequired: 'Repeat the new password',
+    mismatch: 'Passwords do not match',
+    userNotFound: 'User not found',
+    wrongCurrentPassword: 'Current password is incorrect',
+    passwordUpdated: 'Password updated',
+  },
+};
+
+function localeFromFormData(formData: FormData): SeoLocale {
+  const raw = formData.get('locale');
+  return isSeoLocale(raw) ? raw : 'de';
+}
 
 export async function updateProfile(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
+  const locale = localeFromFormData(formData);
+  const t = ACTION_COPY[locale];
   const session = await getServerSession(authOptions);
   const emailFromSession = session?.user?.email ?? null;
 
   if (!emailFromSession) {
-    return { ok: false, message: 'Требуется авторизация' };
+    return { ok: false, message: t.unauthorized };
   }
+
+  const profileSchema = z.object({
+    name: z.string().trim().min(1, t.nameRequired),
+    email: z.string().trim().email(t.invalidEmail),
+  });
 
   const parsed = profileSchema.safeParse({
     name: String(formData.get('name') ?? ''),
@@ -49,7 +121,7 @@ export async function updateProfile(
 
     // Принудительно перерисуем страницу
     revalidatePath('/admin/profile');
-    return { ok: true, message: 'Профиль обновлён' };
+    return { ok: true, message: t.profileUpdated };
   } catch (e: unknown) {
     // P2002 — уникальность email
     if (
@@ -58,33 +130,35 @@ export async function updateProfile(
       'code' in e &&
       (e as { code?: string }).code === 'P2002'
     ) {
-      return { ok: false, message: 'Такой email уже используется' };
+      return { ok: false, message: t.emailTaken };
     }
-    return { ok: false, message: 'Не удалось обновить профиль' };
+    return { ok: false, message: t.profileUpdateFailed };
   }
 }
-
-const passwordSchema = z
-  .object({
-    current: z.string().min(1, 'Введите текущий пароль'),
-    next: z.string().min(8, 'Новый пароль минимум 8 символов'),
-    confirm: z.string().min(1, 'Повторите новый пароль'),
-  })
-  .refine((d) => d.next === d.confirm, {
-    message: 'Пароли не совпадают',
-    path: ['confirm'],
-  });
 
 export async function changePassword(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
+  const locale = localeFromFormData(formData);
+  const t = ACTION_COPY[locale];
   const session = await getServerSession(authOptions);
   const emailFromSession = session?.user?.email ?? null;
 
   if (!emailFromSession) {
-    return { ok: false, message: 'Требуется авторизация' };
+    return { ok: false, message: t.unauthorized };
   }
+
+  const passwordSchema = z
+    .object({
+      current: z.string().min(1, t.currentRequired),
+      next: z.string().min(8, t.nextMin),
+      confirm: z.string().min(1, t.confirmRequired),
+    })
+    .refine((d) => d.next === d.confirm, {
+      message: t.mismatch,
+      path: ['confirm'],
+    });
 
   const parsed = passwordSchema.safeParse({
     current: String(formData.get('current') ?? ''),
@@ -102,10 +176,10 @@ export async function changePassword(
     select: { id: true, passwordHash: true },
   });
 
-  if (!me) return { ok: false, message: 'Пользователь не найден' };
+  if (!me) return { ok: false, message: t.userNotFound };
 
   const valid = await verifyPassword(parsed.data.current, me.passwordHash ?? '');
-  if (!valid) return { ok: false, message: 'Неверный текущий пароль' };
+  if (!valid) return { ok: false, message: t.wrongCurrentPassword };
 
   const newHash = await hashPassword(parsed.data.next);
   await prisma.user.update({
@@ -115,7 +189,7 @@ export async function changePassword(
   });
 
   revalidatePath('/admin/profile');
-  return { ok: true, message: 'Пароль обновлён' };
+  return { ok: true, message: t.passwordUpdated };
 }
 
 export const initialActionState: ActionState = initialState;

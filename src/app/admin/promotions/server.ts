@@ -3,6 +3,27 @@
 
 import { prisma } from "@/lib/prisma";
 import type { ActionResult } from "@/lib/types/booking";
+import { isSeoLocale, type SeoLocale } from "@/lib/seo-locale";
+
+type PromotionsActionCopy = {
+  fillAllFields: string;
+  chooseServicesOrGlobal: string;
+};
+
+const PROMOTIONS_ACTION_COPY: Record<SeoLocale, PromotionsActionCopy> = {
+  de: {
+    fillAllFields: "Bitte alle Felder ausfuellen",
+    chooseServicesOrGlobal: "Bitte Services auswaehlen oder die Option 'fuer alle Services' aktivieren",
+  },
+  ru: {
+    fillAllFields: "Заполните все поля",
+    chooseServicesOrGlobal: "Выберите услуги или включите «на все услуги»",
+  },
+  en: {
+    fillAllFields: "Please fill in all fields",
+    chooseServicesOrGlobal: "Choose services or enable the 'all services' option",
+  },
+};
 
 export async function listPromotions(): Promise<ActionResult<Array<{
   id: string; title: string; percent: number; from: string; to: string; isGlobal: boolean; serviceIds: string[];
@@ -25,10 +46,12 @@ export async function listPromotions(): Promise<ActionResult<Array<{
 
 export async function createPromotion(p: {
   title: string; percent: number; from: string; to: string; isGlobal: boolean; serviceIds: string[];
-}): Promise<ActionResult> {
+}, locale: SeoLocale = "de"): Promise<ActionResult> {
+  const currentLocale = isSeoLocale(locale) ? locale : "de";
+  const t = PROMOTIONS_ACTION_COPY[currentLocale];
   const { title, percent, from, to, isGlobal, serviceIds } = p;
-  if (!title.trim() || !percent || !from || !to) return { ok: false, error: "Заполните все поля" };
-  if (!isGlobal && serviceIds.length === 0) return { ok: false, error: "Выберите услуги или включите «на все услуги»" };
+  if (!title.trim() || !percent || !from || !to) return { ok: false, error: t.fillAllFields };
+  if (!isGlobal && serviceIds.length === 0) return { ok: false, error: t.chooseServicesOrGlobal };
 
   await prisma.promotion.create({
     data: {

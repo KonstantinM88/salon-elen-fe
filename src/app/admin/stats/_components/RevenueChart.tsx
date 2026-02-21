@@ -3,8 +3,6 @@
 
 import { motion } from 'framer-motion';
 import {
-  LineChart,
-  Line,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -13,6 +11,7 @@ import {
   Area,
   AreaChart,
 } from 'recharts';
+import type { SeoLocale } from '@/lib/seo-locale';
 
 interface DataPoint {
   date: string;
@@ -23,23 +22,70 @@ interface DataPoint {
 interface RevenueChartProps {
   data: DataPoint[];
   currency?: string;
+  locale?: SeoLocale;
 }
 
-export default function RevenueChart({ data, currency = '€' }: RevenueChartProps) {
-  const CustomTooltip = ({ active, payload }: { active?: boolean; payload?: Array<{ payload: DataPoint; value: number }> }) => {
+const INTL_BY_LOCALE: Record<SeoLocale, string> = {
+  de: 'de-DE',
+  ru: 'ru-RU',
+  en: 'en-US',
+};
+
+const REVENUE_CHART_COPY: Record<
+  SeoLocale,
+  { title: string; subtitle: string; legend: string; recordsSuffix: string; empty: string }
+> = {
+  de: {
+    title: 'Umsatzdynamik',
+    subtitle: 'Nach Tagen fuer den ausgewaehlten Zeitraum',
+    legend: 'Umsatz',
+    recordsSuffix: 'Buchungen',
+    empty: 'Keine Daten fuer den ausgewaehlten Zeitraum',
+  },
+  ru: {
+    title: 'Динамика выручки',
+    subtitle: 'По дням за выбранный период',
+    legend: 'Выручка',
+    recordsSuffix: 'записей',
+    empty: 'Нет данных за выбранный период',
+  },
+  en: {
+    title: 'Revenue dynamics',
+    subtitle: 'By day for selected period',
+    legend: 'Revenue',
+    recordsSuffix: 'bookings',
+    empty: 'No data for selected period',
+  },
+};
+
+export default function RevenueChart({
+  data,
+  currency = 'EUR',
+  locale = 'de',
+}: RevenueChartProps) {
+  const t = REVENUE_CHART_COPY[locale];
+  const intlLocale = INTL_BY_LOCALE[locale];
+
+  const CustomTooltip = ({
+    active,
+    payload,
+  }: {
+    active?: boolean;
+    payload?: Array<{ payload: DataPoint; value: number }>;
+  }) => {
     if (active && payload && payload.length) {
       return (
         <div className="bg-slate-900/95 backdrop-blur-xl border border-amber-500/30 rounded-xl p-4 shadow-2xl">
           <p className="text-slate-400 text-sm mb-2">{payload[0].payload.date}</p>
           <p className="text-amber-400 font-bold text-lg">
-            {new Intl.NumberFormat('ru-RU', {
+            {new Intl.NumberFormat(intlLocale, {
               style: 'currency',
-              currency: 'EUR',
+              currency,
               maximumFractionDigits: 0,
             }).format(payload[0].value)}
           </p>
           <p className="text-slate-500 text-sm mt-1">
-            {payload[0].payload.count} записей
+            {payload[0].payload.count} {t.recordsSuffix}
           </p>
         </div>
       );
@@ -54,7 +100,6 @@ export default function RevenueChart({ data, currency = '€' }: RevenueChartPro
       transition={{ duration: 0.5, delay: 0.2 }}
       className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-slate-900/60 to-slate-800/60 backdrop-blur-xl border border-amber-500/20 p-4 sm:p-6"
     >
-      {/* Header */}
       <div className="flex items-center justify-between mb-4 sm:mb-6">
         <div className="flex items-center gap-2 sm:gap-3">
           <div className="p-2 rounded-lg bg-amber-500/10">
@@ -74,24 +119,20 @@ export default function RevenueChart({ data, currency = '€' }: RevenueChartPro
           </div>
           <div>
             <h3 className="text-base sm:text-lg font-semibold text-white">
-              Динамика выручки
+              {t.title}
             </h3>
-            <p className="text-xs sm:text-sm text-slate-400">
-              По дням за выбранный период
-            </p>
+            <p className="text-xs sm:text-sm text-slate-400">{t.subtitle}</p>
           </div>
         </div>
 
-        {/* Legend */}
         <div className="hidden sm:flex items-center gap-4 text-sm">
           <div className="flex items-center gap-2">
             <div className="w-3 h-3 rounded-full bg-gradient-to-r from-amber-400 to-yellow-500" />
-            <span className="text-slate-400">Выручка</span>
+            <span className="text-slate-400">{t.legend}</span>
           </div>
         </div>
       </div>
 
-      {/* Chart */}
       {data.length === 0 ? (
         <div className="h-80 flex items-center justify-center text-slate-500">
           <div className="text-center">
@@ -108,7 +149,7 @@ export default function RevenueChart({ data, currency = '€' }: RevenueChartPro
                 d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
               />
             </svg>
-            <p>Нет данных за выбранный период</p>
+            <p>{t.empty}</p>
           </div>
         </div>
       ) : (
@@ -136,7 +177,7 @@ export default function RevenueChart({ data, currency = '€' }: RevenueChartPro
               tickLine={false}
               width={35}
               tickFormatter={(value) =>
-                new Intl.NumberFormat('ru-RU', {
+                new Intl.NumberFormat(intlLocale, {
                   notation: 'compact',
                   compactDisplay: 'short',
                 }).format(value)
@@ -155,7 +196,6 @@ export default function RevenueChart({ data, currency = '€' }: RevenueChartPro
         </ResponsiveContainer>
       )}
 
-      {/* Decorative glow */}
       <div className="absolute -bottom-10 -right-10 w-40 h-40 bg-amber-500/10 rounded-full blur-3xl" />
     </motion.div>
   );

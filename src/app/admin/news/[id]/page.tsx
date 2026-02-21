@@ -5,14 +5,49 @@ import ArticleForm from "@/components/forms/ArticleForm";
 import { updateArticle, type ActionResult } from "../actions";
 import { revalidatePath } from "next/cache";
 import Link from "next/link";
+import {
+  type SeoLocale,
+  type SearchParamsPromise,
+} from "@/lib/seo-locale";
+import { resolveContentLocale } from "@/lib/seo-locale-server";
 
 export const dynamic = "force-dynamic";
 
 type PageProps = {
   params: Promise<{ id: string }>;
+  searchParams?: SearchParamsPromise;
 };
 
-export default async function AdminNewsEditPage({ params }: PageProps) {
+type EditNewsCopy = {
+  title: string;
+  translations: string;
+  backToList: string;
+};
+
+const EDIT_NEWS_COPY: Record<SeoLocale, EditNewsCopy> = {
+  de: {
+    title: "News bearbeiten",
+    translations: "Uebersetzungen",
+    backToList: "Zurueck zur Liste",
+  },
+  ru: {
+    title: "Редактирование новости",
+    translations: "Переводы",
+    backToList: "Назад к списку",
+  },
+  en: {
+    title: "Edit news",
+    translations: "Translations",
+    backToList: "Back to list",
+  },
+};
+
+export default async function AdminNewsEditPage({
+  params,
+  searchParams,
+}: PageProps) {
+  const locale = await resolveContentLocale(searchParams);
+  const t = EDIT_NEWS_COPY[locale];
   const { id } = await params;
 
   const article = await prisma.article.findUnique({
@@ -74,7 +109,7 @@ export default async function AdminNewsEditPage({ params }: PageProps) {
     <main className="p-6 space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-4">
         <h1 className="text-xl font-semibold">
-          Редактирование новости
+          {t.title}
           {article.isPinned && <span className="ml-2 text-amber-400">📌</span>}
         </h1>
         <div className="flex items-center gap-4">
@@ -82,7 +117,7 @@ export default async function AdminNewsEditPage({ params }: PageProps) {
             href={`/admin/news/${id}/translations`}
             className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600/20 hover:bg-blue-600/30 text-blue-400 rounded-lg transition-colors"
           >
-            🌐 Переводы
+            🌐 {t.translations}
             {translationsCount > 0 && (
               <span className="bg-blue-500/30 px-2 py-0.5 rounded-full text-xs">
                 {translationsCount}
@@ -93,12 +128,13 @@ export default async function AdminNewsEditPage({ params }: PageProps) {
             href="/admin/news"
             className="text-sm text-white/60 hover:text-white transition-colors"
           >
-            ← Назад к списку
+            ← {t.backToList}
           </Link>
         </div>
       </div>
 
       <ArticleForm
+        locale={locale}
         initial={initial}
         articleId={article.id}
         onSubmit={async (fd) => {

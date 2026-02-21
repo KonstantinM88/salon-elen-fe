@@ -4,7 +4,6 @@ import HomePage from "@/components/home-page";
 import type { Metadata } from "next";
 import {
   resolveUrlLocale,
-  resolveContentLocale,
   buildAlternates,
   BASE_URL,
   type SeoLocale,

@@ -6,6 +6,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { Loader2, Save, Tag, Trash2, X } from 'lucide-react';
 import ClientPortal from '@/components/ui/ClientPortal';
 import type { ActionResult } from './actions';
+import type { SeoLocale } from '@/lib/seo-locale';
 
 type Category = {
   id: string;
@@ -17,6 +18,7 @@ type Category = {
 
 type Props = {
   category: Category;
+  locale?: SeoLocale;
   onClose: () => void;
   onUpdate: (formData: FormData) => Promise<ActionResult>;
   onDelete: (formData: FormData) => Promise<ActionResult>;
@@ -28,7 +30,98 @@ type FormState = {
   isActive: boolean;
 };
 
-export default function CategoryEditModal({ category, onClose, onUpdate, onDelete }: Props) {
+type CategoryModalCopy = {
+  saveError: string;
+  deleteError: string;
+  title: string;
+  close: string;
+  nameLabel: string;
+  namePlaceholder: string;
+  descriptionLabel: string;
+  descriptionPlaceholder: string;
+  active: string;
+  showOnSite: string;
+  slugHint: string;
+  deleteCategory: string;
+  deleteCategoryConfirm: string;
+  cancel: string;
+  deleteProgress: string;
+  deleteYes: string;
+  saving: string;
+  save: string;
+};
+
+const CATEGORY_MODAL_COPY: Record<SeoLocale, CategoryModalCopy> = {
+  de: {
+    saveError: 'Speichern fehlgeschlagen',
+    deleteError: 'Loeschen fehlgeschlagen',
+    title: 'Kategorie bearbeiten',
+    close: 'Schliessen',
+    nameLabel: 'Kategoriename',
+    namePlaceholder: 'Zum Beispiel: Haarschnitt',
+    descriptionLabel: 'Beschreibung',
+    descriptionPlaceholder: 'Kurzbeschreibung der Kategorie (optional)',
+    active: 'Aktiv',
+    showOnSite: 'Kategorie auf der Website anzeigen',
+    slugHint: '💡 Der Slug wird automatisch erzeugt und kann nicht geaendert werden',
+    deleteCategory: 'Kategorie loeschen',
+    deleteCategoryConfirm: 'Kategorie und alle ihre Leistungen loeschen?',
+    cancel: 'Abbrechen',
+    deleteProgress: 'Loeschen...',
+    deleteYes: 'Ja, loeschen',
+    saving: 'Speichern...',
+    save: 'Speichern',
+  },
+  ru: {
+    saveError: 'Ошибка сохранения',
+    deleteError: 'Ошибка удаления',
+    title: 'Редактировать категорию',
+    close: 'Закрыть',
+    nameLabel: 'Название категории',
+    namePlaceholder: 'Например: Стрижка',
+    descriptionLabel: 'Описание',
+    descriptionPlaceholder: 'Краткое описание категории (опционально)',
+    active: 'Активна',
+    showOnSite: 'Отображать категорию на сайте',
+    slugHint: '💡 Slug категории генерируется автоматически и не может быть изменен',
+    deleteCategory: 'Удалить категорию',
+    deleteCategoryConfirm: 'Удалить категорию и все её услуги?',
+    cancel: 'Отмена',
+    deleteProgress: 'Удаление...',
+    deleteYes: 'Да, удалить',
+    saving: 'Сохранение...',
+    save: 'Сохранить',
+  },
+  en: {
+    saveError: 'Save failed',
+    deleteError: 'Delete failed',
+    title: 'Edit category',
+    close: 'Close',
+    nameLabel: 'Category name',
+    namePlaceholder: 'For example: Haircut',
+    descriptionLabel: 'Description',
+    descriptionPlaceholder: 'Short category description (optional)',
+    active: 'Active',
+    showOnSite: 'Show category on the website',
+    slugHint: '💡 Category slug is generated automatically and cannot be changed',
+    deleteCategory: 'Delete category',
+    deleteCategoryConfirm: 'Delete category and all its services?',
+    cancel: 'Cancel',
+    deleteProgress: 'Deleting...',
+    deleteYes: 'Yes, delete',
+    saving: 'Saving...',
+    save: 'Save',
+  },
+};
+
+export default function CategoryEditModal({
+  category,
+  locale = 'de',
+  onClose,
+  onUpdate,
+  onDelete,
+}: Props) {
+  const t = CATEGORY_MODAL_COPY[locale];
   // ESC + scroll lock
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
@@ -70,17 +163,18 @@ export default function CategoryEditModal({ category, onClose, onUpdate, onDelet
       fd.set('name', formData.name);
       fd.set('description', formData.description);
       fd.set('isActive', formData.isActive ? '1' : '0');
+      fd.set('locale', locale);
 
       const result = await onUpdate(fd);
 
       if (!result.ok) {
-        throw new Error(result.message || 'Ошибка сохранения');
+        throw new Error(result.message || t.saveError);
       }
 
       onClose();
       window.location.reload();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Ошибка сохранения');
+      setError(err instanceof Error ? err.message : t.saveError);
     } finally {
       setSaving(false);
     }
@@ -95,17 +189,18 @@ export default function CategoryEditModal({ category, onClose, onUpdate, onDelet
     try {
       const fd = new FormData();
       fd.set('id', category.id);
+      fd.set('locale', locale);
 
       const result = await onDelete(fd);
 
       if (!result.ok) {
-        throw new Error(result.message || 'Ошибка удаления');
+        throw new Error(result.message || t.deleteError);
       }
 
       onClose();
       window.location.reload();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Ошибка удаления');
+      setError(err instanceof Error ? err.message : t.deleteError);
     } finally {
       setDeleting(false);
       setShowDeleteConfirm(false);
@@ -166,7 +261,7 @@ export default function CategoryEditModal({ category, onClose, onUpdate, onDelet
 
                   <div className="min-w-0">
                     <h2 className="text-lg sm:text-xl font-semibold text-white">
-                      Редактировать категорию
+                      {t.title}
                     </h2>
                     {category.slug && (
                       <p className="text-xs sm:text-sm mt-1 font-mono text-white/60 truncate">
@@ -180,8 +275,8 @@ export default function CategoryEditModal({ category, onClose, onUpdate, onDelet
                   onClick={onClose}
                   className="p-2 rounded-lg transition-all hover:bg-white/10 shrink-0"
                   type="button"
-                  aria-label="Закрыть"
-                  title="Закрыть (Esc)"
+                  aria-label={t.close}
+                  title={`${t.close} (Esc)`}
                 >
                   <X className="h-5 w-5 text-white" />
                 </button>
@@ -195,7 +290,7 @@ export default function CategoryEditModal({ category, onClose, onUpdate, onDelet
                 {/* Name */}
                 <div>
                   <label className="block text-sm font-medium mb-2 text-white/90">
-                    Название категории
+                    {t.nameLabel}
                   </label>
                   <input
                     type="text"
@@ -203,19 +298,19 @@ export default function CategoryEditModal({ category, onClose, onUpdate, onDelet
                     onChange={(e) => setFormData((p) => ({ ...p, name: e.target.value }))}
                     required
                     className="w-full px-4 py-3 rounded-xl text-white bg-slate-950/40 border border-white/10 outline-none focus:border-amber-400/50 focus:ring-2 focus:ring-amber-500/10"
-                    placeholder="Например: Стрижка"
+                    placeholder={t.namePlaceholder}
                   />
                 </div>
 
                 {/* Description */}
                 <div>
-                  <label className="block text-sm font-medium mb-2 text-white/90">Описание</label>
+                  <label className="block text-sm font-medium mb-2 text-white/90">{t.descriptionLabel}</label>
                   <textarea
                     value={formData.description}
                     onChange={(e) => setFormData((p) => ({ ...p, description: e.target.value }))}
                     rows={4}
                     className="w-full px-4 py-3 rounded-xl text-white bg-slate-950/40 border border-white/10 outline-none resize-none focus:border-amber-400/50 focus:ring-2 focus:ring-amber-500/10"
-                    placeholder="Краткое описание категории (опционально)"
+                    placeholder={t.descriptionPlaceholder}
                   />
                 </div>
 
@@ -229,9 +324,9 @@ export default function CategoryEditModal({ category, onClose, onUpdate, onDelet
                       className="admin-switch"
                     />
                     <div>
-                      <div className="font-medium text-white">Активна</div>
+                      <div className="font-medium text-white">{t.active}</div>
                       <div className="text-xs text-white/60 mt-0.5">
-                        Отображать категорию на сайте
+                        {t.showOnSite}
                       </div>
                     </div>
                   </label>
@@ -240,7 +335,7 @@ export default function CategoryEditModal({ category, onClose, onUpdate, onDelet
                 {/* Info */}
                 <div className="p-3 rounded-lg border border-blue-400/20 bg-blue-500/10">
                   <p className="text-xs text-blue-200/90">
-                    💡 Slug категории генерируется автоматически и не может быть изменен
+                    {t.slugHint}
                   </p>
                 </div>
 
@@ -255,13 +350,13 @@ export default function CategoryEditModal({ category, onClose, onUpdate, onDelet
                     >
                       <span className="inline-flex items-center justify-center gap-2">
                         <Trash2 className="h-4 w-4" />
-                        Удалить категорию
+                        {t.deleteCategory}
                       </span>
                     </button>
                   ) : (
                     <div className="space-y-2">
                       <p className="text-sm text-center text-red-300">
-                        Удалить категорию и все её услуги?
+                        {t.deleteCategoryConfirm}
                       </p>
                       <div className="flex gap-2">
                         <button
@@ -270,7 +365,7 @@ export default function CategoryEditModal({ category, onClose, onUpdate, onDelet
                           disabled={deleting}
                           className="flex-1 px-4 py-3 rounded-xl font-medium border border-white/10 text-white hover:bg-white/5 disabled:opacity-50"
                         >
-                          Отмена
+                          {t.cancel}
                         </button>
                         <button
                           type="button"
@@ -281,10 +376,10 @@ export default function CategoryEditModal({ category, onClose, onUpdate, onDelet
                           {deleting ? (
                             <span className="inline-flex items-center justify-center gap-2">
                               <Loader2 className="h-4 w-4 animate-spin" />
-                              Удаление...
+                              {t.deleteProgress}
                             </span>
                           ) : (
-                            'Да, удалить'
+                            t.deleteYes
                           )}
                         </button>
                       </div>
@@ -309,7 +404,7 @@ export default function CategoryEditModal({ category, onClose, onUpdate, onDelet
                     disabled={saving || deleting}
                     className="w-full sm:flex-1 px-4 py-2.5 rounded-xl font-medium border border-white/10 text-white hover:bg-white/5 disabled:opacity-50"
                   >
-                    Отмена
+                    {t.cancel}
                   </button>
 
                   <button
@@ -326,12 +421,12 @@ export default function CategoryEditModal({ category, onClose, onUpdate, onDelet
                     {saving ? (
                       <span className="inline-flex items-center justify-center gap-2">
                         <Loader2 className="h-4 w-4 animate-spin" />
-                        Сохранение...
+                        {t.saving}
                       </span>
                     ) : (
                       <span className="inline-flex items-center justify-center gap-2">
                         <Save className="h-4 w-4" />
-                        Сохранить
+                        {t.save}
                       </span>
                     )}
                   </button>

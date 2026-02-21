@@ -3,11 +3,90 @@ import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { deleteArticle, togglePinArticle } from "./actions";
 import { revalidatePath } from "next/cache";
+import {
+  type SeoLocale,
+  type SearchParamsPromise,
+} from "@/lib/seo-locale";
+import { resolveContentLocale } from "@/lib/seo-locale-server";
 
 export const dynamic = "force-dynamic";
 
-function fmt(d: Date) {
-  return new Intl.DateTimeFormat("ru-RU", {
+const INTL_BY_LOCALE: Record<SeoLocale, string> = {
+  de: "de-DE",
+  ru: "ru-RU",
+  en: "en-US",
+};
+
+type NewsListCopy = {
+  title: string;
+  newEntry: string;
+  colTitle: string;
+  colSeo: string;
+  colPublication: string;
+  colActions: string;
+  pinned: string;
+  withVideo: string;
+  pin: string;
+  unpin: string;
+  edit: string;
+  remove: string;
+  empty: string;
+};
+
+const NEWS_LIST_COPY: Record<SeoLocale, NewsListCopy> = {
+  de: {
+    title: "News",
+    newEntry: "Neuer Eintrag",
+    colTitle: "Titel",
+    colSeo: "SEO",
+    colPublication: "Veroeffentlichung",
+    colActions: "Aktionen",
+    pinned: "Angepinnt",
+    withVideo: "Mit Video",
+    pin: "Anheften",
+    unpin: "Loesen",
+    edit: "Bearbeiten",
+    remove: "Loeschen",
+    empty: "Noch keine Eintraege.",
+  },
+  ru: {
+    title: "Новости",
+    newEntry: "Новая запись",
+    colTitle: "Заголовок",
+    colSeo: "SEO",
+    colPublication: "Публикация",
+    colActions: "Действия",
+    pinned: "Закреплено",
+    withVideo: "С видео",
+    pin: "Закрепить",
+    unpin: "Открепить",
+    edit: "Редактировать",
+    remove: "Удалить",
+    empty: "Записей пока нет.",
+  },
+  en: {
+    title: "News",
+    newEntry: "New post",
+    colTitle: "Title",
+    colSeo: "SEO",
+    colPublication: "Publication",
+    colActions: "Actions",
+    pinned: "Pinned",
+    withVideo: "With video",
+    pin: "Pin",
+    unpin: "Unpin",
+    edit: "Edit",
+    remove: "Delete",
+    empty: "No posts yet.",
+  },
+};
+
+type PageProps = {
+  searchParams?: SearchParamsPromise;
+};
+
+function fmt(d: Date, locale: SeoLocale) {
+  return new Intl.DateTimeFormat(INTL_BY_LOCALE[locale], {
     day: "2-digit",
     month: "2-digit",
     year: "numeric",
@@ -28,7 +107,9 @@ async function togglePinAction(formData: FormData): Promise<void> {
   if (id) await togglePinArticle(id);
 }
 
-export default async function Page() {
+export default async function Page({ searchParams }: PageProps) {
+  const locale = await resolveContentLocale(searchParams);
+  const t = NEWS_LIST_COPY[locale];
   const items = await prisma.article.findMany({
     orderBy: [
       { isPinned: "desc" },
@@ -63,9 +144,9 @@ export default async function Page() {
   return (
     <main className="p-6 space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold">Новости</h1>
+        <h1 className="text-xl font-semibold">{t.title}</h1>
         <Link href="/admin/news/new" className={newBtn}>
-          Новая запись
+          {t.newEntry}
         </Link>
       </div>
 
@@ -74,10 +155,10 @@ export default async function Page() {
           <thead className="bg-muted/50 text-muted-foreground">
             <tr>
               <th className="p-3 text-left w-8"></th>
-              <th className="p-3 text-left">Заголовок</th>
-              <th className="p-3 text-left">SEO</th>
-              <th className="p-3 text-left">Публикация</th>
-              <th className="p-3 text-left">Действия</th>
+              <th className="p-3 text-left">{t.colTitle}</th>
+              <th className="p-3 text-left">{t.colSeo}</th>
+              <th className="p-3 text-left">{t.colPublication}</th>
+              <th className="p-3 text-left">{t.colActions}</th>
             </tr>
           </thead>
           <tbody>
@@ -88,8 +169,8 @@ export default async function Page() {
               >
                 {/* Пин */}
                 <td className="p-3 text-center">
-                  {n.isPinned && <span title="Закреплено">📌</span>}
-                  {n.videoUrl && <span title="С видео">🎬</span>}
+                  {n.isPinned && <span title={t.pinned}>📌</span>}
+                  {n.videoUrl && <span title={t.withVideo}>🎬</span>}
                 </td>
 
                 {/* Заголовок */}
@@ -108,26 +189,30 @@ export default async function Page() {
                 </td>
 
                 {/* Дата */}
-                <td className="p-3">{fmt(n.publishedAt ?? n.createdAt)}</td>
+                <td className="p-3">{fmt(n.publishedAt ?? n.createdAt, locale)}</td>
 
                 {/* Действия */}
                 <td className="p-3 whitespace-nowrap">
                   <div className="flex items-center justify-end gap-2">
                     <form action={togglePinAction}>
                       <input type="hidden" name="id" value={n.id} />
-                      <button type="submit" className={pinBtn(n.isPinned)} title={n.isPinned ? "Открепить" : "Закрепить"}>
+                      <button
+                        type="submit"
+                        className={pinBtn(n.isPinned)}
+                        title={n.isPinned ? t.unpin : t.pin}
+                      >
                         📌
                       </button>
                     </form>
 
                     <Link href={`/admin/news/${n.id}`} className={editBtn}>
-                      Редактировать
+                      {t.edit}
                     </Link>
 
                     <form action={deleteAction}>
                       <input type="hidden" name="id" value={n.id} />
                       <button type="submit" className={delBtn}>
-                        Удалить
+                        {t.remove}
                       </button>
                     </form>
                   </div>
@@ -138,7 +223,7 @@ export default async function Page() {
             {items.length === 0 && (
               <tr>
                 <td className="p-4 opacity-70" colSpan={5}>
-                  Записей пока нет.
+                  {t.empty}
                 </td>
               </tr>
             )}

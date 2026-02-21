@@ -4,16 +4,67 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Trash2 } from 'lucide-react';
+import type { SeoLocale } from '@/lib/seo-locale';
 
 type Props = {
   appointmentId: string;
   customerName: string;
+  locale: SeoLocale;
 };
 
-export function DeleteConfirmDialog({ appointmentId, customerName }: Props) {
+type DeleteDialogCopy = {
+  delete: string;
+  deleteQuestion: string;
+  moveToArchive: string;
+  canRestore: string;
+  deleting: string;
+  cancel: string;
+  deleteFailed: string;
+  deleteBookingFailed: string;
+  unknownError: string;
+};
+
+const DELETE_DIALOG_COPY: Record<SeoLocale, DeleteDialogCopy> = {
+  de: {
+    delete: 'Loeschen',
+    deleteQuestion: 'Buchung loeschen?',
+    moveToArchive: 'Die Buchung fuer',
+    canRestore: 'wird ins Archiv verschoben. Sie koennen sie spaeter wiederherstellen.',
+    deleting: 'Loeschen...',
+    cancel: 'Abbrechen',
+    deleteFailed: 'Fehler beim Loeschen:',
+    deleteBookingFailed: 'Fehler beim Loeschen der Buchung',
+    unknownError: 'Unknown error',
+  },
+  ru: {
+    delete: 'Удалить',
+    deleteQuestion: 'Удалить заявку?',
+    moveToArchive: 'Заявка для',
+    canRestore: 'будет перемещена в архив. Вы сможете восстановить её позже.',
+    deleting: 'Удаление...',
+    cancel: 'Отмена',
+    deleteFailed: 'Ошибка при удалении:',
+    deleteBookingFailed: 'Ошибка при удалении заявки',
+    unknownError: 'Unknown error',
+  },
+  en: {
+    delete: 'Delete',
+    deleteQuestion: 'Delete booking?',
+    moveToArchive: 'Booking for',
+    canRestore: 'will be moved to archive. You can restore it later.',
+    deleting: 'Deleting...',
+    cancel: 'Cancel',
+    deleteFailed: 'Delete failed:',
+    deleteBookingFailed: 'Failed to delete booking',
+    unknownError: 'Unknown error',
+  },
+};
+
+export function DeleteConfirmDialog({ appointmentId, customerName, locale }: Props) {
   const router = useRouter();
   const [isDeleting, setIsDeleting] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
+  const t = DELETE_DIALOG_COPY[locale];
 
   const handleDelete = async () => {
     setIsDeleting(true);
@@ -30,11 +81,11 @@ export function DeleteConfirmDialog({ appointmentId, customerName }: Props) {
       } else {
         const error = await res.json();
         console.error('Delete failed:', error);
-        alert(`Ошибка при удалении: ${error.error || 'Unknown error'}`);
+        alert(`${t.deleteFailed} ${error.error || t.unknownError}`);
       }
     } catch (error) {
       console.error('Delete failed:', error);
-      alert('Ошибка при удалении заявки');
+      alert(t.deleteBookingFailed);
     } finally {
       setIsDeleting(false);
     }
@@ -49,7 +100,7 @@ export function DeleteConfirmDialog({ appointmentId, customerName }: Props) {
                    hover:scale-105 active:scale-95 border border-red-500/50"
       >
         <Trash2 className="h-3.5 w-3.5" />
-        <span>Удалить</span>
+        <span>{t.delete}</span>
       </button>
     );
   }
@@ -59,12 +110,13 @@ export function DeleteConfirmDialog({ appointmentId, customerName }: Props) {
       <div className="card-glass card-glass-accent card-glow max-w-md w-full">
         <div className="p-6 space-y-4">
           <h2 className="text-xl font-semibold text-white">
-            Удалить заявку?
+            {t.deleteQuestion}
           </h2>
 
           <p className="text-gray-400">
-            Заявка для <span className="text-white font-medium">{customerName}</span> будет перемещена в архив.
-            Вы сможете восстановить её позже.
+            {t.moveToArchive}{' '}
+            <span className="text-white font-medium">{customerName}</span>{' '}
+            {t.canRestore}
           </p>
 
           <div className="flex gap-3">
@@ -73,7 +125,7 @@ export function DeleteConfirmDialog({ appointmentId, customerName }: Props) {
               disabled={isDeleting}
               className="flex-1 px-4 py-2 rounded-lg bg-gradient-to-r from-red-500 to-orange-500 text-white hover:from-red-400 hover:to-orange-400 transition-all inline-flex items-center justify-center gap-2"
             >
-              {isDeleting ? 'Удаление...' : 'Удалить'}
+              {isDeleting ? t.deleting : t.delete}
             </button>
 
             <button
@@ -81,7 +133,7 @@ export function DeleteConfirmDialog({ appointmentId, customerName }: Props) {
               disabled={isDeleting}
               className="flex-1 px-4 py-2 rounded-lg bg-slate-700 text-white hover:bg-slate-600 transition-all"
             >
-              Отмена
+              {t.cancel}
             </button>
           </div>
         </div>

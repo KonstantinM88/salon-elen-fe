@@ -1,6 +1,5 @@
 // src/app/admin/stats/page.tsx
 import type { ReactElement, ComponentPropsWithoutRef } from "react";
-import React from "react";
 import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { AppointmentStatus } from "@prisma/client";
@@ -13,7 +12,12 @@ import {
   startOfWeek,
   format,
 } from "date-fns";
-import { ru } from "date-fns/locale";
+import { de, enUS, ru } from "date-fns/locale";
+import {
+  type SeoLocale,
+  type SearchParamsPromise,
+} from "@/lib/seo-locale";
+import { resolveContentLocale } from "@/lib/seo-locale-server";
 
 // ✨ НОВЫЕ КОМПОНЕНТЫ
 import KPICard from './_components/KPICard';
@@ -21,20 +25,236 @@ import RevenueChart from './_components/RevenueChart';
 import TopServicesChart from './_components/TopServicesChart';
 import TopMastersTable from './_components/TopMastersTable';
 
-type SearchParams = Promise<Record<string, string | string[] | undefined>>;
+type SearchParams = SearchParamsPromise;
 
 export const dynamic = "force-dynamic";
 
+type StatsCopy = {
+  headerTitle: string;
+  headerSubtitle: string;
+  period: string;
+  today: string;
+  sevenDaysShort: string;
+  thirtyDaysShort: string;
+  monthShort: string;
+  lastMonthShort: string;
+  yearShort: string;
+  custom: string;
+  last7Days: string;
+  last30Days: string;
+  currentMonth: string;
+  previousMonth: string;
+  currentYear: string;
+  dateFrom: string;
+  dateTo: string;
+  currency: string;
+  apply: string;
+  reset: string;
+  periodPrefix: string;
+  fromWord: string;
+  toWord: string;
+  revenue: string;
+  completedBookings: string;
+  avgCheck: string;
+  futureBookings: string;
+  vsPreviousPeriod: string;
+  expectedRevenue: string;
+  exportsTitle: string;
+  exportBookingsCsv: string;
+  exportMastersCsv: string;
+  exportServicesCsv: string;
+  exportTimelineCsv: string;
+  mastersDetailsTitle: string;
+  servicesDetailsTitle: string;
+  master: string;
+  service: string;
+  total: string;
+  done: string;
+  future: string;
+  canceled: string;
+  revenueCol: string;
+  futureRevenueCol: string;
+  shareOfTotal: string;
+  noMaster: string;
+  noService: string;
+  noData: string;
+};
+
+const STATS_COPY: Record<SeoLocale, StatsCopy> = {
+  de: {
+    headerTitle: "Statistik",
+    headerSubtitle: "Salon-Analysen fuer den ausgewaehlten Zeitraum",
+    period: "Zeitraum",
+    today: "Heute",
+    sevenDaysShort: "7 Tage",
+    thirtyDaysShort: "30 Tage",
+    monthShort: "Monat",
+    lastMonthShort: "Letzter Monat",
+    yearShort: "Jahr",
+    custom: "Benutzerdefiniert",
+    last7Days: "Letzte 7 Tage",
+    last30Days: "Letzte 30 Tage",
+    currentMonth: "Aktueller Monat",
+    previousMonth: "Letzter Monat",
+    currentYear: "Aktuelles Jahr",
+    dateFrom: "Datum von",
+    dateTo: "Datum bis",
+    currency: "Waehrung",
+    apply: "Anwenden",
+    reset: "Zuruecksetzen",
+    periodPrefix: "Zeitraum:",
+    fromWord: "von",
+    toWord: "bis",
+    revenue: "Umsatz",
+    completedBookings: "Abgeschlossene Buchungen",
+    avgCheck: "Durchschnittsbon",
+    futureBookings: "Zukuenftige Buchungen",
+    vsPreviousPeriod: "vs vorheriger Zeitraum",
+    expectedRevenue: "erwarteter Umsatz",
+    exportsTitle: "Datenexport",
+    exportBookingsCsv: "CSV Export - Buchungen",
+    exportMastersCsv: "CSV Export - Mitarbeiter",
+    exportServicesCsv: "CSV Export - Leistungen",
+    exportTimelineCsv: "CSV Export - Verlauf",
+    mastersDetailsTitle: "Detaillierte Statistik nach Mitarbeitern",
+    servicesDetailsTitle: "Detaillierte Statistik nach Leistungen",
+    master: "Mitarbeiter",
+    service: "Leistung",
+    total: "Gesamt",
+    done: "Erledigt",
+    future: "Zukuenftig",
+    canceled: "Storniert",
+    revenueCol: "Umsatz",
+    futureRevenueCol: "Zukuenftiger Umsatz",
+    shareOfTotal: "% vom Gesamt",
+    noMaster: "Ohne Mitarbeiter",
+    noService: "Ohne Leistung",
+    noData: "Keine Daten fuer den ausgewaehlten Zeitraum",
+  },
+  ru: {
+    headerTitle: "Статистика",
+    headerSubtitle: "Аналитика работы салона за выбранный период",
+    period: "Период",
+    today: "Сегодня",
+    sevenDaysShort: "7 дней",
+    thirtyDaysShort: "30 дней",
+    monthShort: "Месяц",
+    lastMonthShort: "Прошлый месяц",
+    yearShort: "Год",
+    custom: "Произвольный",
+    last7Days: "Последние 7 дней",
+    last30Days: "Последние 30 дней",
+    currentMonth: "Текущий месяц",
+    previousMonth: "Прошлый месяц",
+    currentYear: "Текущий год",
+    dateFrom: "Дата с",
+    dateTo: "Дата по",
+    currency: "Валюта",
+    apply: "Применить",
+    reset: "Сбросить",
+    periodPrefix: "Период:",
+    fromWord: "С",
+    toWord: "по",
+    revenue: "Выручка",
+    completedBookings: "Выполнено записей",
+    avgCheck: "Средний чек",
+    futureBookings: "Будущие записи",
+    vsPreviousPeriod: "vs прошлый период",
+    expectedRevenue: "ожидаемая выручка",
+    exportsTitle: "Экспорт данных",
+    exportBookingsCsv: "Экспорт CSV - заявки",
+    exportMastersCsv: "Экспорт CSV - мастера",
+    exportServicesCsv: "Экспорт CSV - услуги",
+    exportTimelineCsv: "Экспорт CSV - динамика",
+    mastersDetailsTitle: "Детальная статистика по мастерам",
+    servicesDetailsTitle: "Детальная статистика по услугам",
+    master: "Мастер",
+    service: "Услуга",
+    total: "Всего",
+    done: "Выполнено",
+    future: "Будущие",
+    canceled: "Отменено",
+    revenueCol: "Касса",
+    futureRevenueCol: "Будущая касса",
+    shareOfTotal: "% от общей",
+    noMaster: "Без мастера",
+    noService: "Без услуги",
+    noData: "Нет данных за выбранный период",
+  },
+  en: {
+    headerTitle: "Statistics",
+    headerSubtitle: "Salon analytics for the selected period",
+    period: "Period",
+    today: "Today",
+    sevenDaysShort: "7 days",
+    thirtyDaysShort: "30 days",
+    monthShort: "Month",
+    lastMonthShort: "Last month",
+    yearShort: "Year",
+    custom: "Custom",
+    last7Days: "Last 7 days",
+    last30Days: "Last 30 days",
+    currentMonth: "Current month",
+    previousMonth: "Previous month",
+    currentYear: "Current year",
+    dateFrom: "Date from",
+    dateTo: "Date to",
+    currency: "Currency",
+    apply: "Apply",
+    reset: "Reset",
+    periodPrefix: "Period:",
+    fromWord: "from",
+    toWord: "to",
+    revenue: "Revenue",
+    completedBookings: "Completed bookings",
+    avgCheck: "Average check",
+    futureBookings: "Future bookings",
+    vsPreviousPeriod: "vs previous period",
+    expectedRevenue: "expected revenue",
+    exportsTitle: "Export data",
+    exportBookingsCsv: "Export CSV - bookings",
+    exportMastersCsv: "Export CSV - staff",
+    exportServicesCsv: "Export CSV - services",
+    exportTimelineCsv: "Export CSV - timeline",
+    mastersDetailsTitle: "Detailed stats by staff",
+    servicesDetailsTitle: "Detailed stats by services",
+    master: "Staff",
+    service: "Service",
+    total: "Total",
+    done: "Completed",
+    future: "Future",
+    canceled: "Canceled",
+    revenueCol: "Revenue",
+    futureRevenueCol: "Future revenue",
+    shareOfTotal: "% of total",
+    noMaster: "No staff",
+    noService: "No service",
+    noData: "No data for selected period",
+  },
+};
+
+function localeToIntl(locale: SeoLocale): string {
+  if (locale === "ru") return "ru-RU";
+  if (locale === "en") return "en-US";
+  return "de-DE";
+}
+
+function dateLocaleFor(locale: SeoLocale) {
+  if (locale === "ru") return ru;
+  if (locale === "en") return enUS;
+  return de;
+}
+
 /* ───────── helpers ───────── */
 
-function fmtDate(d: Date): string {
-  return format(d, "dd.MM.yyyy", { locale: ru });
+function fmtDate(d: Date, locale: SeoLocale): string {
+  return format(d, "dd.MM.yyyy", { locale: dateLocaleFor(locale) });
 }
-function fmtDayShort(d: Date): string {
-  return format(d, "dd.MM", { locale: ru });
+function fmtDayShort(d: Date, locale: SeoLocale): string {
+  return format(d, "dd.MM", { locale: dateLocaleFor(locale) });
 }
-function moneyFromCents(cents: number, currency: string): string {
-  return new Intl.NumberFormat("ru-RU", {
+function moneyFromCents(cents: number, currency: string, locale: SeoLocale): string {
+  return new Intl.NumberFormat(localeToIntl(locale), {
     style: "currency",
     currency,
     maximumFractionDigits: 0,
@@ -51,15 +271,6 @@ function percent(part: number, total: number): string {
   if (!total) return "0%";
   return `${Math.round((part / total) * 100)}%`;
 }
-function enc(v: string) {
-  return encodeURIComponent(v);
-}
-function qs(params: Record<string, string | undefined>): string {
-  const pairs = Object.entries(params).filter(([, v]) => v != null && v !== "");
-  return pairs.length
-    ? `?${pairs.map(([k, v]) => `${enc(k)}=${enc(v!)}`).join("&")}`
-    : "";
-}
 function trend(
   curr: number,
   prev: number
@@ -75,7 +286,11 @@ function trend(
 }
 
 /** Рассчитываем границы периода [from, to) по пресету/ручному выбору */
-function resolveRange(sp: Record<string, string | string[] | undefined>): {
+function resolveRange(
+  sp: Record<string, string | string[] | undefined>,
+  locale: SeoLocale,
+  t: StatsCopy,
+): {
   from: Date;
   to: Date;
   label: string;
@@ -92,32 +307,32 @@ function resolveRange(sp: Record<string, string | string[] | undefined>): {
 
   let from = todayStart;
   let to = addDays(todayStart, 1);
-  let label = "Сегодня";
+  let label = t.today;
 
   switch (period) {
     case "today": {
       from = todayStart;
       to = addDays(from, 1);
-      label = "Сегодня";
+      label = t.today;
       break;
     }
     case "7d": {
       from = addDays(todayStart, -6);
       to = addDays(todayStart, 1);
-      label = "Последние 7 дней";
+      label = t.last7Days;
       break;
     }
     case "30d": {
       from = addDays(todayStart, -29);
       to = addDays(todayStart, 1);
-      label = "Последние 30 дней";
+      label = t.last30Days;
       break;
     }
     case "thisMonth": {
       from = startOfMonth(now);
       const nextMonthStart = startOfMonth(addDays(now, 32));
       to = nextMonthStart;
-      label = "Текущий месяц";
+      label = t.currentMonth;
       break;
     }
     case "lastMonth": {
@@ -125,30 +340,30 @@ function resolveRange(sp: Record<string, string | string[] | undefined>): {
       from = startOfMonth(last);
       const nextMonthStart = startOfMonth(addDays(last, 32));
       to = nextMonthStart;
-      label = "Прошлый месяц";
+      label = t.previousMonth;
       break;
     }
     case "thisYear": {
       from = startOfYear(now);
       const nextYearStart = startOfYear(addDays(now, 370));
       to = nextYearStart;
-      label = "Текущий год";
+      label = t.currentYear;
       break;
     }
     case "custom": {
       const f = fromStr ? new Date(fromStr) : todayStart;
-      const t = toStr
+      const toDateExclusive = toStr
         ? addDays(startOfDay(new Date(toStr)), 1)
         : addDays(startOfDay(f), 1);
       from = startOfDay(f);
-      to = t;
-      label = `C ${fmtDate(from)} по ${fmtDate(addDays(to, -1))}`;
+      to = toDateExclusive;
+      label = `${t.fromWord} ${fmtDate(from, locale)} ${t.toWord} ${fmtDate(addDays(to, -1), locale)}`;
       break;
     }
     default: {
       from = startOfMonth(now);
       to = startOfMonth(addDays(now, 32));
-      label = "Текущий месяц";
+      label = t.currentMonth;
     }
   }
   return {
@@ -169,7 +384,9 @@ export default async function StatsPage({
   searchParams: SearchParams;
 }): Promise<ReactElement> {
   const sp = await searchParams;
-  const { from, to, label, period, fromStr, toStr } = resolveRange(sp);
+  const locale = await resolveContentLocale(searchParams);
+  const t = STATS_COPY[locale];
+  const { from, to, label, period, fromStr, toStr } = resolveRange(sp, locale, t);
   const currency = (getOne(sp, "currency") ?? "EUR").toUpperCase();
   const group = getOne(sp, "group") === "week" ? "week" : "day";
   const now = new Date();
@@ -233,7 +450,6 @@ export default async function StatsPage({
 
   /* totals */
   const total = appts.length;
-  const totalPrev = apptsPrev.length;
 
   const done = count(appts, (a) => a.status === AppointmentStatus.DONE);
   const donePrev = count(apptsPrev, (a) => a.status === AppointmentStatus.DONE);
@@ -246,11 +462,6 @@ export default async function StatsPage({
   );
 
   const canceled = count(appts, (a) => a.status === AppointmentStatus.CANCELED);
-  const canceledPrev = count(
-    apptsPrev,
-    (a) => a.status === AppointmentStatus.CANCELED
-  );
-
   const revenueDone = sumCents(
     appts,
     (a) => a.status === AppointmentStatus.DONE
@@ -261,9 +472,7 @@ export default async function StatsPage({
   );
 
   /* ───────── Тренды ───────── */
-  const totalTrend = trend(total, totalPrev);
   const doneTrend = trend(done, donePrev);
-  const canceledTrend = trend(canceled, canceledPrev);
   const revenueDoneTrend = trend(revenueDone, revenueDonePrev);
 
   /* ───────── Разбивка по мастерам ───────── */
@@ -281,7 +490,7 @@ export default async function StatsPage({
   const byMaster = new Map<string, Row>();
   for (const a of appts) {
     const id = a.master?.id ?? "none";
-    const name = a.master?.name ?? "Без мастера";
+    const name = a.master?.name ?? t.noMaster;
     const r = byMaster.get(id) ?? {
       id,
       name,
@@ -342,7 +551,7 @@ export default async function StatsPage({
   const byService = new Map<string, SvcRow>();
   for (const a of appts) {
     const id = a.service?.id ?? "none";
-    const name = a.service?.name ?? "Без услуги";
+    const name = a.service?.name ?? t.noService;
     const r = byService.get(id) ?? {
       id,
       name,
@@ -377,7 +586,7 @@ export default async function StatsPage({
   for (const a of appts) {
     let key: string;
     if (group === "week") {
-      const weekStart = startOfWeek(a.startAt, { locale: ru });
+      const weekStart = startOfWeek(a.startAt, { locale: dateLocaleFor(locale) });
       key = weekStart.toISOString();
     } else {
       const dayStart = startOfDay(a.startAt);
@@ -411,10 +620,10 @@ export default async function StatsPage({
       {/* Header */}
       <div>
         <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">
-          📊 Статистика
+          📊 {t.headerTitle}
         </h1>
         <p className="text-sm sm:text-base text-slate-400">
-          Аналитика работы салона за выбранный период
+          {t.headerSubtitle}
         </p>
       </div>
 
@@ -424,28 +633,28 @@ export default async function StatsPage({
           {/* Период */}
           <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
             <label className="grid gap-1 text-sm">
-              <span className="text-slate-300 font-medium">Период</span>
+              <span className="text-slate-300 font-medium">{t.period}</span>
               <Select name="period" defaultValue={period}>
-                <option value="today">Сегодня</option>
-                <option value="7d">7 дней</option>
-                <option value="30d">30 дней</option>
-                <option value="thisMonth">Месяц</option>
-                <option value="lastMonth">Прошлый месяц</option>
-                <option value="thisYear">Год</option>
-                <option value="custom">Произвольный</option>
+                <option value="today">{t.today}</option>
+                <option value="7d">{t.sevenDaysShort}</option>
+                <option value="30d">{t.thirtyDaysShort}</option>
+                <option value="thisMonth">{t.monthShort}</option>
+                <option value="lastMonth">{t.lastMonthShort}</option>
+                <option value="thisYear">{t.yearShort}</option>
+                <option value="custom">{t.custom}</option>
               </Select>
             </label>
 
             {period === "custom" && (
               <>
                 <Input
-                  label="Дата с"
+                  label={t.dateFrom}
                   type="date"
                   name="from"
                   defaultValue={fromStr}
                 />
                 <Input
-                  label="Дата по"
+                  label={t.dateTo}
                   type="date"
                   name="to"
                   defaultValue={toStr}
@@ -454,7 +663,7 @@ export default async function StatsPage({
             )}
 
             <label className="grid gap-1 text-sm">
-              <span className="text-slate-300 font-medium">Валюта</span>
+              <span className="text-slate-300 font-medium">{t.currency}</span>
               <Select name="currency" defaultValue={currency}>
                 <option value="EUR">€ EUR</option>
                 <option value="USD">$ USD</option>
@@ -469,13 +678,13 @@ export default async function StatsPage({
               type="submit"
               className="px-6 py-2 bg-gradient-to-r from-amber-500 to-yellow-500 text-white rounded-lg font-medium hover:from-amber-600 hover:to-yellow-600 transition-all"
             >
-              Применить
+              {t.apply}
             </button>
             <Link
               href="/admin/stats"
               className="px-6 py-2 bg-slate-800 text-slate-300 rounded-lg font-medium hover:bg-slate-700 transition-all"
             >
-              Сбросить
+              {t.reset}
             </Link>
           </div>
         </form>
@@ -492,7 +701,7 @@ export default async function StatsPage({
               <rect x="3" y="4" width="18" height="18" rx="2" />
               <path d="M16 2v4M8 2v4M3 10h18" />
             </svg>
-            <span className="text-slate-400">Период:</span>
+            <span className="text-slate-400">{t.periodPrefix}</span>
             <span className="text-white font-semibold">{label}</span>
           </div>
         </div>
@@ -508,12 +717,12 @@ export default async function StatsPage({
               <path d="M21 10h-5a2 2 0 0 0 0 4h5" />
             </svg>
           }
-          label="Выручка"
-          value={moneyFromCents(revenueDone, currency)}
+          label={t.revenue}
+          value={moneyFromCents(revenueDone, currency, locale)}
           trend={{
             direction: revenueDoneTrend.dir,
             value: `${revenueDoneTrend.delta > 0 ? '+' : ''}${revenueDoneTrend.delta}%`,
-            label: 'vs прошлый период',
+            label: t.vsPreviousPeriod,
           }}
           color="gold"
         />
@@ -528,12 +737,12 @@ export default async function StatsPage({
               <path d="M22 21a6 6 0 0 0-8-5.5" />
             </svg>
           }
-          label="Выполнено записей"
+          label={t.completedBookings}
           value={done}
           trend={{
             direction: doneTrend.dir,
             value: `${doneTrend.delta > 0 ? '+' : ''}${doneTrend.delta}%`,
-            label: 'vs прошлый период',
+            label: t.vsPreviousPeriod,
           }}
           color="blue"
         />
@@ -545,8 +754,8 @@ export default async function StatsPage({
               <path d="M12 2v6M12 16v6M2 12h6M16 12h6M5 5l4 4M15 15l4 4M5 19l4-4M15 9l4-4" />
             </svg>
           }
-          label="Средний чек"
-          value={done > 0 ? moneyFromCents(Math.round(revenueDone / done), currency) : '0 €'}
+          label={t.avgCheck}
+          value={done > 0 ? moneyFromCents(Math.round(revenueDone / done), currency, locale) : moneyFromCents(0, currency, locale)}
           trend={
             donePrev > 0
               ? {
@@ -555,7 +764,7 @@ export default async function StatsPage({
                     donePrev > 0 ? revenueDonePrev / donePrev : 0
                   ).dir,
                   value: `${trend(done > 0 ? revenueDone / done : 0, donePrev > 0 ? revenueDonePrev / donePrev : 0).delta > 0 ? '+' : ''}${trend(done > 0 ? revenueDone / done : 0, donePrev > 0 ? revenueDonePrev / donePrev : 0).delta}%`,
-                  label: 'vs прошлый период',
+                  label: t.vsPreviousPeriod,
                 }
               : undefined
           }
@@ -570,12 +779,12 @@ export default async function StatsPage({
               <circle cx="12" cy="12" r="10" />
             </svg>
           }
-          label="Будущие записи"
+          label={t.futureBookings}
           value={futureConfirmed}
           trend={{
             direction: 'flat',
-            value: moneyFromCents(revenueFutureConfirmed, currency),
-            label: 'ожидаемая выручка',
+            value: moneyFromCents(revenueFutureConfirmed, currency, locale),
+            label: t.expectedRevenue,
           }}
           color="emerald"
         />
@@ -584,11 +793,12 @@ export default async function StatsPage({
       {/* ✨ ГРАФИК ДИНАМИКИ ВЫРУЧКИ */}
       <RevenueChart
         data={groupedData.map((d) => ({
-          date: fmtDayShort(new Date(d.date)),
+          date: fmtDayShort(new Date(d.date), locale),
           revenue: d.revenueDone / 100,
           count: d.done,
         }))}
         currency={currency}
+        locale={locale}
       />
 
       {/* ✨ ТОП УСЛУГИ И МАСТЕРА */}
@@ -601,6 +811,7 @@ export default async function StatsPage({
             percentage: total > 0 ? (s.total / total) * 100 : 0,
           }))}
           currency={currency}
+          locale={locale}
         />
 
         <TopMastersTable
@@ -612,6 +823,7 @@ export default async function StatsPage({
             avgCheck: m.done > 0 ? Math.round(m.revenueDone / m.done) : 0,
           }))}
           currency={currency}
+          locale={locale}
         />
       </div>
 
@@ -631,11 +843,11 @@ export default async function StatsPage({
               d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
             />
           </svg>
-          Экспорт данных
+          {t.exportsTitle}
         </h3>
         <div className="flex flex-wrap gap-3">
           <ExportButton
-            title="Экспорт CSV — заявки"
+            title={t.exportBookingsCsv}
             type="raw"
             period={period}
             from={fromStr}
@@ -644,7 +856,7 @@ export default async function StatsPage({
             group={group}
           />
           <ExportButton
-            title="Экспорт CSV — мастера"
+            title={t.exportMastersCsv}
             type="masters"
             period={period}
             from={fromStr}
@@ -653,7 +865,7 @@ export default async function StatsPage({
             group={group}
           />
           <ExportButton
-            title="Экспорт CSV — услуги"
+            title={t.exportServicesCsv}
             type="services"
             period={period}
             from={fromStr}
@@ -662,7 +874,7 @@ export default async function StatsPage({
             group={group}
           />
           <ExportButton
-            title="Экспорт CSV — динамика"
+            title={t.exportTimelineCsv}
             type="timeline"
             period={period}
             from={fromStr}
@@ -692,20 +904,20 @@ export default async function StatsPage({
                   d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"
                 />
               </svg>
-              Детальная статистика по мастерам
+              {t.mastersDetailsTitle}
             </h3>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full min-w-[640px]">
               <thead className="bg-slate-800/50">
                 <tr className="text-left text-xs sm:text-sm text-slate-300">
-                  <th className="px-3 sm:px-6 py-2 sm:py-3 font-medium whitespace-nowrap">Мастер</th>
-                  <th className="px-3 sm:px-6 py-2 sm:py-3 font-medium text-right whitespace-nowrap">Всего</th>
-                  <th className="px-3 sm:px-6 py-2 sm:py-3 font-medium text-right whitespace-nowrap">Выполнено</th>
-                  <th className="px-3 sm:px-6 py-2 sm:py-3 font-medium text-right whitespace-nowrap">Будущие</th>
-                  <th className="px-3 sm:px-6 py-2 sm:py-3 font-medium text-right whitespace-nowrap">Отменено</th>
-                  <th className="px-3 sm:px-6 py-2 sm:py-3 font-medium text-right whitespace-nowrap">Касса</th>
-                  <th className="px-3 sm:px-6 py-2 sm:py-3 font-medium text-right whitespace-nowrap">Будущая касса</th>
+                  <th className="px-3 sm:px-6 py-2 sm:py-3 font-medium whitespace-nowrap">{t.master}</th>
+                  <th className="px-3 sm:px-6 py-2 sm:py-3 font-medium text-right whitespace-nowrap">{t.total}</th>
+                  <th className="px-3 sm:px-6 py-2 sm:py-3 font-medium text-right whitespace-nowrap">{t.done}</th>
+                  <th className="px-3 sm:px-6 py-2 sm:py-3 font-medium text-right whitespace-nowrap">{t.future}</th>
+                  <th className="px-3 sm:px-6 py-2 sm:py-3 font-medium text-right whitespace-nowrap">{t.canceled}</th>
+                  <th className="px-3 sm:px-6 py-2 sm:py-3 font-medium text-right whitespace-nowrap">{t.revenueCol}</th>
+                  <th className="px-3 sm:px-6 py-2 sm:py-3 font-medium text-right whitespace-nowrap">{t.futureRevenueCol}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-700/50">
@@ -737,7 +949,7 @@ export default async function StatsPage({
                       </td>
                       <td className="px-3 sm:px-6 py-3 sm:py-4 text-right">
                         <div className="font-semibold text-white text-sm sm:text-base whitespace-nowrap">
-                          {moneyFromCents(m.revenueDone, currency)}
+                          {moneyFromCents(m.revenueDone, currency, locale)}
                         </div>
                         {trendRev && trendRev.delta !== 0 && (
                           <div className={`text-xs ${trendRev.dir === 'up' ? 'text-emerald-400' : 'text-rose-400'}`}>
@@ -746,11 +958,18 @@ export default async function StatsPage({
                         )}
                       </td>
                       <td className="px-3 sm:px-6 py-3 sm:py-4 text-right text-slate-400 text-sm sm:text-base whitespace-nowrap">
-                        {moneyFromCents(m.revenueFutureConfirmed, currency)}
+                        {moneyFromCents(m.revenueFutureConfirmed, currency, locale)}
                       </td>
                     </tr>
                   );
                 })}
+                {byMasterArr.length === 0 && (
+                  <tr>
+                    <td className="px-3 sm:px-6 py-6 text-slate-400" colSpan={7}>
+                      {t.noData}
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>
@@ -770,19 +989,19 @@ export default async function StatsPage({
                 <circle cx="7" cy="7" r="2.5" />
                 <path d="M8.5 8.5 21 21M8.5 15.5 21 3" />
               </svg>
-              Детальная статистика по услугам
+              {t.servicesDetailsTitle}
             </h3>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full min-w-[560px]">
               <thead className="bg-slate-800/50">
                 <tr className="text-left text-xs sm:text-sm text-slate-300">
-                  <th className="px-3 sm:px-6 py-2 sm:py-3 font-medium whitespace-nowrap">Услуга</th>
-                  <th className="px-3 sm:px-6 py-2 sm:py-3 font-medium text-right whitespace-nowrap">Всего</th>
-                  <th className="px-3 sm:px-6 py-2 sm:py-3 font-medium text-right whitespace-nowrap">Выполнено</th>
-                  <th className="px-3 sm:px-6 py-2 sm:py-3 font-medium text-right whitespace-nowrap">Отменено</th>
-                  <th className="px-3 sm:px-6 py-2 sm:py-3 font-medium text-right whitespace-nowrap">Касса</th>
-                  <th className="px-3 sm:px-6 py-2 sm:py-3 font-medium text-right whitespace-nowrap">% от общей</th>
+                  <th className="px-3 sm:px-6 py-2 sm:py-3 font-medium whitespace-nowrap">{t.service}</th>
+                  <th className="px-3 sm:px-6 py-2 sm:py-3 font-medium text-right whitespace-nowrap">{t.total}</th>
+                  <th className="px-3 sm:px-6 py-2 sm:py-3 font-medium text-right whitespace-nowrap">{t.done}</th>
+                  <th className="px-3 sm:px-6 py-2 sm:py-3 font-medium text-right whitespace-nowrap">{t.canceled}</th>
+                  <th className="px-3 sm:px-6 py-2 sm:py-3 font-medium text-right whitespace-nowrap">{t.revenueCol}</th>
+                  <th className="px-3 sm:px-6 py-2 sm:py-3 font-medium text-right whitespace-nowrap">{t.shareOfTotal}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-700/50">
@@ -795,13 +1014,20 @@ export default async function StatsPage({
                     <td className="px-3 sm:px-6 py-3 sm:py-4 text-right text-slate-300 text-sm sm:text-base">{s.done}</td>
                     <td className="px-3 sm:px-6 py-3 sm:py-4 text-right text-slate-300 text-sm sm:text-base">{s.canceled}</td>
                     <td className="px-3 sm:px-6 py-3 sm:py-4 text-right font-semibold text-white text-sm sm:text-base whitespace-nowrap">
-                      {moneyFromCents(s.revenueDone, currency)}
+                      {moneyFromCents(s.revenueDone, currency, locale)}
                     </td>
                     <td className="px-3 sm:px-6 py-3 sm:py-4 text-right text-slate-400 text-sm sm:text-base">
                       {total > 0 ? percent(s.total, total) : '0%'}
                     </td>
                   </tr>
                 ))}
+                {byServiceArr.length === 0 && (
+                  <tr>
+                    <td className="px-3 sm:px-6 py-6 text-slate-400" colSpan={6}>
+                      {t.noData}
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>

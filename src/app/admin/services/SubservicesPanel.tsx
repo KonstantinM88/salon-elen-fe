@@ -5,6 +5,7 @@ import React, { useMemo, useState } from "react";
 import type { ActionResult } from "./actions";
 import { TranslationButton } from './ServicesPageClient';
 import { ServiceEditButton } from './EditButtons';
+import type { SeoLocale } from "@/lib/seo-locale";
 
 type ParentOption = { id: string; name: string };
 
@@ -33,24 +34,153 @@ type ViewMode = "cards" | "table";
 type SortKey = "name" | "price" | "minutes";
 
 type Props = {
+  locale?: SeoLocale;
   parentOptions: ParentOption[];
   subservices: Sub[];
   updateSubservice: (formData: FormData) => Promise<ActionResult>;
   deleteSubservice: (formData: FormData) => Promise<ActionResult>;
 };
 
-function euro(cents: number | null): string {
+const INTL_BY_LOCALE: Record<SeoLocale, string> = {
+  de: "de-DE",
+  ru: "ru-RU",
+  en: "en-US",
+};
+
+type SubservicesCopy = {
+  title: string;
+  fromCount: string;
+  filters: string;
+  cards: string;
+  table: string;
+  searchPlaceholder: string;
+  allCategories: string;
+  sortByName: string;
+  sortByPrice: string;
+  sortByMinutes: string;
+  onlyActive: string;
+  reset: string;
+  nothingFound: string;
+  tryChangingFilters: string;
+  activeShort: string;
+  offShort: string;
+  price: string;
+  duration: string;
+  minutesSuffix: string;
+  yes: string;
+  no: string;
+  nameCol: string;
+  categoryCol: string;
+  priceCol: string;
+  minutesCol: string;
+  activeCol: string;
+  descriptionCol: string;
+};
+
+const SUBSERVICES_COPY: Record<SeoLocale, SubservicesCopy> = {
+  de: {
+    title: "Unterleistungen",
+    fromCount: "von",
+    filters: "Filter",
+    cards: "Karten",
+    table: "Tabelle",
+    searchPlaceholder: "Suche nach Name, Beschreibung...",
+    allCategories: "Alle Kategorien",
+    sortByName: "Sortierung: Name",
+    sortByPrice: "Sortierung: Preis",
+    sortByMinutes: "Sortierung: Minuten",
+    onlyActive: "Nur aktive",
+    reset: "Zuruecksetzen",
+    nothingFound: "Nichts gefunden",
+    tryChangingFilters: "Versuchen Sie, die Filter zu aendern",
+    activeShort: "aktiv",
+    offShort: "aus",
+    price: "Preis",
+    duration: "Dauer",
+    minutesSuffix: "Min",
+    yes: "Ja",
+    no: "Nein",
+    nameCol: "Name",
+    categoryCol: "Kategorie",
+    priceCol: "Preis",
+    minutesCol: "Min",
+    activeCol: "Aktiv",
+    descriptionCol: "Beschreibung",
+  },
+  ru: {
+    title: "Подуслуги",
+    fromCount: "из",
+    filters: "Фильтры",
+    cards: "Карточки",
+    table: "Таблица",
+    searchPlaceholder: "Поиск по названию, описанию…",
+    allCategories: "Все категории",
+    sortByName: "Сортировка: имя",
+    sortByPrice: "Сортировка: цена",
+    sortByMinutes: "Сортировка: минуты",
+    onlyActive: "Только активные",
+    reset: "Сбросить",
+    nothingFound: "Ничего не найдено",
+    tryChangingFilters: "Попробуйте изменить параметры поиска",
+    activeShort: "активна",
+    offShort: "выкл",
+    price: "Цена",
+    duration: "Длительность",
+    minutesSuffix: "мин",
+    yes: "Да",
+    no: "Нет",
+    nameCol: "Название",
+    categoryCol: "Категория",
+    priceCol: "Цена",
+    minutesCol: "Мин",
+    activeCol: "Активна",
+    descriptionCol: "Описание",
+  },
+  en: {
+    title: "Subservices",
+    fromCount: "of",
+    filters: "Filters",
+    cards: "Cards",
+    table: "Table",
+    searchPlaceholder: "Search by name, description...",
+    allCategories: "All categories",
+    sortByName: "Sort: name",
+    sortByPrice: "Sort: price",
+    sortByMinutes: "Sort: minutes",
+    onlyActive: "Only active",
+    reset: "Reset",
+    nothingFound: "Nothing found",
+    tryChangingFilters: "Try changing search filters",
+    activeShort: "active",
+    offShort: "off",
+    price: "Price",
+    duration: "Duration",
+    minutesSuffix: "min",
+    yes: "Yes",
+    no: "No",
+    nameCol: "Name",
+    categoryCol: "Category",
+    priceCol: "Price",
+    minutesCol: "Min",
+    activeCol: "Active",
+    descriptionCol: "Description",
+  },
+};
+
+function euro(cents: number | null, locale: SeoLocale): string {
   if (cents === null) return "—";
-  return new Intl.NumberFormat("ru-RU", { style: "currency", currency: "EUR" })
+  return new Intl.NumberFormat(INTL_BY_LOCALE[locale], { style: "currency", currency: "EUR" })
     .format((cents ?? 0) / 100);
 }
 
 export default function SubservicesPanel({
+  locale = "de",
   parentOptions,
   subservices,
   updateSubservice,
   deleteSubservice,
 }: Props) {
+  const t = SUBSERVICES_COPY[locale];
   const [q, setQ] = useState("");
   const [onlyActive, setOnlyActive] = useState(false);
   const [sort, setSort] = useState<SortKey>("name");
@@ -93,9 +223,9 @@ export default function SubservicesPanel({
       <div className="flex flex-col gap-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <h2 className="text-base sm:text-lg font-medium">Подуслуги</h2>
+            <h2 className="text-base sm:text-lg font-medium">{t.title}</h2>
             <span className="text-xs text-white/50 hidden sm:inline">
-              {filtered.length} из {subservices.length}
+              {filtered.length} {t.fromCount} {subservices.length}
             </span>
           </div>
           
@@ -110,7 +240,7 @@ export default function SubservicesPanel({
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
               </svg>
-              <span>Фильтры</span>
+              <span>{t.filters}</span>
               {activeFiltersCount > 0 && (
                 <span className="flex items-center justify-center w-5 h-5 rounded-full bg-fuchsia-500/30 text-[10px] font-medium">
                   {activeFiltersCount}
@@ -127,7 +257,7 @@ export default function SubservicesPanel({
                   view === "cards" ? "bg-white/10" : "hover:bg-white/5"
                 }`}
               >
-                <span className="hidden sm:inline">Карточки</span>
+                <span className="hidden sm:inline">{t.cards}</span>
                 <svg className="w-4 h-4 sm:hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
                 </svg>
@@ -139,7 +269,7 @@ export default function SubservicesPanel({
                   view === "table" ? "bg-white/10" : "hover:bg-white/5"
                 }`}
               >
-                <span className="hidden sm:inline">Таблица</span>
+                <span className="hidden sm:inline">{t.table}</span>
                 <svg className="w-4 h-4 sm:hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" />
                 </svg>
@@ -156,7 +286,7 @@ export default function SubservicesPanel({
           <input
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            placeholder="Поиск по названию, описанию…"
+            placeholder={t.searchPlaceholder}
             className="admin-input pl-10 text-sm"
           />
           {q && (
@@ -183,7 +313,7 @@ export default function SubservicesPanel({
             onChange={(e) => setFilterParent(e.target.value)}
             className="admin-select text-sm flex-1 sm:flex-none sm:min-w-[160px]"
           >
-            <option value="all">Все категории</option>
+            <option value="all">{t.allCategories}</option>
             {parentOptions.map((p) => (
               <option key={p.id} value={p.id}>
                 {p.name}
@@ -196,9 +326,9 @@ export default function SubservicesPanel({
             onChange={(e) => setSort(e.target.value as SortKey)}
             className="admin-select text-sm flex-1 sm:flex-none sm:min-w-[160px]"
           >
-            <option value="name">Сортировка: имя</option>
-            <option value="price">Сортировка: цена</option>
-            <option value="minutes">Сортировка: минуты</option>
+            <option value="name">{t.sortByName}</option>
+            <option value="price">{t.sortByPrice}</option>
+            <option value="minutes">{t.sortByMinutes}</option>
           </select>
 
           <label className="inline-flex select-none items-center gap-2 rounded-full border border-white/15 px-3 py-2 text-sm cursor-pointer hover:bg-white/5 transition">
@@ -208,7 +338,7 @@ export default function SubservicesPanel({
               onChange={(e) => setOnlyActive(e.target.checked)}
               className="admin-switch"
             />
-            <span className="whitespace-nowrap">Только активные</span>
+            <span className="whitespace-nowrap">{t.onlyActive}</span>
           </label>
 
           {/* Reset filters button */}
@@ -223,7 +353,7 @@ export default function SubservicesPanel({
               }}
               className="text-xs text-white/50 hover:text-white/80 transition underline underline-offset-2"
             >
-              Сбросить
+              {t.reset}
             </button>
           )}
         </div>
@@ -232,6 +362,7 @@ export default function SubservicesPanel({
       {/* Content */}
       {view === "cards" ? (
         <CardsView
+          locale={locale}
           items={filtered}
           parentOptions={parentOptions}
           updateSubservice={updateSubservice}
@@ -239,6 +370,7 @@ export default function SubservicesPanel({
         />
       ) : (
         <TableView
+          locale={locale}
           items={filtered}
           parentOptions={parentOptions}
           updateSubservice={updateSubservice}
@@ -252,12 +384,14 @@ export default function SubservicesPanel({
 /* =================== CARDS VIEW =================== */
 
 function CardsView(props: {
+  locale: SeoLocale;
   items: Sub[];
   parentOptions: ParentOption[];
   updateSubservice: (formData: FormData) => Promise<ActionResult>;
   deleteSubservice: (formData: FormData) => Promise<ActionResult>;
 }) {
-  const { items, parentOptions, updateSubservice, deleteSubservice } = props;
+  const { locale, items, parentOptions, updateSubservice, deleteSubservice } = props;
+  const t = SUBSERVICES_COPY[locale];
 
   if (items.length === 0) {
     return (
@@ -265,8 +399,8 @@ function CardsView(props: {
         <svg className="w-12 h-12 mx-auto mb-3 text-white/20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
         </svg>
-        <p className="text-sm">Ничего не найдено</p>
-        <p className="text-xs text-white/40 mt-1">Попробуйте изменить параметры поиска</p>
+        <p className="text-sm">{t.nothingFound}</p>
+        <p className="text-xs text-white/40 mt-1">{t.tryChangingFilters}</p>
       </div>
     );
   }
@@ -289,10 +423,10 @@ function CardsView(props: {
               <div className="text-[10px] sm:text-xs font-mono text-white/40 mt-0.5 truncate">{s.slug}</div>
             </div>
             {s.isActive ? (
-              <span className="tag-active flex-shrink-0 text-[10px]">активна</span>
+              <span className="tag-active flex-shrink-0 text-[10px]">{t.activeShort}</span>
             ) : (
               <span className="inline-flex items-center gap-1 rounded-full border border-white/15 px-1.5 sm:px-2 py-0.5 text-[10px] text-white/60 flex-shrink-0">
-                выкл
+                {t.offShort}
               </span>
             )}
           </div>
@@ -308,21 +442,22 @@ function CardsView(props: {
             style={{ backgroundColor: 'rgba(255, 255, 255, 0.03)' }}
           >
             <div>
-              <div className="text-[10px] sm:text-xs text-white/50">Цена</div>
-              <div className="text-sm sm:text-base font-semibold text-amber-400">{euro(s.priceCents)}</div>
+              <div className="text-[10px] sm:text-xs text-white/50">{t.price}</div>
+              <div className="text-sm sm:text-base font-semibold text-amber-400">{euro(s.priceCents, locale)}</div>
             </div>
             <div className="text-right">
-              <div className="text-[10px] sm:text-xs text-white/50">Длительность</div>
-              <div className="text-sm sm:text-base font-semibold text-cyan-400">{s.durationMin ?? 0} мин</div>
+              <div className="text-[10px] sm:text-xs text-white/50">{t.duration}</div>
+              <div className="text-sm sm:text-base font-semibold text-cyan-400">{s.durationMin ?? 0} {t.minutesSuffix}</div>
             </div>
           </div>
 
           {/* Actions */}
           <div className="flex flex-wrap gap-1.5 sm:gap-2 pt-1 sm:pt-2">
-            <TranslationButton service={s} categoryName={s.parentName} />
+            <TranslationButton service={s} categoryName={s.parentName} locale={locale} />
             <ServiceEditButton
               service={s}
               parentOptions={parentOptions}
+              locale={locale}
               onUpdate={updateSubservice}
               onDelete={deleteSubservice}
             />
@@ -336,12 +471,14 @@ function CardsView(props: {
 /* =================== TABLE VIEW =================== */
 
 function TableView(props: {
+  locale: SeoLocale;
   items: Sub[];
   parentOptions: ParentOption[];
   updateSubservice: (formData: FormData) => Promise<ActionResult>;
   deleteSubservice: (formData: FormData) => Promise<ActionResult>;
 }) {
-  const { items, parentOptions, updateSubservice, deleteSubservice } = props;
+  const { locale, items, parentOptions, updateSubservice, deleteSubservice } = props;
+  const t = SUBSERVICES_COPY[locale];
 
   // Mobile cards for table view on small screens
   const MobileTableCards = () => (
@@ -354,17 +491,17 @@ function TableView(props: {
               <div className="text-xs text-white/50 truncate">{s.parentName}</div>
             </div>
             {s.isActive ? (
-              <span className="tag-active text-[10px]">Да</span>
+              <span className="tag-active text-[10px]">{t.yes}</span>
             ) : (
               <span className="inline-flex items-center rounded-full border border-white/15 px-1.5 py-0.5 text-[10px] text-white/60">
-                Нет
+                {t.no}
               </span>
             )}
           </div>
           
           <div className="flex items-center gap-4 text-xs">
-            <span className="text-amber-400 font-semibold">{euro(s.priceCents)}</span>
-            <span className="text-cyan-400 font-semibold">{s.durationMin ?? 0} мин</span>
+            <span className="text-amber-400 font-semibold">{euro(s.priceCents, locale)}</span>
+            <span className="text-cyan-400 font-semibold">{s.durationMin ?? 0} {t.minutesSuffix}</span>
           </div>
           
           {s.description && (
@@ -372,10 +509,11 @@ function TableView(props: {
           )}
           
           <div className="flex flex-wrap gap-1.5 pt-1">
-            <TranslationButton service={s} categoryName={s.parentName} />
+            <TranslationButton service={s} categoryName={s.parentName} locale={locale} />
             <ServiceEditButton
               service={s}
               parentOptions={parentOptions}
+              locale={locale}
               onUpdate={updateSubservice}
               onDelete={deleteSubservice}
             />
@@ -385,7 +523,7 @@ function TableView(props: {
       
       {items.length === 0 && (
         <div className="rounded-xl border border-white/10 p-6 text-center text-white/50 text-sm">
-          Ничего не найдено
+          {t.nothingFound}
         </div>
       )}
     </div>
@@ -401,12 +539,12 @@ function TableView(props: {
         <table className="w-full min-w-[800px] text-sm">
           <thead className="bg-white/5">
             <tr>
-              <th className="px-3 py-2.5 text-left font-medium text-white/70">Название</th>
-              <th className="px-3 py-2.5 text-left font-medium text-white/70">Категория</th>
-              <th className="px-3 py-2.5 text-right font-medium text-white/70">Цена</th>
-              <th className="px-3 py-2.5 text-right font-medium text-white/70">Мин</th>
-              <th className="px-3 py-2.5 text-center font-medium text-white/70">Активна</th>
-              <th className="px-3 py-2.5 text-left font-medium text-white/70">Описание</th>
+              <th className="px-3 py-2.5 text-left font-medium text-white/70">{t.nameCol}</th>
+              <th className="px-3 py-2.5 text-left font-medium text-white/70">{t.categoryCol}</th>
+              <th className="px-3 py-2.5 text-right font-medium text-white/70">{t.priceCol}</th>
+              <th className="px-3 py-2.5 text-right font-medium text-white/70">{t.minutesCol}</th>
+              <th className="px-3 py-2.5 text-center font-medium text-white/70">{t.activeCol}</th>
+              <th className="px-3 py-2.5 text-left font-medium text-white/70">{t.descriptionCol}</th>
               <th className="px-3 py-2.5 text-right w-[280px]" />
             </tr>
           </thead>
@@ -418,14 +556,14 @@ function TableView(props: {
                   <div className="text-xs font-mono text-white/40 mt-0.5">{s.slug}</div>
                 </td>
                 <td className="px-3 py-3 text-white/70">{s.parentName || "—"}</td>
-                <td className="px-3 py-3 text-right font-semibold text-amber-400">{euro(s.priceCents)}</td>
+                <td className="px-3 py-3 text-right font-semibold text-amber-400">{euro(s.priceCents, locale)}</td>
                 <td className="px-3 py-3 text-right font-semibold text-cyan-400">{s.durationMin ?? 0}</td>
                 <td className="px-3 py-3 text-center">
                   {s.isActive ? (
-                    <span className="tag-active">Да</span>
+                    <span className="tag-active">{t.yes}</span>
                   ) : (
                     <span className="inline-flex items-center gap-1 rounded-full border border-white/15 px-2 py-0.5 text-xs text-white/60">
-                      Нет
+                      {t.no}
                     </span>
                   )}
                 </td>
@@ -434,10 +572,11 @@ function TableView(props: {
                 </td>
                 <td className="px-3 py-3">
                   <div className="flex items-center justify-end gap-2">
-                    <TranslationButton service={s} categoryName={s.parentName} />
+                    <TranslationButton service={s} categoryName={s.parentName} locale={locale} />
                     <ServiceEditButton
                       service={s}
                       parentOptions={parentOptions}
+                      locale={locale}
                       onUpdate={updateSubservice}
                       onDelete={deleteSubservice}
                     />
@@ -449,7 +588,7 @@ function TableView(props: {
             {items.length === 0 && (
               <tr>
                 <td className="px-3 py-8 text-center text-white/50" colSpan={7}>
-                  Ничего не найдено
+                  {t.nothingFound}
                 </td>
               </tr>
             )}
@@ -788,4 +927,3 @@ function TableView(props: {
 //     </div>
 //   );
 // }
-

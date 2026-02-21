@@ -7,6 +7,7 @@ import { Loader2, Save, Scissors, Trash2, X, Images } from 'lucide-react';
 import Link from 'next/link';
 import ClientPortal from '@/components/ui/ClientPortal';
 import type { ActionResult } from './actions';
+import type { SeoLocale } from '@/lib/seo-locale';
 
 type ParentOption = {
   id: string;
@@ -28,6 +29,7 @@ type Service = {
 type Props = {
   service: Service;
   parentOptions: ParentOption[];
+  locale?: SeoLocale;
   onClose: () => void;
   onUpdate: (formData: FormData) => Promise<ActionResult>;
   onDelete: (formData: FormData) => Promise<ActionResult>;
@@ -42,13 +44,115 @@ type FormState = {
   isActive: boolean;
 };
 
+type ServiceModalCopy = {
+  saveError: string;
+  deleteError: string;
+  title: string;
+  close: string;
+  serviceNameLabel: string;
+  serviceNamePlaceholder: string;
+  categoryLabel: string;
+  noCategory: string;
+  durationLabel: string;
+  priceLabel: string;
+  descriptionLabel: string;
+  descriptionPlaceholder: string;
+  active: string;
+  showOnSite: string;
+  gallery: string;
+  deleteService: string;
+  deleteConfirm: string;
+  cancel: string;
+  deleting: string;
+  deleteYes: string;
+  saving: string;
+  save: string;
+};
+
+const SERVICE_MODAL_COPY: Record<SeoLocale, ServiceModalCopy> = {
+  de: {
+    saveError: 'Speichern fehlgeschlagen',
+    deleteError: 'Loeschen fehlgeschlagen',
+    title: 'Leistung bearbeiten',
+    close: 'Schliessen',
+    serviceNameLabel: 'Leistungsname',
+    serviceNamePlaceholder: 'Zum Beispiel: Herrenhaarschnitt',
+    categoryLabel: 'Kategorie',
+    noCategory: '- Ohne Kategorie -',
+    durationLabel: 'Dauer (Min)',
+    priceLabel: 'Preis (€)',
+    descriptionLabel: 'Beschreibung',
+    descriptionPlaceholder: 'Kurzbeschreibung der Leistung (optional)',
+    active: 'Aktiv',
+    showOnSite: 'Leistung auf der Website anzeigen',
+    gallery: 'Arbeitsgalerie',
+    deleteService: 'Leistung loeschen',
+    deleteConfirm: 'Leistung endgueltig loeschen?',
+    cancel: 'Abbrechen',
+    deleting: 'Loeschen...',
+    deleteYes: 'Ja, loeschen',
+    saving: 'Speichern...',
+    save: 'Speichern',
+  },
+  ru: {
+    saveError: 'Ошибка сохранения',
+    deleteError: 'Ошибка удаления',
+    title: 'Редактировать услугу',
+    close: 'Закрыть',
+    serviceNameLabel: 'Название услуги',
+    serviceNamePlaceholder: 'Например: Мужская стрижка',
+    categoryLabel: 'Категория',
+    noCategory: '— Без категории —',
+    durationLabel: 'Длительность (мин)',
+    priceLabel: 'Цена (€)',
+    descriptionLabel: 'Описание',
+    descriptionPlaceholder: 'Краткое описание услуги (опционально)',
+    active: 'Активна',
+    showOnSite: 'Отображать услугу на сайте',
+    gallery: 'Галерея работ',
+    deleteService: 'Удалить услугу',
+    deleteConfirm: 'Удалить услугу безвозвратно?',
+    cancel: 'Отмена',
+    deleting: 'Удаление...',
+    deleteYes: 'Да, удалить',
+    saving: 'Сохранение...',
+    save: 'Сохранить',
+  },
+  en: {
+    saveError: 'Save failed',
+    deleteError: 'Delete failed',
+    title: 'Edit service',
+    close: 'Close',
+    serviceNameLabel: 'Service name',
+    serviceNamePlaceholder: 'For example: Men haircut',
+    categoryLabel: 'Category',
+    noCategory: '- No category -',
+    durationLabel: 'Duration (min)',
+    priceLabel: 'Price (€)',
+    descriptionLabel: 'Description',
+    descriptionPlaceholder: 'Short service description (optional)',
+    active: 'Active',
+    showOnSite: 'Show service on the website',
+    gallery: 'Work gallery',
+    deleteService: 'Delete service',
+    deleteConfirm: 'Delete service permanently?',
+    cancel: 'Cancel',
+    deleting: 'Deleting...',
+    deleteYes: 'Yes, delete',
+    saving: 'Saving...',
+    save: 'Save',
+  },
+};
+
 export default function ServiceEditModal({
   service,
   parentOptions,
+  locale = 'de',
   onClose,
   onUpdate,
   onDelete,
 }: Props) {
+  const t = SERVICE_MODAL_COPY[locale];
   // ESC + scroll lock
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
@@ -96,17 +200,18 @@ export default function ServiceEditModal({
       fd.set('price', formData.price);
       fd.set('parentId', formData.parentId);
       fd.set('isActive', formData.isActive ? '1' : '0');
+      fd.set('locale', locale);
 
       const result = await onUpdate(fd);
 
       if (!result.ok) {
-        throw new Error(result.message || 'Ошибка сохранения');
+        throw new Error(result.message || t.saveError);
       }
 
       onClose();
       window.location.reload();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Ошибка сохранения');
+      setError(err instanceof Error ? err.message : t.saveError);
     } finally {
       setSaving(false);
     }
@@ -121,17 +226,18 @@ export default function ServiceEditModal({
     try {
       const fd = new FormData();
       fd.set('id', service.id);
+      fd.set('locale', locale);
 
       const result = await onDelete(fd);
 
       if (!result.ok) {
-        throw new Error(result.message || 'Ошибка удаления');
+        throw new Error(result.message || t.deleteError);
       }
 
       onClose();
       window.location.reload();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Ошибка удаления');
+      setError(err instanceof Error ? err.message : t.deleteError);
     } finally {
       setDeleting(false);
       setShowDeleteConfirm(false);
@@ -192,7 +298,7 @@ export default function ServiceEditModal({
 
                   <div className="min-w-0">
                     <h2 className="text-lg sm:text-xl font-semibold text-white">
-                      Редактировать услугу
+                      {t.title}
                     </h2>
                     <p className="text-xs sm:text-sm mt-1 text-white/60 truncate">
                       {service.parentName}
@@ -209,8 +315,8 @@ export default function ServiceEditModal({
                   onClick={onClose}
                   className="p-2 rounded-lg transition-all hover:bg-white/10 shrink-0"
                   type="button"
-                  aria-label="Закрыть"
-                  title="Закрыть (Esc)"
+                  aria-label={t.close}
+                  title={`${t.close} (Esc)`}
                 >
                   <X className="h-5 w-5 text-white" />
                 </button>
@@ -224,7 +330,7 @@ export default function ServiceEditModal({
                 {/* Name */}
                 <div>
                   <label className="block text-sm font-medium mb-2 text-white/90">
-                    Название услуги
+                    {t.serviceNameLabel}
                   </label>
                   <input
                     type="text"
@@ -232,19 +338,19 @@ export default function ServiceEditModal({
                     onChange={(e) => setFormData((p) => ({ ...p, name: e.target.value }))}
                     required
                     className="w-full px-4 py-3 rounded-xl text-white bg-slate-950/40 border border-white/10 outline-none focus:border-indigo-400/50 focus:ring-2 focus:ring-indigo-500/10"
-                    placeholder="Например: Мужская стрижка"
+                    placeholder={t.serviceNamePlaceholder}
                   />
                 </div>
 
                 {/* Category */}
                 <div>
-                  <label className="block text-sm font-medium mb-2 text-white/90">Категория</label>
+                  <label className="block text-sm font-medium mb-2 text-white/90">{t.categoryLabel}</label>
                   <select
                     value={formData.parentId}
                     onChange={(e) => setFormData((p) => ({ ...p, parentId: e.target.value }))}
                     className="w-full px-4 py-3 rounded-xl text-white bg-slate-950/40 border border-white/10 outline-none focus:border-indigo-400/50 focus:ring-2 focus:ring-indigo-500/10"
                   >
-                    <option value="">— Без категории —</option>
+                    <option value="">{t.noCategory}</option>
                     {parentOptions.map((p) => (
                       <option key={p.id} value={p.id}>
                         {p.name}
@@ -257,7 +363,7 @@ export default function ServiceEditModal({
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium mb-2 text-white/90">
-                      Длительность (мин)
+                      {t.durationLabel}
                     </label>
                     <input
                       type="number"
@@ -276,7 +382,7 @@ export default function ServiceEditModal({
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium mb-2 text-white/90">Цена (€)</label>
+                    <label className="block text-sm font-medium mb-2 text-white/90">{t.priceLabel}</label>
                     <input
                       type="number"
                       min={0}
@@ -291,13 +397,13 @@ export default function ServiceEditModal({
 
                 {/* Description */}
                 <div>
-                  <label className="block text-sm font-medium mb-2 text-white/90">Описание</label>
+                  <label className="block text-sm font-medium mb-2 text-white/90">{t.descriptionLabel}</label>
                   <textarea
                     value={formData.description}
                     onChange={(e) => setFormData((p) => ({ ...p, description: e.target.value }))}
                     rows={4}
                     className="w-full px-4 py-3 rounded-xl text-white bg-slate-950/40 border border-white/10 outline-none resize-none focus:border-indigo-400/50 focus:ring-2 focus:ring-indigo-500/10"
-                    placeholder="Краткое описание услуги (опционально)"
+                    placeholder={t.descriptionPlaceholder}
                   />
                 </div>
 
@@ -311,8 +417,8 @@ export default function ServiceEditModal({
                       className="admin-switch"
                     />
                     <div>
-                      <div className="font-medium text-white">Активна</div>
-                      <div className="text-xs text-white/60 mt-0.5">Отображать услугу на сайте</div>
+                      <div className="font-medium text-white">{t.active}</div>
+                      <div className="text-xs text-white/60 mt-0.5">{t.showOnSite}</div>
                     </div>
                   </label>
                 </div>
@@ -324,7 +430,7 @@ export default function ServiceEditModal({
                     className="w-full px-4 py-3 rounded-xl font-medium transition-all border border-fuchsia-500/30 bg-fuchsia-500/10 text-fuchsia-300 hover:bg-fuchsia-500/20 flex items-center justify-center gap-2"
                   >
                     <Images className="h-4 w-4" />
-                    Галерея работ
+                    {t.gallery}
                   </Link>
                 </div>
 
@@ -339,13 +445,13 @@ export default function ServiceEditModal({
                     >
                       <span className="inline-flex items-center justify-center gap-2">
                         <Trash2 className="h-4 w-4" />
-                        Удалить услугу
+                        {t.deleteService}
                       </span>
                     </button>
                   ) : (
                     <div className="space-y-2">
                       <p className="text-sm text-center text-red-300">
-                        Удалить услугу безвозвратно?
+                        {t.deleteConfirm}
                       </p>
                       <div className="flex gap-2">
                         <button
@@ -354,7 +460,7 @@ export default function ServiceEditModal({
                           disabled={deleting}
                           className="flex-1 px-4 py-3 rounded-xl font-medium border border-white/10 text-white hover:bg-white/5 disabled:opacity-50"
                         >
-                          Отмена
+                          {t.cancel}
                         </button>
                         <button
                           type="button"
@@ -365,10 +471,10 @@ export default function ServiceEditModal({
                           {deleting ? (
                             <span className="inline-flex items-center justify-center gap-2">
                               <Loader2 className="h-4 w-4 animate-spin" />
-                              Удаление...
+                              {t.deleting}
                             </span>
                           ) : (
-                            'Да, удалить'
+                            t.deleteYes
                           )}
                         </button>
                       </div>
@@ -393,7 +499,7 @@ export default function ServiceEditModal({
                     disabled={saving || deleting}
                     className="w-full sm:flex-1 px-4 py-2.5 rounded-xl font-medium border border-white/10 text-white hover:bg-white/5 disabled:opacity-50"
                   >
-                    Отмена
+                    {t.cancel}
                   </button>
 
                   <button
@@ -410,12 +516,12 @@ export default function ServiceEditModal({
                     {saving ? (
                       <span className="inline-flex items-center justify-center gap-2">
                         <Loader2 className="h-4 w-4 animate-spin" />
-                        Сохранение...
+                        {t.saving}
                       </span>
                     ) : (
                       <span className="inline-flex items-center justify-center gap-2">
                         <Save className="h-4 w-4" />
-                        Сохранить
+                        {t.save}
                       </span>
                     )}
                   </button>

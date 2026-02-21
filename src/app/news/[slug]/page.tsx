@@ -5,11 +5,11 @@ import { prisma } from "@/lib/db";
 import type { Metadata } from "next";
 import {
   resolveUrlLocale,
-  resolveContentLocale,
   buildAlternates,
   BASE_URL,
   type SearchParamsPromise,
 } from "@/lib/seo-locale";
+import { resolveContentLocale } from "@/lib/seo-locale-server";
 
 export const dynamic = "force-dynamic";
 

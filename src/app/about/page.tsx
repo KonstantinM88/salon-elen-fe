@@ -4,12 +4,12 @@ import { type Locale } from "@/i18n/locales";
 import AboutClient from "./AboutClient";
 import {
   resolveUrlLocale,
-  resolveContentLocale,
   buildAlternates,
   BASE_URL,
   type SeoLocale,
   type SearchParamsPromise,
 } from "@/lib/seo-locale";
+import { resolveContentLocale } from "@/lib/seo-locale-server";
 
 export const dynamic = "force-dynamic";
 

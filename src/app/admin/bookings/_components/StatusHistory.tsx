@@ -5,9 +5,11 @@ import { useState, useEffect, useCallback } from 'react';
 import { History, Clock, User2, ChevronDown, ChevronUp } from 'lucide-react';
 import { AppointmentStatus } from '@prisma/client';
 import { getStatusHistory } from '../actions';
+import type { SeoLocale } from '@/lib/seo-locale';
 
 interface StatusHistoryProps {
   appointmentId: string;
+  locale: SeoLocale;
 }
 
 interface StatusLog {
@@ -19,10 +21,61 @@ interface StatusLog {
   reason: string | null;
 }
 
-export function StatusHistory({ appointmentId }: StatusHistoryProps) {
+type StatusHistoryCopy = {
+  history: string;
+  empty: string;
+  emptyInline: string;
+  system: string;
+  pending: string;
+  confirmed: string;
+  done: string;
+  canceled: string;
+};
+
+const STATUS_HISTORY_COPY: Record<SeoLocale, StatusHistoryCopy> = {
+  de: {
+    history: 'Aenderungsverlauf',
+    empty: 'Verlauf ist noch leer',
+    emptyInline: 'Aenderungsverlauf ist leer',
+    system: 'system',
+    pending: 'Wartend',
+    confirmed: 'Bestaetigt',
+    done: 'Abgeschlossen',
+    canceled: 'Storniert',
+  },
+  ru: {
+    history: 'История изменений',
+    empty: 'История пока пуста',
+    emptyInline: 'История изменений пуста',
+    system: 'system',
+    pending: 'Ожидание',
+    confirmed: 'Подтверждено',
+    done: 'Выполнено',
+    canceled: 'Отменено',
+  },
+  en: {
+    history: 'Status History',
+    empty: 'History is empty',
+    emptyInline: 'Status history is empty',
+    system: 'system',
+    pending: 'Pending',
+    confirmed: 'Confirmed',
+    done: 'Completed',
+    canceled: 'Canceled',
+  },
+};
+
+function localeToIntl(locale: SeoLocale): string {
+  if (locale === 'ru') return 'ru-RU';
+  if (locale === 'en') return 'en-US';
+  return 'de-DE';
+}
+
+export function StatusHistory({ appointmentId, locale }: StatusHistoryProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [logs, setLogs] = useState<StatusLog[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const t = STATUS_HISTORY_COPY[locale];
 
   const loadHistory = useCallback(async () => {
     setIsLoading(true);
@@ -52,7 +105,7 @@ export function StatusHistory({ appointmentId }: StatusHistoryProps) {
       >
         <span className="flex items-center gap-2">
           <History className="h-4 w-4" />
-          История изменений
+          {t.history}
         </span>
         {isOpen ? (
           <ChevronUp className="h-4 w-4" />
@@ -77,7 +130,7 @@ export function StatusHistory({ appointmentId }: StatusHistoryProps) {
         {!isLoading && logs.length === 0 && (
           <div className="text-center py-4 text-sm text-slate-500">
             <History className="h-6 w-6 mx-auto mb-2 text-slate-600" />
-            <p>История пока пуста</p>
+            <p>{t.empty}</p>
           </div>
         )}
 
@@ -88,6 +141,7 @@ export function StatusHistory({ appointmentId }: StatusHistoryProps) {
                 key={log.id}
                 log={log}
                 isFirst={index === 0}
+                locale={locale}
               />
             ))}
           </div>
@@ -100,9 +154,10 @@ export function StatusHistory({ appointmentId }: StatusHistoryProps) {
 /**
  * Встроенная версия истории (для модального окна)
  */
-export function StatusHistoryInline({ appointmentId }: StatusHistoryProps) {
+export function StatusHistoryInline({ appointmentId, locale }: StatusHistoryProps) {
   const [logs, setLogs] = useState<StatusLog[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const t = STATUS_HISTORY_COPY[locale];
 
   const loadHistory = useCallback(async () => {
     try {
@@ -132,7 +187,7 @@ export function StatusHistoryInline({ appointmentId }: StatusHistoryProps) {
     return (
       <div className="text-center py-6 text-sm text-slate-500">
         <History className="h-8 w-8 mx-auto mb-2 text-slate-600" />
-        <p>История изменений пуста</p>
+        <p>{t.emptyInline}</p>
       </div>
     );
   }
@@ -144,6 +199,7 @@ export function StatusHistoryInline({ appointmentId }: StatusHistoryProps) {
           key={log.id}
           log={log}
           isFirst={index === 0}
+          locale={locale}
         />
       ))}
     </div>
@@ -154,28 +210,38 @@ export function StatusHistoryInline({ appointmentId }: StatusHistoryProps) {
    STATUS LOG ITEM COMPONENT
 ═══════════════════════════════════════════════════════════════════════════ */
 
-function StatusLogItem({ log, isFirst }: { log: StatusLog; isFirst: boolean }) {
+function StatusLogItem({
+  log,
+  isFirst,
+  locale,
+}: {
+  log: StatusLog;
+  isFirst: boolean;
+  locale: SeoLocale;
+}) {
+  const t = STATUS_HISTORY_COPY[locale];
+
   const statusInfo: Record<
     AppointmentStatus,
     { text: string; color: string; bg: string }
   > = {
     PENDING: {
-      text: 'Ожидание',
+      text: t.pending,
       color: 'text-amber-400',
       bg: 'bg-amber-500/10',
     },
     CONFIRMED: {
-      text: 'Подтверждено',
+      text: t.confirmed,
       color: 'text-emerald-400',
       bg: 'bg-emerald-500/10',
     },
     DONE: {
-      text: 'Выполнено',
+      text: t.done,
       color: 'text-sky-400',
       bg: 'bg-sky-500/10',
     },
     CANCELED: {
-      text: 'Отменено',
+      text: t.canceled,
       color: 'text-rose-400',
       bg: 'bg-rose-500/10',
     },
@@ -185,7 +251,7 @@ function StatusLogItem({ log, isFirst }: { log: StatusLog; isFirst: boolean }) {
   const previous = log.previousStatus ? statusInfo[log.previousStatus] : null;
 
   const formatDate = (date: Date) => {
-    return new Intl.DateTimeFormat('ru-RU', {
+    return new Intl.DateTimeFormat(localeToIntl(locale), {
       day: '2-digit',
       month: 'short',
       hour: '2-digit',
@@ -235,7 +301,7 @@ function StatusLogItem({ log, isFirst }: { log: StatusLog; isFirst: boolean }) {
           </span>
           <span className="flex items-center gap-1">
             <User2 className="h-3 w-3" />
-            {log.changedBy || 'system'}
+            {log.changedBy || t.system}
           </span>
         </div>
 

@@ -6,6 +6,7 @@ import { Edit2 } from 'lucide-react';
 import CategoryEditModal from './CategoryEditModal';
 import ServiceEditModal from './ServiceEditModal';
 import type { ActionResult } from './actions';
+import type { SeoLocale } from '@/lib/seo-locale';
 
 type CategoryForEdit = {
   id: string;
@@ -17,6 +18,7 @@ type CategoryForEdit = {
 
 type CategoryEditButtonProps = {
   category: CategoryForEdit;
+  locale?: SeoLocale;
   onUpdate: (formData: FormData) => Promise<ActionResult>;
   onDelete: (formData: FormData) => Promise<ActionResult>;
 };
@@ -41,11 +43,24 @@ type ServiceForEdit = {
 type ServiceEditButtonProps = {
   service: ServiceForEdit;
   parentOptions: ParentOption[];
+  locale?: SeoLocale;
   onUpdate: (formData: FormData) => Promise<ActionResult>;
   onDelete: (formData: FormData) => Promise<ActionResult>;
 };
 
-export function CategoryEditButton({ category, onUpdate, onDelete }: CategoryEditButtonProps) {
+const EDIT_COPY: Record<SeoLocale, { edit: string; short: string }> = {
+  de: { edit: 'Bearbeiten', short: 'Bearb.' },
+  ru: { edit: 'Редактировать', short: 'Ред.' },
+  en: { edit: 'Edit', short: 'Edit' },
+};
+
+export function CategoryEditButton({
+  category,
+  locale = 'de',
+  onUpdate,
+  onDelete,
+}: CategoryEditButtonProps) {
+  const t = EDIT_COPY[locale];
   const [isOpen, setIsOpen] = useState<boolean>(false);
 
   return (
@@ -61,12 +76,13 @@ export function CategoryEditButton({ category, onUpdate, onDelete }: CategoryEdi
         ].join(' ')}
       >
         <Edit2 className="h-3.5 w-3.5 shrink-0" />
-        <span className="hidden xl:inline">Редактировать</span>
-        <span className="xl:hidden">Ред.</span>
+        <span className="hidden xl:inline">{t.edit}</span>
+        <span className="xl:hidden">{t.short}</span>
       </button>
 
       {isOpen && (
         <CategoryEditModal
+          locale={locale}
           category={category}
           onClose={() => setIsOpen(false)}
           onUpdate={onUpdate}
@@ -77,7 +93,14 @@ export function CategoryEditButton({ category, onUpdate, onDelete }: CategoryEdi
   );
 }
 
-export function ServiceEditButton({ service, parentOptions, onUpdate, onDelete }: ServiceEditButtonProps) {
+export function ServiceEditButton({
+  service,
+  parentOptions,
+  locale = 'de',
+  onUpdate,
+  onDelete,
+}: ServiceEditButtonProps) {
+  const t = EDIT_COPY[locale];
   const [isOpen, setIsOpen] = useState<boolean>(false);
 
   return (
@@ -93,12 +116,13 @@ export function ServiceEditButton({ service, parentOptions, onUpdate, onDelete }
         ].join(' ')}
       >
         <Edit2 className="h-4 w-4 shrink-0" />
-        <span className="hidden sm:inline">Редактировать</span>
-        <span className="sm:hidden">Ред.</span>
+        <span className="hidden sm:inline">{t.edit}</span>
+        <span className="sm:hidden">{t.short}</span>
       </button>
 
       {isOpen && (
         <ServiceEditModal
+          locale={locale}
           service={service}
           parentOptions={parentOptions}
           onClose={() => setIsOpen(false)}

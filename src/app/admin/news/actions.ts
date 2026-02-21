@@ -7,6 +7,7 @@ import { ArticleType, Prisma, VideoType } from "@prisma/client";
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { isSeoLocale, type SeoLocale } from "@/lib/seo-locale";
 
 /* =========================
  * ТИПЫ
@@ -20,6 +21,79 @@ export type ActionFail = {
   details?: { fieldErrors?: FieldErrors };
 };
 export type ActionResult = ActionOk | ActionFail;
+
+type NewsActionCopy = {
+  titleRequired: string;
+  slugRequired: string;
+  slugInvalid: string;
+  bodyRequired: string;
+  invalidFields: string;
+  imageSaveFailed: string;
+  videoSaveFailed: string;
+  duplicateSlug: string;
+  slugBusy: string;
+  saveFailed: string;
+  idRequired: string;
+  deleteFailed: string;
+  articleNotFound: string;
+  pinToggleFailed: string;
+};
+
+const NEWS_ACTION_COPY: Record<SeoLocale, NewsActionCopy> = {
+  de: {
+    titleRequired: "Titel angeben",
+    slugRequired: "Slug angeben",
+    slugInvalid: "Nur Kleinbuchstaben (latein), Ziffern und Bindestriche",
+    bodyRequired: "Text ist erforderlich",
+    invalidFields: "Ungueltige Formularfelder",
+    imageSaveFailed: "Bild konnte nicht gespeichert werden",
+    videoSaveFailed: "Video konnte nicht gespeichert werden",
+    duplicateSlug: "Ein Beitrag mit diesem Slug existiert bereits",
+    slugBusy: "Slug ist bereits belegt",
+    saveFailed: "Eintrag konnte nicht gespeichert werden",
+    idRequired: "ID fehlt",
+    deleteFailed: "Eintrag konnte nicht geloescht werden",
+    articleNotFound: "Artikel nicht gefunden",
+    pinToggleFailed: "Anheften konnte nicht geaendert werden",
+  },
+  ru: {
+    titleRequired: "Укажите заголовок",
+    slugRequired: "Укажите slug",
+    slugInvalid: "Только строчные латинские буквы, цифры и дефисы",
+    bodyRequired: "Текст обязателен",
+    invalidFields: "Некорректные поля формы",
+    imageSaveFailed: "Не удалось сохранить изображение",
+    videoSaveFailed: "Не удалось сохранить видео",
+    duplicateSlug: "Публикация с таким slug уже существует",
+    slugBusy: "Slug уже занят",
+    saveFailed: "Не удалось сохранить запись",
+    idRequired: "Не указан id",
+    deleteFailed: "Не удалось удалить запись",
+    articleNotFound: "Статья не найдена",
+    pinToggleFailed: "Не удалось изменить закрепление",
+  },
+  en: {
+    titleRequired: "Enter title",
+    slugRequired: "Enter slug",
+    slugInvalid: "Only lowercase latin letters, numbers, and hyphens",
+    bodyRequired: "Text is required",
+    invalidFields: "Invalid form fields",
+    imageSaveFailed: "Failed to save image",
+    videoSaveFailed: "Failed to save video",
+    duplicateSlug: "A publication with this slug already exists",
+    slugBusy: "Slug is already taken",
+    saveFailed: "Failed to save record",
+    idRequired: "ID is required",
+    deleteFailed: "Failed to delete record",
+    articleNotFound: "Article not found",
+    pinToggleFailed: "Failed to change pin state",
+  },
+};
+
+function localeFromFormData(fd: FormData): SeoLocale {
+  const raw = fd.get("locale");
+  return isSeoLocale(raw) ? raw : "de";
+}
 
 /* =========================
  * PRISMA TYPE GUARD
@@ -39,46 +113,48 @@ function isKnownPrismaError(
  * ВАЛИДАЦИЯ (Zod)
  * =======================*/
 
-const ArticleSchema = z.object({
-  type: z
-    .nativeEnum(ArticleType)
-    .optional()
-    .transform((v) => v ?? ArticleType.ARTICLE),
+function buildArticleSchema(t: NewsActionCopy) {
+  return z.object({
+    type: z
+      .nativeEnum(ArticleType)
+      .optional()
+      .transform((v) => v ?? ArticleType.ARTICLE),
 
-  title: z.string().min(1, "Укажите заголовок"),
-  slug: z
-    .string()
-    .min(1, "Укажите slug")
-    .regex(/^[a-z0-9-]+$/, "Только строчные латинские буквы, цифры и дефисы"),
-  excerpt: z.string().optional(),
-  body: z.string().min(1, "Текст обязателен"),
+    title: z.string().min(1, t.titleRequired),
+    slug: z
+      .string()
+      .min(1, t.slugRequired)
+      .regex(/^[a-z0-9-]+$/, t.slugInvalid),
+    excerpt: z.string().optional(),
+    body: z.string().min(1, t.bodyRequired),
 
-  publishedAt: z.string().optional(),
-  expiresAt: z.string().optional(),
+    publishedAt: z.string().optional(),
+    expiresAt: z.string().optional(),
 
-  // SEO
-  seoTitle: z.string().optional(),
-  seoDescription: z.string().optional(),
-  ogTitle: z.string().optional(),
-  ogDescription: z.string().optional(),
+    // SEO
+    seoTitle: z.string().optional(),
+    seoDescription: z.string().optional(),
+    ogTitle: z.string().optional(),
+    ogDescription: z.string().optional(),
 
-  // Закрепление
-  isPinned: z.string().optional().transform((v) => v === "on" || v === "true"),
-  sortOrder: z
-    .string()
-    .optional()
-    .transform((v) => {
-      const n = parseInt(v ?? "0", 10);
-      return Number.isNaN(n) ? 0 : n;
-    }),
+    // Закрепление
+    isPinned: z.string().optional().transform((v) => v === "on" || v === "true"),
+    sortOrder: z
+      .string()
+      .optional()
+      .transform((v) => {
+        const n = parseInt(v ?? "0", 10);
+        return Number.isNaN(n) ? 0 : n;
+      }),
 
-  // Видео (URL для YouTube/Vimeo)
-  videoUrl: z.string().optional(),
-  videoType: z.preprocess(
-    (v) => (typeof v === "string" && v.trim() === "" ? undefined : v),
-    z.nativeEnum(VideoType).optional(),
-  ),
-});
+    // Видео (URL для YouTube/Vimeo)
+    videoUrl: z.string().optional(),
+    videoType: z.preprocess(
+      (v) => (typeof v === "string" && v.trim() === "" ? undefined : v),
+      z.nativeEnum(VideoType).optional(),
+    ),
+  });
+}
 
 /* =========================
  * ПАРСИНГ ДАТ
@@ -99,7 +175,7 @@ function toDates(input: { publishedAt?: string; expiresAt?: string }) {
 
 type PreparedData = {
   ok: true;
-  data: z.infer<typeof ArticleSchema>;
+  data: z.infer<ReturnType<typeof buildArticleSchema>>;
   publishedAt: Date | null;
   expiresAt: Date | null;
   coverSrc?: string | null;
@@ -107,7 +183,11 @@ type PreparedData = {
   videoSrc?: string | null;
 };
 
-async function prepareData(fd: FormData): Promise<PreparedData | ActionFail> {
+async function prepareData(
+  fd: FormData,
+  locale: SeoLocale,
+): Promise<PreparedData | ActionFail> {
+  const t = NEWS_ACTION_COPY[locale];
   const raw = {
     type: fd.get("type")?.toString(),
     title: fd.get("title")?.toString() ?? "",
@@ -130,14 +210,14 @@ async function prepareData(fd: FormData): Promise<PreparedData | ActionFail> {
     videoType: fd.get("videoType")?.toString() ?? "",
   };
 
-  const parsed = ArticleSchema.safeParse(raw);
+  const parsed = buildArticleSchema(t).safeParse(raw);
   if (!parsed.success) {
     const fieldErrors: FieldErrors = {};
     for (const issue of parsed.error.issues) {
       const key = issue.path.join(".") || "form";
       (fieldErrors[key] ??= []).push(issue.message);
     }
-    return { ok: false, error: "Некорректные поля формы", details: { fieldErrors } };
+    return { ok: false, error: t.invalidFields, details: { fieldErrors } };
   }
 
   const { publishedAt, expiresAt } = toDates(parsed.data);
@@ -156,7 +236,7 @@ async function prepareData(fd: FormData): Promise<PreparedData | ActionFail> {
       coverSrc = saved.src;
       ogImageSrc = saved.ogSrc ?? null;
     } catch (err) {
-      const msg = err instanceof Error ? err.message : "Не удалось сохранить изображение";
+      const msg = err instanceof Error ? err.message : t.imageSaveFailed;
       return { ok: false, error: msg };
     }
   } else if (coverCandidate instanceof File) {
@@ -174,7 +254,7 @@ async function prepareData(fd: FormData): Promise<PreparedData | ActionFail> {
       const saved = await saveVideoFile(videoCandidate, { dir: "uploads" });
       videoSrc = saved.src;
     } catch (err) {
-      const msg = err instanceof Error ? err.message : "Не удалось сохранить видео";
+      const msg = err instanceof Error ? err.message : t.videoSaveFailed;
       return { ok: false, error: msg };
     }
   }
@@ -195,7 +275,9 @@ async function prepareData(fd: FormData): Promise<PreparedData | ActionFail> {
  * =======================*/
 
 export async function createArticle(fd: FormData): Promise<ActionResult> {
-  const prep = await prepareData(fd);
+  const locale = localeFromFormData(fd);
+  const t = NEWS_ACTION_COPY[locale];
+  const prep = await prepareData(fd, locale);
   if (!prep.ok) return prep;
 
   try {
@@ -239,12 +321,12 @@ export async function createArticle(fd: FormData): Promise<ActionResult> {
     if (isKnownPrismaError(e, "P2002")) {
       return {
         ok: false,
-        error: "Публикация с таким slug уже существует",
-        details: { fieldErrors: { slug: ["Slug уже занят"] } },
+        error: t.duplicateSlug,
+        details: { fieldErrors: { slug: [t.slugBusy] } },
       };
     }
     console.error("Create article error:", e);
-    return { ok: false, error: "Не удалось сохранить запись" };
+    return { ok: false, error: t.saveFailed };
   }
 }
 
@@ -254,7 +336,7 @@ export async function createArticleAndRedirect(fd: FormData): Promise<void> {
     revalidatePath("/admin/news");
     redirect("/admin/news");
   }
-  throw new Error((res as ActionFail).error || "Не удалось сохранить запись");
+  throw new Error((res as ActionFail).error || NEWS_ACTION_COPY.de.saveFailed);
 }
 
 /* =========================
@@ -265,7 +347,9 @@ export async function updateArticle(
   id: string,
   fd: FormData,
 ): Promise<ActionResult> {
-  const prep = await prepareData(fd);
+  const locale = localeFromFormData(fd);
+  const t = NEWS_ACTION_COPY[locale];
+  const prep = await prepareData(fd, locale);
   if (!prep.ok) return prep;
 
   try {
@@ -311,12 +395,12 @@ export async function updateArticle(
     if (isKnownPrismaError(e, "P2002")) {
       return {
         ok: false,
-        error: "Публикация с таким slug уже существует",
-        details: { fieldErrors: { slug: ["Slug уже занят"] } },
+        error: t.duplicateSlug,
+        details: { fieldErrors: { slug: [t.slugBusy] } },
       };
     }
     console.error("Update article error:", e);
-    return { ok: false, error: "Не удалось сохранить запись" };
+    return { ok: false, error: t.saveFailed };
   }
 }
 
@@ -329,7 +413,7 @@ export async function updateArticleAndRedirect(
     revalidatePath("/admin/news");
     redirect("/admin/news");
   }
-  throw new Error((res as ActionFail).error || "Не удалось сохранить запись");
+  throw new Error((res as ActionFail).error || NEWS_ACTION_COPY.de.saveFailed);
 }
 
 /* =========================
@@ -337,15 +421,17 @@ export async function updateArticleAndRedirect(
  * =======================*/
 
 export async function deleteArticle(fd: FormData): Promise<ActionResult> {
+  const locale = localeFromFormData(fd);
+  const t = NEWS_ACTION_COPY[locale];
   const id = fd.get("id")?.toString();
-  if (!id) return { ok: false, error: "Не указан id" };
+  if (!id) return { ok: false, error: t.idRequired };
 
   try {
     await prisma.article.delete({ where: { id } });
     return { ok: true, id };
   } catch (e: unknown) {
     console.error("Delete article error:", e);
-    return { ok: false, error: "Не удалось удалить запись" };
+    return { ok: false, error: t.deleteFailed };
   }
 }
 
@@ -366,7 +452,7 @@ export async function togglePinArticle(id: string): Promise<ActionResult> {
       where: { id },
       select: { isPinned: true },
     });
-    if (!article) return { ok: false, error: "Статья не найдена" };
+    if (!article) return { ok: false, error: NEWS_ACTION_COPY.de.articleNotFound };
 
     await prisma.article.update({
       where: { id },
@@ -377,7 +463,7 @@ export async function togglePinArticle(id: string): Promise<ActionResult> {
     return { ok: true, id };
   } catch (e) {
     console.error("Toggle pin error:", e);
-    return { ok: false, error: "Не удалось изменить закрепление" };
+    return { ok: false, error: NEWS_ACTION_COPY.de.pinToggleFailed };
   }
 }
 

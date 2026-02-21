@@ -8,12 +8,12 @@ import AnimatedContactCards from "@/components/contacts/AnimatedContactCards";
 import { translate } from "@/i18n/messages";
 import {
   resolveUrlLocale,
-  resolveContentLocale,
   buildAlternates,
   BASE_URL,
   type SeoLocale,
   type SearchParamsPromise,
 } from "@/lib/seo-locale";
+import { resolveContentLocale } from "@/lib/seo-locale-server";
 
 import styles from "./contacts.module.css";
 

@@ -25,31 +25,251 @@ import {
   X,
 } from "lucide-react";
 import { IconGlow, type GlowTone } from "@/components/admin/IconGlow";
+import {
+  type SeoLocale,
+  type SearchParamsPromise,
+} from "@/lib/seo-locale";
+import { resolveContentLocale } from "@/lib/seo-locale-server";
 
 export const dynamic = "force-dynamic";
 
-type SearchParams = Promise<{ 
-  q?: string | string[];
-  filter?: string | string[];
-  page?: string | string[];
-  visits?: string | string[];
-  birthMonth?: string | string[];
-  vip?: string | string[];
-}>;
+type SearchParams = SearchParamsPromise;
 
 const CLIENTS_PER_PAGE = 10;
 const VIP_THRESHOLD = 5; // 5+ визитов = VIP
 
-function fmtDate(d: Date): string {
-  return new Intl.DateTimeFormat("ru-RU", {
+type ClientsCopy = {
+  title: string;
+  subtitle: string;
+  archive: string;
+  add: string;
+  all: string;
+  upcomingBirthdays: string;
+  vipClients: string;
+  filtersSearch: string;
+  searchPlaceholder: string;
+  byVisits: string;
+  allVisits: string;
+  noVisits: string;
+  newClients: string;
+  regularClients: string;
+  vipLong: string;
+  birthMonth: string;
+  allMonths: string;
+  onlyVip: string;
+  applyFilters: string;
+  reset: string;
+  found: string;
+  page: string;
+  of: string;
+  vipCount: string;
+  notFound: string;
+  open: string;
+  name: string;
+  phone: string;
+  birthDate: string;
+  source: string;
+  visits: string;
+  lastVisit: string;
+  actions: string;
+  noEmail: string;
+  noDate: string;
+  back: string;
+  showMore: string;
+  noSource: string;
+  friendSource: string;
+  jan: string;
+  feb: string;
+  mar: string;
+  apr: string;
+  may: string;
+  jun: string;
+  jul: string;
+  aug: string;
+  sep: string;
+  oct: string;
+  nov: string;
+  dec: string;
+};
+
+const CLIENTS_COPY: Record<SeoLocale, ClientsCopy> = {
+  de: {
+    title: "Kunden",
+    subtitle: "Suche, Filter, Statistik und VIP-Kunden",
+    archive: "Archiv",
+    add: "Hinzufuegen",
+    all: "Alle",
+    upcomingBirthdays: "Bevorstehende Geburtstage (30 Tage)",
+    vipClients: "VIP Kunden",
+    filtersSearch: "Filter und Suche",
+    searchPlaceholder: "Suche: Name, Telefon, E-Mail",
+    byVisits: "Nach Besuchen",
+    allVisits: "Alle",
+    noVisits: "Keine Besuche (0)",
+    newClients: "Neu (1-3)",
+    regularClients: "Stammkunden (4-9)",
+    vipLong: "VIP (10+)",
+    birthMonth: "Geburtsmonat",
+    allMonths: "Alle Monate",
+    onlyVip: "Nur VIP",
+    applyFilters: "Filter anwenden",
+    reset: "Zuruecksetzen",
+    found: "Gefunden",
+    page: "Seite",
+    of: "von",
+    vipCount: "VIP Kunden",
+    notFound: "Keine Kunden gefunden",
+    open: "Oeffnen",
+    name: "Name",
+    phone: "Telefon",
+    birthDate: "Geburtsdatum",
+    source: "Quelle",
+    visits: "Besuche",
+    lastVisit: "Letzter Besuch",
+    actions: "Aktionen",
+    noEmail: "—",
+    noDate: "—",
+    back: "Zurueck",
+    showMore: "Weiter",
+    noSource: "—",
+    friendSource: "friends",
+    jan: "Januar",
+    feb: "Februar",
+    mar: "Maerz",
+    apr: "April",
+    may: "Mai",
+    jun: "Juni",
+    jul: "Juli",
+    aug: "August",
+    sep: "September",
+    oct: "Oktober",
+    nov: "November",
+    dec: "Dezember",
+  },
+  ru: {
+    title: "Клиенты",
+    subtitle: "Поиск, фильтры, статистика и VIP клиенты",
+    archive: "Архив",
+    add: "Добавить",
+    all: "Все",
+    upcomingBirthdays: "Ближайшие ДР (30 дней)",
+    vipClients: "VIP клиенты",
+    filtersSearch: "Фильтры и поиск",
+    searchPlaceholder: "Поиск: имя, телефон, e-mail",
+    byVisits: "По визитам",
+    allVisits: "Все",
+    noVisits: "Без визитов (0)",
+    newClients: "Новые (1-3)",
+    regularClients: "Постоянные (4-9)",
+    vipLong: "VIP (10+)",
+    birthMonth: "Месяц ДР",
+    allMonths: "Все месяцы",
+    onlyVip: "Только VIP",
+    applyFilters: "Применить фильтры",
+    reset: "Сбросить",
+    found: "Найдено",
+    page: "Страница",
+    of: "из",
+    vipCount: "VIP клиентов",
+    notFound: "Клиенты не найдены",
+    open: "Открыть",
+    name: "Имя",
+    phone: "Телефон",
+    birthDate: "Дата рождения",
+    source: "Источник",
+    visits: "Визиты",
+    lastVisit: "Последний визит",
+    actions: "Действия",
+    noEmail: "—",
+    noDate: "—",
+    back: "Назад",
+    showMore: "Далее",
+    noSource: "—",
+    friendSource: "друзья",
+    jan: "Январь",
+    feb: "Февраль",
+    mar: "Март",
+    apr: "Апрель",
+    may: "Май",
+    jun: "Июнь",
+    jul: "Июль",
+    aug: "Август",
+    sep: "Сентябрь",
+    oct: "Октябрь",
+    nov: "Ноябрь",
+    dec: "Декабрь",
+  },
+  en: {
+    title: "Clients",
+    subtitle: "Search, filters, stats and VIP clients",
+    archive: "Archive",
+    add: "Add",
+    all: "All",
+    upcomingBirthdays: "Upcoming birthdays (30 days)",
+    vipClients: "VIP clients",
+    filtersSearch: "Filters and search",
+    searchPlaceholder: "Search: name, phone, e-mail",
+    byVisits: "By visits",
+    allVisits: "All",
+    noVisits: "No visits (0)",
+    newClients: "New (1-3)",
+    regularClients: "Regular (4-9)",
+    vipLong: "VIP (10+)",
+    birthMonth: "Birth month",
+    allMonths: "All months",
+    onlyVip: "Only VIP",
+    applyFilters: "Apply filters",
+    reset: "Reset",
+    found: "Found",
+    page: "Page",
+    of: "of",
+    vipCount: "VIP clients",
+    notFound: "No clients found",
+    open: "Open",
+    name: "Name",
+    phone: "Phone",
+    birthDate: "Birth date",
+    source: "Source",
+    visits: "Visits",
+    lastVisit: "Last visit",
+    actions: "Actions",
+    noEmail: "—",
+    noDate: "—",
+    back: "Back",
+    showMore: "Next",
+    noSource: "—",
+    friendSource: "friends",
+    jan: "January",
+    feb: "February",
+    mar: "March",
+    apr: "April",
+    may: "May",
+    jun: "June",
+    jul: "July",
+    aug: "August",
+    sep: "September",
+    oct: "October",
+    nov: "November",
+    dec: "December",
+  },
+};
+
+function localeToIntl(locale: SeoLocale): string {
+  if (locale === "ru") return "ru-RU";
+  if (locale === "en") return "en-US";
+  return "de-DE";
+}
+
+function fmtDate(d: Date, intlLocale: string): string {
+  return new Intl.DateTimeFormat(intlLocale, {
     day: "2-digit",
     month: "2-digit",
     year: "numeric",
   }).format(d);
 }
 
-function fmtDateTime(d: Date): string {
-  return new Intl.DateTimeFormat("ru-RU", {
+function fmtDateTime(d: Date, intlLocale: string): string {
+  return new Intl.DateTimeFormat(intlLocale, {
     day: "2-digit",
     month: "2-digit",
     year: "numeric",
@@ -65,8 +285,14 @@ function nextBirthday(src: Date, from: Date): Date {
   return nb;
 }
 
-/** Цветной бейдж «Как узнали» */
-function ReferralBadge({ value }: { value: string | null }) {
+/** Цветной бейдж источника */
+function ReferralBadge({
+  value,
+  t,
+}: {
+  value: string | null;
+  t: ClientsCopy;
+}) {
   const v = (value ?? "—").trim().toLowerCase();
 
   if (v === "instagram") {
@@ -101,14 +327,14 @@ function ReferralBadge({ value }: { value: string | null }) {
       <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium
                        bg-violet-500/10 text-violet-300 border border-violet-400/20">
         <UsersRound className="h-3 w-3" />
-        <span className="hidden xl:inline">Friends</span>
+        <span className="hidden xl:inline">{t.friendSource}</span>
       </span>
     );
   }
   return (
     <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium
                      bg-white/5 text-slate-400 border border-white/10">
-      —
+      {t.noSource}
     </span>
   );
 }
@@ -126,6 +352,9 @@ function VipBadge() {
 }
 
 export default async function AdminClientsPage({ searchParams }: { searchParams: SearchParams }) {
+  const locale = await resolveContentLocale(searchParams);
+  const t = CLIENTS_COPY[locale];
+  const intlLocale = localeToIntl(locale);
   const sp = await searchParams;
   const qRaw = Array.isArray(sp.q) ? sp.q[0] : sp.q;
   const filterRaw = Array.isArray(sp.filter) ? sp.filter[0] : sp.filter;
@@ -140,6 +369,20 @@ export default async function AdminClientsPage({ searchParams }: { searchParams:
   const visitsFilter = visitsRaw ? parseInt(visitsRaw, 10) : null;
   const birthMonthFilter = birthMonthRaw ? parseInt(birthMonthRaw, 10) : null;
   const isVipFilter = vipRaw === "true";
+  const months = [
+    t.jan,
+    t.feb,
+    t.mar,
+    t.apr,
+    t.may,
+    t.jun,
+    t.jul,
+    t.aug,
+    t.sep,
+    t.oct,
+    t.nov,
+    t.dec,
+  ];
 
   // ✅ Базовый фильтр для поиска
   const searchFilter: Prisma.ClientWhereInput | undefined =
@@ -283,10 +526,10 @@ export default async function AdminClientsPage({ searchParams }: { searchParams:
             </IconGlow>
             <div>
               <h1 className="text-xl sm:text-2xl font-semibold text-white">
-                Клиенты
+                {t.title}
               </h1>
               <p className="text-sm text-slate-400 mt-0.5">
-                Поиск, фильтры, статистика и VIP клиенты
+                {t.subtitle}
               </p>
             </div>
           </div>
@@ -297,7 +540,7 @@ export default async function AdminClientsPage({ searchParams }: { searchParams:
               className="btn-glass inline-flex items-center gap-2 text-sm hover:scale-105 active:scale-95"
             >
               <Archive className="h-4 w-4" />
-              <span>Архив</span>
+              <span>{t.archive}</span>
             </Link>
 
             <Link
@@ -305,7 +548,7 @@ export default async function AdminClientsPage({ searchParams }: { searchParams:
               className="btn-glass inline-flex items-center gap-2 text-sm hover:scale-105 active:scale-95"
             >
               <UserPlus className="h-4 w-4" />
-              <span>Добавить</span>
+              <span>{t.add}</span>
             </Link>
           </div>
         </div>
@@ -318,21 +561,21 @@ export default async function AdminClientsPage({ searchParams }: { searchParams:
         <ChipLink
           active={!isBirthdayFilter && !isVipFilter}
           href="/admin/clients"
-          label="Все"
+          label={t.all}
           icon={<Users className="h-4 w-4" />}
           color="sky"
         />
         <ChipLink
           active={isBirthdayFilter}
           href="/admin/clients?filter=birthdays"
-          label="Ближайшие ДР (30 дней)"
+          label={t.upcomingBirthdays}
           icon={<Cake className="h-4 w-4" />}
           color="amber"
         />
         <ChipLink
           active={isVipFilter}
           href="/admin/clients?vip=true"
-          label={`VIP клиенты (${VIP_THRESHOLD}+ визитов)`}
+          label={`${t.vipClients} (${VIP_THRESHOLD}+ ${t.visits.toLowerCase()})`}
           icon={<Crown className="h-4 w-4" />}
           color="amber"
         />
@@ -347,7 +590,7 @@ export default async function AdminClientsPage({ searchParams }: { searchParams:
             <IconGlow tone="violet" className="icon-glow-sm">
               <Filter className="h-4 w-4 text-violet-200" />
             </IconGlow>
-            <span className="text-white">Фильтры и поиск</span>
+            <span className="text-white">{t.filtersSearch}</span>
           </div>
 
           <form action="/admin/clients" method="get" className="space-y-4">
@@ -361,7 +604,7 @@ export default async function AdminClientsPage({ searchParams }: { searchParams:
                 type="text"
                 name="q"
                 defaultValue={query}
-                placeholder="Поиск: имя, телефон, e-mail"
+                placeholder={t.searchPlaceholder}
                 className="input-glass w-full pl-10"
               />
             </div>
@@ -370,41 +613,34 @@ export default async function AdminClientsPage({ searchParams }: { searchParams:
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
               {/* Фильтр по визитам */}
               <div>
-                <label className="block text-xs text-slate-400 mb-2">По визитам</label>
+                <label className="block text-xs text-slate-400 mb-2">{t.byVisits}</label>
                 <select 
                   name="visits" 
                   defaultValue={visitsRaw ?? ""}
                   className="input-glass w-full text-sm"
                 >
-                  <option value="">Все</option>
-                  <option value="0">Без визитов (0)</option>
-                  <option value="1">Новые (1-3)</option>
-                  <option value="2">Постоянные (4-9)</option>
-                  <option value="3">VIP (10+)</option>
+                  <option value="">{t.allVisits}</option>
+                  <option value="0">{t.noVisits}</option>
+                  <option value="1">{t.newClients}</option>
+                  <option value="2">{t.regularClients}</option>
+                  <option value="3">{t.vipLong}</option>
                 </select>
               </div>
 
               {/* Фильтр по месяцу ДР */}
               <div>
-                <label className="block text-xs text-slate-400 mb-2">Месяц ДР</label>
+                <label className="block text-xs text-slate-400 mb-2">{t.birthMonth}</label>
                 <select 
                   name="birthMonth" 
                   defaultValue={birthMonthRaw ?? ""}
                   className="input-glass w-full text-sm"
                 >
-                  <option value="">Все месяцы</option>
-                  <option value="1">Январь</option>
-                  <option value="2">Февраль</option>
-                  <option value="3">Март</option>
-                  <option value="4">Апрель</option>
-                  <option value="5">Май</option>
-                  <option value="6">Июнь</option>
-                  <option value="7">Июль</option>
-                  <option value="8">Август</option>
-                  <option value="9">Сентябрь</option>
-                  <option value="10">Октябрь</option>
-                  <option value="11">Ноябрь</option>
-                  <option value="12">Декабрь</option>
+                  <option value="">{t.allMonths}</option>
+                  {months.map((monthLabel, idx) => (
+                    <option key={monthLabel} value={idx + 1}>
+                      {monthLabel}
+                    </option>
+                  ))}
                 </select>
               </div>
 
@@ -420,7 +656,7 @@ export default async function AdminClientsPage({ searchParams }: { searchParams:
                   />
                   <span className="text-sm text-slate-300 flex items-center gap-1">
                     <Crown className="h-4 w-4 text-amber-400" />
-                    Только VIP
+                    {t.onlyVip}
                   </span>
                 </label>
               </div>
@@ -431,7 +667,7 @@ export default async function AdminClientsPage({ searchParams }: { searchParams:
                 type="submit"
                 className="btn-gradient-sky rounded-xl px-6 py-2.5 text-sm hover:scale-105 active:scale-95 whitespace-nowrap"
               >
-                Применить фильтры
+                {t.applyFilters}
               </button>
               
               {hasActiveFilters && (
@@ -440,7 +676,7 @@ export default async function AdminClientsPage({ searchParams }: { searchParams:
                   className="btn-glass inline-flex items-center gap-2 text-sm px-4 py-2.5 hover:scale-105 active:scale-95"
                 >
                   <X className="h-4 w-4" />
-                  Сбросить
+                  {t.reset}
                 </Link>
               )}
             </div>
@@ -451,10 +687,10 @@ export default async function AdminClientsPage({ searchParams }: { searchParams:
       {/* Статистика */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="text-sm text-slate-400">
-          Найдено: <span className="text-white font-medium">{totalClients}</span>
+          {t.found}: <span className="text-white font-medium">{totalClients}</span>
           {totalClients > CLIENTS_PER_PAGE && (
             <>
-              {" "}• Страница <span className="text-white font-medium">{currentPage}</span> из{" "}
+              {" "}• {t.page} <span className="text-white font-medium">{currentPage}</span> {t.of}{" "}
               <span className="text-white font-medium">{totalPages}</span>
             </>
           )}
@@ -462,7 +698,7 @@ export default async function AdminClientsPage({ searchParams }: { searchParams:
 
         {/* VIP счетчик */}
         <div className="text-sm text-slate-400">
-          VIP клиентов: <span className="text-amber-400 font-medium">
+          {t.vipCount}: <span className="text-amber-400 font-medium">
             {clients.filter(c => (countMap.get(c.id) ?? 0) >= VIP_THRESHOLD).length}
           </span>
         </div>
@@ -475,7 +711,7 @@ export default async function AdminClientsPage({ searchParams }: { searchParams:
         {paginatedClients.length === 0 ? (
           <div className="card-glass card-glow p-8 text-center">
             <Users className="h-12 w-12 mx-auto text-slate-600 mb-3" />
-            <p className="text-sm text-slate-400">Клиенты не найдены</p>
+            <p className="text-sm text-slate-400">{t.notFound}</p>
           </div>
         ) : (
           paginatedClients.map((c) => {
@@ -499,14 +735,14 @@ export default async function AdminClientsPage({ searchParams }: { searchParams:
                       className="btn-glass text-xs px-3 py-1.5 inline-flex items-center gap-1.5 shrink-0"
                     >
                       <Eye className="h-3.5 w-3.5" />
-                      <span>Открыть</span>
+                      <span>{t.open}</span>
                     </Link>
                   </div>
 
                   <div className="space-y-2 text-sm">
                     <InfoLine
                       icon={<Phone className="h-4 w-4 text-emerald-400" />}
-                      label="Телефон"
+                      label={t.phone}
                       value={c.phone}
                       tone="emerald"
                     />
@@ -522,8 +758,8 @@ export default async function AdminClientsPage({ searchParams }: { searchParams:
 
                     <InfoLine
                       icon={<CalendarDays className="h-4 w-4 text-violet-400" />}
-                      label="Дата рождения"
-                      value={fmtDate(c.birthDate)}
+                      label={t.birthDate}
+                      value={fmtDate(c.birthDate, intlLocale)}
                       tone="violet"
                     />
 
@@ -534,9 +770,9 @@ export default async function AdminClientsPage({ searchParams }: { searchParams:
                         </IconGlow>
                       </span>
                       <div className="min-w-0 flex-1">
-                        <div className="text-xs text-slate-500">Как узнали</div>
+                        <div className="text-xs text-slate-500">{t.source}</div>
                         <div className="mt-1">
-                          <ReferralBadge value={c.referral} />
+                          <ReferralBadge value={c.referral} t={t} />
                         </div>
                       </div>
                     </div>
@@ -544,13 +780,13 @@ export default async function AdminClientsPage({ searchParams }: { searchParams:
 
                   <div className="flex items-center justify-between pt-3 border-t border-white/10">
                     <div className="text-xs text-slate-400">
-                      Визитов: <span className={`font-semibold ${isVip ? 'text-amber-400' : 'text-emerald-400'}`}>
+                      {t.visits}: <span className={`font-semibold ${isVip ? 'text-amber-400' : 'text-emerald-400'}`}>
                         {visits}
                       </span>
                     </div>
                     {last && (
                       <div className="text-xs text-slate-400">
-                        {fmtDateTime(last)}
+                        {fmtDateTime(last, intlLocale)}
                       </div>
                     )}
                   </div>
@@ -568,7 +804,7 @@ export default async function AdminClientsPage({ searchParams }: { searchParams:
         {paginatedClients.length === 0 ? (
           <div className="card-glass card-glow p-8 text-center">
             <Users className="h-12 w-12 mx-auto text-slate-600 mb-3" />
-            <p className="text-sm text-slate-400">Клиенты не найдены</p>
+            <p className="text-sm text-slate-400">{t.notFound}</p>
           </div>
         ) : (
           <div className="card-glass-hover card-glow overflow-hidden">
@@ -577,28 +813,28 @@ export default async function AdminClientsPage({ searchParams }: { searchParams:
                 <thead>
                   <tr className="border-b border-white/10">
                     <th className="py-3 px-3 text-left font-semibold text-slate-300 text-xs">
-                      Имя
+                      {t.name}
                     </th>
                     <th className="py-3 px-2 text-left font-semibold text-slate-300 text-xs">
-                      Телефон
+                      {t.phone}
                     </th>
                     <th className="py-3 px-2 text-left font-semibold text-slate-300 text-xs hidden xl:table-cell">
                       E-mail
                     </th>
                     <th className="py-3 px-2 text-left font-semibold text-slate-300 text-xs">
-                      ДР
+                      {t.birthDate}
                     </th>
                     <th className="py-3 px-2 text-center font-semibold text-slate-300 text-xs">
-                      Источник
+                      {t.source}
                     </th>
                     <th className="py-3 px-2 text-center font-semibold text-slate-300 text-xs">
-                      Визиты
+                      {t.visits}
                     </th>
                     <th className="py-3 px-2 text-left font-semibold text-slate-300 text-xs hidden 2xl:table-cell">
-                      Последний визит
+                      {t.lastVisit}
                     </th>
                     <th className="py-3 px-2 text-right font-semibold text-slate-300 text-xs">
-                      
+                      {t.actions}
                     </th>
                   </tr>
                 </thead>
@@ -640,7 +876,7 @@ export default async function AdminClientsPage({ searchParams }: { searchParams:
                               <span className="text-slate-200 text-xs truncate max-w-[200px]">{c.email}</span>
                             </div>
                           ) : (
-                            <span className="text-slate-500 text-xs">—</span>
+                            <span className="text-slate-500 text-xs">{t.noEmail}</span>
                           )}
                         </td>
 
@@ -649,14 +885,14 @@ export default async function AdminClientsPage({ searchParams }: { searchParams:
                           <div className="flex items-center gap-1.5">
                             <CalendarDays className="h-3 w-3 text-violet-400 shrink-0" />
                             <span className="text-slate-200 text-xs whitespace-nowrap">
-                              {fmtDate(c.birthDate)}
+                              {fmtDate(c.birthDate, intlLocale)}
                             </span>
                           </div>
                         </td>
 
                         {/* Как узнали */}
                         <td className="py-2.5 px-2 text-center">
-                          <ReferralBadge value={c.referral} />
+                          <ReferralBadge value={c.referral} t={t} />
                         </td>
 
                         {/* Визитов */}
@@ -680,11 +916,11 @@ export default async function AdminClientsPage({ searchParams }: { searchParams:
                             <div className="flex items-center gap-1.5">
                               <CalendarClock className="h-3 w-3 text-slate-400 shrink-0" />
                               <span className="text-slate-200 text-xs whitespace-nowrap">
-                                {fmtDateTime(last)}
+                                {fmtDateTime(last, intlLocale)}
                               </span>
                             </div>
                           ) : (
-                            <span className="text-slate-500 text-xs">—</span>
+                            <span className="text-slate-500 text-xs">{t.noDate}</span>
                           )}
                         </td>
 
@@ -695,7 +931,7 @@ export default async function AdminClientsPage({ searchParams }: { searchParams:
                             className="btn-glass text-xs px-2.5 py-1 inline-flex items-center gap-1 hover:scale-105 active:scale-95 whitespace-nowrap"
                           >
                             <Eye className="h-3 w-3 text-sky-300" />
-                            <span className="hidden lg:inline">Просмотр</span>
+                            <span className="hidden lg:inline">{t.open}</span>
                           </Link>
                         </td>
                       </tr>
@@ -720,7 +956,7 @@ export default async function AdminClientsPage({ searchParams }: { searchParams:
                          ${currentPage === 1 ? 'opacity-50 pointer-events-none' : 'hover:scale-105 active:scale-95'}`}
             >
               <ChevronLeft className="h-4 w-4" />
-              <span className="hidden sm:inline">Назад</span>
+              <span className="hidden sm:inline">{t.back}</span>
             </Link>
 
             <div className="flex items-center gap-2">
@@ -756,7 +992,7 @@ export default async function AdminClientsPage({ searchParams }: { searchParams:
               className={`btn-glass inline-flex items-center gap-2 text-sm px-4 py-2
                          ${currentPage === totalPages ? 'opacity-50 pointer-events-none' : 'hover:scale-105 active:scale-95'}`}
             >
-              <span className="hidden sm:inline">Далее</span>
+              <span className="hidden sm:inline">{t.showMore}</span>
               <ChevronRight className="h-4 w-4" />
             </Link>
           </div>

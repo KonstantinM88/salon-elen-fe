@@ -6,6 +6,7 @@ import { Languages } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import TranslationEditor from './TranslationEditor';
 import { getAvailableLocales, getLanguageFlag } from '@/lib/i18n-utils';
+import type { SeoLocale } from '@/lib/seo-locale';
 
 type Translation = {
   locale: string;
@@ -22,9 +23,17 @@ type ServiceLike = {
 type Props = {
   service: ServiceLike;
   categoryName?: string;
+  locale?: SeoLocale;
 };
 
-export function TranslationButton({ service, categoryName }: Props) {
+const TRANSLATION_BUTTON_COPY: Record<SeoLocale, { title: string; label: string }> = {
+  de: { title: 'Uebersetzungen bearbeiten', label: 'Uebersetzungen' },
+  ru: { title: 'Редактировать переводы', label: 'Переводы' },
+  en: { title: 'Edit translations', label: 'Translations' },
+};
+
+export function TranslationButton({ service, categoryName, locale = 'de' }: Props) {
+  const t = TRANSLATION_BUTTON_COPY[locale];
   const [isOpen, setIsOpen] = useState<boolean>(false);
   const router = useRouter();
 
@@ -47,11 +56,11 @@ export function TranslationButton({ service, categoryName }: Props) {
           'text-xs',
           'whitespace-nowrap',
         ].join(' ')}
-        title="Редактировать переводы"
+        title={t.title}
         type="button"
       >
         <Languages className="h-3.5 w-3.5 shrink-0" />
-        <span className="hidden xl:inline">Переводы</span>
+        <span className="hidden xl:inline">{t.label}</span>
 
         {!hasAllTranslations && (
           <span className="px-1 py-0.5 rounded text-[10px] bg-yellow-500/20 text-yellow-300">
@@ -70,6 +79,7 @@ export function TranslationButton({ service, categoryName }: Props) {
 
       {isOpen && (
         <TranslationEditor
+          locale={locale}
           serviceId={service.id}
           serviceName={categoryName ? `${categoryName} → ${service.name}` : service.name}
           translations={service.translations}

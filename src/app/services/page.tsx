@@ -5,11 +5,11 @@ import type { Metadata } from "next";
 import ServicesClient from "./ServicesClient";
 import {
   resolveUrlLocale,
-  resolveContentLocale,
   buildAlternates,
   type SeoLocale,
   type SearchParamsPromise,
 } from "@/lib/seo-locale";
+import { resolveContentLocale } from "@/lib/seo-locale-server";
 
 export const dynamic = "force-dynamic";
 

@@ -28,12 +28,215 @@ import {
 import { IconGlow, type GlowTone } from '@/components/admin/IconGlow';
 import { DeleteConfirmDialog } from './_components/DeleteConfirmDialog';
 import { StatusHistory } from './_components/StatusHistory';
+import {
+  type SeoLocale,
+  type SearchParamsPromise,
+} from '@/lib/seo-locale';
+import { resolveContentLocale } from '@/lib/seo-locale-server';
 
 export const dynamic = 'force-dynamic';
 
-type SearchParams = Promise<Record<string, string | string[] | undefined>>;
+type SearchParams = SearchParamsPromise;
 
 const PAGE_SIZE = 10;
+
+type BookingsCopy = {
+  title: string;
+  subtitle: string;
+  archive: string;
+  exportCsv: string;
+  today: string;
+  week: string;
+  month: string;
+  filters: string;
+  period: string;
+  last7Days: string;
+  last30Days: string;
+  currentMonth: string;
+  currentYear: string;
+  status: string;
+  all: string;
+  pending: string;
+  confirmed: string;
+  canceled: string;
+  done: string;
+  master: string;
+  allMasters: string;
+  periodBy: string;
+  createdDate: string;
+  visitDate: string;
+  applyFilters: string;
+  noRecords: string;
+  page: string;
+  back: string;
+  showMore: string;
+  createdAt: string;
+  client: string;
+  openProfile: string;
+  phone: string;
+  email: string;
+  service: string;
+  cost: string;
+  masterLabel: string;
+  visitTime: string;
+  time: string;
+  comment: string;
+  commentWithColon: string;
+  costWithColon: string;
+  confirmAction: string;
+  doneAction: string;
+  cancelAction: string;
+};
+
+const BOOKINGS_COPY: Record<SeoLocale, BookingsCopy> = {
+  de: {
+    title: 'Buchungen',
+    subtitle: 'Verwaltung der Online-Buchungen',
+    archive: 'Archiv',
+    exportCsv: 'CSV Export',
+    today: 'Heute',
+    week: 'Woche',
+    month: 'Monat',
+    filters: 'Filter',
+    period: 'Zeitraum',
+    last7Days: 'Letzte 7 Tage',
+    last30Days: 'Letzte 30 Tage',
+    currentMonth: 'Aktueller Monat',
+    currentYear: 'Aktuelles Jahr',
+    status: 'Status',
+    all: 'Alle',
+    pending: 'Wartend',
+    confirmed: 'Bestaetigt',
+    canceled: 'Storniert',
+    done: 'Abgeschlossen',
+    master: 'Mitarbeiter',
+    allMasters: 'Alle Mitarbeiter',
+    periodBy: 'Zeitraum nach',
+    createdDate: 'Erstellungsdatum',
+    visitDate: 'Besuchsdatum',
+    applyFilters: 'Filter anwenden',
+    noRecords: 'Noch keine Buchungen',
+    page: 'Seite',
+    back: 'Zurueck',
+    showMore: 'Mehr anzeigen',
+    createdAt: 'Erstellt',
+    client: 'Kunde',
+    openProfile: 'Profil oeffnen',
+    phone: 'Telefon',
+    email: 'Email',
+    service: 'Leistung',
+    cost: 'Kosten',
+    masterLabel: 'Mitarbeiter',
+    visitTime: 'Terminzeit',
+    time: 'Zeit',
+    comment: 'Kommentar',
+    commentWithColon: 'Kommentar:',
+    costWithColon: 'Kosten:',
+    confirmAction: 'Bestaetigen',
+    doneAction: 'Abgeschlossen',
+    cancelAction: 'Stornieren',
+  },
+  ru: {
+    title: 'Заявки на запись',
+    subtitle: 'Управление онлайн-записями клиентов',
+    archive: 'Архив',
+    exportCsv: 'Экспорт CSV',
+    today: 'Сегодня',
+    week: 'Неделя',
+    month: 'Месяц',
+    filters: 'Фильтры',
+    period: 'Период',
+    last7Days: 'Последние 7 дней',
+    last30Days: 'Последние 30 дней',
+    currentMonth: 'Текущий месяц',
+    currentYear: 'Текущий год',
+    status: 'Статус',
+    all: 'Все',
+    pending: 'В ожидании',
+    confirmed: 'Подтверждённые',
+    canceled: 'Отменённые',
+    done: 'Выполненные',
+    master: 'Мастер',
+    allMasters: 'Все мастера',
+    periodBy: 'Считать период по',
+    createdDate: 'Дате создания',
+    visitDate: 'Дате визита',
+    applyFilters: 'Применить фильтры',
+    noRecords: 'Записей пока нет',
+    page: 'Страница',
+    back: 'Назад',
+    showMore: 'Показать ещё',
+    createdAt: 'Создано',
+    client: 'Клиент',
+    openProfile: 'Открыть профиль',
+    phone: 'Телефон',
+    email: 'Email',
+    service: 'Услуга',
+    cost: 'Стоимость',
+    masterLabel: 'Мастер',
+    visitTime: 'Время визита',
+    time: 'Время',
+    comment: 'Комментарий',
+    commentWithColon: 'Комментарий:',
+    costWithColon: 'Стоимость:',
+    confirmAction: 'Подтвердить',
+    doneAction: 'Выполнен',
+    cancelAction: 'Отменить',
+  },
+  en: {
+    title: 'Bookings',
+    subtitle: 'Manage client online bookings',
+    archive: 'Archive',
+    exportCsv: 'Export CSV',
+    today: 'Today',
+    week: 'Week',
+    month: 'Month',
+    filters: 'Filters',
+    period: 'Period',
+    last7Days: 'Last 7 days',
+    last30Days: 'Last 30 days',
+    currentMonth: 'Current month',
+    currentYear: 'Current year',
+    status: 'Status',
+    all: 'All',
+    pending: 'Pending',
+    confirmed: 'Confirmed',
+    canceled: 'Canceled',
+    done: 'Completed',
+    master: 'Staff',
+    allMasters: 'All staff',
+    periodBy: 'Calculate period by',
+    createdDate: 'Creation date',
+    visitDate: 'Visit date',
+    applyFilters: 'Apply filters',
+    noRecords: 'No bookings yet',
+    page: 'Page',
+    back: 'Back',
+    showMore: 'Show more',
+    createdAt: 'Created',
+    client: 'Client',
+    openProfile: 'Open profile',
+    phone: 'Phone',
+    email: 'Email',
+    service: 'Service',
+    cost: 'Cost',
+    masterLabel: 'Staff',
+    visitTime: 'Visit time',
+    time: 'Time',
+    comment: 'Comment',
+    commentWithColon: 'Comment:',
+    costWithColon: 'Cost:',
+    confirmAction: 'Confirm',
+    doneAction: 'Completed',
+    cancelAction: 'Cancel',
+  },
+};
+
+function localeToIntl(locale: SeoLocale): string {
+  if (locale === 'ru') return 'ru-RU';
+  if (locale === 'en') return 'en-US';
+  return 'de-DE';
+}
 
 /* ═══════════════════════════════════════════════════════════════════════════
    HELPER FUNCTIONS
@@ -64,9 +267,9 @@ function qs(
 }
 
 const CURRENCY = process.env.NEXT_PUBLIC_CURRENCY || 'EUR';
-function moneyFromCents(cents?: number | null) {
+function moneyFromCents(cents: number | null | undefined, intlLocale: string) {
   const value = (cents ?? 0) / 100;
-  return new Intl.NumberFormat('ru-RU', {
+  return new Intl.NumberFormat(intlLocale, {
     style: 'currency',
     currency: CURRENCY,
   }).format(value);
@@ -154,6 +357,9 @@ export default async function AdminBookingsPage({
   searchParams: SearchParams;
 }) {
   const sp = await searchParams;
+  const locale = await resolveContentLocale(searchParams);
+  const t = BOOKINGS_COPY[locale];
+  const intlLocale = localeToIntl(locale);
 
   const page = Math.max(1, num(getOne(sp, 'page')));
   const statusParam = (getOne(sp, 'status') ?? 'all').toLowerCase();
@@ -241,10 +447,10 @@ export default async function AdminBookingsPage({
             </IconGlow>
             <div>
               <h1 className="text-xl sm:text-2xl font-semibold text-white">
-                Заявки на запись
+                {t.title}
               </h1>
               <p className="text-sm text-slate-400 mt-0.5">
-                Управление онлайн-записями клиентов
+                {t.subtitle}
               </p>
             </div>
           </div>
@@ -256,7 +462,7 @@ export default async function AdminBookingsPage({
               className="btn-glass inline-flex items-center gap-2 text-sm hover:scale-105 active:scale-95"
             >
               <Archive className="h-4 w-4" />
-              <span>Архив</span>
+              <span>{t.archive}</span>
             </Link>
 
             <Link
@@ -264,7 +470,7 @@ export default async function AdminBookingsPage({
               className="btn-glass inline-flex items-center gap-2 text-sm hover:scale-105 active:scale-95"
             >
               <Download className="h-4 w-4" />
-              <span>Экспорт CSV</span>
+              <span>{t.exportCsv}</span>
             </Link>
           </div>
         </div>
@@ -277,19 +483,19 @@ export default async function AdminBookingsPage({
         <ChipLink
           active={period === 'today'}
           href={qs(baseQS, { period: 'today', page: 1 })}
-          label="Сегодня"
+          label={t.today}
           color="sky"
         />
         <ChipLink
           active={period === '7d'}
           href={qs(baseQS, { period: '7d', page: 1 })}
-          label="Неделя"
+          label={t.week}
           color="emerald"
         />
         <ChipLink
           active={period === 'thisMonth'}
           href={qs(baseQS, { period: 'thisMonth', page: 1 })}
-          label="Месяц"
+          label={t.month}
           color="violet"
         />
       </div>
@@ -303,35 +509,35 @@ export default async function AdminBookingsPage({
             <IconGlow tone="sky" className="icon-glow-sm">
               <Filter className="h-4 w-4 text-sky-200" />
             </IconGlow>
-            <span className="text-white">Фильтры</span>
+            <span className="text-white">{t.filters}</span>
           </div>
 
           <form className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4" method="GET">
             <input type="hidden" name="page" value="1" />
 
-            <Field label="Период">
+            <Field label={t.period}>
               <select name="period" defaultValue={period} className="input-glass">
-                <option value="today">Сегодня</option>
-                <option value="7d">Последние 7 дней</option>
-                <option value="30d">Последние 30 дней</option>
-                <option value="thisMonth">Текущий месяц</option>
-                <option value="thisYear">Текущий год</option>
+                <option value="today">{t.today}</option>
+                <option value="7d">{t.last7Days}</option>
+                <option value="30d">{t.last30Days}</option>
+                <option value="thisMonth">{t.currentMonth}</option>
+                <option value="thisYear">{t.currentYear}</option>
               </select>
             </Field>
 
-            <Field label="Статус">
+            <Field label={t.status}>
               <select name="status" defaultValue={statusParam} className="input-glass">
-                <option value="all">Все</option>
-                <option value="pending">В ожидании</option>
-                <option value="confirmed">Подтверждённые</option>
-                <option value="canceled">Отменённые</option>
-                <option value="done">Выполненные</option>
+                <option value="all">{t.all}</option>
+                <option value="pending">{t.pending}</option>
+                <option value="confirmed">{t.confirmed}</option>
+                <option value="canceled">{t.canceled}</option>
+                <option value="done">{t.done}</option>
               </select>
             </Field>
 
-            <Field label="Мастер">
+            <Field label={t.master}>
               <select name="master" defaultValue={masterParam} className="input-glass">
-                <option value="all">Все мастера</option>
+                <option value="all">{t.allMasters}</option>
                 {masters.map((m) => (
                   <option key={m.id} value={m.id}>
                     {m.name}
@@ -340,10 +546,10 @@ export default async function AdminBookingsPage({
               </select>
             </Field>
 
-            <Field label="Считать период по">
+            <Field label={t.periodBy}>
               <select name="by" defaultValue={by} className="input-glass">
-                <option value="created">Дате создания</option>
-                <option value="visit">Дате визита</option>
+                <option value="created">{t.createdDate}</option>
+                <option value="visit">{t.visitDate}</option>
               </select>
             </Field>
 
@@ -351,7 +557,7 @@ export default async function AdminBookingsPage({
               <button
                 className="btn-gradient-sky w-full sm:w-auto rounded-xl px-6 py-2.5 text-sm hover:scale-105 active:scale-95"
               >
-                Применить фильтры
+                {t.applyFilters}
               </button>
             </div>
           </form>
@@ -363,7 +569,7 @@ export default async function AdminBookingsPage({
       ═══════════════════════════════════════════════════════════════════ */}
       <div className="space-y-3 md:hidden">
         {rows.map((r) => (
-          <MobileBookingCard key={r.id} booking={r} />
+          <MobileBookingCard key={r.id} booking={r} t={t} intlLocale={intlLocale} locale={locale} />
         ))}
 
         {rows.length === 0 && (
@@ -371,7 +577,7 @@ export default async function AdminBookingsPage({
             <div className="absolute inset-0 bg-gradient-to-br from-slate-800/20 to-transparent" />
             <div className="relative">
               <Calendar className="h-12 w-12 mx-auto text-slate-600 mb-3" />
-              <p className="text-sm text-slate-400">Записей пока нет</p>
+              <p className="text-sm text-slate-400">{t.noRecords}</p>
             </div>
           </div>
         )}
@@ -382,7 +588,7 @@ export default async function AdminBookingsPage({
       ═══════════════════════════════════════════════════════════════════ */}
       <div className="hidden md:block space-y-3">
         {rows.map((r) => (
-          <DesktopBookingCard key={r.id} booking={r} />
+          <DesktopBookingCard key={r.id} booking={r} t={t} intlLocale={intlLocale} locale={locale} />
         ))}
 
         {rows.length === 0 && (
@@ -390,7 +596,7 @@ export default async function AdminBookingsPage({
             <div className="absolute inset-0 bg-gradient-to-br from-slate-800/20 to-transparent" />
             <div className="relative">
               <Calendar className="h-12 w-12 mx-auto text-slate-600 mb-3" />
-              <p className="text-sm text-slate-400">Записей пока нет</p>
+              <p className="text-sm text-slate-400">{t.noRecords}</p>
             </div>
           </div>
         )}
@@ -400,14 +606,14 @@ export default async function AdminBookingsPage({
           ПАГИНАЦИЯ
       ═══════════════════════════════════════════════════════════════════ */}
       <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
-        <div className="text-sm text-slate-400">Страница {page}</div>
+        <div className="text-sm text-slate-400">{t.page} {page}</div>
         <div className="flex gap-2">
           {page > 1 && (
             <Link
               className="btn-glass text-sm"
               href={qs(baseQS, { page: page - 1 })}
             >
-              ← Назад
+              ← {t.back}
             </Link>
           )}
           {hasMore && (
@@ -415,7 +621,7 @@ export default async function AdminBookingsPage({
               className="btn-gradient-sky rounded-xl px-4 py-2.5 text-sm"
               href={qs(baseQS, { page: page + 1 })}
             >
-              Показать ещё
+              {t.showMore}
             </Link>
           )}
         </div>
@@ -428,12 +634,22 @@ export default async function AdminBookingsPage({
    DESKTOP КАРТОЧКА
 ═══════════════════════════════════════════════════════════════════════════ */
 
-function DesktopBookingCard({ booking }: { booking: BookingRow }) {
+function DesktopBookingCard({
+  booking,
+  t,
+  intlLocale,
+  locale,
+}: {
+  booking: BookingRow;
+  t: BookingsCopy;
+  intlLocale: string;
+  locale: SeoLocale;
+}) {
   const priceCents = booking.service?.priceCents;
   const priceValue =
     priceCents != null ? (
       <span className="font-semibold text-emerald-400">
-        {moneyFromCents(priceCents)}
+        {moneyFromCents(priceCents, intlLocale)}
       </span>
     ) : (
       '—'
@@ -446,10 +662,10 @@ function DesktopBookingCard({ booking }: { booking: BookingRow }) {
           <div className="flex flex-wrap items-center gap-2">
             <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-slate-300">
               <Calendar className="h-3.5 w-3.5 text-slate-400" />
-              <span>Создано: {formatInOrgTzDateTime(booking.createdAt)}</span>
+              <span>{t.createdAt}: {formatInOrgTzDateTime(booking.createdAt)}</span>
             </span>
           </div>
-          <StatusBadge status={booking.status} />
+          <StatusBadge status={booking.status} t={t} />
         </div>
 
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
@@ -469,14 +685,14 @@ function DesktopBookingCard({ booking }: { booking: BookingRow }) {
               </span>
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-1.5">
-                  <div className="text-xs text-fuchsia-400/70 font-medium">Клиент</div>
+                  <div className="text-xs text-fuchsia-400/70 font-medium">{t.client}</div>
                   <ExternalLink className="h-3 w-3 text-fuchsia-400/50 opacity-0 group-hover:opacity-100 transition-opacity" />
                 </div>
                 <div className="text-white font-medium group-hover:text-fuchsia-100 transition-colors break-words">
                   {booking.customerName}
                 </div>
                 <div className="text-[10px] text-fuchsia-400/50 mt-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                  Открыть профиль →
+                  {t.openProfile} →
                 </div>
               </div>
             </div>
@@ -486,7 +702,7 @@ function DesktopBookingCard({ booking }: { booking: BookingRow }) {
             <div className="rounded-xl border border-white/10 bg-white/5 p-3">
               <InfoLine
                 icon={<Phone className="h-4 w-4 text-emerald-400" />}
-                label="Телефон"
+                label={t.phone}
                 value={booking.phone}
                 tone="emerald"
               />
@@ -497,7 +713,7 @@ function DesktopBookingCard({ booking }: { booking: BookingRow }) {
             <div className="rounded-xl border border-white/10 bg-white/5 p-3">
               <InfoLine
                 icon={<Mail className="h-4 w-4 text-sky-400" />}
-                label="Email"
+                label={t.email}
                 value={booking.email}
                 tone="sky"
               />
@@ -507,7 +723,7 @@ function DesktopBookingCard({ booking }: { booking: BookingRow }) {
           <div className="rounded-xl border border-white/10 bg-white/5 p-3">
             <InfoLine
               icon={<Scissors className="h-4 w-4 text-amber-400" />}
-              label="Услуга"
+              label={t.service}
               value={<span className="block line-clamp-2">{servicePath(booking.service)}</span>}
               tone="amber"
             />
@@ -516,7 +732,7 @@ function DesktopBookingCard({ booking }: { booking: BookingRow }) {
           <div className="rounded-xl border border-white/10 bg-white/5 p-3">
             <InfoLine
               icon={<Sparkles className="h-4 w-4 text-emerald-300" />}
-              label="Стоимость"
+              label={t.cost}
               value={priceValue}
               tone="emerald"
             />
@@ -525,7 +741,7 @@ function DesktopBookingCard({ booking }: { booking: BookingRow }) {
           <div className="rounded-xl border border-white/10 bg-white/5 p-3">
             <InfoLine
               icon={<User2 className="h-4 w-4 text-cyan-400" />}
-              label="Мастер"
+              label={t.masterLabel}
               value={booking.master?.name ?? '—'}
               tone="cyan"
             />
@@ -534,7 +750,7 @@ function DesktopBookingCard({ booking }: { booking: BookingRow }) {
           <div className="rounded-xl border border-white/10 bg-white/5 p-3">
             <InfoLine
               icon={<Clock className="h-4 w-4 text-violet-400" />}
-              label="Время визита"
+              label={t.visitTime}
               value={formatWallRangeWithDate(booking.startAt, booking.endAt)}
               tone="violet"
             />
@@ -550,7 +766,7 @@ function DesktopBookingCard({ booking }: { booking: BookingRow }) {
                 </IconGlow>
               </span>
               <div>
-                <div className="text-xs text-slate-400 mb-1">Комментарий</div>
+                <div className="text-xs text-slate-400 mb-1">{t.comment}</div>
                 <div
                   className="text-sm text-slate-300 break-words line-clamp-3"
                   title={booking.notes}
@@ -563,13 +779,15 @@ function DesktopBookingCard({ booking }: { booking: BookingRow }) {
         )}
 
         <div className="flex flex-wrap items-center justify-between gap-3 border-t border-white/10 pt-3">
-          <StatusHistory appointmentId={booking.id} />
+          <StatusHistory appointmentId={booking.id} locale={locale} />
           
           <div className="flex flex-wrap items-center gap-2">
             <Actions 
               id={booking.id} 
               customerName={booking.customerName}
-              status={booking.status} 
+              status={booking.status}
+              t={t}
+              locale={locale}
             />
           </div>
         </div>
@@ -582,7 +800,17 @@ function DesktopBookingCard({ booking }: { booking: BookingRow }) {
    МОБИЛЬНАЯ КАРТОЧКА
 ═══════════════════════════════════════════════════════════════════════════ */
 
-function MobileBookingCard({ booking }: { booking: BookingRow }) {
+function MobileBookingCard({
+  booking,
+  t,
+  intlLocale,
+  locale,
+}: {
+  booking: BookingRow;
+  t: BookingsCopy;
+  intlLocale: string;
+  locale: SeoLocale;
+}) {
   return (
     <div className="card-glass-hover card-glass-accent card-glow">
       <div className="p-4 space-y-3">
@@ -592,7 +820,7 @@ function MobileBookingCard({ booking }: { booking: BookingRow }) {
             <Calendar className="h-3.5 w-3.5" />
             <span className="truncate">{formatInOrgTzDateTime(booking.createdAt)}</span>
           </div>
-          <StatusBadge status={booking.status} />
+          <StatusBadge status={booking.status} t={t} />
         </div>
 
         {/* Основная информация */}
@@ -613,7 +841,7 @@ function MobileBookingCard({ booking }: { booking: BookingRow }) {
               </span>
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-1.5">
-                  <div className="text-xs text-fuchsia-400/70">Клиент</div>
+                  <div className="text-xs text-fuchsia-400/70">{t.client}</div>
                   <ExternalLink className="h-3 w-3 text-fuchsia-400/50" />
                 </div>
                 <div className="text-white font-medium break-words">{booking.customerName}</div>
@@ -624,7 +852,7 @@ function MobileBookingCard({ booking }: { booking: BookingRow }) {
           {booking.phone && (
             <InfoLine
               icon={<Phone className="h-4 w-4 text-emerald-400" />}
-              label="Телефон"
+              label={t.phone}
               value={booking.phone}
               tone="emerald"
             />
@@ -633,7 +861,7 @@ function MobileBookingCard({ booking }: { booking: BookingRow }) {
           {booking.email && (
             <InfoLine
               icon={<Mail className="h-4 w-4 text-sky-400" />}
-              label="Email"
+              label={t.email}
               value={booking.email}
               tone="sky"
             />
@@ -641,21 +869,21 @@ function MobileBookingCard({ booking }: { booking: BookingRow }) {
 
           <InfoLine
             icon={<Scissors className="h-4 w-4 text-amber-400" />}
-            label="Услуга"
+            label={t.service}
             value={servicePath(booking.service)}
             tone="amber"
           />
 
           <InfoLine
             icon={<User2 className="h-4 w-4 text-cyan-400" />}
-            label="Мастер"
+            label={t.masterLabel}
             value={booking.master?.name ?? '—'}
             tone="cyan"
           />
 
           <InfoLine
             icon={<Clock className="h-4 w-4 text-violet-400" />}
-            label="Время"
+            label={t.time}
             value={formatWallRangeWithDate(booking.startAt, booking.endAt)}
             tone="violet"
           />
@@ -669,7 +897,7 @@ function MobileBookingCard({ booking }: { booking: BookingRow }) {
                   </IconGlow>
                 </span>
                 <div>
-                  <div className="text-xs text-slate-400 mb-1">Комментарий:</div>
+                  <div className="text-xs text-slate-400 mb-1">{t.commentWithColon}</div>
                   <div className="text-sm text-slate-300 break-words">{booking.notes}</div>
                 </div>
               </div>
@@ -677,9 +905,9 @@ function MobileBookingCard({ booking }: { booking: BookingRow }) {
           )}
 
           <div className="flex items-center justify-between pt-2 border-t border-white/10">
-            <span className="text-xs text-slate-400">Стоимость:</span>
+            <span className="text-xs text-slate-400">{t.costWithColon}</span>
             <span className="text-base font-semibold text-emerald-400">
-              {moneyFromCents(booking.service?.priceCents)}
+              {moneyFromCents(booking.service?.priceCents, intlLocale)}
             </span>
           </div>
         </div>
@@ -689,12 +917,14 @@ function MobileBookingCard({ booking }: { booking: BookingRow }) {
           <Actions 
             id={booking.id} 
             customerName={booking.customerName}
-            status={booking.status} 
+            status={booking.status}
+            t={t}
+            locale={locale}
           />
         </div>
 
         {/* История изменений */}
-        <StatusHistory appointmentId={booking.id} />
+        <StatusHistory appointmentId={booking.id} locale={locale} />
       </div>
     </div>
   );
@@ -737,31 +967,37 @@ function InfoLine({
   );
 }
 
-function StatusBadge({ status }: { status: AppointmentStatus }) {
+function StatusBadge({
+  status,
+  t,
+}: {
+  status: AppointmentStatus;
+  t: BookingsCopy;
+}) {
   const map: Record<
     AppointmentStatus,
     { text: string; bg: string; textClass: string; border: string }
   > = {
     PENDING: {
-      text: 'Ожидание',
+      text: t.pending,
       bg: 'bg-amber-500/10',
       textClass: 'text-amber-400',
       border: 'border-amber-400/30',
     },
     CONFIRMED: {
-      text: 'Подтверждено',
+      text: t.confirmed,
       bg: 'bg-emerald-500/10',
       textClass: 'text-emerald-400',
       border: 'border-emerald-400/30',
     },
     CANCELED: {
-      text: 'Отменено',
+      text: t.canceled,
       bg: 'bg-rose-500/10',
       textClass: 'text-rose-400',
       border: 'border-rose-400/30',
     },
     DONE: {
-      text: 'Выполнено',
+      text: t.done,
       bg: 'bg-sky-500/10',
       textClass: 'text-sky-400',
       border: 'border-sky-400/30',
@@ -782,11 +1018,15 @@ function Actions({
   id,
   customerName,
   status,
+  t,
+  locale,
   compact,
 }: {
   id: string;
   customerName: string;
   status: AppointmentStatus;
+  t: BookingsCopy;
+  locale: SeoLocale;
   compact?: boolean;
 }) {
   const baseClasses = compact
@@ -810,7 +1050,7 @@ function Actions({
                        hover:scale-105 active:scale-95 border border-emerald-500/50`}
             >
               <Check className="h-3.5 w-3.5" />
-              <span className={compact ? 'hidden xl:inline' : ''}>Подтвердить</span>
+              <span className={compact ? 'hidden xl:inline' : ''}>{t.confirmAction}</span>
             </button>
           </form>
         )}
@@ -829,7 +1069,7 @@ function Actions({
                      hover:scale-105 active:scale-95 border border-sky-500/50`}
           >
             <CheckCircle2 className="h-3.5 w-3.5" />
-            <span className={compact ? 'hidden xl:inline' : ''}>Выполнен</span>
+            <span className={compact ? 'hidden xl:inline' : ''}>{t.doneAction}</span>
           </button>
         </form>
       )}
@@ -848,7 +1088,7 @@ function Actions({
                      hover:scale-105 active:scale-95 border border-amber-500/50`}
           >
             <X className="h-3.5 w-3.5" />
-            <span className={compact ? 'hidden xl:inline' : ''}>Отменить</span>
+            <span className={compact ? 'hidden xl:inline' : ''}>{t.cancelAction}</span>
           </button>
         </form>
       )}
@@ -857,6 +1097,7 @@ function Actions({
       <DeleteConfirmDialog
         appointmentId={id}
         customerName={customerName}
+        locale={locale}
       />
     </div>
   );
@@ -1757,8 +1998,3 @@ function ChipLink({
 //     </Link>
 //   );
 // }
-
-
-
-
-

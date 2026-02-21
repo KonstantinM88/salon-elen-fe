@@ -6,6 +6,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { AppointmentStatus, Role } from "@prisma/client";
 import AdminShellClient from "./_components/AdminShellClient";
+import { resolveContentLocale } from "@/lib/seo-locale-server";
 
 export const dynamic = "force-dynamic";
 
@@ -34,9 +35,10 @@ export default async function AdminLayout({
   const pendingBookings = await prisma.appointment.count({
     where: { status: AppointmentStatus.PENDING },
   });
+  const locale = await resolveContentLocale();
 
   return (
-    <AdminShellClient role={role} bookingsBadge={pendingBookings}>
+    <AdminShellClient role={role} bookingsBadge={pendingBookings} locale={locale}>
       {children}
     </AdminShellClient>
   );

@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import type { Role } from "@prisma/client";
 import { IconGlow, type GlowTone } from "./IconGlow";
+import type { SeoLocale } from "@/lib/seo-locale";
 
 type NavItem = {
   key:
@@ -34,23 +35,64 @@ type NavItem = {
     | "stats"
     | "monitoring";
   href: string;
-  title: string;
   icon: React.ReactNode;
 };
 
 const NAV_ALL: NavItem[] = [
-  { key: "dashboard", href: "/admin", title: "Дашборд", icon: <LayoutDashboard className="h-5 w-5" /> },
-  { key: "profile", href: "/admin/profile", title: "Профиль", icon: <User className="h-5 w-5" /> },
-  { key: "news", href: "/admin/news", title: "Новости", icon: <Newspaper className="h-5 w-5" /> },
-  { key: "services", href: "/admin/services", title: "Услуги", icon: <Scissors className="h-5 w-5" /> },
-  { key: "bookings", href: "/admin/bookings", title: "Заявки", icon: <ClipboardList className="h-5 w-5" /> },
-  { key: "clients", href: "/admin/clients", title: "Клиенты", icon: <Users className="h-5 w-5" /> },
-  { key: "masters", href: "/admin/masters", title: "Мастера", icon: <UserSquare2 className="h-5 w-5" /> },
-  { key: "calendar", href: "/admin/calendar", title: "Календарь", icon: <CalendarDays className="h-5 w-5" /> },
-  { key: "users", href: "/admin/users", title: "Пользователи", icon: <UserCog className="h-5 w-5" /> },
-  { key: "stats", href: "/admin/stats", title: "Статистика", icon: <BarChart3 className="h-5 w-5" /> },
-  { key: "monitoring", href: "/admin/dashboard", title: "Мониторинг", icon: <LayoutDashboard className="h-5 w-5" /> },
+  { key: "dashboard", href: "/admin", icon: <LayoutDashboard className="h-5 w-5" /> },
+  { key: "profile", href: "/admin/profile", icon: <User className="h-5 w-5" /> },
+  { key: "news", href: "/admin/news", icon: <Newspaper className="h-5 w-5" /> },
+  { key: "services", href: "/admin/services", icon: <Scissors className="h-5 w-5" /> },
+  { key: "bookings", href: "/admin/bookings", icon: <ClipboardList className="h-5 w-5" /> },
+  { key: "clients", href: "/admin/clients", icon: <Users className="h-5 w-5" /> },
+  { key: "masters", href: "/admin/masters", icon: <UserSquare2 className="h-5 w-5" /> },
+  { key: "calendar", href: "/admin/calendar", icon: <CalendarDays className="h-5 w-5" /> },
+  { key: "users", href: "/admin/users", icon: <UserCog className="h-5 w-5" /> },
+  { key: "stats", href: "/admin/stats", icon: <BarChart3 className="h-5 w-5" /> },
+  { key: "monitoring", href: "/admin/dashboard", icon: <LayoutDashboard className="h-5 w-5" /> },
 ];
+
+const NAV_LABELS: Record<SeoLocale, Record<NavItem["key"], string>> = {
+  de: {
+    dashboard: "Dashboard",
+    profile: "Profil",
+    news: "News",
+    services: "Leistungen",
+    bookings: "Buchungen",
+    clients: "Kunden",
+    masters: "Mitarbeiter",
+    calendar: "Kalender",
+    users: "Benutzer",
+    stats: "Statistik",
+    monitoring: "Monitoring",
+  },
+  ru: {
+    dashboard: "Дашборд",
+    profile: "Профиль",
+    news: "Новости",
+    services: "Услуги",
+    bookings: "Заявки",
+    clients: "Клиенты",
+    masters: "Мастера",
+    calendar: "Календарь",
+    users: "Пользователи",
+    stats: "Статистика",
+    monitoring: "Мониторинг",
+  },
+  en: {
+    dashboard: "Dashboard",
+    profile: "Profile",
+    news: "News",
+    services: "Services",
+    bookings: "Bookings",
+    clients: "Clients",
+    masters: "Staff",
+    calendar: "Calendar",
+    users: "Users",
+    stats: "Stats",
+    monitoring: "Monitoring",
+  },
+};
 
 const VISIBLE_BY_ROLE: Record<Role, NavItem["key"][]> = {
   ADMIN: [
@@ -177,13 +219,16 @@ const COLORS: Record<
 export default function AdminNav({
   bookingsBadge = 0,
   role,
+  locale = "de",
   onNavigate,
 }: {
   bookingsBadge?: number;
   role: Role;
+  locale?: SeoLocale;
   onNavigate?: () => void;
 }): React.ReactElement {
   const pathname = usePathname();
+  const labels = NAV_LABELS[locale];
 
   const visibleKeys = VISIBLE_BY_ROLE[role];
 
@@ -236,7 +281,7 @@ export default function AdminNav({
               </IconGlow>
             </motion.span>
 
-            <span className="font-medium truncate">{item.title}</span>
+            <span className="font-medium truncate">{labels[item.key]}</span>
 
             {item.key === "bookings" && bookingsBadge > 0 && (
               <span

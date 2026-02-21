@@ -5,17 +5,90 @@ import ServiceCreateForm from './ServiceCreateForm';
 import SubservicesPanel from './SubservicesPanel';
 import { TranslationButton } from './ServicesPageClient';
 import { CategoryEditButton } from './EditButtons';
+import {
+  type SeoLocale,
+  type SearchParamsPromise,
+} from '@/lib/seo-locale';
+import { resolveContentLocale } from '@/lib/seo-locale-server';
 
-function euro(cents: number | null): string {
-  if (cents === null) return '—';
-  return new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'EUR' }).format(
-    (cents ?? 0) / 100,
-  );
-}
+type ServicesPageCopy = {
+  title: string;
+  subtitle: string;
+  addTitle: string;
+  categoriesTitle: string;
+  nameCol: string;
+  slugCol: string;
+  statusCol: string;
+  descriptionCol: string;
+  yes: string;
+  no: string;
+  noCategories: string;
+  pieces: string;
+  activeShort: string;
+  offShort: string;
+};
+
+const SERVICES_PAGE_COPY: Record<SeoLocale, ServicesPageCopy> = {
+  de: {
+    title: 'Leistungen',
+    subtitle: 'Kategorien und Unterleistungen verwalten',
+    addTitle: 'Hinzufuegen',
+    categoriesTitle: 'Kategorien',
+    nameCol: 'Name',
+    slugCol: 'Slug',
+    statusCol: 'Status',
+    descriptionCol: 'Beschreibung',
+    yes: 'Ja',
+    no: 'Nein',
+    noCategories: 'Noch keine Kategorien',
+    pieces: 'Stk.',
+    activeShort: 'aktiv',
+    offShort: 'aus',
+  },
+  ru: {
+    title: 'Услуги',
+    subtitle: 'Управление категориями и подуслугами',
+    addTitle: 'Добавить',
+    categoriesTitle: 'Категории',
+    nameCol: 'Название',
+    slugCol: 'Slug',
+    statusCol: 'Статус',
+    descriptionCol: 'Описание',
+    yes: 'Да',
+    no: 'Нет',
+    noCategories: 'Категорий пока нет',
+    pieces: 'шт.',
+    activeShort: 'активна',
+    offShort: 'выкл',
+  },
+  en: {
+    title: 'Services',
+    subtitle: 'Manage categories and subservices',
+    addTitle: 'Add',
+    categoriesTitle: 'Categories',
+    nameCol: 'Name',
+    slugCol: 'Slug',
+    statusCol: 'Status',
+    descriptionCol: 'Description',
+    yes: 'Yes',
+    no: 'No',
+    noCategories: 'No categories yet',
+    pieces: 'pcs.',
+    activeShort: 'active',
+    offShort: 'off',
+  },
+};
+
+type PageProps = {
+  searchParams?: SearchParamsPromise;
+};
 
 export const dynamic = 'force-dynamic';
 
-export default async function AdminServicesPage() {
+export default async function AdminServicesPage({ searchParams }: PageProps) {
+  const locale = await resolveContentLocale(searchParams);
+  const t = SERVICES_PAGE_COPY[locale];
+
   async function handleUpdateCategory(formData: FormData) {
     'use server';
     return await updateCategory(formData);
@@ -97,29 +170,29 @@ export default async function AdminServicesPage() {
           }}
         />
         <div className="relative z-10">
-          <h1 className="text-xl sm:text-2xl md:text-3xl font-semibold">Услуги</h1>
+          <h1 className="text-xl sm:text-2xl md:text-3xl font-semibold">{t.title}</h1>
           <p className="mt-1 text-xs sm:text-sm text-white/70">
-            Управление категориями и подуслугами
+            {t.subtitle}
           </p>
         </div>
       </div>
 
       {/* Create */}
       <section className="admin-section">
-        <h2 className="text-base sm:text-lg font-medium mb-3 sm:mb-4">Добавить</h2>
-        <ServiceCreateForm parentOptions={parentOptions} action={createService} />
+        <h2 className="text-base sm:text-lg font-medium mb-3 sm:mb-4">{t.addTitle}</h2>
+        <ServiceCreateForm parentOptions={parentOptions} action={createService} locale={locale} />
       </section>
 
       {/* Categories Table (Desktop lg+) */}
       <section className="admin-section hidden lg:block">
-        <h2 className="text-lg font-medium mb-4">Категории</h2>
+        <h2 className="text-lg font-medium mb-4">{t.categoriesTitle}</h2>
         <table className="w-full text-sm table-fixed">
           <thead className="bg-white/5">
             <tr>
-              <th className="px-3 py-2.5 text-left text-amber-500/85 font-semibold tracking-wide" style={{ width: '18%' }}>Название</th>
-              <th className="px-3 py-2.5 text-left text-amber-500/85 font-semibold tracking-wide" style={{ width: '14%' }}>Slug</th>
-              <th className="px-3 py-2.5 text-center text-amber-500/85 font-semibold tracking-wide" style={{ width: '8%' }}>Статус</th>
-              <th className="px-3 py-2.5 text-left text-amber-500/85 font-semibold tracking-wide" style={{ width: '38%' }}>Описание</th>
+              <th className="px-3 py-2.5 text-left text-amber-500/85 font-semibold tracking-wide" style={{ width: '18%' }}>{t.nameCol}</th>
+              <th className="px-3 py-2.5 text-left text-amber-500/85 font-semibold tracking-wide" style={{ width: '14%' }}>{t.slugCol}</th>
+              <th className="px-3 py-2.5 text-center text-amber-500/85 font-semibold tracking-wide" style={{ width: '8%' }}>{t.statusCol}</th>
+              <th className="px-3 py-2.5 text-left text-amber-500/85 font-semibold tracking-wide" style={{ width: '38%' }}>{t.descriptionCol}</th>
               <th className="px-3 py-2.5 text-right" style={{ width: '22%' }} />
             </tr>
           </thead>
@@ -133,10 +206,10 @@ export default async function AdminServicesPage() {
                 </td>
                 <td className="px-3 py-2.5 text-center">
                   {c.isActive ? (
-                    <span className="tag-active text-[11px]">Да</span>
+                    <span className="tag-active text-[11px]">{t.yes}</span>
                   ) : (
                     <span className="inline-flex items-center rounded-full border border-white/15 px-1.5 py-0.5 text-[11px] text-white/50">
-                      Нет
+                      {t.no}
                     </span>
                   )}
                 </td>
@@ -153,9 +226,10 @@ export default async function AdminServicesPage() {
                 </td>
                 <td className="px-3 py-2.5 text-right">
                   <div className="flex items-center justify-end gap-1.5">
-                    <TranslationButton service={c} />
+                    <TranslationButton service={c} locale={locale} />
                     <CategoryEditButton
                       category={c}
+                      locale={locale}
                       onUpdate={handleUpdateCategory}
                       onDelete={handleDeleteCategory}
                     />
@@ -167,7 +241,7 @@ export default async function AdminServicesPage() {
             {categories.length === 0 && (
               <tr>
                 <td className="px-3 py-8 text-center text-white/50" colSpan={5}>
-                  Категорий пока нет
+                  {t.noCategories}
                 </td>
               </tr>
             )}
@@ -178,13 +252,13 @@ export default async function AdminServicesPage() {
       {/* Categories Mobile (до lg) */}
       <section className="lg:hidden space-y-3 sm:space-y-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-base sm:text-lg font-medium">Категории</h2>
-          <span className="text-xs text-white/50">{categories.length} шт.</span>
+          <h2 className="text-base sm:text-lg font-medium">{t.categoriesTitle}</h2>
+          <span className="text-xs text-white/50">{categories.length} {t.pieces}</span>
         </div>
 
         {categories.length === 0 && (
           <div className="admin-card p-4 text-sm text-white/50 text-center">
-            Категорий пока нет
+            {t.noCategories}
           </div>
         )}
 
@@ -201,10 +275,10 @@ export default async function AdminServicesPage() {
                   <div className="text-[10px] sm:text-xs text-white/50 font-mono mt-0.5 truncate">{c.slug}</div>
                 </div>
                 {c.isActive ? (
-                  <span className="tag-active shrink-0 text-[10px]">активна</span>
+                  <span className="tag-active shrink-0 text-[10px]">{t.activeShort}</span>
                 ) : (
                   <span className="inline-flex shrink-0 items-center rounded-full border border-white/15 px-1.5 py-0.5 text-[10px] text-white/60">
-                    выкл
+                    {t.offShort}
                   </span>
                 )}
               </div>
@@ -216,9 +290,10 @@ export default async function AdminServicesPage() {
 
               {/* Actions */}
               <div className="flex flex-wrap gap-1.5 sm:gap-2 pt-1">
-                <TranslationButton service={c} />
+                <TranslationButton service={c} locale={locale} />
                 <CategoryEditButton
                   category={c}
+                  locale={locale}
                   onUpdate={handleUpdateCategory}
                   onDelete={handleDeleteCategory}
                 />
@@ -230,6 +305,7 @@ export default async function AdminServicesPage() {
 
       {/* Subservices Panel */}
       <SubservicesPanel
+        locale={locale}
         parentOptions={parentOptions}
         subservices={subservices}
         updateSubservice={handleUpdateSubservice}
@@ -480,4 +556,3 @@ export default async function AdminServicesPage() {
 //     </main>
 //   );
 // }
-
