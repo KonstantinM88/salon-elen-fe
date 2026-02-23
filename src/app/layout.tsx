@@ -35,6 +35,16 @@ export const metadata: Metadata = {
     template: "%s",
   },
   description: "Professioneller Kosmetiksalon in Halle (Saale)",
+  icons: {
+    icon: [
+      { url: "/favicon.ico?v=20260223icons1", sizes: "any" },
+      { url: "/icon-192x192.png?v=20260223icons1", type: "image/png", sizes: "192x192" },
+      { url: "/icon-512x512.png?v=20260223icons1", type: "image/png", sizes: "512x512" },
+    ],
+    apple: [{ url: "/apple-touch-icon.png?v=20260223icons1", sizes: "180x180", type: "image/png" }],
+    shortcut: [{ url: "/favicon.ico?v=20260223icons1" }],
+  },
+  manifest: "/site.webmanifest?v=20260223icons1",
   robots: {
     index: true,
     follow: true,
