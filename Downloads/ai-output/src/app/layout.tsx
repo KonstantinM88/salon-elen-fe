@@ -6,12 +6,12 @@ import "./globals.css";
 
 import SiteHeader from "@/components/site-header";
 import SiteFooter from "@/components/site-footer";
-import ChatWidget from "@/components/ai/ChatWidget";
 import Providers from "@/app/providers";
 
 import { I18nProvider } from "@/i18n/I18nProvider";
 import { LocaleProvider } from "@/i18n/LocaleContext";
 import { DEFAULT_LOCALE, LOCALES, type Locale } from "@/i18n/locales";
+import ChatWidget from "@/components/ai/ChatWidget";
 
 // Fonts
 const playfair = Playfair_Display({
