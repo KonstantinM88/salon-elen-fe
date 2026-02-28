@@ -123,7 +123,12 @@ function MessageContent({ content, onOptionClick }: ContentProps) {
 
   for (const part of parts) {
     if (part.type === 'text') {
-      const trimmed = part.value.trim();
+      const cleaned = part.value
+        .split('\n')
+        // Remove orphan markdown bullets left after stripping [option]...[/option].
+        .filter((line) => !/^\s*[-*•]+\s*$/.test(line))
+        .join('\n');
+      const trimmed = cleaned.trim();
       if (trimmed) textParts.push(trimmed);
     } else {
       options.push(part.value);

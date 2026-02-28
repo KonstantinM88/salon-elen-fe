@@ -26,6 +26,32 @@ function getResendClient(): Resend | null {
   }
 }
 
+interface OtpSenderConfig {
+  from: string;
+  replyTo?: string;
+  warning?: string;
+}
+
+function getOtpSenderConfig(): OtpSenderConfig {
+  const configuredFrom = process.env.RESEND_FROM?.trim();
+  const replyTo =
+    process.env.RESEND_REPLY_TO?.trim() ||
+    process.env.SALON_REPLY_TO?.trim() ||
+    process.env.SALON_CONTACT_EMAIL?.trim() ||
+    undefined;
+
+  if (configuredFrom) {
+    return { from: configuredFrom, replyTo };
+  }
+
+  return {
+    from: 'Salon Elen <onboarding@resend.dev>',
+    replyTo,
+    warning:
+      'RESEND_FROM is not configured. Using onboarding@resend.dev may reduce deliverability.',
+  };
+}
+
 /**
  * Отправить OTP код на email через Resend
  */
@@ -37,7 +63,7 @@ export async function sendOTPEmail(
     subject?: string;
     locale?: Locale;
   }
-): Promise<{ ok: boolean; error?: string; messageId?: string }> {
+): Promise<{ ok: boolean; error?: string; messageId?: string; warning?: string }> {
   try {
     const resend = getResendClient();
     
@@ -55,10 +81,21 @@ export async function sendOTPEmail(
     const t = (key: MessageKey) => translate(locale, key);
     const expiryMinutes = options?.expiryMinutes || 10;
     const subject = options?.subject || t('booking_email_otp_subject');
+    const sender = getOtpSenderConfig();
+    if (sender.warning) {
+      console.warn(`[OTP Email] ${sender.warning}`);
+    }
     const expiresText = t('booking_email_otp_expires_text').replace(
       '{minutes}',
       String(expiryMinutes)
     );
+    const plainText = [
+      t('booking_email_otp_title'),
+      '',
+      `${t('booking_email_otp_code_intro')} ${code}`,
+      `${t('booking_email_otp_expires_label')} ${expiresText}`,
+      t('booking_email_otp_ignore'),
+    ].join('\n');
 
     // HTML шаблон письма
     const html = `
@@ -145,10 +182,12 @@ export async function sendOTPEmail(
 
     // Отправляем через Resend
     const result = await resend.emails.send({
-      from: process.env.RESEND_FROM || 'Salon Elen <onboarding@resend.dev>',
+      from: sender.from,
       to: email,
       subject,
       html,
+      text: plainText,
+      ...(sender.replyTo ? { replyTo: sender.replyTo } : {}),
     });
 
     if (result.error) {
@@ -156,8 +195,10 @@ export async function sendOTPEmail(
       return { ok: false, error: result.error.message };
     }
 
-    console.log(`✅ OTP email sent to ${email} | ID: ${result.data?.id}`);
-    return { ok: true, messageId: result.data?.id };
+    console.log(
+      `✅ OTP email sent to ${email} | ID: ${result.data?.id} | from=${sender.from}`,
+    );
+    return { ok: true, messageId: result.data?.id, warning: sender.warning };
   } catch (error) {
     console.error('❌ Email send error:', error);
     return {
@@ -188,11 +229,17 @@ export async function sendCustomOTPEmail(
       return { ok: false, error: 'Email service not configured' };
     }
 
+    const sender = getOtpSenderConfig();
+    if (sender.warning) {
+      console.warn(`[OTP Email] ${sender.warning}`);
+    }
+
     const result = await resend.emails.send({
-      from: process.env.RESEND_FROM || 'Salon Elen <onboarding@resend.dev>',
+      from: sender.from,
       to: email,
       subject,
       html: htmlTemplate,
+      ...(sender.replyTo ? { replyTo: sender.replyTo } : {}),
     });
 
     if (result.error) {

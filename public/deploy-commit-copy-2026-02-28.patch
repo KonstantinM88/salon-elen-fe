@@ -1,0 +1,3735 @@
+diff --git a/src/app/api/ai/chat/route.ts b/src/app/api/ai/chat/route.ts
+index a6bc907..8de658c 100644
+--- a/src/app/api/ai/chat/route.ts
++++ b/src/app/api/ai/chat/route.ts
+@@ -7,10 +7,18 @@ import { buildSystemPrompt } from '@/lib/ai/system-prompt';
+ import { TOOLS } from '@/lib/ai/tools-schema';
+ import { executeTool, type ToolCallRequest } from '@/lib/ai/tool-executor';
+ import {
++  type AiSession,
+   getSession,
+   upsertSession,
+   checkRateLimit,
++  appendSessionMessage,
+ } from '@/lib/ai/session-store';
++import { reportMissingServiceInquiry } from '@/lib/ai/missing-service-report';
++import { searchAvailabilityMonth } from '@/lib/ai/tools/search-month';
++import { searchAvailability } from '@/lib/ai/tools/search-availability';
++import { listServices } from '@/lib/ai/tools/list-services';
++import { listMastersForServices } from '@/lib/ai/tools/list-masters';
++import { startVerification } from '@/lib/ai/tools/start-verification';
+ 
+ // ─── Config ─────────────────────────────────────────────────────
+ 
+@@ -19,6 +27,7 @@ const MAX_TOOL_ITERATIONS = parseInt(
+   10,
+ );
+ const MODEL = process.env.OPENAI_MODEL || 'gpt-4o-mini';
++const TEMPERATURE = parseFloat(process.env.AI_TEMPERATURE || '0.15');
+ 
+ function getClient(): OpenAI | null {
+   const apiKey = process.env.OPENAI_API_KEY;
+@@ -40,6 +49,1062 @@ interface ChatResponse {
+   toolCalls?: { name: string; durationMs: number }[];
+ }
+ 
++interface MissingServiceSignal {
++  query: string;
++  suggestedAlternatives: Array<{
++    title: string;
++    groupTitle?: string | null;
++    durationMin?: number | null;
++    priceCents?: number | null;
++  }>;
++}
++
++interface DateSuggestionOption {
++  dateISO: string;
++  label: string;
++  count: number;
++}
++
++const AFFIRMATIVE_MESSAGES = new Set([
++  'yes',
++  'yeah',
++  'yep',
++  'sure',
++  'ok',
++  'okay',
++  'check',
++  'ja',
++  'да',
++  'ага',
++  'ок',
++  'хорошо',
++  'проверь',
++  'проверяй',
++  'покажи',
++  'показать',
++  'show',
++  'дa',
++]);
++
++function normalizeInput(text: string): string {
++  return text.toLowerCase().replace(/\s+/g, ' ').trim();
++}
++
++function isAffirmativeFollowUp(text: string): boolean {
++  const value = normalizeInput(text);
++  if (AFFIRMATIVE_MESSAGES.has(value)) return true;
++  // tolerate simple typos like "порверь"
++  return (
++    value.includes('пров') ||
++    value.includes('check') ||
++    value.includes('покаж') ||
++    value.includes('show')
++  );
++}
++
++function isNearestDateRequest(text: string): boolean {
++  const value = normalizeInput(text);
++  return (
++    value === 'ближайшая дата' ||
++    value === 'ближайший день' ||
++    value === 'nearest date' ||
++    value === 'next date' ||
++    value === 'nächstes datum' ||
++      value === 'naechstes datum'
++  );
++}
++
++function isTomorrowRequest(text: string): boolean {
++  const value = normalizeInput(text);
++  return value === 'завтра' || value === 'tomorrow' || value === 'morgen';
++}
++
++const TIME_PREFERENCE_INPUTS = new Set<string>([
++  'утро',
++  'день',
++  'вечер',
++  'morning',
++  'afternoon',
++  'evening',
++  'vormittag',
++  'nachmittag',
++  'abend',
++]);
++
++const BOOKING_DOMAIN_KEYWORDS = [
++  // RU
++  'запис',
++  'брон',
++  'прием',
++  'услуг',
++  'спис',
++  'цена',
++  'цен',
++  'прайс',
++  'прайс-лист',
++  'стоим',
++  'стоимост',
++  'мастер',
++  'салон',
++  'адрес',
++  'часы',
++  'маник',
++  'педик',
++  'ресниц',
++  'бров',
++  'перманент',
++  'микронед',
++  'мезо',
++  'стриж',
++  'окраш',
++  'код подтверждения',
++  // DE
++  'termin',
++  'buch',
++  'leistung',
++  'preise',
++  'preis',
++  'kosten',
++  'liste',
++  'meister',
++  'salon',
++  'adresse',
++  'öffnungs',
++  'oeffnungs',
++  'nagel',
++  'pedik',
++  'wimper',
++  'augenbrau',
++  'permanent',
++  'haarschnitt',
++  'coloring',
++  'bestätigungscode',
++  // EN
++  'book',
++  'booking',
++  'appointment',
++  'service',
++  'services',
++  'price',
++  'prices',
++  'cost',
++  'costs',
++  'list',
++  'master',
++  'salon',
++  'address',
++  'hours',
++  'nails',
++  'pedicure',
++  'lashes',
++  'brows',
++  'permanent',
++  'haircut',
++  'verification code',
++];
++
++const RESEND_CODE_HINTS = [
++  'новый код',
++  'код еще раз',
++  'код ещё раз',
++  'отправь код',
++  'resend',
++  'send code again',
++  'new code',
++  'code again',
++  'erneut',
++  'neuer code',
++  'code erneut',
++];
++
++function looksLikeDateOrTimeSelection(text: string): boolean {
++  const value = normalizeInput(text);
++  if (!value) return false;
++  if (isNearestDateRequest(value) || isTomorrowRequest(value)) return true;
++  if (TIME_PREFERENCE_INPUTS.has(value)) return true;
++  if (/\b\d{1,2}[:.]\d{2}\s*[–-]\s*\d{1,2}[:.]\d{2}\b/.test(value)) return true;
++  if (/\b\d{1,2}[./-]\d{1,2}\b/.test(value)) return true;
++  return false;
++}
++
++function looksLikeContactPayload(text: string): boolean {
++  const value = text.trim();
++  if (!value) return false;
++  const hasEmail = /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i.test(value);
++  const hasPhone = /(?:\+?\d[\d\s().-]{6,}\d)/.test(value);
++  return hasEmail || hasPhone;
++}
++
++function isLikelyBookingDomainMessage(text: string): boolean {
++  const normalizedInput = normalizeInput(text);
++  if (!normalizedInput) return false;
++
++  if (looksLikeDateOrTimeSelection(text)) return true;
++  if (looksLikeContactPayload(text)) return true;
++  if (/^\d{6}$/.test(normalizedInput)) return true; // OTP code
++  if (isNearestDateRequest(text) || isTomorrowRequest(text) || isAffirmativeFollowUp(text)) {
++    return true;
++  }
++  if (parseDayMonth(normalizedInput)) return true;
++
++  return BOOKING_DOMAIN_KEYWORDS.some((keyword) => normalizedInput.includes(keyword));
++}
++
++function looksLikeNameOnlyPayload(text: string): boolean {
++  const value = text.trim();
++  if (!value || value.length > 60) return false;
++  if (/[?！？]/u.test(value)) return false;
++  if (/\d/.test(value)) return false;
++
++  const parts = value
++    .split(/\s+/)
++    .map((p) => p.trim())
++    .filter(Boolean);
++
++  if (parts.length === 0 || parts.length > 3) return false;
++
++  return parts.every((p) => /^[\p{L}'-]{2,}$/u.test(p));
++}
++
++function looksLikeOtpCode(text: string): boolean {
++  const value = normalizeInput(text);
++  return /^\d{4,8}$/.test(value);
++}
++
++function looksLikeResendRequest(text: string): boolean {
++  const value = normalizeInput(text);
++  return RESEND_CODE_HINTS.some((hint) => value.includes(hint));
++}
++
++function shouldApplyScopeGuard(text: string, session: AiSession): boolean {
++  const normalizedInput = normalizeInput(text);
++  if (!normalizedInput) return false;
++
++  // Always allow clearly booking-related messages.
++  if (isLikelyBookingDomainMessage(text)) return false;
++
++  const awaitingContact = Boolean(session.context.reservedSlot && !session.context.draftId);
++  if (awaitingContact) {
++    // During contact step allow name/email/phone-like payloads only.
++    if (looksLikeContactPayload(text) || looksLikeNameOnlyPayload(text)) return false;
++    return true;
++  }
++
++  const awaitingOtp = Boolean(session.context.draftId);
++  if (awaitingOtp) {
++    // During OTP step allow code, resend requests, email correction and simple confirmations.
++    if (
++      looksLikeOtpCode(text) ||
++      looksLikeResendRequest(text) ||
++      looksLikeContactPayload(text) ||
++      isAffirmativeFollowUp(text)
++    ) {
++      return false;
++    }
++    return true;
++  }
++
++  // Outside booking scope: block any non-domain chat/small-talk/trivia.
++  return true;
++}
++
++function buildScopeGuardText(
++  locale: 'de' | 'ru' | 'en',
++  hasActiveBookingFlow: boolean,
++): string {
++  if (locale === 'ru') {
++    const header = hasActiveBookingFlow
++      ? 'Я помогаю только с записью и вопросами о салоне. Давайте продолжим текущую запись.'
++      : 'Я помогаю только с записью и вопросами о салоне.';
++    const continueOption = hasActiveBookingFlow
++      ? '[option] ✅ Продолжить запись [/option]\n'
++      : '';
++    return `${header}\n\n${continueOption}[option] 📅 Записаться на приём [/option]\n[option] 💅 Услуги и цены [/option]\n[option] 📍 Адрес и часы работы [/option]`;
++  }
++
++  if (locale === 'en') {
++    const header = hasActiveBookingFlow
++      ? 'I can only help with salon bookings and service questions. Let us continue your current booking.'
++      : 'I can only help with salon bookings and service questions.';
++    const continueOption = hasActiveBookingFlow
++      ? '[option] ✅ Continue booking [/option]\n'
++      : '';
++    return `${header}\n\n${continueOption}[option] 📅 Book appointment [/option]\n[option] 💅 Services & prices [/option]\n[option] 📍 Address & opening hours [/option]`;
++  }
++
++  const header = hasActiveBookingFlow
++    ? 'Ich helfe nur bei Terminbuchung und Salonfragen. Lassen Sie uns Ihre aktuelle Buchung fortsetzen.'
++    : 'Ich helfe nur bei Terminbuchung und Salonfragen.';
++  const continueOption = hasActiveBookingFlow
++    ? '[option] ✅ Buchung fortsetzen [/option]\n'
++    : '';
++  return `${header}\n\n${continueOption}[option] 📅 Termin buchen [/option]\n[option] 💅 Leistungen & Preise [/option]\n[option] 📍 Anfahrt & Öffnungszeiten [/option]`;
++}
++
++function formatDateLabel(dateISO: string, locale: 'de' | 'ru' | 'en'): string {
++  const [y, m, d] = dateISO.split('-').map((v) => parseInt(v, 10));
++  const dt = new Date(Date.UTC(y, (m || 1) - 1, d || 1, 12, 0, 0));
++  const fmtLocale = locale === 'ru' ? 'ru-RU' : locale === 'en' ? 'en-US' : 'de-DE';
++  return dt.toLocaleDateString(fmtLocale, {
++    weekday: 'short',
++    day: '2-digit',
++    month: '2-digit',
++  });
++}
++
++function buildNoSlotsFollowUpText(
++  locale: 'de' | 'ru' | 'en',
++  optionsMap: DateSuggestionOption[],
++): string {
++  if (optionsMap.length === 0) {
++    if (locale === 'ru') {
++      return 'К сожалению, в ближайшие даты свободных окон не нашлось. Хотите, я проверю другого мастера?';
++    }
++    if (locale === 'en') {
++      return 'Unfortunately, I could not find free slots in the nearest dates. Do you want me to check another master?';
++    }
++    return 'Leider habe ich in den nächsten Tagen keine freien Slots gefunden. Soll ich einen anderen Meister prüfen?';
++  }
++
++  const header =
++    locale === 'ru'
++      ? 'Нашла ближайшие свободные дни. Какой день проверить по времени?'
++      : locale === 'en'
++        ? 'I found the nearest available days. Which day should I check for exact times?'
++        : 'Ich habe die nächsten freien Tage gefunden. Welchen Tag soll ich mit Uhrzeiten prüfen?';
++
++  const optionEmoji = locale === 'ru' ? '📅' : '📅';
++  const options = optionsMap
++    .slice(0, 6)
++    .map(
++      (opt) =>
++        `[option] ${optionEmoji} ${opt.label} (${opt.count}) [/option]`,
++    )
++    .join('\n');
++
++  return `${header}\n\n${options}`;
++}
++
++function mapMonthDaysToOptions(
++  days: Record<string, number> | undefined,
++  locale: 'de' | 'ru' | 'en',
++): DateSuggestionOption[] {
++  return Object.entries(days ?? {})
++    .sort(([a], [b]) => a.localeCompare(b))
++    .map(([dateISO, count]) => ({
++      dateISO,
++      label: formatDateLabel(dateISO, locale),
++      count,
++    }));
++}
++
++function normalizeSuggestedDateInput(value: string): string {
++  return normalizeChoiceText(value)
++    .replace(/\(\s*\d+\s*\)/g, '')
++    .replace(/\s+/g, ' ')
++    .trim();
++}
++
++function parseDayMonth(value: string): string | null {
++  const m = value.match(/(\d{1,2})[./-](\d{1,2})/);
++  if (!m) return null;
++  return `${m[1].padStart(2, '0')}.${m[2].padStart(2, '0')}`;
++}
++
++function dateIsoToDayMonth(dateISO: string): string {
++  const [, month, day] = dateISO.split('-');
++  return `${day}.${month}`;
++}
++
++function todayISO(): string {
++  return new Date().toISOString().slice(0, 10);
++}
++
++function shiftDateISO(dateISO: string, days: number): string {
++  const dt = new Date(`${dateISO}T00:00:00.000Z`);
++  if (Number.isNaN(dt.getTime())) return dateISO;
++  dt.setUTCDate(dt.getUTCDate() + days);
++  return dt.toISOString().slice(0, 10);
++}
++
++function nextMonthISO(monthISO: string): string {
++  const [year, month] = monthISO
++    .split('-')
++    .map((part) => Number.parseInt(part, 10));
++  if (!year || !month) return monthISO;
++  const dt = new Date(Date.UTC(year, month - 1, 1));
++  if (Number.isNaN(dt.getTime())) return monthISO;
++  dt.setUTCMonth(dt.getUTCMonth() + 1);
++  return dt.toISOString().slice(0, 7);
++}
++
++function toISODate(year: number, month: number, day: number): string | null {
++  if (!Number.isInteger(year) || !Number.isInteger(month) || !Number.isInteger(day)) {
++    return null;
++  }
++  if (month < 1 || month > 12 || day < 1 || day > 31) return null;
++
++  const dt = new Date(Date.UTC(year, month - 1, day));
++  if (
++    Number.isNaN(dt.getTime()) ||
++    dt.getUTCFullYear() !== year ||
++    dt.getUTCMonth() !== month - 1 ||
++    dt.getUTCDate() !== day
++  ) {
++    return null;
++  }
++
++  return dt.toISOString().slice(0, 10);
++}
++
++function parseExplicitDateInputToISO(
++  input: string,
++  referenceDateISO: string,
++): string | null {
++  const dayMonth = parseDayMonth(input);
++  if (!dayMonth) return null;
++
++  const [dayRaw, monthRaw] = dayMonth.split('.');
++  const day = Number.parseInt(dayRaw, 10);
++  const month = Number.parseInt(monthRaw, 10);
++  if (!day || !month) return null;
++
++  const referenceYear = Number.parseInt(referenceDateISO.slice(0, 4), 10);
++  const fallbackYear = Number.isInteger(referenceYear)
++    ? referenceYear
++    : new Date().getUTCFullYear();
++
++  let candidate = toISODate(fallbackYear, month, day);
++  if (!candidate) return null;
++
++  // If the date for current reference year is already in the past,
++  // interpret it as next year's date.
++  if (candidate < referenceDateISO) {
++    const nextYearCandidate = toISODate(fallbackYear + 1, month, day);
++    if (nextYearCandidate) {
++      candidate = nextYearCandidate;
++    }
++  }
++
++  return candidate;
++}
++
++async function buildNearestDateOptions(params: {
++  masterId: string;
++  serviceIds: string[];
++  locale: 'de' | 'ru' | 'en';
++  startDateISO: string;
++  minCount?: number;
++}): Promise<DateSuggestionOption[]> {
++  const { masterId, serviceIds, locale, startDateISO } = params;
++  const minCount = params.minCount ?? 6;
++  const byDate = new Map<string, DateSuggestionOption>();
++
++  const appendDays = (days?: Record<string, number>) => {
++    for (const option of mapMonthDaysToOptions(days, locale)) {
++      if (option.dateISO < startDateISO) continue;
++      if (!byDate.has(option.dateISO)) {
++        byDate.set(option.dateISO, option);
++      }
++    }
++  };
++
++  const firstMonthISO = startDateISO.slice(0, 7);
++  const firstMonth = await searchAvailabilityMonth({
++    masterId,
++    monthISO: firstMonthISO,
++    serviceIds,
++  });
++  appendDays(firstMonth.days);
++
++  if (byDate.size < minCount) {
++    const secondMonthISO = nextMonthISO(firstMonthISO);
++    const secondMonth = await searchAvailabilityMonth({
++      masterId,
++      monthISO: secondMonthISO,
++      serviceIds,
++    });
++    appendDays(secondMonth.days);
++  }
++
++  return Array.from(byDate.values())
++    .sort((a, b) => a.dateISO.localeCompare(b.dateISO))
++    .slice(0, 12);
++}
++
++function matchSuggestedDateOption(
++  input: string,
++  options: DateSuggestionOption[],
++): DateSuggestionOption | null {
++  const norm = normalizeSuggestedDateInput(input);
++  if (!norm) return null;
++
++  for (const option of options) {
++    const optionNorm = normalizeSuggestedDateInput(option.label);
++    if (
++      norm === optionNorm ||
++      norm.includes(optionNorm) ||
++      optionNorm.includes(norm)
++    ) {
++      return option;
++    }
++  }
++
++  const dm = parseDayMonth(norm);
++  if (dm) {
++    const found = options.find((o) => dateIsoToDayMonth(o.dateISO) === dm);
++    if (found) return found;
++  }
++
++  return null;
++}
++
++function buildSlotsForDateText(
++  locale: 'de' | 'ru' | 'en',
++  dateISO: string,
++  slots: Array<{ displayTime: string }>,
++): string {
++  const label = formatDateLabel(dateISO, locale);
++  if (slots.length === 0) {
++    if (locale === 'ru') {
++      return `На ${label} свободных слотов нет. Хотите, я предложу другие даты?`;
++    }
++    if (locale === 'en') {
++      return `There are no free slots on ${label}. Do you want me to suggest other dates?`;
++    }
++    return `Für ${label} gibt es keine freien Slots. Soll ich andere Tage vorschlagen?`;
++  }
++
++  const header =
++    locale === 'ru'
++      ? `Вот свободные слоты на ${label}. Какой слот вам подходит?`
++      : locale === 'en'
++        ? `Here are free slots for ${label}. Which time works for you?`
++        : `Hier sind freie Slots für ${label}. Welche Uhrzeit passt Ihnen?`;
++
++  const options = slots
++    .slice(0, 12)
++    .map((s) => `[option] 🕐 ${s.displayTime} [/option]`)
++    .join('\n');
++
++  return `${header}\n\n${options}`;
++}
++
++function fallbackTextByLocale(locale: 'de' | 'ru' | 'en'): string {
++  if (locale === 'ru') {
++    return 'Извините, не удалось сформировать ответ. Хотите, я сразу покажу ближайшие свободные даты?';
++  }
++  if (locale === 'en') {
++    return 'Sorry, I could not generate a response. Do you want me to show the nearest available dates right away?';
++  }
++  return 'Entschuldigung, ich konnte keine Antwort generieren. Soll ich direkt die nächsten freien Termine zeigen?';
++}
++
++function buildVerificationAutoText(
++  locale: 'de' | 'ru' | 'en',
++  opts: { ok: boolean; contactMasked?: string; error?: string },
++): string {
++  if (opts.ok) {
++    if (locale === 'ru') {
++      return `Код подтверждения отправлен на ${opts.contactMasked ?? 'ваш email'}.\n\nПожалуйста, введите 6-значный код для завершения бронирования.\n\nЕсли письма нет 1–2 минуты, проверьте папку "Спам".`;
++    }
++    if (locale === 'en') {
++      return `A verification code has been sent to ${opts.contactMasked ?? 'your email'}.\n\nPlease enter the 6-digit code to complete the booking.\n\nIf you do not see the email within 1-2 minutes, check your Spam folder.`;
++    }
++    return `Ein Bestätigungscode wurde an ${opts.contactMasked ?? 'Ihre E-Mail'} gesendet.\n\nBitte geben Sie den 6-stelligen Code ein, um die Buchung abzuschließen.\n\nWenn keine E-Mail innerhalb von 1-2 Minuten kommt, prüfen Sie bitte den Spam-Ordner.`;
++  }
++
++  if (locale === 'ru') {
++    return `Не удалось отправить код подтверждения (${opts.error ?? 'ошибка отправки'}).\n\nПроверьте email и напишите "отправь код ещё раз".`;
++  }
++  if (locale === 'en') {
++    return `I could not send the verification code (${opts.error ?? 'send error'}).\n\nPlease check your email and type "send code again".`;
++  }
++  return `Der Bestätigungscode konnte nicht gesendet werden (${opts.error ?? 'Sendeproblem'}).\n\nBitte prüfen Sie die E-Mail und schreiben Sie "Code erneut senden".`;
++}
++
++function normalizeChoiceText(value: string): string {
++  return value
++    .replace(
++      /^[\p{Emoji}\p{Emoji_Presentation}\p{Emoji_Modifier}\p{Emoji_Component}\uFE0F]+\s*/u,
++      '',
++    )
++    .toLowerCase()
++    .replace(/[^\p{L}\p{N}\s]+/gu, ' ')
++    .replace(/\s+/g, ' ')
++    .trim();
++}
++
++function tokenizeNormalized(value: string): string[] {
++  return normalizeChoiceText(value)
++    .split(' ')
++    .map((t) => t.trim())
++    .filter((t) => t.length > 1);
++}
++
++function choiceScore(candidate: string, input: string): number {
++  if (!candidate || !input) return 0;
++  if (candidate === input) return 10000;
++
++  let score = 0;
++
++  if (input.includes(candidate)) {
++    score += 400 + candidate.length;
++  }
++  if (candidate.includes(input)) {
++    score += 300 + input.length;
++  }
++
++  const candTokens = tokenizeNormalized(candidate);
++  const inputTokens = new Set(tokenizeNormalized(input));
++  if (candTokens.length > 0 && inputTokens.size > 0) {
++    const overlap = candTokens.reduce(
++      (acc, token) => (inputTokens.has(token) ? acc + 1 : acc),
++      0,
++    );
++    if (overlap > 0) {
++      score += overlap * 80;
++      if (overlap === candTokens.length) {
++        score += 250;
++      }
++      // Prefer more specific (longer) variants when overlap is similar.
++      score += candTokens.length * 5;
++    }
++  }
++
++  return score;
++}
++
++function chooseBestMatch<T>(
++  items: T[],
++  getCandidate: (item: T) => string,
++  input: string,
++): T | null {
++  let best: T | null = null;
++  let bestScore = 0;
++
++  for (const item of items) {
++    const candidate = getCandidate(item);
++    const score = choiceScore(candidate, input);
++    if (score > bestScore) {
++      bestScore = score;
++      best = item;
++    }
++  }
++
++  return bestScore > 0 ? best : null;
++}
++
++function formatPrice(locale: 'de' | 'ru' | 'en', priceCents: number | null): string {
++  if (priceCents == null) {
++    return locale === 'ru' ? 'цена по запросу' : locale === 'en' ? 'price on request' : 'Preis auf Anfrage';
++  }
++  const value = (priceCents / 100).toFixed(2);
++  const localized = locale === 'en' ? value : value.replace('.', ',');
++  return `${localized} €`;
++}
++
++function formatServiceOption(
++  locale: 'de' | 'ru' | 'en',
++  service: { title: string; durationMin: number; priceCents: number | null },
++): string {
++  const minutes = locale === 'ru' ? 'мин.' : 'min.';
++  return `[option] 💅 ${service.title} — ${service.durationMin} ${minutes}, ${formatPrice(locale, service.priceCents)} [/option]`;
++}
++
++function buildCategoryToServiceText(
++  locale: 'de' | 'ru' | 'en',
++  categoryTitle: string,
++  options: string[],
++): string {
++  const intro =
++    locale === 'ru'
++      ? `Вы выбрали категорию "${categoryTitle}". Чтобы записаться, выберите конкретную услугу:`
++      : locale === 'en'
++        ? `You selected the category "${categoryTitle}". To continue booking, please choose a specific service:`
++        : `Sie haben die Kategorie "${categoryTitle}" gewählt. Für die Buchung wählen Sie bitte eine konkrete Leistung:`;
++  const question =
++    locale === 'ru'
++      ? 'Какую услугу выбираем?'
++      : locale === 'en'
++        ? 'Which service would you like to choose?'
++        : 'Welche Leistung möchten Sie wählen?';
++
++  return `${intro}\n\n${options.join('\n')}\n\n${question}`;
++}
++
++function buildNoMasterForServiceText(
++  locale: 'de' | 'ru' | 'en',
++  serviceTitle: string,
++  options: string[],
++): string {
++  const intro =
++    locale === 'ru'
++      ? `Для услуги "${serviceTitle}" сейчас нет назначенных мастеров.`
++      : locale === 'en'
++        ? `There are currently no assigned masters for "${serviceTitle}".`
++        : `Für die Leistung "${serviceTitle}" sind aktuell keine Meister zugewiesen.`;
++  const ask =
++    locale === 'ru'
++      ? 'Выберите, пожалуйста, другую конкретную услугу:'
++      : locale === 'en'
++        ? 'Please choose another specific service:'
++        : 'Bitte wählen Sie eine andere konkrete Leistung:';
++
++  return options.length > 0 ? `${intro}\n\n${ask}\n\n${options.join('\n')}` : `${intro}\n\n${ask}`;
++}
++
++function buildSingleMasterText(
++  locale: 'de' | 'ru' | 'en',
++  serviceTitle: string,
++  masterName: string,
++): string {
++  if (locale === 'ru') {
++    return `Вы выбрали услугу "${serviceTitle}".\n\nЭту услугу выполнит мастер ${masterName}.\n\nСначала выберите дату, затем время:\n\n[option] 📅 Завтра [/option]\n[option] 📅 Ближайшая дата [/option]\n\nИли напишите дату в формате ДД.ММ.`;
++  }
++  if (locale === 'en') {
++    return `You selected "${serviceTitle}".\n\nThis service can be done by ${masterName}.\n\nPlease choose a date first, then we will pick time:\n\n[option] 📅 Tomorrow [/option]\n[option] 📅 Nearest date [/option]\n\nOr type a date in DD.MM format.`;
++  }
++  return `Sie haben die Leistung "${serviceTitle}" gewählt.\n\nDiese Leistung übernimmt ${masterName}.\n\nBitte wählen Sie zuerst ein Datum, danach die Uhrzeit:\n\n[option] 📅 Morgen [/option]\n[option] 📅 Nächstes Datum [/option]\n\nOder schreiben Sie ein Datum im Format TT.MM.`;
++}
++
++function buildMultipleMastersText(
++  locale: 'de' | 'ru' | 'en',
++  serviceTitle: string,
++  options: string[],
++): string {
++  const intro =
++    locale === 'ru'
++      ? `Услугу "${serviceTitle}" могут выполнить следующие мастера:`
++      : locale === 'en'
++        ? `The service "${serviceTitle}" can be performed by:`
++        : `Die Leistung "${serviceTitle}" kann von folgenden Meistern ausgeführt werden:`;
++  const ask =
++    locale === 'ru'
++      ? 'Кого выберем?'
++      : locale === 'en'
++        ? 'Who would you like to choose?'
++        : 'Wen möchten Sie wählen?';
++  return `${intro}\n\n${options.join('\n')}\n\n${ask}`;
++}
++
++function isFullCatalogRequest(text: string, locale: 'de' | 'ru' | 'en'): boolean {
++  const value = normalizeInput(text);
++  if (!value) return false;
++
++  if (locale === 'ru') {
++    const ruPhrases = [
++      'услуги и цены',
++      'какие услуги',
++      'все услуги',
++      'полный список',
++      'полный прайс',
++      'прайс лист',
++      'прайс-лист',
++      'цены',
++      'стоимость',
++      'сколько стоит',
++    ];
++    return ruPhrases.some((p) => value.includes(p));
++  }
++
++  if (locale === 'en') {
++    const enPhrases = [
++      'services and prices',
++      'services & prices',
++      'what services',
++      'full list',
++      'price list',
++      'prices',
++      'how much',
++    ];
++    return enPhrases.some((p) => value.includes(p));
++  }
++
++  const dePhrases = [
++    'leistungen und preise',
++    'leistungen & preise',
++    'welche leistungen',
++    'vollständige liste',
++    'volle liste',
++    'preisliste',
++    'preise',
++    'kosten',
++    'was kostet',
++  ];
++  return dePhrases.some((p) => value.includes(p));
++}
++
++function categoryEmoji(title: string): string {
++  const value = normalizeChoiceText(title);
++  if (
++    value.includes('brow') ||
++    value.includes('augenbrau') ||
++    value.includes('ресниц') ||
++    value.includes('бров')
++  ) {
++    return '✨';
++  }
++  if (value.includes('маник') || value.includes('nagel')) return '💅';
++  if (value.includes('перманент') || value.includes('permanent') || value.includes('pmu')) {
++    return '💄';
++  }
++  if (value.includes('стриж') || value.includes('haarschnitt') || value.includes('hair')) {
++    return '✂️';
++  }
++  if (value.includes('hydrafacial') || value.includes('hydra')) return '💧';
++  if (value.includes('педик') || value.includes('fuß') || value.includes('pedik')) return '🦶';
++  return '•';
++}
++
++function formatServiceLine(
++  locale: 'de' | 'ru' | 'en',
++  groupTitle: string,
++  service: { title: string; durationMin: number; priceCents: number | null },
++): string {
++  const minutes = locale === 'ru' ? 'мин.' : 'min.';
++  return `${categoryEmoji(groupTitle)} ${service.title} — ${service.durationMin} ${minutes}, ${formatPrice(locale, service.priceCents)}`;
++}
++
++function buildFullCatalogText(
++  locale: 'de' | 'ru' | 'en',
++  groups: Array<{
++    title: string;
++    services: Array<{ title: string; durationMin: number; priceCents: number | null }>;
++  }>,
++): string {
++  const intro =
++    locale === 'ru'
++      ? 'Вот полный список наших услуг и цен:'
++      : locale === 'en'
++        ? 'Here is our full list of services and prices:'
++        : 'Hier ist unsere vollständige Liste mit Leistungen und Preisen:';
++
++  const ask =
++    locale === 'ru'
++      ? 'Если хотите, подберу мастера и ближайшее время для выбранной услуги.'
++      : locale === 'en'
++        ? 'If you want, I can suggest a master and nearest time for the selected service.'
++        : 'Wenn Sie möchten, finde ich direkt einen Meister und die nächste freie Zeit für die gewählte Leistung.';
++
++  const body = groups
++    .map((group) => {
++      const lines = group.services.map((service) => formatServiceLine(locale, group.title, service));
++      return `**${group.title}**\n${lines.join('\n')}`;
++    })
++    .join('\n\n');
++
++  return `${intro}\n\n${body}\n\n${ask}`;
++}
++
++async function tryHandleCatalogSelectionFastPath(
++  session: AiSession,
++  sessionId: string,
++  message: string,
++): Promise<ChatResponse | null> {
++  const input = normalizeChoiceText(message);
++  if (!input || input.length < 4) return null;
++  if (isAffirmativeFollowUp(message)) return null;
++  if (
++    ((session.context.selectedServiceIds?.length ?? 0) > 0 ||
++      Boolean(session.context.selectedMasterId)) &&
++    looksLikeDateOrTimeSelection(message)
++  ) {
++    return null;
++  }
++
++  const startedList = Date.now();
++  const catalog = await listServices({ locale: session.locale });
++  const listDurationMs = Date.now() - startedList;
++  const groups = (catalog.groups ?? []) as Array<{
++    id: string;
++    title: string;
++    services: Array<{
++      id: string;
++      title: string;
++      durationMin: number;
++      priceCents: number | null;
++    }>;
++  }>;
++  if (groups.length === 0) return null;
++
++  const matchedGroup = chooseBestMatch(
++    groups,
++    (g) => normalizeChoiceText(g.title),
++    input,
++  );
++
++  if (matchedGroup) {
++    const groupNorm = normalizeChoiceText(matchedGroup.title);
++    const inputTokens = tokenizeNormalized(input);
++    const groupTokens = tokenizeNormalized(groupNorm);
++    const isDirectGroupChoice =
++      input === groupNorm ||
++      (input.includes(groupNorm) && inputTokens.length <= groupTokens.length + 2);
++
++    if (!isDirectGroupChoice) {
++      // User most likely clicked a specific service with overlapping words.
++      // Continue to concrete service matching below.
++    } else {
++      const serviceOptions = matchedGroup.services
++        .slice(0, 12)
++        .map((s) => formatServiceOption(session.locale, s));
++      const text = buildCategoryToServiceText(
++        session.locale,
++        matchedGroup.title,
++        serviceOptions,
++      );
++
++      appendSessionMessage(sessionId, 'assistant', text);
++      upsertSession(sessionId, {
++        context: {
++          selectedServiceIds: undefined,
++          selectedMasterId: undefined,
++          lastSuggestedDateOptions: undefined,
++          lastDateISO: undefined,
++          lastPreferredTime: undefined,
++          lastNoSlots: false,
++        },
++      });
++
++      console.log(
++        `[AI Chat] session=${sessionId.slice(0, 8)}... fastpath=category-to-services group="${matchedGroup.title}"`,
++      );
++
++      return {
++        text,
++        sessionId,
++        toolCalls: [{ name: 'list_services', durationMs: listDurationMs }],
++      };
++    }
++  }
++
++  const flatServices = groups.flatMap((g) =>
++    g.services.map((s) => ({
++      ...s,
++      groupTitle: g.title,
++    })),
++  );
++
++  const matchedService = chooseBestMatch(
++    flatServices,
++    (s) => normalizeChoiceText(s.title),
++    input,
++  );
++  if (!matchedService) return null;
++
++  const startedMasters = Date.now();
++  const mastersResult = await listMastersForServices({ serviceIds: [matchedService.id] });
++  const mastersDurationMs = Date.now() - startedMasters;
++
++  if (!mastersResult.masters || mastersResult.masters.length === 0) {
++    const alternatives = flatServices
++      .filter(
++        (s) =>
++          s.groupTitle === matchedService.groupTitle &&
++          s.id !== matchedService.id,
++      )
++      .slice(0, 10)
++      .map((s) => formatServiceOption(session.locale, s));
++
++    const text = buildNoMasterForServiceText(
++      session.locale,
++      matchedService.title,
++      alternatives,
++    );
++    appendSessionMessage(sessionId, 'assistant', text);
++    upsertSession(sessionId, {
++      context: {
++        selectedServiceIds: [matchedService.id],
++        selectedMasterId: undefined,
++        lastSuggestedDateOptions: undefined,
++        lastDateISO: undefined,
++        lastPreferredTime: undefined,
++        lastNoSlots: false,
++      },
++    });
++
++    console.log(
++      `[AI Chat] session=${sessionId.slice(0, 8)}... fastpath=service-no-master service="${matchedService.title}"`,
++    );
++
++    return {
++      text,
++      sessionId,
++      toolCalls: [
++        { name: 'list_services', durationMs: listDurationMs },
++        { name: 'list_masters_for_services', durationMs: mastersDurationMs },
++      ],
++    };
++  }
++
++  if (mastersResult.masters.length === 1) {
++    const master = mastersResult.masters[0];
++    const text = buildSingleMasterText(
++      session.locale,
++      matchedService.title,
++      master.name,
++    );
++    appendSessionMessage(sessionId, 'assistant', text);
++    upsertSession(sessionId, {
++      context: {
++        selectedServiceIds: [matchedService.id],
++        selectedMasterId: master.id,
++        lastSuggestedDateOptions: undefined,
++        lastDateISO: undefined,
++        lastPreferredTime: undefined,
++        lastNoSlots: false,
++      },
++    });
++
++    console.log(
++      `[AI Chat] session=${sessionId.slice(0, 8)}... fastpath=service-single-master service="${matchedService.title}" master="${master.name}"`,
++    );
++
++    return {
++      text,
++      sessionId,
++      toolCalls: [
++        { name: 'list_services', durationMs: listDurationMs },
++        { name: 'list_masters_for_services', durationMs: mastersDurationMs },
++      ],
++    };
++  }
++
++  const masterOptions = mastersResult.masters
++    .slice(0, 10)
++    .map((m) => `[option] 👩‍🎨 ${m.name} [/option]`);
++  const text = buildMultipleMastersText(
++    session.locale,
++    matchedService.title,
++    masterOptions,
++  );
++  appendSessionMessage(sessionId, 'assistant', text);
++  upsertSession(sessionId, {
++    context: {
++      selectedServiceIds: [matchedService.id],
++      selectedMasterId: undefined,
++      lastSuggestedDateOptions: undefined,
++      lastDateISO: undefined,
++      lastPreferredTime: undefined,
++      lastNoSlots: false,
++    },
++  });
++
++  console.log(
++    `[AI Chat] session=${sessionId.slice(0, 8)}... fastpath=service-multi-master service="${matchedService.title}" masters=${mastersResult.masters.length}`,
++  );
++
++  return {
++    text,
++    sessionId,
++    toolCalls: [
++      { name: 'list_services', durationMs: listDurationMs },
++      { name: 'list_masters_for_services', durationMs: mastersDurationMs },
++    ],
++  };
++}
++
+ // ─── Route Handler ──────────────────────────────────────────────
+ 
+ export async function POST(
+@@ -96,15 +1161,462 @@ export async function POST(
+   const session = upsertSession(sessionId, {
+     locale: (locale as 'de' | 'ru' | 'en') ?? 'de',
+   });
++  appendSessionMessage(sessionId, 'user', message);
++  const selectedMasterId = session.context.selectedMasterId;
++  const selectedServiceIds = session.context.selectedServiceIds ?? [];
++  const suggestedDateOptions = session.context.lastSuggestedDateOptions ?? [];
++  const hasActiveBookingFlow = Boolean(
++    selectedMasterId ||
++      selectedServiceIds.length > 0 ||
++      session.context.reservedSlot ||
++      session.context.draftId,
++  );
++
++  if (shouldApplyScopeGuard(message, session)) {
++    const text = buildScopeGuardText(session.locale, hasActiveBookingFlow);
++    appendSessionMessage(sessionId, 'assistant', text);
++
++    console.log(
++      `[AI Chat] session=${sessionId.slice(0, 8)}... fastpath=scope-guard active=${hasActiveBookingFlow}`,
++    );
++
++    return NextResponse.json({
++      text,
++      sessionId,
++    });
++  }
++
++  // Deterministic full catalog view to avoid partial/unstable LLM formatting.
++  if (isFullCatalogRequest(message, session.locale)) {
++    const startedAt = Date.now();
++    const catalog = await listServices({ locale: session.locale });
++    const durationMs = Date.now() - startedAt;
++    const groups = (catalog.groups ?? []) as Array<{
++      title: string;
++      services: Array<{ title: string; durationMin: number; priceCents: number | null }>;
++    }>;
++    const text = buildFullCatalogText(session.locale, groups);
++
++    appendSessionMessage(sessionId, 'assistant', text);
++
++    console.log(
++      `[AI Chat] session=${sessionId.slice(0, 8)}... fastpath=services-full-list groups=${groups.length} services=${catalog.matchedServices ?? 0}`,
++    );
++
++    return NextResponse.json({
++      text,
++      sessionId,
++      toolCalls: [{ name: 'list_services', durationMs }],
++    });
++  }
++
++  // Deterministic "nearest date" action from clickable option.
++  if (
++    selectedMasterId &&
++    selectedServiceIds.length > 0 &&
++    isNearestDateRequest(message)
++  ) {
++    const startDateISO = session.context.lastDateISO ?? todayISO();
++    const startedAt = Date.now();
++    const optionsMap = await buildNearestDateOptions({
++      masterId: selectedMasterId,
++      serviceIds: selectedServiceIds,
++      locale: session.locale,
++      startDateISO,
++      minCount: 6,
++    });
++    const durationMs = Date.now() - startedAt;
++    const text = buildNoSlotsFollowUpText(session.locale, optionsMap);
++
++    appendSessionMessage(sessionId, 'assistant', text);
++    upsertSession(sessionId, {
++      context: {
++        lastDateISO: startDateISO,
++        lastNoSlots: optionsMap.length === 0,
++        lastSuggestedDateOptions: optionsMap,
++      },
++    });
++
++    console.log(
++      `[AI Chat] session=${sessionId.slice(0, 8)}... fastpath=nearest-date days=${optionsMap.length}`,
++    );
++
++    return NextResponse.json({
++      text,
++      sessionId,
++      toolCalls: [{ name: 'search_availability_month', durationMs }],
++    });
++  }
++
++  // Deterministic "tomorrow" action from clickable option.
++  if (
++    selectedMasterId &&
++    selectedServiceIds.length > 0 &&
++    isTomorrowRequest(message)
++  ) {
++    const tomorrowDate = new Date(Date.now() + 24 * 60 * 60 * 1000);
++    const dateISO = tomorrowDate.toISOString().slice(0, 10);
++    const startedAt = Date.now();
++    const availabilityResult = await searchAvailability({
++      masterId: selectedMasterId,
++      dateISO,
++      serviceIds: selectedServiceIds,
++      preferredTime: 'any',
++    });
++    const durationMs = Date.now() - startedAt;
++    const slots = Array.isArray(availabilityResult.slots)
++      ? availabilityResult.slots
++      : [];
++
++    if (slots.length > 0) {
++      const text = buildSlotsForDateText(session.locale, dateISO, slots);
++      appendSessionMessage(sessionId, 'assistant', text);
++      upsertSession(sessionId, {
++        context: {
++          lastDateISO: dateISO,
++          lastPreferredTime: 'any',
++          lastNoSlots: false,
++          lastSuggestedDateOptions: undefined,
++        },
++      });
++
++      console.log(
++        `[AI Chat] session=${sessionId.slice(0, 8)}... fastpath=tomorrow slots=${slots.length}`,
++      );
++
++      return NextResponse.json({
++        text,
++        sessionId,
++        toolCalls: [{ name: 'search_availability', durationMs }],
++      });
++    }
++
++    const monthStartedAt = Date.now();
++    const optionsMap = await buildNearestDateOptions({
++      masterId: selectedMasterId,
++      serviceIds: selectedServiceIds,
++      locale: session.locale,
++      startDateISO: shiftDateISO(dateISO, 1),
++      minCount: 6,
++    });
++    const monthDurationMs = Date.now() - monthStartedAt;
++    const text = buildNoSlotsFollowUpText(session.locale, optionsMap);
++
++    appendSessionMessage(sessionId, 'assistant', text);
++    upsertSession(sessionId, {
++      context: {
++        lastDateISO: dateISO,
++        lastPreferredTime: 'any',
++        lastNoSlots: optionsMap.length === 0,
++        lastSuggestedDateOptions: optionsMap,
++      },
++    });
++
++    console.log(
++      `[AI Chat] session=${sessionId.slice(0, 8)}... fastpath=tomorrow-no-slots days=${optionsMap.length}`,
++    );
++
++    return NextResponse.json({
++      text,
++      sessionId,
++      toolCalls: [
++        { name: 'search_availability', durationMs },
++        { name: 'search_availability_month', durationMs: monthDurationMs },
++      ],
++    });
++  }
++
++  // Deterministic manual date input (e.g. 28.02 / 28-02 / 28/02).
++  if (selectedMasterId && selectedServiceIds.length > 0) {
++    const explicitDateISO = parseExplicitDateInputToISO(
++      message,
++      session.context.lastDateISO ?? todayISO(),
++    );
++
++    if (explicitDateISO) {
++      const startedAt = Date.now();
++      const availabilityResult = await searchAvailability({
++        masterId: selectedMasterId,
++        dateISO: explicitDateISO,
++        serviceIds: selectedServiceIds,
++        preferredTime: 'any',
++      });
++      const durationMs = Date.now() - startedAt;
++      const slots = Array.isArray(availabilityResult.slots)
++        ? availabilityResult.slots
++        : [];
++
++      if (slots.length > 0) {
++        const text = buildSlotsForDateText(session.locale, explicitDateISO, slots);
++        appendSessionMessage(sessionId, 'assistant', text);
++        upsertSession(sessionId, {
++          context: {
++            lastDateISO: explicitDateISO,
++            lastPreferredTime: 'any',
++            lastNoSlots: false,
++            lastSuggestedDateOptions: undefined,
++          },
++        });
++
++        console.log(
++          `[AI Chat] session=${sessionId.slice(0, 8)}... fastpath=manual-date-picked date=${explicitDateISO} slots=${slots.length}`,
++        );
++
++        return NextResponse.json({
++          text,
++          sessionId,
++          toolCalls: [{ name: 'search_availability', durationMs }],
++        });
++      }
++
++      const monthStartedAt = Date.now();
++      const optionsMap = await buildNearestDateOptions({
++        masterId: selectedMasterId,
++        serviceIds: selectedServiceIds,
++        locale: session.locale,
++        startDateISO: shiftDateISO(explicitDateISO, 1),
++        minCount: 6,
++      });
++      const monthDurationMs = Date.now() - monthStartedAt;
++      const dayLabel = formatDateLabel(explicitDateISO, session.locale);
++      const noSlotsPrefix =
++        session.locale === 'ru'
++          ? `На ${dayLabel} свободных слотов нет.`
++          : session.locale === 'en'
++            ? `There are no free slots on ${dayLabel}.`
++            : `Für ${dayLabel} gibt es keine freien Slots.`;
++      const followUpText = buildNoSlotsFollowUpText(session.locale, optionsMap);
++      const text = `${noSlotsPrefix}\n\n${followUpText}`;
++
++      appendSessionMessage(sessionId, 'assistant', text);
++      upsertSession(sessionId, {
++        context: {
++          lastDateISO: explicitDateISO,
++          lastPreferredTime: 'any',
++          lastNoSlots: optionsMap.length === 0,
++          lastSuggestedDateOptions: optionsMap,
++        },
++      });
++
++      console.log(
++        `[AI Chat] session=${sessionId.slice(0, 8)}... fastpath=manual-date-no-slots date=${explicitDateISO} days=${optionsMap.length}`,
++      );
++
++      return NextResponse.json({
++        text,
++        sessionId,
++        toolCalls: [
++          { name: 'search_availability', durationMs },
++          { name: 'search_availability_month', durationMs: monthDurationMs },
++        ],
++      });
++    }
++  }
++
++  // Deterministic follow-up: user picked one of date suggestions.
++  // We intentionally search with preferredTime=any to avoid stale time filters.
++  if (selectedMasterId && selectedServiceIds.length > 0 && suggestedDateOptions.length > 0) {
++    const pickedDate = matchSuggestedDateOption(message, suggestedDateOptions);
++    if (pickedDate) {
++      const startedAt = Date.now();
++      const availabilityResult = await searchAvailability({
++        masterId: selectedMasterId,
++        dateISO: pickedDate.dateISO,
++        serviceIds: selectedServiceIds,
++        preferredTime: 'any',
++      });
++      const durationMs = Date.now() - startedAt;
++      const slots = Array.isArray(availabilityResult.slots)
++        ? availabilityResult.slots
++        : [];
++
++      if (slots.length > 0) {
++        const text = buildSlotsForDateText(session.locale, pickedDate.dateISO, slots);
++        appendSessionMessage(sessionId, 'assistant', text);
++        upsertSession(sessionId, {
++          context: {
++            lastDateISO: pickedDate.dateISO,
++            lastPreferredTime: 'any',
++            lastNoSlots: false,
++            lastSuggestedDateOptions: undefined,
++          },
++        });
++
++        console.log(
++          `[AI Chat] session=${sessionId.slice(0, 8)}... fastpath=suggested-date-picked date=${pickedDate.dateISO} slots=${slots.length}`,
++        );
++
++        return NextResponse.json({
++          text,
++          sessionId,
++          toolCalls: [{ name: 'search_availability', durationMs }],
++        });
++      }
++
++      const monthStartedAt = Date.now();
++      const optionsMap = await buildNearestDateOptions({
++        masterId: selectedMasterId,
++        serviceIds: selectedServiceIds,
++        locale: session.locale,
++        startDateISO: shiftDateISO(pickedDate.dateISO, 1),
++        minCount: 6,
++      });
++      const monthDurationMs = Date.now() - monthStartedAt;
++      const text = buildNoSlotsFollowUpText(session.locale, optionsMap);
++
++      appendSessionMessage(sessionId, 'assistant', text);
++      upsertSession(sessionId, {
++        context: {
++          lastDateISO: pickedDate.dateISO,
++          lastPreferredTime: 'any',
++          lastNoSlots: optionsMap.length === 0,
++          lastSuggestedDateOptions: optionsMap,
++        },
++      });
++
++      console.log(
++        `[AI Chat] session=${sessionId.slice(0, 8)}... fastpath=suggested-date-no-slots date=${pickedDate.dateISO} days=${optionsMap.length}`,
++      );
++
++      return NextResponse.json({
++        text,
++        sessionId,
++        toolCalls: [
++          { name: 'search_availability', durationMs },
++          { name: 'search_availability_month', durationMs: monthDurationMs },
++        ],
++      });
++    }
++  }
++
++  // Deterministic follow-up: user confirms after "no slots" -> check month availability
++  if (
++    session.context.lastNoSlots &&
++    isAffirmativeFollowUp(message) &&
++    selectedMasterId &&
++    selectedServiceIds.length > 0
++  ) {
++    const sameDateISO = session.context.lastDateISO;
++    if (sameDateISO) {
++      const sameDayStartedAt = Date.now();
++      const sameDayResult = await searchAvailability({
++        masterId: selectedMasterId,
++        dateISO: sameDateISO,
++        serviceIds: selectedServiceIds,
++        preferredTime: 'any',
++      });
++      const sameDayDurationMs = Date.now() - sameDayStartedAt;
++
++      if ((sameDayResult.slots?.length ?? 0) > 0) {
++        const text = buildSlotsForDateText(
++          session.locale,
++          sameDateISO,
++          sameDayResult.slots ?? [],
++        );
++
++        appendSessionMessage(sessionId, 'assistant', text);
++        upsertSession(sessionId, {
++          context: {
++            lastDateISO: sameDateISO,
++            lastPreferredTime: 'any',
++            lastNoSlots: false,
++            lastSuggestedDateOptions: undefined,
++          },
++        });
++
++        console.log(
++          `[AI Chat] session=${sessionId.slice(0, 8)}... fastpath=no-slots-same-day-recheck date=${sameDateISO} slots=${sameDayResult.slots?.length ?? 0}`,
++        );
++
++        return NextResponse.json({
++          text,
++          sessionId,
++          toolCalls: [{ name: 'search_availability', durationMs: sameDayDurationMs }],
++        });
++      }
++    }
++
++    const startedAt = Date.now();
++    const optionsMap = await buildNearestDateOptions({
++      masterId: selectedMasterId,
++      serviceIds: selectedServiceIds,
++      locale: session.locale,
++      startDateISO: shiftDateISO(session.context.lastDateISO ?? todayISO(), 1),
++      minCount: 6,
++    });
++    const durationMs = Date.now() - startedAt;
++    const text = buildNoSlotsFollowUpText(session.locale, optionsMap);
++
++    appendSessionMessage(sessionId, 'assistant', text);
++    upsertSession(sessionId, {
++      context: {
++        lastNoSlots: optionsMap.length === 0,
++        lastSuggestedDateOptions: optionsMap,
++      },
++    });
++
++    console.log(
++      `[AI Chat] session=${sessionId.slice(0, 8)}... fastpath=no-slots-follow-up days=${optionsMap.length}`,
++    );
++
++    return NextResponse.json({
++      text,
++      sessionId,
++      toolCalls: [{ name: 'search_availability_month', durationMs }],
++    });
++  }
++
++  // Deterministic selection flow:
++  // category click -> concrete services, service click -> masters/date step.
++  const selectionFastPath = await tryHandleCatalogSelectionFastPath(
++    session,
++    sessionId,
++    message,
++  );
++  if (selectionFastPath) {
++    return NextResponse.json(selectionFastPath);
++  }
+ 
+   // Build messages
+   const systemPrompt = buildSystemPrompt(session.locale);
++  const stateHints: string[] = [];
++  if (session.context.selectedServiceIds && session.context.selectedServiceIds.length > 0) {
++    stateHints.push(`selectedServiceIds=${session.context.selectedServiceIds.join(',')}`);
++  }
++  if (session.context.selectedMasterId) {
++    stateHints.push(`selectedMasterId=${session.context.selectedMasterId}`);
++  }
++  if (session.context.lastDateISO) {
++    stateHints.push(`lastDateISO=${session.context.lastDateISO}`);
++  }
++  if (session.context.lastPreferredTime) {
++    stateHints.push(`lastPreferredTime=${session.context.lastPreferredTime}`);
++  }
++  if (session.context.lastNoSlots !== undefined) {
++    stateHints.push(`lastNoSlots=${String(session.context.lastNoSlots)}`);
++  }
++
++  const statePrompt =
++    stateHints.length > 0
++      ? `SESSION STATE (do not reset booking flow): ${stateHints.join(' | ')}`
++      : null;
++
++  const historyMessages: OpenAI.Chat.ChatCompletionMessageParam[] = (
++    session.context.chatHistory ?? []
++  )
++    .slice(-16)
++    .filter((m) => m.content?.trim())
++    .map((m) => ({
++      role: m.role,
++      content: m.content,
++    }) as OpenAI.Chat.ChatCompletionMessageParam);
+ 
+   // Build conversation history from session
+-  // We use the simple approach: system + last exchange context + new message
+-  // For full multi-turn, store messages array in session or use Responses API
++  // Keep recent dialogue context to avoid flow resets between turns.
+   const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [
+     { role: 'system', content: systemPrompt },
++    ...(statePrompt ? [{ role: 'system', content: statePrompt } as const] : []),
++    ...historyMessages,
+     { role: 'user', content: message },
+   ];
+ 
+@@ -120,6 +1632,7 @@ export async function POST(
+ 
+   try {
+     const toolCallLog: { name: string; durationMs: number }[] = [];
++    const missingServiceSignals: MissingServiceSignal[] = [];
+ 
+     // Tool-calling loop
+     let response = await client.chat.completions.create({
+@@ -127,7 +1640,7 @@ export async function POST(
+       messages,
+       tools,
+       tool_choice: 'auto',
+-      temperature: 0.3,
++      temperature: TEMPERATURE,
+       max_tokens: 1024,
+     });
+ 
+@@ -149,24 +1662,369 @@ export async function POST(
+         // Execute all tool calls in parallel
+         // Note: OpenAI SDK has union types for tool calls, we need explicit narrowing
+         const toolCalls: ToolCallRequest[] = [];
++        const parsedArgsByCallId = new Map<string, Record<string, unknown>>();
+         for (const tc of choice.message.tool_calls) {
+           // eslint-disable-next-line @typescript-eslint/no-explicit-any
+           const fn = (tc as any).function as
+             | { name: string; arguments: string }
+             | undefined;
+           if (fn) {
++            let effectiveArgsJson = fn.arguments;
++            let parsedArgs: Record<string, unknown> | null = null;
++            try {
++              parsedArgs = JSON.parse(fn.arguments) as Record<string, unknown>;
++
++              // Always bind reserve_slot to the current chat session.
++              if (fn.name === 'reserve_slot') {
++                parsedArgs.sessionId = sessionId;
++                effectiveArgsJson = JSON.stringify(parsedArgs);
++              }
++
++              // Keep complete_booking bound to the latest session draft to avoid stale draftId usage.
++              if (
++                fn.name === 'complete_booking' &&
++                typeof session.context.draftId === 'string' &&
++                session.context.draftId
++              ) {
++                const incomingDraftId =
++                  typeof parsedArgs.draftId === 'string' ? parsedArgs.draftId : undefined;
++                if (incomingDraftId !== session.context.draftId) {
++                  parsedArgs.draftId = session.context.draftId;
++                  effectiveArgsJson = JSON.stringify(parsedArgs);
++                }
++              }
++
++              parsedArgsByCallId.set(tc.id, parsedArgs);
++            } catch {
++              // Ignore malformed args, tool executor will handle errors
++            }
++
+             toolCalls.push({
+               id: tc.id,
+               name: fn.name,
+-              arguments: fn.arguments,
++              arguments: effectiveArgsJson,
+             });
+           }
+         }
+ 
++        // When the user sends contact details, keep create_draft aligned with
++        // the already reserved slot for this session.
++        let reserveArgsInBatch:
++          | { masterId: string; startAt: string; endAt: string }
++          | null = null;
++        for (const call of toolCalls) {
++          if (call.name !== 'reserve_slot') continue;
++          const parsed = parsedArgsByCallId.get(call.id);
++          if (
++            parsed &&
++            typeof parsed.masterId === 'string' &&
++            typeof parsed.startAt === 'string' &&
++            typeof parsed.endAt === 'string'
++          ) {
++            reserveArgsInBatch = {
++              masterId: parsed.masterId,
++              startAt: parsed.startAt,
++              endAt: parsed.endAt,
++            };
++            break;
++          }
++        }
++
++        const reserveArgsFromSession =
++          session.context.reservedSlot &&
++          typeof session.context.selectedMasterId === 'string' &&
++          session.context.selectedMasterId
++            ? {
++                masterId: session.context.selectedMasterId,
++                startAt: session.context.reservedSlot.startAt,
++                endAt: session.context.reservedSlot.endAt,
++              }
++            : null;
++
++        const createDraftArgsSource =
++          reserveArgsInBatch ??
++          (looksLikeContactPayload(message) ? reserveArgsFromSession : null);
++
++        if (createDraftArgsSource) {
++          for (const call of toolCalls) {
++            if (call.name !== 'create_draft') continue;
++            const parsed = parsedArgsByCallId.get(call.id);
++            if (!parsed) continue;
++
++            let changed = false;
++            if (parsed.masterId !== createDraftArgsSource.masterId) {
++              parsed.masterId = createDraftArgsSource.masterId;
++              changed = true;
++            }
++            if (parsed.startAt !== createDraftArgsSource.startAt) {
++              parsed.startAt = createDraftArgsSource.startAt;
++              changed = true;
++            }
++            if (parsed.endAt !== createDraftArgsSource.endAt) {
++              parsed.endAt = createDraftArgsSource.endAt;
++              changed = true;
++            }
++
++            if (changed) {
++              call.arguments = JSON.stringify(parsed);
++            }
++          }
++        }
++
+         const results = await Promise.all(toolCalls.map(executeTool));
++        const contextPatch: Partial<AiSession['context']> = {};
++        let autoVerificationCandidate:
++          | { draftId: string; email: string }
++          | null = null;
++        const hasExplicitStartVerification = results.some(
++          (r) => r.name === 'start_verification',
++        );
++        const explicitStartVerificationCalls: Array<{
++          draftId?: string;
++          contact?: string;
++          ok: boolean;
++        }> = [];
+ 
+         // Add tool results to messages
+         for (const result of results) {
++          const parsedArgs = parsedArgsByCallId.get(result.id);
++
++          if (result.name === 'list_services') {
++            try {
++              const payload = JSON.parse(result.result) as {
++                noMatches?: boolean;
++                query?: string | null;
++                suggestedAlternatives?: Array<{
++                  title: string;
++                  groupTitle?: string | null;
++                  durationMin?: number | null;
++                  priceCents?: number | null;
++                }>;
++              };
++
++              if (payload.noMatches && typeof payload.query === 'string' && payload.query.trim()) {
++                missingServiceSignals.push({
++                  query: payload.query.trim(),
++                  suggestedAlternatives: payload.suggestedAlternatives ?? [],
++                });
++              }
++            } catch {
++              // Ignore malformed tool payload
++            }
++          }
++
++          if (result.name === 'list_masters_for_services') {
++            try {
++              const payload = JSON.parse(result.result) as {
++                matchedServiceIds?: string[];
++                defaultMasterId?: string | null;
++                masters?: Array<{ id: string }>;
++                requiresSpecificService?: boolean;
++              };
++
++              const argServiceIds = Array.isArray(parsedArgs?.serviceIds)
++                ? parsedArgs.serviceIds.filter((s): s is string => typeof s === 'string')
++                : [];
++
++              if (argServiceIds.length > 0) {
++                contextPatch.selectedServiceIds = argServiceIds;
++              }
++
++              if (Array.isArray(payload.matchedServiceIds)) {
++                contextPatch.selectedServiceIds = payload.matchedServiceIds;
++              }
++
++              if (
++                payload.defaultMasterId &&
++                Array.isArray(payload.masters) &&
++                payload.masters.length === 1
++              ) {
++                contextPatch.selectedMasterId = payload.defaultMasterId;
++              }
++
++              if (payload.requiresSpecificService) {
++                contextPatch.selectedMasterId = undefined;
++                contextPatch.lastNoSlots = false;
++                contextPatch.lastSuggestedDateOptions = undefined;
++              }
++            } catch {
++              // Ignore malformed payload
++            }
++          }
++
++          if (result.name === 'search_availability') {
++            try {
++              const payload = JSON.parse(result.result) as {
++                count?: number;
++              };
++
++              if (typeof parsedArgs?.masterId === 'string') {
++                contextPatch.selectedMasterId = parsedArgs.masterId;
++              }
++              if (Array.isArray(parsedArgs?.serviceIds)) {
++                contextPatch.selectedServiceIds = parsedArgs.serviceIds.filter(
++                  (s): s is string => typeof s === 'string',
++                );
++              }
++              if (typeof parsedArgs?.dateISO === 'string') {
++                contextPatch.lastDateISO = parsedArgs.dateISO;
++                contextPatch.lastSuggestedDateOptions = undefined;
++              }
++              if (
++                parsedArgs?.preferredTime === 'morning' ||
++                parsedArgs?.preferredTime === 'afternoon' ||
++                parsedArgs?.preferredTime === 'evening' ||
++                parsedArgs?.preferredTime === 'any'
++              ) {
++                contextPatch.lastPreferredTime = parsedArgs.preferredTime;
++              }
++
++              if (typeof payload.count === 'number') {
++                contextPatch.lastNoSlots = payload.count === 0;
++                if (payload.count > 0) {
++                  contextPatch.lastSuggestedDateOptions = undefined;
++                }
++              }
++            } catch {
++              // Ignore malformed payload
++            }
++          }
++
++          if (result.name === 'reserve_slot') {
++            try {
++              const payload = JSON.parse(result.result) as {
++                success?: boolean;
++                error?: string;
++              };
++
++              if (typeof parsedArgs?.masterId === 'string') {
++                contextPatch.selectedMasterId = parsedArgs.masterId;
++              }
++
++              if (
++                payload.success &&
++                typeof parsedArgs?.startAt === 'string' &&
++                typeof parsedArgs?.endAt === 'string'
++              ) {
++                contextPatch.reservedSlot = {
++                  startAt: parsedArgs.startAt,
++                  endAt: parsedArgs.endAt,
++                };
++                contextPatch.lastNoSlots = false;
++              }
++
++              if (
++                payload.error === 'SLOT_TAKEN' &&
++                typeof parsedArgs?.startAt === 'string' &&
++                typeof parsedArgs?.endAt === 'string'
++              ) {
++                const sameAsCurrentReservation =
++                  session.context.reservedSlot?.startAt === parsedArgs.startAt &&
++                  session.context.reservedSlot?.endAt === parsedArgs.endAt;
++
++                if (!sameAsCurrentReservation) {
++                  contextPatch.reservedSlot = undefined;
++                }
++              }
++            } catch {
++              // Ignore malformed payload
++            }
++          }
++
++          if (result.name === 'search_availability_month') {
++            try {
++              const payload = JSON.parse(result.result) as {
++                days?: Record<string, number>;
++              };
++
++              if (typeof parsedArgs?.masterId === 'string') {
++                contextPatch.selectedMasterId = parsedArgs.masterId;
++              }
++              if (Array.isArray(parsedArgs?.serviceIds)) {
++                contextPatch.selectedServiceIds = parsedArgs.serviceIds.filter(
++                  (s): s is string => typeof s === 'string',
++                );
++              }
++
++              const optionsMap = mapMonthDaysToOptions(payload.days, session.locale);
++              contextPatch.lastNoSlots = optionsMap.length === 0;
++              contextPatch.lastSuggestedDateOptions = optionsMap;
++            } catch {
++              // Ignore malformed payload
++            }
++          }
++
++          if (result.name === 'start_verification') {
++            try {
++              const payload = JSON.parse(result.result) as {
++                ok?: boolean;
++              };
++
++              const draftIdArg =
++                typeof parsedArgs?.draftId === 'string' ? parsedArgs.draftId : undefined;
++              const contactArg =
++                typeof parsedArgs?.contact === 'string' ? parsedArgs.contact : undefined;
++
++              explicitStartVerificationCalls.push({
++                draftId: draftIdArg,
++                contact: contactArg,
++                ok: Boolean(payload.ok),
++              });
++
++              if (payload.ok && draftIdArg && !contextPatch.draftId) {
++                contextPatch.draftId = draftIdArg;
++              }
++            } catch {
++              explicitStartVerificationCalls.push({ ok: false });
++            }
++          }
++
++          if (result.name === 'create_draft') {
++            try {
++              const payload = JSON.parse(result.result) as {
++                draftId?: string;
++                error?: string;
++              };
++              const email =
++                typeof parsedArgs?.email === 'string' ? parsedArgs.email : null;
++
++              if (payload.draftId && !payload.error) {
++                contextPatch.draftId = payload.draftId;
++                if (
++                  typeof parsedArgs?.startAt === 'string' &&
++                  typeof parsedArgs?.endAt === 'string'
++                ) {
++                  contextPatch.reservedSlot = {
++                    startAt: parsedArgs.startAt,
++                    endAt: parsedArgs.endAt,
++                  };
++                }
++                if (email) {
++                  autoVerificationCandidate = { draftId: payload.draftId, email };
++                }
++              }
++            } catch {
++              // Ignore malformed payload
++            }
++          }
++
++          if (result.name === 'complete_booking') {
++            try {
++              const payload = JSON.parse(result.result) as {
++                ok?: boolean;
++              };
++
++              if (payload.ok) {
++                contextPatch.draftId = undefined;
++                contextPatch.reservedSlot = undefined;
++                contextPatch.lastSuggestedDateOptions = undefined;
++                contextPatch.lastNoSlots = false;
++              }
++            } catch {
++              // Ignore malformed payload
++            }
++          }
++
+           messages.push({
+             role: 'tool',
+             tool_call_id: result.id,
+@@ -175,13 +2033,70 @@ export async function POST(
+           toolCallLog.push({ name: result.name, durationMs: result.durationMs });
+         }
+ 
++        if (Object.keys(contextPatch).length > 0) {
++          upsertSession(sessionId, {
++            context: contextPatch,
++          });
++        }
++
++        const matchedExplicitStart = autoVerificationCandidate
++          ? explicitStartVerificationCalls.some(
++              (call) =>
++                call.ok &&
++                call.draftId === autoVerificationCandidate?.draftId &&
++                call.contact === autoVerificationCandidate?.email,
++            )
++          : false;
++
++        // Reliability guard:
++        // if model created draft but forgot start_verification
++        // OR started verification for a different draft/email, do it server-side.
++        if (autoVerificationCandidate && (!hasExplicitStartVerification || !matchedExplicitStart)) {
++          const startedAt = Date.now();
++          const autoRes = await startVerification({
++            method: 'email_otp',
++            draftId: autoVerificationCandidate.draftId,
++            contact: autoVerificationCandidate.email,
++          });
++          const durationMs = Date.now() - startedAt;
++
++          const text = buildVerificationAutoText(session.locale, {
++            ok: Boolean(autoRes?.ok),
++            contactMasked:
++              typeof autoRes === 'object' && autoRes && 'contactMasked' in autoRes
++                ? (autoRes.contactMasked as string | undefined)
++                : undefined,
++            error:
++              typeof autoRes === 'object' && autoRes && 'error' in autoRes
++                ? String(autoRes.error ?? '')
++                : undefined,
++          });
++
++          appendSessionMessage(sessionId, 'assistant', text);
++
++          const allToolCalls = [
++            ...toolCallLog,
++            { name: 'start_verification', durationMs },
++          ];
++
++          console.log(
++            `[AI Chat] session=${sessionId.slice(0, 8)}... fastpath=auto-start-verification ok=${Boolean(autoRes?.ok)}`,
++          );
++
++          return NextResponse.json({
++            text,
++            sessionId,
++            toolCalls: allToolCalls,
++          });
++        }
++
+         // Call model again with tool results
+         response = await client.chat.completions.create({
+           model: MODEL,
+           messages,
+           tools,
+           tool_choice: 'auto',
+-          temperature: 0.3,
++          temperature: TEMPERATURE,
+           max_tokens: 1024,
+         });
+ 
+@@ -194,14 +2109,73 @@ export async function POST(
+     }
+ 
+     // Extract final text
+-    const finalMessage = response.choices[0]?.message;
+-    const text = finalMessage?.content || 'Entschuldigung, ich konnte keine Antwort generieren.';
++    let finalMessage = response.choices[0]?.message;
++    let text =
++      typeof finalMessage?.content === 'string'
++        ? finalMessage.content.trim()
++        : '';
++
++    // If model ended without text (e.g. too many tool iterations), force a final textual reply.
++    if (!text) {
++      try {
++        const forced = await client.chat.completions.create({
++          model: MODEL,
++          messages,
++          tools,
++          tool_choice: 'none',
++          temperature: TEMPERATURE,
++          max_tokens: 512,
++        });
++        finalMessage = forced.choices[0]?.message;
++        text =
++          typeof finalMessage?.content === 'string'
++            ? finalMessage.content.trim()
++            : '';
++      } catch (forceError) {
++        console.warn('[AI Chat] Forced final response failed:', forceError);
++      }
++    }
++
++    if (!text) {
++      text = fallbackTextByLocale(session.locale);
++    }
++
++    appendSessionMessage(sessionId, 'assistant', text);
++
++    if (missingServiceSignals.length > 0) {
++      const currentSession = getSession(sessionId);
++      const reported = new Set(currentSession?.context.reportedMissingQueries ?? []);
++
++      const uniqueSignals = missingServiceSignals.filter((signal) => {
++        const key = signal.query.trim().toLowerCase();
++        if (!key || reported.has(key)) return false;
++        reported.add(key);
++        return true;
++      });
++
++      for (const signal of uniqueSignals) {
++        const latest = getSession(sessionId);
++        await reportMissingServiceInquiry({
++          sessionId,
++          locale: session.locale,
++          query: signal.query,
++          transcript: latest?.context.chatHistory ?? [],
++          alternatives: signal.suggestedAlternatives,
++        });
++      }
++
++      upsertSession(sessionId, {
++        context: {
++          reportedMissingQueries: Array.from(reported),
++        },
++      });
++    }
+ 
+     // Update session
+     upsertSession(sessionId, {});
+ 
+     console.log(
+-      `[AI Chat] session=${sessionId.slice(0, 8)}... tools=${toolCallLog.length} iterations=${iterations}`,
++      `[AI Chat] session=${sessionId.slice(0, 8)}... history=${historyMessages.length} tools=${toolCallLog.length} iterations=${iterations}`,
+     );
+ 
+     return NextResponse.json({
+@@ -219,4 +2193,4 @@ export async function POST(
+ 
+     return NextResponse.json({ error: errorMsg }, { status: 500 });
+   }
+-}
+\ No newline at end of file
++}
+diff --git a/src/app/api/booking/verify/email/confirm/route.ts b/src/app/api/booking/verify/email/confirm/route.ts
+index 5396943..e41c9e2 100644
+--- a/src/app/api/booking/verify/email/confirm/route.ts
++++ b/src/app/api/booking/verify/email/confirm/route.ts
+@@ -1,17 +1,11 @@
+ // src/app/api/booking/verify/email/confirm/route.ts
+ 
+ import { NextRequest, NextResponse } from 'next/server';
+-import { prisma } from '@/lib/prisma';
+-import {
+-  verifyOTP,
+-  deleteOTP,
+-  OTPMethod,
+-} from '@/lib/otp-store';
++import { verifyOTP, deleteOTP, OTPMethod } from '@/lib/otp-store';
++import { finalizeBookingFromDraft } from '@/lib/booking/finalize-booking';
+ import { DEFAULT_LOCALE, LOCALES, type Locale } from '@/i18n/locales';
+ import { translate, type MessageKey } from '@/i18n/messages';
+ 
+-// ---------- Типы ----------
+-
+ type ConfirmCodeRequest = {
+   email?: string;
+   code?: string;
+@@ -29,121 +23,16 @@ type VerifyResponse =
+       error: string;
+     };
+ 
+-// ---------- Вспомогательные функции ----------
+-
+-/**
+- * Создаёт Appointment из BookingDraft
+- */
+-async function createAppointmentFromDraft(
+-  draftId: string,
+-  t: (key: MessageKey) => string
+-) {
+-  const draft = await prisma.bookingDraft.findUnique({
+-    where: { id: draftId },
+-  });
+-
+-  if (!draft) {
+-    throw new Error(t('api_email_confirm_draft_not_found'));
+-  }
+-
+-  const conflictError = 'SLOT_TAKEN';
+-
+-  const appointment = await prisma.$transaction(async (tx) => {
+-    await tx.$queryRaw`SELECT 1 FROM "Master" WHERE "id" = ${draft.masterId} FOR UPDATE`;
+-
+-    const conflicting = await tx.appointment.findFirst({
+-      where: {
+-        masterId: draft.masterId,
+-        status: { not: 'CANCELED' },
+-        startAt: { lt: draft.endAt },
+-        endAt: { gt: draft.startAt },
+-      },
+-      select: { id: true },
+-    });
+-
+-    if (conflicting) {
+-      throw new Error(conflictError);
+-    }
+-
+-    // ✅ СОЗДАНИЕ/ПОИСК КЛИЕНТА
+-    const phoneStr = (draft.phone ?? '').trim();
+-    const emailStr = (draft.email ?? '').trim();
+-
+-    let clientId: string | null = null;
+-
+-    // Ищем существующего клиента по phone или email
+-    if (phoneStr || emailStr) {
+-      const existing = await tx.client.findFirst({
+-        where: {
+-          OR: [
+-            ...(phoneStr ? [{ phone: phoneStr }] : []),
+-            ...(emailStr ? [{ email: emailStr }] : []),
+-          ],
+-        },
+-        select: { id: true },
+-      });
+-
+-      if (existing) {
+-        clientId = existing.id;
+-      }
+-    }
+-
+-    // Если клиент не найден - создаём нового
+-    if (!clientId && (phoneStr || emailStr)) {
+-      const newClient = await tx.client.create({
+-        data: {
+-          name: draft.customerName,
+-          phone: phoneStr,
+-          email: emailStr,
+-          birthDate: draft.birthDate || new Date('1990-01-01'),
+-          referral: draft.referral || null,
+-        },
+-        select: { id: true },
+-      });
+-
+-      clientId = newClient.id;
+-    }
+-
+-    const created = await tx.appointment.create({
+-      data: {
+-        serviceId: draft.serviceId,
+-        clientId,  // ✅ Связываем с клиентом!
+-        masterId: draft.masterId,
+-        startAt: draft.startAt,
+-        endAt: draft.endAt,
+-        customerName: draft.customerName,
+-        phone: draft.phone,
+-        email: draft.email,
+-        birthDate: draft.birthDate || null,  // ✅ Правильная обработка nullable
+-        referral: draft.referral || null,     // ✅ Правильная обработка nullable
+-        notes: draft.notes || null,           // ✅ Правильная обработка nullable
+-        locale: (draft as { locale?: string }).locale || 'de', // ✅ Язык клиента для уведомлений
+-        status: 'PENDING',
+-      },
+-    });
+-
+-    await tx.bookingDraft.delete({
+-      where: { id: draftId },
+-    });
+-
+-    return created;
+-  });
+-
+-  return appointment;
+-}
+-
+-// ---------- API Handler ----------
+-
+ export async function POST(
+   req: NextRequest
+ ): Promise<NextResponse<VerifyResponse>> {
++  const locale = resolveLocale(req);
++  const t = (key: MessageKey) => translate(locale, key);
++
+   try {
+-    const locale = resolveLocale(req);
+-    const t = (key: MessageKey) => translate(locale, key);
+     const body = (await req.json()) as ConfirmCodeRequest;
+     const { email, code, draftId } = body;
+ 
+-    // Валидация
+     if (!email || !code || !draftId) {
+       return NextResponse.json(
+         { ok: false, error: t('api_email_confirm_missing_fields') },
+@@ -153,9 +42,7 @@ export async function POST(
+ 
+     console.log(`[OTP Verify] Проверка кода для ${email}:${draftId}`);
+ 
+-    // Проверяем OTP код через централизованную функцию
+     const isValid = verifyOTP('email' as OTPMethod, email, draftId, code);
+-
+     if (!isValid) {
+       console.log(`[OTP Verify] Неверный код для ${email}:${draftId}`);
+       return NextResponse.json(
+@@ -166,35 +53,41 @@ export async function POST(
+ 
+     console.log(`[OTP Verify] Код подтверждён для ${email}:${draftId}`);
+ 
+-    // Создаём Appointment
+-    const appointment = await createAppointmentFromDraft(draftId, t);
++    const finalizeResult = await finalizeBookingFromDraft(draftId);
++    if (!finalizeResult.ok) {
++      if (finalizeResult.error === 'DRAFT_NOT_FOUND') {
++        return NextResponse.json(
++          { ok: false, error: t('api_email_confirm_draft_not_found') },
++          { status: 404 }
++        );
++      }
+ 
+-    // Удаляем OTP код из хранилища
+-    deleteOTP('email' as OTPMethod, email, draftId);
++      if (finalizeResult.error === 'SLOT_TAKEN') {
++        return NextResponse.json(
++          { ok: false, error: t('api_email_confirm_slot_taken') },
++          { status: 409 }
++        );
++      }
++
++      console.error('[OTP Verify] Finalize booking failed:', finalizeResult.message);
++      return NextResponse.json(
++        { ok: false, error: t('api_email_confirm_error') },
++        { status: 500 }
++      );
++    }
+ 
+-    console.log(`[OTP Verify] Appointment создан: ${appointment.id}`);
++    deleteOTP('email' as OTPMethod, email, draftId);
++    console.log(`[OTP Verify] Appointment создан: ${finalizeResult.appointmentId}`);
+ 
+     return NextResponse.json({
+       ok: true,
+       message: t('api_email_confirm_success'),
+-      appointmentId: appointment.id,
++      appointmentId: finalizeResult.appointmentId,
+     });
+   } catch (error) {
+-    if (error instanceof Error && error.message === 'SLOT_TAKEN') {
+-      return NextResponse.json(
+-        { ok: false, error: translate(resolveLocale(req), 'api_email_confirm_slot_taken') },
+-        { status: 409 }
+-      );
+-    }
+     console.error('[OTP Verify Error]:', error);
+-
+-    const errorMessage =
+-      error instanceof Error
+-        ? error.message
+-        : translate(resolveLocale(req), 'api_email_confirm_error');
+-
+     return NextResponse.json(
+-      { ok: false, error: errorMessage },
++      { ok: false, error: t('api_email_confirm_error') },
+       { status: 500 }
+     );
+   }
+@@ -217,227 +110,3 @@ function resolveLocale(req: NextRequest): Locale {
+ 
+   return DEFAULT_LOCALE;
+ }
+-
+-
+-
+-
+-//--------не учитывалась локаль клиента----------
+-// //----------работало добовляем отправку телеграм админу при записи по емейл коду подтверждения----------------
+-// // src/app/api/booking/verify/email/confirm/route.ts
+-
+-// import { NextRequest, NextResponse } from 'next/server';
+-// import { prisma } from '@/lib/prisma';
+-// import {
+-//   verifyOTP,
+-//   deleteOTP,
+-//   OTPMethod,
+-// } from '@/lib/otp-store';
+-// import { DEFAULT_LOCALE, LOCALES, type Locale } from '@/i18n/locales';
+-// import { translate, type MessageKey } from '@/i18n/messages';
+-
+-// // ---------- Типы ----------
+-
+-// type ConfirmCodeRequest = {
+-//   email?: string;
+-//   code?: string;
+-//   draftId?: string;
+-// };
+-
+-// type VerifyResponse =
+-//   | {
+-//       ok: true;
+-//       message: string;
+-//       appointmentId: string;
+-//     }
+-//   | {
+-//       ok: false;
+-//       error: string;
+-//     };
+-
+-// // ---------- Вспомогательные функции ----------
+-
+-// /**
+-//  * Создаёт Appointment из BookingDraft
+-//  */
+-// async function createAppointmentFromDraft(
+-//   draftId: string,
+-//   t: (key: MessageKey) => string
+-// ) {
+-//   const draft = await prisma.bookingDraft.findUnique({
+-//     where: { id: draftId },
+-//   });
+-
+-//   if (!draft) {
+-//     throw new Error(t('api_email_confirm_draft_not_found'));
+-//   }
+-
+-//   const conflictError = 'SLOT_TAKEN';
+-
+-//   const appointment = await prisma.$transaction(async (tx) => {
+-//     await tx.$queryRaw`SELECT 1 FROM "Master" WHERE "id" = ${draft.masterId} FOR UPDATE`;
+-
+-//     const conflicting = await tx.appointment.findFirst({
+-//       where: {
+-//         masterId: draft.masterId,
+-//         status: { not: 'CANCELED' },
+-//         startAt: { lt: draft.endAt },
+-//         endAt: { gt: draft.startAt },
+-//       },
+-//       select: { id: true },
+-//     });
+-
+-//     if (conflicting) {
+-//       throw new Error(conflictError);
+-//     }
+-
+-//     // ✅ СОЗДАНИЕ/ПОИСК КЛИЕНТА
+-//     const phoneStr = (draft.phone ?? '').trim();
+-//     const emailStr = (draft.email ?? '').trim();
+-
+-//     let clientId: string | null = null;
+-
+-//     // Ищем существующего клиента по phone или email
+-//     if (phoneStr || emailStr) {
+-//       const existing = await tx.client.findFirst({
+-//         where: {
+-//           OR: [
+-//             ...(phoneStr ? [{ phone: phoneStr }] : []),
+-//             ...(emailStr ? [{ email: emailStr }] : []),
+-//           ],
+-//         },
+-//         select: { id: true },
+-//       });
+-
+-//       if (existing) {
+-//         clientId = existing.id;
+-//       }
+-//     }
+-
+-//     // Если клиент не найден - создаём нового
+-//     if (!clientId && (phoneStr || emailStr)) {
+-//       const newClient = await tx.client.create({
+-//         data: {
+-//           name: draft.customerName,
+-//           phone: phoneStr,
+-//           email: emailStr,
+-//           birthDate: draft.birthDate || new Date('1990-01-01'),
+-//           referral: draft.referral || null,
+-//         },
+-//         select: { id: true },
+-//       });
+-
+-//       clientId = newClient.id;
+-//     }
+-
+-//     const created = await tx.appointment.create({
+-//       data: {
+-//         serviceId: draft.serviceId,
+-//         clientId,  // ✅ Связываем с клиентом!
+-//         masterId: draft.masterId,
+-//         startAt: draft.startAt,
+-//         endAt: draft.endAt,
+-//         customerName: draft.customerName,
+-//         phone: draft.phone,
+-//         email: draft.email,
+-//         birthDate: draft.birthDate || null,  // ✅ Правильная обработка nullable
+-//         referral: draft.referral || null,     // ✅ Правильная обработка nullable
+-//         notes: draft.notes || null,           // ✅ Правильная обработка nullable
+-//         status: 'PENDING',
+-//       },
+-//     });
+-
+-//     await tx.bookingDraft.delete({
+-//       where: { id: draftId },
+-//     });
+-
+-//     return created;
+-//   });
+-
+-//   return appointment;
+-// }
+-
+-// // ---------- API Handler ----------
+-
+-// export async function POST(
+-//   req: NextRequest
+-// ): Promise<NextResponse<VerifyResponse>> {
+-//   try {
+-//     const locale = resolveLocale(req);
+-//     const t = (key: MessageKey) => translate(locale, key);
+-//     const body = (await req.json()) as ConfirmCodeRequest;
+-//     const { email, code, draftId } = body;
+-
+-//     // Валидация
+-//     if (!email || !code || !draftId) {
+-//       return NextResponse.json(
+-//         { ok: false, error: t('api_email_confirm_missing_fields') },
+-//         { status: 400 }
+-//       );
+-//     }
+-
+-//     console.log(`[OTP Verify] Проверка кода для ${email}:${draftId}`);
+-
+-//     // Проверяем OTP код через централизованную функцию
+-//     const isValid = verifyOTP('email' as OTPMethod, email, draftId, code);
+-
+-//     if (!isValid) {
+-//       console.log(`[OTP Verify] Неверный код для ${email}:${draftId}`);
+-//       return NextResponse.json(
+-//         { ok: false, error: t('api_email_confirm_invalid_code') },
+-//         { status: 400 }
+-//       );
+-//     }
+-
+-//     console.log(`[OTP Verify] Код подтверждён для ${email}:${draftId}`);
+-
+-//     // Создаём Appointment
+-//     const appointment = await createAppointmentFromDraft(draftId, t);
+-
+-//     // Удаляем OTP код из хранилища
+-//     deleteOTP('email' as OTPMethod, email, draftId);
+-
+-//     console.log(`[OTP Verify] Appointment создан: ${appointment.id}`);
+-
+-//     return NextResponse.json({
+-//       ok: true,
+-//       message: t('api_email_confirm_success'),
+-//       appointmentId: appointment.id,
+-//     });
+-//   } catch (error) {
+-//     if (error instanceof Error && error.message === 'SLOT_TAKEN') {
+-//       return NextResponse.json(
+-//         { ok: false, error: translate(resolveLocale(req), 'api_email_confirm_slot_taken') },
+-//         { status: 409 }
+-//       );
+-//     }
+-//     console.error('[OTP Verify Error]:', error);
+-
+-//     const errorMessage =
+-//       error instanceof Error
+-//         ? error.message
+-//         : translate(resolveLocale(req), 'api_email_confirm_error');
+-
+-//     return NextResponse.json(
+-//       { ok: false, error: errorMessage },
+-//       { status: 500 }
+-//     );
+-//   }
+-// }
+-
+-// function resolveLocale(req: NextRequest): Locale {
+-//   const cookieLocale = req.cookies.get('locale')?.value as Locale | undefined;
+-//   if (cookieLocale && LOCALES.includes(cookieLocale)) {
+-//     return cookieLocale;
+-//   }
+-
+-//   const header = req.headers.get('accept-language') ?? '';
+-//   const match = header.match(/\b(de|en|ru)\b/i);
+-//   if (match) {
+-//     const value = match[1].toLowerCase() as Locale;
+-//     if (LOCALES.includes(value)) {
+-//       return value;
+-//     }
+-//   }
+-
+-//   return DEFAULT_LOCALE;
+-// }
+\ No newline at end of file
+diff --git a/src/components/ai/ChatMessage.tsx b/src/components/ai/ChatMessage.tsx
+index d5000c4..4a25431 100644
+--- a/src/components/ai/ChatMessage.tsx
++++ b/src/components/ai/ChatMessage.tsx
+@@ -123,7 +123,12 @@ function MessageContent({ content, onOptionClick }: ContentProps) {
+ 
+   for (const part of parts) {
+     if (part.type === 'text') {
+-      const trimmed = part.value.trim();
++      const cleaned = part.value
++        .split('\n')
++        // Remove orphan markdown bullets left after stripping [option]...[/option].
++        .filter((line) => !/^\s*[-*•]+\s*$/.test(line))
++        .join('\n');
++      const trimmed = cleaned.trim();
+       if (trimmed) textParts.push(trimmed);
+     } else {
+       options.push(part.value);
+diff --git a/src/lib/ai/session-store.ts b/src/lib/ai/session-store.ts
+index 3471059..c5c66ae 100644
+--- a/src/lib/ai/session-store.ts
++++ b/src/lib/ai/session-store.ts
+@@ -17,11 +17,27 @@ export interface AiSession {
+   context: {
+     selectedServiceIds?: string[];
+     selectedMasterId?: string;
++    lastSuggestedDateOptions?: Array<{
++      dateISO: string;
++      label: string;
++      count: number;
++    }>;
++    lastDateISO?: string;
++    lastPreferredTime?: 'morning' | 'afternoon' | 'evening' | 'any';
++    lastNoSlots?: boolean;
+     reservedSlot?: { startAt: string; endAt: string };
+     draftId?: string;
++    chatHistory?: SessionMessage[];
++    reportedMissingQueries?: string[];
+   };
+ }
+ 
++export interface SessionMessage {
++  role: 'user' | 'assistant';
++  content: string;
++  at: string;
++}
++
+ // ─── Store ──────────────────────────────────────────────────────
+ 
+ declare global {
+@@ -99,6 +115,31 @@ export function upsertSession(
+   return newSession;
+ }
+ 
++export function appendSessionMessage(
++  sessionId: string,
++  role: SessionMessage['role'],
++  content: string,
++): AiSession {
++  const session = upsertSession(sessionId, {});
++  const trimmed = content.trim();
++  if (!trimmed) return session;
++
++  const nextHistory = [
++    ...(session.context.chatHistory ?? []),
++    {
++      role,
++      content: trimmed.slice(0, 4000),
++      at: new Date().toISOString(),
++    },
++  ].slice(-40);
++
++  return upsertSession(sessionId, {
++    context: {
++      chatHistory: nextHistory,
++    },
++  });
++}
++
+ // ─── Rate limiting ──────────────────────────────────────────────
+ 
+ const RATE_LIMIT_WINDOW_MS = 60 * 1000; // 1 minute
+diff --git a/src/lib/ai/system-prompt.ts b/src/lib/ai/system-prompt.ts
+index 3116312..934803d 100644
+--- a/src/lib/ai/system-prompt.ts
++++ b/src/lib/ai/system-prompt.ts
+@@ -75,8 +75,14 @@ HARTE REGELN (NIEMALS BRECHEN)
+ 6. Maximal 1–2 Fragen gleichzeitig. Nicht überladen.
+ 7. Bei keinen freien Terminen → Alternativen vorschlagen
+    (anderer Tag/Meister). Nie eine Sackgasse.
+-8. Wenn der Benutzer nach etwas fragt, das nichts mit dem Salon zu tun hat,
+-   antworte höflich und leite zurück zum Buchungsthema.
++8. Wenn der Benutzer nach etwas fragt, das nichts mit dem Salon zu tun hat
++   (Smalltalk, private Fragen, Flirt, Mathematik, Übersetzungen, Wetter,
++   Wochentage, Trivia usw.), ANTWORTE NICHT inhaltlich.
++   Stattdessen: 1 kurzer Satz zur Eingrenzung + direkte Rückführung auf
++   Buchung/Leistungen/Adresse.
++9. Wenn der Benutzer im laufenden Buchungsdialog auf deine letzte Frage antwortet
++   (z.B. Datum/Uhrzeit/Präferenz), setze den aktuellen Schritt fort und starte
++   NICHT wieder bei der Dienstauswahl.
+ 
+ ═══════════════════════════════════════════════════
+ SALON-WISSEN (FAQ)
+@@ -118,19 +124,38 @@ BUCHUNGS-DIALOG (STANDARDFLUSS)
+ 
+ Schritt A — DIENST BESTIMMEN
+   • Wenn Benutzer beschreibt ("Ich möchte meine Nägel machen lassen")
+-    → Tool list_services aufrufen, 3–5 passende Optionen vorschlagen.
++    → Tool list_services aufrufen und ALLE passenden Optionen zeigen (kein 3–5 Limit).
++  • Wenn Kunde "alle", "voller Preis", "ganze Liste" fragt → vollständige Liste zeigen.
++  • Wenn list_services noMatches=true:
++    - ehrlich sagen, dass exakt diese Leistung nicht gefunden wurde,
++    - den Kunden fragen, welche Leistung genau gemeint ist,
++    - 3–8 naheliegende Alternativen aus suggestedAlternatives anbieten.
+   • Bei Mehrfachwahl: Gesamtdauer = Summe aller durationMin.
+   • Preis in Euro anzeigen: priceCents / 100, z.B. "35,00 €".
+ 
+ Schritt B — MEISTER BESTIMMEN
+   • Tool list_masters_for_services aufrufen.
++  • Wenn Tool requiresSpecificService=true oder error=NO_BOOKABLE_SERVICE_SELECTED:
++    - Meister NICHT anbieten,
++    - zurück zur konkreten Dienstauswahl (Unterdienst) gehen,
++    - list_services mit passender query aufrufen und konkrete Leistungen zeigen.
+   • Wenn nur 1 Meister → automatisch zuweisen, Kunden informieren.
+   • Wenn mehrere → kurz vorstellen (Name + Bio), fragen.
+   • Wenn "mir egal" / "egal" → erstmöglichen verfügbaren wählen.
+ 
+ Schritt C — TAG + ZEITPRÄFERENZ
+   • Fragen: "Welcher Tag passt Ihnen?" + "Vormittag/Nachmittag/Abend?"
++  • Wenn du nach Zeitpräferenz fragst, gib IMMER klickbare Optionen
++    in der Sprache des Benutzers:
++    [option] 🌅 Vormittag [/option]
++    [option] 🌤 Nachmittag [/option]
++    [option] 🌙 Abend [/option]
++    [option] 📅 Nächstes Datum [/option]
++    [option] 📅 Morgen [/option]
+   • Heute oder morgen? → konkretes Datum berechnen.
++  • Wenn Dienst + Meister bereits gewählt sind und der Kunde eine Zeit nennt
++    (z.B. "morgen um 10"), NICHT erneut list_services aufrufen.
++    Stattdessen direkt search_availability für den genannten Tag/Zeitpräferenz.
+   • Tool search_availability aufrufen.
+   • Zeitfenster-Mapping:
+     - "Vormittag/morgens" → startMinutes < 720 (vor 12:00)
+@@ -164,6 +189,9 @@ Schritt G — ABSCHLUSS
+ FEHLERBEHANDLUNG
+ ═══════════════════════════════════════════════════
+ • Leere Slots → "Leider ist [Tag] ausgebucht. Soll ich [nächsten Tag] prüfen?"
++• Wenn Kunde danach mit "ja/да/ok/проверь" zustimmt:
++  - NICHT zur Dienstauswahl zurückgehen,
++  - direkt search_availability_month oder search_availability mit nächstem Tag ausführen.
+ • splitRequired=true → "Dieser Meister bietet nicht alle Dienste an. Anderer Meister?"
+ • reserve_slot 409 → "Dieser Termin wurde gerade vergeben. Hier sind Alternativen: ..."
+ • Ungültiger OTP → "Der Code ist falsch oder abgelaufen. Neuen Code senden?"
+diff --git a/src/lib/ai/tools-schema.ts b/src/lib/ai/tools-schema.ts
+index c0c7a51..17c5bea 100644
+--- a/src/lib/ai/tools-schema.ts
++++ b/src/lib/ai/tools-schema.ts
+@@ -25,7 +25,7 @@ export const TOOLS: ToolDefinition[] = [
+     type: 'function',
+     name: 'list_services',
+     description:
+-      'Получить список активных услуг салона с ценами и длительностью, сгруппированных по категориям. Используй для помощи клиенту в выборе услуги.',
++      'Получить полный список активных бронируемых услуг салона с ценами и длительностью, сгруппированных по категориям. При query возвращает все совпадения без искусственного лимита; если совпадений нет — noMatches=true и suggestedAlternatives.',
+     parameters: {
+       type: 'object',
+       properties: {
+@@ -50,7 +50,7 @@ export const TOOLS: ToolDefinition[] = [
+     type: 'function',
+     name: 'list_masters_for_services',
+     description:
+-      'Получить мастеров, которые могут выполнить ВСЕ выбранные услуги. Вызывай после выбора услуг.',
++      'Получить мастеров, которые могут выполнить ВСЕ выбранные услуги. Вызывай после выбора КОНКРЕТНОЙ бронируемой услуги. Если передана категория/некорректный id, вернет requiresSpecificService=true и error=NO_BOOKABLE_SERVICE_SELECTED.',
+     parameters: {
+       type: 'object',
+       properties: {
+diff --git a/src/lib/ai/tools/list-masters.ts b/src/lib/ai/tools/list-masters.ts
+index 67d73b3..ea01f2b 100644
+--- a/src/lib/ai/tools/list-masters.ts
++++ b/src/lib/ai/tools/list-masters.ts
+@@ -1,36 +1,46 @@
+ // src/lib/ai/tools/list-masters.ts
+ 
+ import { prisma } from '@/lib/prisma';
++import { normalizeBookableServiceIds } from '@/lib/booking/bookable-services';
+ 
+ interface Args {
+   serviceIds: string[];
+ }
+ 
+ export async function listMastersForServices(args: Args) {
+-  const { serviceIds } = args;
++  const normalized = await normalizeBookableServiceIds(args.serviceIds);
++  const serviceIds = normalized.bookableIds;
++
++  if (serviceIds.length === 0) {
++    if (normalized.inputIds.length > 0) {
++      // The user picked something non-bookable (often a category).
++      // Do not auto-return all masters, otherwise AI may skip specific service selection.
++      return {
++        masters: [],
++        defaultMasterId: null,
++        matchedServiceIds: [],
++        ignoredServiceIds: normalized.ignoredIds,
++        requiresSpecificService: true,
++        error: 'NO_BOOKABLE_SERVICE_SELECTED',
++      };
++    }
+ 
+-  if (!serviceIds || serviceIds.length === 0) {
+     // Return all masters
+     const all = await prisma.master.findMany({
+       select: { id: true, name: true, avatarUrl: true, bio: true },
+       orderBy: { name: 'asc' },
+     });
+-    return { masters: all, defaultMasterId: all[0]?.id ?? null };
+-  }
+-
+-  // Validate services exist and are active
+-  const active = await prisma.service.findMany({
+-    where: { id: { in: serviceIds }, isActive: true, isArchived: false },
+-    select: { id: true },
+-  });
+-  const activeIds = active.map((s) => s.id);
+-
+-  if (activeIds.length === 0) {
+-    return { masters: [], defaultMasterId: null };
++    return {
++      masters: all,
++      defaultMasterId: all[0]?.id ?? null,
++      matchedServiceIds: [],
++      ignoredServiceIds: normalized.ignoredIds,
++      requiresSpecificService: normalized.inputIds.length > 0,
++    };
+   }
+ 
+   // Master must cover ALL selected services
+-  const andClauses = activeIds.map((id) => ({
++  const andClauses = serviceIds.map((id) => ({
+     services: { some: { id } },
+   }));
+ 
+@@ -43,5 +53,7 @@ export async function listMastersForServices(args: Args) {
+   return {
+     masters,
+     defaultMasterId: masters[0]?.id ?? null,
++    matchedServiceIds: serviceIds,
++    ignoredServiceIds: normalized.ignoredIds,
+   };
+ }
+diff --git a/src/lib/ai/tools/list-services.ts b/src/lib/ai/tools/list-services.ts
+index 76093c9..80fefc0 100644
+--- a/src/lib/ai/tools/list-services.ts
++++ b/src/lib/ai/tools/list-services.ts
+@@ -7,30 +7,100 @@ interface Args {
+   query?: string;
+ }
+ 
+-export async function listServices(args: Args) {
+-  const locale = args.locale || 'de';
++interface RawServiceRow {
++  id: string;
++  slug: string;
++  name: string;
++  description: string | null;
++  durationMin: number;
++  priceCents: number | null;
++  parentId: string | null;
++  translations: Array<{
++    name: string;
++    description: string | null;
++  }>;
++}
+ 
+-  const parents = await prisma.service.findMany({
+-    where: { isActive: true, isArchived: false, parentId: null },
+-    select: {
+-      id: true,
+-      name: true,
+-      translations: {
+-        where: { locale },
+-        select: { name: true, description: true },
+-      },
+-    },
+-    orderBy: { name: 'asc' },
+-  });
++interface ServiceItem {
++  id: string;
++  slug: string;
++  title: string;
++  description: string | null;
++  durationMin: number;
++  priceCents: number | null;
++  parentId: string | null;
++  groupId: string;
++  groupTitle: string;
++  searchText: string;
++}
+ 
+-  const parentIds = parents.map((p) => p.id);
++function normalizeText(value: string): string {
++  return value.toLowerCase().replace(/\s+/g, ' ').trim();
++}
+ 
+-  const children = await prisma.service.findMany({
+-    where: {
+-      isActive: true,
+-      isArchived: false,
+-      parentId: { in: parentIds },
+-    },
++function tokenize(value: string): string[] {
++  return normalizeText(value)
++    .replace(/[^\p{L}\p{N}\s]+/gu, ' ')
++    .split(' ')
++    .map((t) => t.trim())
++    .filter((t) => t.length >= 2);
++}
++
++function scoreMatch(itemText: string, queryNorm: string, queryTokens: string[]): number {
++  let score = 0;
++
++  if (itemText.includes(queryNorm)) {
++    score += 100;
++  }
++
++  for (const token of queryTokens) {
++    if (itemText.includes(token)) {
++      score += 12;
++      continue;
++    }
++
++    const stem = token.slice(0, Math.max(3, token.length - 1));
++    if (stem.length >= 3 && itemText.includes(stem)) {
++      score += 6;
++    }
++  }
++
++  return score;
++}
++
++function getLocalizedName(row: RawServiceRow): string {
++  return row.translations[0]?.name || row.name;
++}
++
++function getLocalizedDescription(row: RawServiceRow): string | null {
++  return row.translations[0]?.description ?? row.description ?? null;
++}
++
++function findRootServiceId(
++  serviceId: string,
++  byId: Map<string, RawServiceRow>,
++): string {
++  const visited = new Set<string>();
++  let current = byId.get(serviceId);
++
++  while (current?.parentId && byId.has(current.parentId) && !visited.has(current.parentId)) {
++    visited.add(current.id);
++    const parent = byId.get(current.parentId);
++    if (!parent) break;
++    current = parent;
++  }
++
++  return current?.id ?? serviceId;
++}
++
++export async function listServices(args: Args) {
++  const locale = args.locale || 'de';
++  const query = args.query?.trim() || null;
++  const normalizedQuery = query ? normalizeText(query) : null;
++  const queryTokens = normalizedQuery ? tokenize(normalizedQuery) : [];
++
++  const all = await prisma.service.findMany({
++    where: { isActive: true, isArchived: false },
+     select: {
+       id: true,
+       slug: true,
+@@ -44,46 +114,132 @@ export async function listServices(args: Args) {
+         select: { name: true, description: true },
+       },
+     },
+-    orderBy: { name: 'asc' },
++    orderBy: [{ name: 'asc' }],
+   });
+ 
+-  const groups = parents.map((p) => {
+-    const t = p.translations[0];
+-    return {
+-      id: p.id,
+-      title: t?.name || p.name,
+-      services: children
+-        .filter((c) => c.parentId === p.id)
+-        .map((c) => {
+-          const ct = c.translations[0];
+-          return {
+-            id: c.id,
+-            slug: c.slug,
+-            title: ct?.name || c.name,
+-            description: ct?.description ?? c.description ?? null,
+-            durationMin: c.durationMin,
+-            priceCents: c.priceCents ?? null,
+-          };
+-        }),
+-    };
+-  });
++  const byId = new Map<string, RawServiceRow>(
++    all.map((row) => [row.id, row as RawServiceRow]),
++  );
+ 
+-  // Apply query filter if provided
+-  if (args.query) {
+-    const q = args.query.toLowerCase();
+-    const filtered = groups
+-      .map((g) => ({
+-        ...g,
+-        services: g.services.filter(
+-          (s) =>
+-            s.title.toLowerCase().includes(q) ||
+-            s.slug.toLowerCase().includes(q) ||
+-            (s.description && s.description.toLowerCase().includes(q)),
+-        ),
+-      }))
+-      .filter((g) => g.services.length > 0);
+-    return { groups: filtered };
++  const rootTitles = new Map<string, string>();
++  for (const row of all) {
++    const rootId = findRootServiceId(row.id, byId);
++    if (!rootTitles.has(rootId)) {
++      const root = byId.get(rootId) ?? row;
++      rootTitles.set(rootId, getLocalizedName(root));
++    }
++  }
++
++  const bookable: ServiceItem[] = all
++    .filter((row) => row.durationMin > 0)
++    .map((row) => {
++      const rootId = findRootServiceId(row.id, byId);
++      const groupTitle = rootTitles.get(rootId) || 'Other services';
++      const title = getLocalizedName(row);
++      const description = getLocalizedDescription(row);
++      const searchText = normalizeText(
++        [
++          title,
++          row.slug,
++          description ?? '',
++          groupTitle,
++        ].join(' '),
++      );
++
++      return {
++        id: row.id,
++        slug: row.slug,
++        title,
++        description,
++        durationMin: row.durationMin,
++        priceCents: row.priceCents ?? null,
++        parentId: row.parentId,
++        groupId: rootId,
++        groupTitle,
++        searchText,
++      };
++    });
++
++  const filtered = normalizedQuery
++    ? bookable
++        .map((item) => ({
++          item,
++          score: scoreMatch(item.searchText, normalizedQuery, queryTokens),
++        }))
++        .filter((x) => x.score > 0)
++        .sort((a, b) => {
++          if (b.score !== a.score) return b.score - a.score;
++          return a.item.title.localeCompare(b.item.title, locale);
++        })
++        .map((x) => x.item)
++    : bookable;
++
++  const groupsMap = new Map<
++    string,
++    {
++      id: string;
++      title: string;
++      services: Array<{
++        id: string;
++        slug: string;
++        title: string;
++        description: string | null;
++        durationMin: number;
++        priceCents: number | null;
++      }>;
++    }
++  >();
++
++  for (const item of filtered) {
++    if (!groupsMap.has(item.groupId)) {
++      groupsMap.set(item.groupId, {
++        id: item.groupId,
++        title: item.groupTitle,
++        services: [],
++      });
++    }
++
++    groupsMap.get(item.groupId)?.services.push({
++      id: item.id,
++      slug: item.slug,
++      title: item.title,
++      description: item.description,
++      durationMin: item.durationMin,
++      priceCents: item.priceCents,
++    });
+   }
+ 
+-  return { groups };
++  const groups = Array.from(groupsMap.values())
++    .map((group) => ({
++      ...group,
++      services: group.services.sort((a, b) =>
++        a.title.localeCompare(b.title, locale),
++      ),
++    }))
++    .sort((a, b) => a.title.localeCompare(b.title, locale));
++
++  const noMatches = Boolean(normalizedQuery) && filtered.length === 0;
++  const suggestedAlternatives = noMatches
++    ? bookable.slice(0, 8).map((item) => ({
++        id: item.id,
++        slug: item.slug,
++        title: item.title,
++        durationMin: item.durationMin,
++        priceCents: item.priceCents,
++        groupTitle: item.groupTitle,
++      }))
++    : [];
++
++  console.log(
++    `[AI list_services] locale=${locale} query="${query ?? ''}" total=${bookable.length} matched=${filtered.length} noMatches=${noMatches}`,
++  );
++
++  return {
++    groups,
++    query,
++    totalServices: bookable.length,
++    matchedServices: filtered.length,
++    noMatches,
++    suggestedAlternatives,
++  };
+ }
+diff --git a/src/lib/ai/tools/start-verification.ts b/src/lib/ai/tools/start-verification.ts
+index 611b7a0..6e79a61 100644
+--- a/src/lib/ai/tools/start-verification.ts
++++ b/src/lib/ai/tools/start-verification.ts
+@@ -61,7 +61,15 @@ export async function startVerification(args: Args) {
+ 
+   if (!sendResult.ok) {
+     console.error(`[AI start_verification] Send failed: ${sendResult.error}`);
+-    return { ok: false, error: 'SEND_FAILED', message: 'Could not send verification email' };
++    return {
++      ok: false,
++      error: 'SEND_FAILED',
++      message: sendResult.error || 'Could not send verification email',
++    };
++  }
++
++  if (sendResult.warning) {
++    console.warn(`[AI start_verification] Warning: ${sendResult.warning}`);
+   }
+ 
+   return {
+@@ -69,5 +77,7 @@ export async function startVerification(args: Args) {
+     message: `Verification code sent to ${maskEmail(contact)}`,
+     contactMasked: maskEmail(contact),
+     expiresInMinutes: 10,
++    messageId: sendResult.messageId,
++    warning: sendResult.warning,
+   };
+ }
+diff --git a/src/lib/email-otp.ts b/src/lib/email-otp.ts
+index 78ec050..4fb3ba6 100644
+--- a/src/lib/email-otp.ts
++++ b/src/lib/email-otp.ts
+@@ -26,6 +26,32 @@ function getResendClient(): Resend | null {
+   }
+ }
+ 
++interface OtpSenderConfig {
++  from: string;
++  replyTo?: string;
++  warning?: string;
++}
++
++function getOtpSenderConfig(): OtpSenderConfig {
++  const configuredFrom = process.env.RESEND_FROM?.trim();
++  const replyTo =
++    process.env.RESEND_REPLY_TO?.trim() ||
++    process.env.SALON_REPLY_TO?.trim() ||
++    process.env.SALON_CONTACT_EMAIL?.trim() ||
++    undefined;
++
++  if (configuredFrom) {
++    return { from: configuredFrom, replyTo };
++  }
++
++  return {
++    from: 'Salon Elen <onboarding@resend.dev>',
++    replyTo,
++    warning:
++      'RESEND_FROM is not configured. Using onboarding@resend.dev may reduce deliverability.',
++  };
++}
++
+ /**
+  * Отправить OTP код на email через Resend
+  */
+@@ -37,7 +63,7 @@ export async function sendOTPEmail(
+     subject?: string;
+     locale?: Locale;
+   }
+-): Promise<{ ok: boolean; error?: string; messageId?: string }> {
++): Promise<{ ok: boolean; error?: string; messageId?: string; warning?: string }> {
+   try {
+     const resend = getResendClient();
+     
+@@ -55,10 +81,21 @@ export async function sendOTPEmail(
+     const t = (key: MessageKey) => translate(locale, key);
+     const expiryMinutes = options?.expiryMinutes || 10;
+     const subject = options?.subject || t('booking_email_otp_subject');
++    const sender = getOtpSenderConfig();
++    if (sender.warning) {
++      console.warn(`[OTP Email] ${sender.warning}`);
++    }
+     const expiresText = t('booking_email_otp_expires_text').replace(
+       '{minutes}',
+       String(expiryMinutes)
+     );
++    const plainText = [
++      t('booking_email_otp_title'),
++      '',
++      `${t('booking_email_otp_code_intro')} ${code}`,
++      `${t('booking_email_otp_expires_label')} ${expiresText}`,
++      t('booking_email_otp_ignore'),
++    ].join('\n');
+ 
+     // HTML шаблон письма
+     const html = `
+@@ -145,10 +182,12 @@ export async function sendOTPEmail(
+ 
+     // Отправляем через Resend
+     const result = await resend.emails.send({
+-      from: process.env.RESEND_FROM || 'Salon Elen <onboarding@resend.dev>',
++      from: sender.from,
+       to: email,
+       subject,
+       html,
++      text: plainText,
++      ...(sender.replyTo ? { replyTo: sender.replyTo } : {}),
+     });
+ 
+     if (result.error) {
+@@ -156,8 +195,10 @@ export async function sendOTPEmail(
+       return { ok: false, error: result.error.message };
+     }
+ 
+-    console.log(`✅ OTP email sent to ${email} | ID: ${result.data?.id}`);
+-    return { ok: true, messageId: result.data?.id };
++    console.log(
++      `✅ OTP email sent to ${email} | ID: ${result.data?.id} | from=${sender.from}`,
++    );
++    return { ok: true, messageId: result.data?.id, warning: sender.warning };
+   } catch (error) {
+     console.error('❌ Email send error:', error);
+     return {
+@@ -188,11 +229,17 @@ export async function sendCustomOTPEmail(
+       return { ok: false, error: 'Email service not configured' };
+     }
+ 
++    const sender = getOtpSenderConfig();
++    if (sender.warning) {
++      console.warn(`[OTP Email] ${sender.warning}`);
++    }
++
+     const result = await resend.emails.send({
+-      from: process.env.RESEND_FROM || 'Salon Elen <onboarding@resend.dev>',
++      from: sender.from,
+       to: email,
+       subject,
+       html: htmlTemplate,
++      ...(sender.replyTo ? { replyTo: sender.replyTo } : {}),
+     });
+ 
+     if (result.error) {
+diff --git a/src/lib/send-admin-notification.ts b/src/lib/send-admin-notification.ts
+index 31d5853..3f47b8d 100644
+--- a/src/lib/send-admin-notification.ts
++++ b/src/lib/send-admin-notification.ts
+@@ -16,19 +16,58 @@ interface AppointmentData {
+   paymentStatus: string;
+ }
+ 
++interface MissingServiceNotificationData {
++  sessionId: string;
++  locale: string;
++  query: string;
++  bookingLogId?: string;
++  alternatives?: Array<{
++    title: string;
++    groupTitle?: string | null;
++    durationMin?: number | null;
++    priceCents?: number | null;
++  }>;
++  transcript?: Array<{
++    role: 'user' | 'assistant';
++    content: string;
++    at?: string;
++  }>;
++}
++
++function escapeMarkdown(value: string): string {
++  return value.replace(/([_*[\]()~`>#+=|{}.!\\-])/g, '\\$1');
++}
++
++async function sendTelegramAdminMarkdownMessage(message: string): Promise<void> {
++  const adminChatId = process.env.TELEGRAM_ADMIN_CHAT_ID;
++
++  if (!adminChatId) {
++    console.warn('[Admin Notification] TELEGRAM_ADMIN_CHAT_ID not configured - skipping notification');
++    return;
++  }
++
++  const webhookUrl = `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/telegram/webhook`;
++
++  const response = await fetch(`${webhookUrl}?action=notify&chatId=${adminChatId}`, {
++    method: 'POST',
++    headers: {
++      'Content-Type': 'application/json',
++    },
++    body: JSON.stringify({ message }),
++  });
++
++  if (!response.ok) {
++    const errorData = await response.json().catch(() => ({}));
++    console.error('[Admin Notification] Failed to send:', errorData);
++  }
++}
++
+ /**
+  * Отправляет уведомление администратору о новой записи через Telegram
+  */
+ export async function sendAdminNotification(appointment: AppointmentData): Promise<void> {
+   try {
+-    const adminChatId = process.env.TELEGRAM_ADMIN_CHAT_ID;
+-    
+-    if (!adminChatId) {
+-      console.warn('[Admin Notification] TELEGRAM_ADMIN_CHAT_ID not configured - skipping notification');
+-      return;
+-    }
+-
+-    console.log('[Admin Notification] Sending to admin:', adminChatId);
++    console.log('[Admin Notification] Sending booking notification');
+ 
+     // Форматируем дату и время
+     const dateStr = new Intl.DateTimeFormat('ru-RU', {
+@@ -79,22 +118,7 @@ ${appointment.email ? `📧 *Email:* ${appointment.email}\n` : ''}
+ 
+ 🆔 *ID записи:* \`${appointment.id}\``;
+ 
+-    // Отправляем через webhook
+-    const webhookUrl = `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/telegram/webhook`;
+-    
+-    const response = await fetch(`${webhookUrl}?action=notify&chatId=${adminChatId}`, {
+-      method: 'POST',
+-      headers: {
+-        'Content-Type': 'application/json',
+-      },
+-      body: JSON.stringify({ message }),
+-    });
+-
+-    if (!response.ok) {
+-      const errorData = await response.json().catch(() => ({}));
+-      console.error('[Admin Notification] Failed to send:', errorData);
+-      return;
+-    }
++    await sendTelegramAdminMarkdownMessage(message);
+ 
+     console.log('[Admin Notification] ✅ Sent successfully');
+   } catch (error) {
+@@ -103,6 +127,60 @@ ${appointment.email ? `📧 *Email:* ${appointment.email}\n` : ''}
+   }
+ }
+ 
++export async function sendAdminMissingServiceNotification(
++  data: MissingServiceNotificationData,
++): Promise<void> {
++  try {
++    const query = escapeMarkdown(data.query || 'unknown');
++    const locale = escapeMarkdown(data.locale || 'de');
++    const sessionId = escapeMarkdown(data.sessionId);
++
++    const alternatives = (data.alternatives ?? [])
++      .slice(0, 8)
++      .map((item) => {
++        const title = escapeMarkdown(item.title);
++        const group = item.groupTitle ? ` (${escapeMarkdown(item.groupTitle)})` : '';
++        const duration =
++          typeof item.durationMin === 'number' ? `, ${item.durationMin} min` : '';
++        const price =
++          typeof item.priceCents === 'number'
++            ? `, ${(item.priceCents / 100).toFixed(2)} EUR`
++            : '';
++        return `• ${title}${group}${duration}${price}`;
++      });
++
++    const transcriptLines = (data.transcript ?? [])
++      .slice(-8)
++      .map((m) => {
++        const prefix = m.role === 'user' ? 'Client' : 'AI';
++        const text = escapeMarkdown(m.content.replace(/\s+/g, ' ').slice(0, 300));
++        return `- ${prefix}: ${text}`;
++      });
++
++    const message = [
++      '🚨 *AI: Клиент не нашёл услугу*',
++      '',
++      `🔎 Запрос: ${query}`,
++      `🌐 Язык: ${locale}`,
++      `🧩 Сессия: \`${sessionId}\``,
++      data.bookingLogId ? `🗂 Лог ID: \`${escapeMarkdown(data.bookingLogId)}\`` : '',
++      '',
++      'Возможные альтернативы:',
++      ...(alternatives.length > 0 ? alternatives : ['• Нет предложенных альтернатив']),
++      '',
++      'Последние сообщения:',
++      ...(transcriptLines.length > 0 ? transcriptLines : ['- Нет данных']),
++    ]
++      .filter(Boolean)
++      .join('\n');
++
++    await sendTelegramAdminMarkdownMessage(message);
++    console.log('[Admin Notification] ✅ Missing-service notification sent');
++  } catch (error) {
++    console.error('[Admin Notification] Missing-service notification failed:', error);
++  }
++}
++
+ 
+ 
+ 
+diff --git a/.tmp_untracked_files.txt b/.tmp_untracked_files.txt
+new file mode 100644
+index 0000000..778c14d
+--- /dev/null
++++ b/.tmp_untracked_files.txt
+@@ -0,0 +1,5 @@
++.tmp_untracked_files.txt
++public/Readme28.02.md
++readme/README.md
++src/lib/ai/missing-service-report.ts
++src/lib/booking/bookable-services.ts
+diff --git a/public/Readme28.02.md b/public/Readme28.02.md
+new file mode 100644
+index 0000000..84ec962
+--- /dev/null
++++ b/public/Readme28.02.md
+@@ -0,0 +1,57 @@
++# AI Assistant Changes Report (28.02.2026)
++
++## 1) Snapshot
++
++- Repository: `D:\SalonElen\salon-elen-fe`
++- Branch: `main`
++- Baseline commit: `47b1dd8`
++- Report date: `28.02.2026`
++- Scope: all current working-tree changes vs `HEAD`
++
++## 2) Changed tracked files (exact git diff stats)
++
++| Status | File | Added | Removed |
++|---|---|---:|---:|
++| M | `src/app/api/ai/chat/route.ts` | 1983 | 9 |
++| M | `src/app/api/booking/verify/email/confirm/route.ts` | 30 | 361 |
++| M | `src/components/ai/ChatMessage.tsx` | 6 | 1 |
++| M | `src/lib/ai/session-store.ts` | 41 | 0 |
++| M | `src/lib/ai/system-prompt.ts` | 31 | 3 |
++| M | `src/lib/ai/tools-schema.ts` | 2 | 2 |
++| M | `src/lib/ai/tools/list-masters.ts` | 27 | 15 |
++| M | `src/lib/ai/tools/list-services.ts` | 214 | 58 |
++| M | `src/lib/ai/tools/start-verification.ts` | 11 | 1 |
++| M | `src/lib/email-otp.ts` | 52 | 5 |
++| M | `src/lib/send-admin-notification.ts` | 102 | 24 |
++
++## 3) New untracked files
++
++- `readme/README.md`
++- `src/lib/ai/missing-service-report.ts`
++- `src/lib/booking/bookable-services.ts`
++
++## 4) Raw git status (for commit preparation)
++
++```text
++ M src/app/api/ai/chat/route.ts
++ M src/app/api/booking/verify/email/confirm/route.ts
++ M src/components/ai/ChatMessage.tsx
++ M src/lib/ai/session-store.ts
++ M src/lib/ai/system-prompt.ts
++ M src/lib/ai/tools-schema.ts
++ M src/lib/ai/tools/list-masters.ts
++ M src/lib/ai/tools/list-services.ts
++ M src/lib/ai/tools/start-verification.ts
++ M src/lib/email-otp.ts
++ M src/lib/send-admin-notification.ts
++?? readme/
++?? src/lib/ai/missing-service-report.ts
++?? src/lib/booking/bookable-services.ts
++```
++
++## 5) Notes
++
++- This report contains exact file-level change data from git for commit prep.
++- `git` reported line-ending warnings for:
++  - `src/lib/email-otp.ts`
++  - `src/lib/send-admin-notification.ts`
+diff --git a/readme/README.md b/readme/README.md
+new file mode 100644
+index 0000000..aa50b17
+--- /dev/null
++++ b/readme/README.md
+@@ -0,0 +1,113 @@
++# Change Report Log 
++Created: 26.02.2026 23:48:17,65 
++ 
++## 26.02.2026 23:48:17,65 
++Project: SalonElen FE 
++Changes: 
++- Added chat history context in AI chat route to avoid flow reset. 
++- Improved list_services matching with token/stem scoring and debug metrics log. 
++- Updated prompt to continue booking after date/time response without restarting service selection. 
++- Lowered AI temperature default to 0.15 for more stable tool flow. 
++- Added missing-service reporting (DB + admin Telegram) and service/master normalization in previous step. 
++- Added requirement to append this changelog after each completed set of edits. 
++
++## 27.02.2026  0:00:01,72 
++Project: SalonElen FE 
++Changes: 
++- Fixed list_masters_for_services: category/non-bookable selection now returns NO_BOOKABLE_SERVICE_SELECTED instead of all masters. 
++- Updated AI prompt and tool schema to force concrete service selection before master assignment. 
++- Added session state fields (selected service/master, last date/time preference, lastNoSlots) and state hint injection into system context. 
++- Added deterministic fast-path: when user confirms after no slots (yes/��/ok/�஢���), API directly checks month availability and returns date options. 
++- Added robust final response fallback: if model ends without text, force a no-tool text completion and localized fallback message. 
++- Kept list_services scoring improvements and debug counters for match diagnostics. 
++
++## 27.02.2026  0:10:56,06 
++Project: SalonElen FE 
++Changes: 
++- Added deterministic fast-path for catalog selection in AI chat route: category click now always returns concrete subservices. 
++- Added deterministic fast-path for concrete service click: server directly resolves masters and asks for date/time when exactly one master is available. 
++- Added deterministic fallback for service without assigned masters: proposes other concrete services from the same category. 
++- Kept no-slots confirmation fast-path and localized forced-text fallback to prevent empty model response. 
++- Preserved strict NO_BOOKABLE_SERVICE_SELECTED handling for category/non-bookable ids in list_masters_for_services. 
++
++## 27.02.2026  0:22:17,42 
++Project: SalonElen FE 
++Changes: 
++- Added reliability guard in AI chat route: if create_draft succeeds but model skips start_verification, server now auto-runs start_verification (email OTP). 
++- Added localized deterministic message after auto verification start: asks user to enter 6-digit code and shows masked email. 
++- Added localized error message if OTP sending fails, with retry instruction. 
++- This removes dependency on model behavior for OTP sending after draft creation. 
++
++
++## 27.02.2026  0:34:14,32 
++Project: SalonElen FE 
++Changes: 
++- Fixed no-slots follow-up date suggestions to store structured options dateISO, label, count in session context. 
++- Added deterministic fast-path for click on suggested day option, so server resolves date directly and fetches slots without LLM date reinterpretation. 
++- Forced suggested-day slot lookup with preferredTime any to avoid stale time filter from previous step. 
++- Added deterministic fallback: if suggested day has no slots, re-query month availability and return refreshed day options. 
++- Cleared stale lastSuggestedDateOptions when switching category or service, and when exact day slots are found.
++ 
++## 27.02.2026  0:58:05,94 
++Project: SalonElen FE 
++Changes: 
++- Improved deterministic no-slots flow: on user follow-up after exact time miss, server now rechecks the same date with preferredTime any before jumping to month suggestions. 
++- Added additional affirmative triggers for follow-up handling: show, pokaji, pokazat plus typo-tolerant matching. 
++- Added clickable options in single-master step: morning, day, evening, nearest date, tomorrow. 
++- Improved service click matching with scoring to avoid ambiguous picks when service names are similar. 
++- Updated OTP email sending utility: sender config helper, optional reply-to, plain-text email body, and explicit sender warning in logs. 
++- Extended start_verification result with warning and messageId, and improved send failure error propagation.
++ 
++## 27.02.2026  0:59:31,06 
++Project: SalonElen FE 
++Changes: 
++- Added explicit system prompt rule to provide clickable time preference options in the user's current language.
++
++## 27.02.2026  1:21:36,83
++Project: SalonElen FE
++Changes:
++- Refactored src/app/api/booking/verify/email/confirm/route.ts to use shared finalizeBookingFromDraft instead of duplicated finalization logic.
++- Preserved endpoint response contract (ok/message/appointmentId) and OTP flow (verify before finalize, delete after success).
++- Added explicit mapping of finalize errors: DRAFT_NOT_FOUND -> 404, SLOT_TAKEN -> 409, internal -> 500 with localized message.
++- Removed large legacy commented duplicate block from confirm route to reduce maintenance risk.
++
++## 27.02.2026  1:48:56,88
++Project: SalonElen FE
++Changes:
++- Fixed AI catalog matching score in src/app/api/ai/chat/route.ts: no positive score without token overlap, so time/date/slot messages no longer get misclassified as service clicks.
++- Added scheduling guard in tryHandleCatalogSelectionFastPath: when booking context exists, date/time-like messages bypass catalog fast-path.
++- Updated single-master prompt to date-first flow (tomorrow/nearest date) instead of morning/day/evening first.
++- Added deterministic tomorrow fast-path in chat route: fetch slots for tomorrow directly, with month fallback if no slots.
++
++## 27.02.2026  2:06:35,48
++Project: SalonElen FE
++Changes:
++- Fixed AI booking verification flow in src/app/api/ai/chat/route.ts for corrected-email scenarios.
++- Added tool-argument normalization: complete_booking now uses current session draftId to prevent stale draft mismatch during OTP confirmation.
++- Added explicit start_verification result tracking (draftId/contact/ok) and reliability guard now auto-starts verification when explicit call is missing or targets another draft/email.
++- Prevented successful start_verification from overwriting a newer draftId in context when create_draft is present in the same tool round.
++
++## 27.02.2026  2:28:57 
++Project: SalonElen FE 
++Changes: 
++- Investigated first-slot fallback issue in AI booking flow using provided runtime logs (repeated reserve_slot call before contact confirmation). 
++- Stabilized create_draft args in src/app/api/ai/chat/route.ts: when user sends contact data, create_draft is now aligned with the current reserved slot (or current batch reserve_slot args) to prevent slot drift. 
++- Added reserve_slot result handling to session context: persist reservedSlot on success, keep selectedMasterId in sync, and clear stale reservation context on non-matching SLOT_TAKEN. 
++- Added complete_booking success cleanup in session context (draftId/reservedSlot/date suggestions), so next booking flow starts from a clean state.
++ 
++## 27.02.2026  2:50:12 
++Project: SalonElen FE 
++Changes: 
++- Fixed booking date flow in src/app/api/ai/chat/route.ts: explicit user date input (TT.MM / TT-MM / TT/MM) is now handled deterministically before LLM fallback. 
++- Added manual-date fastpath: when client enters a specific date, backend checks that exact day and returns slots; if fully booked, it returns nearest following available dates. 
++- Added cross-month nearest date search (current + next month) via buildNearestDateOptions, so \"Nachstes Datum\" and no-slot follow-up no longer get stuck on one day (e.g. only 27.02). 
++- Updated tomorrow/no-slot and suggested-date/no-slot branches to suggest later days (startDate+1) instead of repeating the same day. 
++- Stored start date anchor in session on nearest-date action (lastDateISO) for consistent follow-up behavior.
++ 
++## 27.02.2026  3:06:39 
++Project: SalonElen FE 
++Changes: 
++- Added deterministic scope guard in src/app/api/ai/chat/route.ts to restrict assistant replies to salon domain only (booking/services/address-hours). 
++- Off-topic questions (math, weather, translation, generic trivia, \"��� ⥡� �����\" etc.) are now intercepted before LLM/tool execution and redirected to salon actions. 
++- Added multilingual guard response (ru/de/en) with clickable options; when booking is active, includes \"continue booking\" option instead of answering unrelated requests. 
++- Added lightweight domain-intent detection (keywords/date-time/contact/OTP/booking confirmations) to avoid blocking valid booking steps.
+diff --git a/src/lib/ai/missing-service-report.ts b/src/lib/ai/missing-service-report.ts
+new file mode 100644
+index 0000000..54e65e0
+--- /dev/null
++++ b/src/lib/ai/missing-service-report.ts
+@@ -0,0 +1,88 @@
++// src/lib/ai/missing-service-report.ts
++// Persist and notify when AI could not match a requested service.
++
++import { prisma } from '@/lib/prisma';
++import { sendAdminMissingServiceNotification } from '@/lib/send-admin-notification';
++
++interface AlternativeItem {
++  title: string;
++  groupTitle?: string | null;
++  durationMin?: number | null;
++  priceCents?: number | null;
++}
++
++interface SessionMessage {
++  role: 'user' | 'assistant';
++  content: string;
++  at?: string;
++}
++
++interface ReportMissingServiceArgs {
++  sessionId: string;
++  locale: string;
++  query: string;
++  transcript: SessionMessage[];
++  alternatives?: AlternativeItem[];
++}
++
++function compactText(value: string, max = 1000): string {
++  return value.replace(/\s+/g, ' ').trim().slice(0, max);
++}
++
++export async function reportMissingServiceInquiry(
++  args: ReportMissingServiceArgs,
++): Promise<{ ok: true; logId: string } | { ok: false; error: string }> {
++  const query = compactText(args.query, 300);
++  if (!query) return { ok: false, error: 'EMPTY_QUERY' };
++
++  const transcript = (args.transcript ?? []).slice(-20).map((m) => ({
++    role: m.role,
++    content: compactText(m.content, 800),
++    at: m.at ?? new Date().toISOString(),
++  }));
++
++  const alternatives = (args.alternatives ?? []).slice(0, 12).map((a) => ({
++    title: compactText(a.title, 120),
++    groupTitle: a.groupTitle ? compactText(a.groupTitle, 120) : null,
++    durationMin: typeof a.durationMin === 'number' ? a.durationMin : null,
++    priceCents: typeof a.priceCents === 'number' ? a.priceCents : null,
++  }));
++
++  try {
++    const created = await prisma.booking.create({
++      data: {
++        name: 'AI Missing Service',
++        phone: `AI-${args.sessionId.slice(0, 20)}`,
++        email: null,
++        message: JSON.stringify(
++          {
++            type: 'ai_missing_service',
++            createdAt: new Date().toISOString(),
++            sessionId: args.sessionId,
++            locale: args.locale,
++            query,
++            alternatives,
++            transcript,
++          },
++          null,
++          2,
++        ),
++      },
++      select: { id: true },
++    });
++
++    await sendAdminMissingServiceNotification({
++      sessionId: args.sessionId,
++      locale: args.locale,
++      query,
++      bookingLogId: created.id,
++      alternatives,
++      transcript,
++    });
++
++    return { ok: true, logId: created.id };
++  } catch (error) {
++    console.error('[AI Missing Service] Failed to persist/report:', error);
++    return { ok: false, error: 'PERSIST_FAILED' };
++  }
++}
+diff --git a/src/lib/booking/bookable-services.ts b/src/lib/booking/bookable-services.ts
+new file mode 100644
+index 0000000..9842e1d
+--- /dev/null
++++ b/src/lib/booking/bookable-services.ts
+@@ -0,0 +1,46 @@
++// src/lib/booking/bookable-services.ts
++// Normalize service IDs to active, non-archived, bookable services only.
++
++import { prisma } from '@/lib/prisma';
++
++export interface NormalizedBookableServiceIds {
++  inputIds: string[];
++  bookableIds: string[];
++  ignoredIds: string[];
++}
++
++export async function normalizeBookableServiceIds(
++  serviceIds: string[] | null | undefined,
++): Promise<NormalizedBookableServiceIds> {
++  const inputIds = Array.from(
++    new Set(
++      (serviceIds ?? [])
++        .map((id) => id?.trim())
++        .filter((id): id is string => Boolean(id)),
++    ),
++  );
++
++  if (inputIds.length === 0) {
++    return { inputIds: [], bookableIds: [], ignoredIds: [] };
++  }
++
++  const rows = await prisma.service.findMany({
++    where: {
++      id: { in: inputIds },
++      isActive: true,
++      isArchived: false,
++      durationMin: { gt: 0 },
++    },
++    select: { id: true },
++  });
++
++  const bookableSet = new Set(rows.map((r) => r.id));
++  const bookableIds = inputIds.filter((id) => bookableSet.has(id));
++  const ignoredIds = inputIds.filter((id) => !bookableSet.has(id));
++
++  return {
++    inputIds,
++    bookableIds,
++    ignoredIds,
++  };
++}

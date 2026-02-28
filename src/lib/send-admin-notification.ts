@@ -16,19 +16,58 @@ interface AppointmentData {
   paymentStatus: string;
 }
 
+interface MissingServiceNotificationData {
+  sessionId: string;
+  locale: string;
+  query: string;
+  bookingLogId?: string;
+  alternatives?: Array<{
+    title: string;
+    groupTitle?: string | null;
+    durationMin?: number | null;
+    priceCents?: number | null;
+  }>;
+  transcript?: Array<{
+    role: 'user' | 'assistant';
+    content: string;
+    at?: string;
+  }>;
+}
+
+function escapeMarkdown(value: string): string {
+  return value.replace(/([_*[\]()~`>#+=|{}.!\\-])/g, '\\$1');
+}
+
+async function sendTelegramAdminMarkdownMessage(message: string): Promise<void> {
+  const adminChatId = process.env.TELEGRAM_ADMIN_CHAT_ID;
+
+  if (!adminChatId) {
+    console.warn('[Admin Notification] TELEGRAM_ADMIN_CHAT_ID not configured - skipping notification');
+    return;
+  }
+
+  const webhookUrl = `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/telegram/webhook`;
+
+  const response = await fetch(`${webhookUrl}?action=notify&chatId=${adminChatId}`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ message }),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    console.error('[Admin Notification] Failed to send:', errorData);
+  }
+}
+
 /**
  * Отправляет уведомление администратору о новой записи через Telegram
  */
 export async function sendAdminNotification(appointment: AppointmentData): Promise<void> {
   try {
-    const adminChatId = process.env.TELEGRAM_ADMIN_CHAT_ID;
-    
-    if (!adminChatId) {
-      console.warn('[Admin Notification] TELEGRAM_ADMIN_CHAT_ID not configured - skipping notification');
-      return;
-    }
-
-    console.log('[Admin Notification] Sending to admin:', adminChatId);
+    console.log('[Admin Notification] Sending booking notification');
 
     // Форматируем дату и время
     const dateStr = new Intl.DateTimeFormat('ru-RU', {
@@ -79,27 +118,66 @@ ${appointment.email ? `📧 *Email:* ${appointment.email}\n` : ''}
 
 🆔 *ID записи:* \`${appointment.id}\``;
 
-    // Отправляем через webhook
-    const webhookUrl = `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/telegram/webhook`;
-    
-    const response = await fetch(`${webhookUrl}?action=notify&chatId=${adminChatId}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ message }),
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      console.error('[Admin Notification] Failed to send:', errorData);
-      return;
-    }
+    await sendTelegramAdminMarkdownMessage(message);
 
     console.log('[Admin Notification] ✅ Sent successfully');
   } catch (error) {
     console.error('[Admin Notification] Error:', error);
     // Не бросаем ошибку - уведомление не должно блокировать создание записи
+  }
+}
+
+export async function sendAdminMissingServiceNotification(
+  data: MissingServiceNotificationData,
+): Promise<void> {
+  try {
+    const query = escapeMarkdown(data.query || 'unknown');
+    const locale = escapeMarkdown(data.locale || 'de');
+    const sessionId = escapeMarkdown(data.sessionId);
+
+    const alternatives = (data.alternatives ?? [])
+      .slice(0, 8)
+      .map((item) => {
+        const title = escapeMarkdown(item.title);
+        const group = item.groupTitle ? ` (${escapeMarkdown(item.groupTitle)})` : '';
+        const duration =
+          typeof item.durationMin === 'number' ? `, ${item.durationMin} min` : '';
+        const price =
+          typeof item.priceCents === 'number'
+            ? `, ${(item.priceCents / 100).toFixed(2)} EUR`
+            : '';
+        return `• ${title}${group}${duration}${price}`;
+      });
+
+    const transcriptLines = (data.transcript ?? [])
+      .slice(-8)
+      .map((m) => {
+        const prefix = m.role === 'user' ? 'Client' : 'AI';
+        const text = escapeMarkdown(m.content.replace(/\s+/g, ' ').slice(0, 300));
+        return `- ${prefix}: ${text}`;
+      });
+
+    const message = [
+      '🚨 *AI: Клиент не нашёл услугу*',
+      '',
+      `🔎 Запрос: ${query}`,
+      `🌐 Язык: ${locale}`,
+      `🧩 Сессия: \`${sessionId}\``,
+      data.bookingLogId ? `🗂 Лог ID: \`${escapeMarkdown(data.bookingLogId)}\`` : '',
+      '',
+      'Возможные альтернативы:',
+      ...(alternatives.length > 0 ? alternatives : ['• Нет предложенных альтернатив']),
+      '',
+      'Последние сообщения:',
+      ...(transcriptLines.length > 0 ? transcriptLines : ['- Нет данных']),
+    ]
+      .filter(Boolean)
+      .join('\n');
+
+    await sendTelegramAdminMarkdownMessage(message);
+    console.log('[Admin Notification] ✅ Missing-service notification sent');
+  } catch (error) {
+    console.error('[Admin Notification] Missing-service notification failed:', error);
   }
 }
 

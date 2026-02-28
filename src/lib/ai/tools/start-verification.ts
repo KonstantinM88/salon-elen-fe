@@ -61,7 +61,15 @@ export async function startVerification(args: Args) {
 
   if (!sendResult.ok) {
     console.error(`[AI start_verification] Send failed: ${sendResult.error}`);
-    return { ok: false, error: 'SEND_FAILED', message: 'Could not send verification email' };
+    return {
+      ok: false,
+      error: 'SEND_FAILED',
+      message: sendResult.error || 'Could not send verification email',
+    };
+  }
+
+  if (sendResult.warning) {
+    console.warn(`[AI start_verification] Warning: ${sendResult.warning}`);
   }
 
   return {
@@ -69,5 +77,7 @@ export async function startVerification(args: Args) {
     message: `Verification code sent to ${maskEmail(contact)}`,
     contactMasked: maskEmail(contact),
     expiresInMinutes: 10,
+    messageId: sendResult.messageId,
+    warning: sendResult.warning,
   };
 }

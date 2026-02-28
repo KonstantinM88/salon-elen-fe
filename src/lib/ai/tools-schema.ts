@@ -25,7 +25,7 @@ export const TOOLS: ToolDefinition[] = [
     type: 'function',
     name: 'list_services',
     description:
-      'Получить список активных услуг салона с ценами и длительностью, сгруппированных по категориям. Используй для помощи клиенту в выборе услуги.',
+      'Получить полный список активных бронируемых услуг салона с ценами и длительностью, сгруппированных по категориям. При query возвращает все совпадения без искусственного лимита; если совпадений нет — noMatches=true и suggestedAlternatives.',
     parameters: {
       type: 'object',
       properties: {
@@ -50,7 +50,7 @@ export const TOOLS: ToolDefinition[] = [
     type: 'function',
     name: 'list_masters_for_services',
     description:
-      'Получить мастеров, которые могут выполнить ВСЕ выбранные услуги. Вызывай после выбора услуг.',
+      'Получить мастеров, которые могут выполнить ВСЕ выбранные услуги. Вызывай после выбора КОНКРЕТНОЙ бронируемой услуги. Если передана категория/некорректный id, вернет requiresSpecificService=true и error=NO_BOOKABLE_SERVICE_SELECTED.',
     parameters: {
       type: 'object',
       properties: {

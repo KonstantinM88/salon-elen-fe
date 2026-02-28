@@ -17,9 +17,25 @@ export interface AiSession {
   context: {
     selectedServiceIds?: string[];
     selectedMasterId?: string;
+    lastSuggestedDateOptions?: Array<{
+      dateISO: string;
+      label: string;
+      count: number;
+    }>;
+    lastDateISO?: string;
+    lastPreferredTime?: 'morning' | 'afternoon' | 'evening' | 'any';
+    lastNoSlots?: boolean;
     reservedSlot?: { startAt: string; endAt: string };
     draftId?: string;
+    chatHistory?: SessionMessage[];
+    reportedMissingQueries?: string[];
   };
+}
+
+export interface SessionMessage {
+  role: 'user' | 'assistant';
+  content: string;
+  at: string;
 }
 
 // ─── Store ──────────────────────────────────────────────────────
@@ -97,6 +113,31 @@ export function upsertSession(
 
   sessions.set(sessionId, newSession);
   return newSession;
+}
+
+export function appendSessionMessage(
+  sessionId: string,
+  role: SessionMessage['role'],
+  content: string,
+): AiSession {
+  const session = upsertSession(sessionId, {});
+  const trimmed = content.trim();
+  if (!trimmed) return session;
+
+  const nextHistory = [
+    ...(session.context.chatHistory ?? []),
+    {
+      role,
+      content: trimmed.slice(0, 4000),
+      at: new Date().toISOString(),
+    },
+  ].slice(-40);
+
+  return upsertSession(sessionId, {
+    context: {
+      chatHistory: nextHistory,
+    },
+  });
 }
 
 // ─── Rate limiting ──────────────────────────────────────────────
