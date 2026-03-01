@@ -19,6 +19,14 @@ import { searchAvailability } from '@/lib/ai/tools/search-availability';
 import { listServices } from '@/lib/ai/tools/list-services';
 import { listMastersForServices } from '@/lib/ai/tools/list-masters';
 import { startVerification } from '@/lib/ai/tools/start-verification';
+import {
+  buildRegistrationMethodChoiceText,
+  detectRegistrationMethodChoice,
+  buildVerificationMethodChoiceText,
+  detectVerificationMethodChoice,
+  getContactForMethod,
+} from '@/lib/ai/verification-choice';
+import { prisma } from '@/lib/prisma';
 
 // ─── Config ─────────────────────────────────────────────────────
 
@@ -135,6 +143,7 @@ const BOOKING_DOMAIN_KEYWORDS = [
   // RU
   'запис',
   'брон',
+  'термин',
   'прием',
   'услуг',
   'спис',
@@ -235,10 +244,18 @@ function looksLikeContactPayload(text: string): boolean {
   return hasEmail || hasPhone;
 }
 
+function looksLikeServiceOptionPayload(text: string): boolean {
+  const value = normalizeInput(text);
+  if (!value) return false;
+  // UI option payload: "<service> — 60 мин., 35,00 €" (or "min.")
+  return /[—–-]\s*\d{1,3}\s*(?:мин\.?|min\.?)/iu.test(value);
+}
+
 function isLikelyBookingDomainMessage(text: string): boolean {
   const normalizedInput = normalizeInput(text);
   if (!normalizedInput) return false;
 
+  if (looksLikeServiceOptionPayload(text)) return true;
   if (looksLikeDateOrTimeSelection(text)) return true;
   if (looksLikeContactPayload(text)) return true;
   if (/^\d{6}$/.test(normalizedInput)) return true; // OTP code
@@ -279,6 +296,12 @@ function looksLikeResendRequest(text: string): boolean {
 function shouldApplyScopeGuard(text: string, session: AiSession): boolean {
   const normalizedInput = normalizeInput(text);
   if (!normalizedInput) return false;
+
+  if (session.context.awaitingRegistrationMethod) {
+    // During method-selection step allow only explicit method clicks/texts.
+    if (detectRegistrationMethodChoice(text)) return false;
+    return true;
+  }
 
   // Always allow clearly booking-related messages.
   if (isLikelyBookingDomainMessage(text)) return false;
@@ -382,7 +405,14 @@ function buildNoSlotsFollowUpText(
     )
     .join('\n');
 
-  return `${header}\n\n${options}`;
+  const manualHint =
+    locale === 'ru'
+      ? 'Или укажите желаемую дату в формате ДД.ММ (например, 10.03).'
+      : locale === 'en'
+        ? 'Or type your preferred date in DD.MM format (for example, 10.03).'
+        : 'Oder geben Sie Ihr Wunschdatum im Format TT.MM ein (zum Beispiel 10.03).';
+
+  return `${header}\n\n${options}\n\n${manualHint}`;
 }
 
 function mapMonthDaysToOptions(
@@ -590,6 +620,38 @@ function buildSlotsForDateText(
   return `${header}\n\n${options}`;
 }
 
+function buildSlotTakenAlternativesText(
+  locale: 'de' | 'ru' | 'en',
+  dateISO: string,
+  slots: Array<{ displayTime: string }>,
+): string {
+  const label = formatDateLabel(dateISO, locale);
+  const intro =
+    locale === 'ru'
+      ? `К сожалению, этот слот уже был занят другим клиентом. Давайте проверим другие доступные слоты на ${label}.`
+      : locale === 'en'
+        ? `Unfortunately, that slot has already been taken by another client. Let us check other available times on ${label}.`
+        : `Leider wurde dieser Slot bereits von einem anderen Kunden belegt. Lassen Sie uns andere verfügbare Zeiten am ${label} prüfen.`;
+
+  if (slots.length === 0) {
+    return `${intro}\n\n${buildNoSlotsFollowUpText(locale, [])}`;
+  }
+
+  const followUp =
+    locale === 'ru'
+      ? 'Вот альтернативные варианты:\nКакой слот вам подходит?'
+      : locale === 'en'
+        ? 'Here are alternative options:\nWhich slot works for you?'
+        : 'Hier sind alternative Optionen:\nWelcher Slot passt Ihnen?';
+
+  const options = slots
+    .slice(0, 12)
+    .map((s) => `[option] 🕐 ${s.displayTime} [/option]`)
+    .join('\n');
+
+  return `${intro}\n${followUp}\n${options}`;
+}
+
 function fallbackTextByLocale(locale: 'de' | 'ru' | 'en'): string {
   if (locale === 'ru') {
     return 'Извините, не удалось сформировать ответ. Хотите, я сразу покажу ближайшие свободные даты?';
@@ -614,13 +676,126 @@ function buildVerificationAutoText(
     return `Ein Bestätigungscode wurde an ${opts.contactMasked ?? 'Ihre E-Mail'} gesendet.\n\nBitte geben Sie den 6-stelligen Code ein, um die Buchung abzuschließen.\n\nWenn keine E-Mail innerhalb von 1-2 Minuten kommt, prüfen Sie bitte den Spam-Ordner.`;
   }
 
+  if (opts.error === 'PHONE_FORMAT_INVALID') {
+    if (locale === 'ru') {
+      return 'Не удалось отправить SMS: номер телефона в неверном формате.\n\nПожалуйста, укажите номер в международном формате `+49...` или `+38...` и повторите контактные данные.';
+    }
+    if (locale === 'en') {
+      return 'Could not send SMS: phone number format is invalid.\n\nPlease provide the number in international format `+49...` or `+38...` and resend your contact details.';
+    }
+    return 'SMS konnte nicht gesendet werden: Telefonnummer hat ein ungültiges Format.\n\nBitte geben Sie die Nummer im internationalen Format `+49...` oder `+38...` an und senden Sie Ihre Kontaktdaten erneut.';
+  }
+
   if (locale === 'ru') {
-    return `Не удалось отправить код подтверждения (${opts.error ?? 'ошибка отправки'}).\n\nПроверьте email и напишите "отправь код ещё раз".`;
+    return `Не удалось отправить код подтверждения (${opts.error ?? 'ошибка отправки'}).\n\nПроверьте введённые контактные данные и напишите "отправь код ещё раз".`;
   }
   if (locale === 'en') {
-    return `I could not send the verification code (${opts.error ?? 'send error'}).\n\nPlease check your email and type "send code again".`;
+    return `I could not send the verification code (${opts.error ?? 'send error'}).\n\nPlease check your contact data and type "send code again".`;
   }
-  return `Der Bestätigungscode konnte nicht gesendet werden (${opts.error ?? 'Sendeproblem'}).\n\nBitte prüfen Sie die E-Mail und schreiben Sie "Code erneut senden".`;
+  return `Der Bestätigungscode konnte nicht gesendet werden (${opts.error ?? 'Sendeproblem'}).\n\nBitte prüfen Sie Ihre Kontaktdaten und schreiben Sie "Code erneut senden".`;
+}
+
+function buildContactCollectionTextForMethod(
+  locale: 'de' | 'ru' | 'en',
+  method: 'email_otp' | 'sms_otp' | 'telegram_otp',
+): string {
+  if (locale === 'ru') {
+    if (method === 'email_otp') {
+      return 'Вы выбрали подтверждение по Email.\nПожалуйста, укажите ваше имя и адрес электронной почты для завершения записи.\nВаши данные будут использоваться только для управления записью.';
+    }
+    if (method === 'sms_otp') {
+      return 'Вы выбрали подтверждение по SMS.\nПожалуйста, укажите ваше имя, номер телефона и адрес электронной почты для завершения записи.\nНомер телефона указывайте в международном формате: +49... или +38...\nВаши данные будут использоваться только для управления записью.';
+    }
+    return 'Вы выбрали подтверждение через Telegram.\nПожалуйста, укажите ваше имя, номер телефона (привязанный к Telegram-боту) и адрес электронной почты для завершения записи.\nНомер телефона указывайте в международном формате: +49... или +38...\nВаши данные будут использоваться только для управления записью.';
+  }
+
+  if (locale === 'en') {
+    if (method === 'email_otp') {
+      return 'You chose Email verification.\nPlease provide your name and email address to finish the booking.\nYour data will only be used for appointment management.';
+    }
+    if (method === 'sms_otp') {
+      return 'You chose SMS verification.\nPlease provide your name, phone number, and email address to finish the booking.\nPhone must be in international format: +49... or +38...\nYour data will only be used for appointment management.';
+    }
+    return 'You chose Telegram verification.\nPlease provide your name, phone number (linked to our Telegram bot), and email address to finish the booking.\nPhone must be in international format: +49... or +38...\nYour data will only be used for appointment management.';
+  }
+
+  if (method === 'email_otp') {
+    return 'Sie haben E-Mail-Verifizierung gewählt.\nBitte geben Sie Ihren Namen und Ihre E-Mail-Adresse an, um die Buchung abzuschließen.\nIhre Daten werden nur zur Terminverwaltung verwendet.';
+  }
+  if (method === 'sms_otp') {
+    return 'Sie haben SMS-Verifizierung gewählt.\nBitte geben Sie Ihren Namen, Ihre Telefonnummer und Ihre E-Mail-Adresse an, um die Buchung abzuschließen.\nDie Telefonnummer bitte im internationalen Format angeben: +49... oder +38...\nIhre Daten werden nur zur Terminverwaltung verwendet.';
+  }
+  return 'Sie haben Telegram-Verifizierung gewählt.\nBitte geben Sie Ihren Namen, Ihre Telefonnummer (mit Telegram-Bot verknüpft) und Ihre E-Mail-Adresse an, um die Buchung abzuschließen.\nDie Telefonnummer bitte im internationalen Format angeben: +49... oder +38...\nIhre Daten werden nur zur Terminverwaltung verwendet.';
+}
+
+function buildMissingContactForMethodText(
+  locale: 'de' | 'ru' | 'en',
+  method: 'email_otp' | 'sms_otp' | 'telegram_otp',
+): string {
+  if (locale === 'ru') {
+    if (method === 'email_otp') {
+      return 'Для подтверждения по Email нужен корректный email. Пожалуйста, укажите email и повторите.';
+    }
+    if (method === 'sms_otp') {
+      return 'Для подтверждения по SMS нужен номер телефона в формате +49... или +38.... Пожалуйста, укажите корректный номер и повторите.';
+    }
+    return 'Для подтверждения через Telegram нужен номер телефона, привязанный к Telegram-боту, в формате +49... или +38.... Пожалуйста, укажите корректный номер и повторите.';
+  }
+
+  if (locale === 'en') {
+    if (method === 'email_otp') {
+      return 'Email verification needs a valid email address. Please provide your email and try again.';
+    }
+    if (method === 'sms_otp') {
+      return 'SMS verification needs a phone number in +49... or +38... format. Please provide a valid number and try again.';
+    }
+    return 'Telegram verification needs a phone number linked to our bot in +49... or +38... format. Please provide a valid number and try again.';
+  }
+
+  if (method === 'email_otp') {
+    return 'Für die E-Mail-Verifizierung wird eine gültige E-Mail-Adresse benötigt. Bitte E-Mail angeben und erneut versuchen.';
+  }
+  if (method === 'sms_otp') {
+    return 'Für die SMS-Verifizierung wird eine Telefonnummer im Format +49... oder +38... benötigt. Bitte korrekte Nummer angeben und erneut versuchen.';
+  }
+  return 'Für die Telegram-Verifizierung wird eine mit dem Bot verknüpfte Telefonnummer im Format +49... oder +38... benötigt. Bitte korrekte Nummer angeben und erneut versuchen.';
+}
+
+function buildGoogleHandoffUrl(session: AiSession): string | null {
+  const serviceId = session.context.selectedServiceIds?.[0];
+  const masterId = session.context.selectedMasterId;
+  const reserved = session.context.reservedSlot;
+
+  if (!serviceId || !masterId || !reserved) return null;
+
+  const selectedDate = reserved.startAt.slice(0, 10);
+  const params = new URLSearchParams({
+    s: serviceId,
+    m: masterId,
+    start: reserved.startAt,
+    end: reserved.endAt,
+    d: selectedDate,
+  });
+  const path = `/booking/client?${params.toString()}`;
+
+  const baseUrl = (process.env.NEXT_PUBLIC_BASE_URL || '').trim().replace(/\/$/, '');
+  return baseUrl ? `${baseUrl}${path}` : path;
+}
+
+function escapeOptionAttr(value: string): string {
+  return value.replace(/"/g, '%22').replace(/\]/g, '%5D');
+}
+
+function buildGoogleHandoffText(locale: 'de' | 'ru' | 'en', url: string): string {
+  const safeUrl = escapeOptionAttr(url);
+
+  if (locale === 'ru') {
+    return `Вы выбрали регистрацию через Google.\nНажмите кнопку ниже, чтобы продолжить в защищённом потоке:\n[option url="${safeUrl}"]🔐 Продолжить через Google[/option]`;
+  }
+  if (locale === 'en') {
+    return `You selected Google registration.\nTap the button below to continue in the secure flow:\n[option url="${safeUrl}"]🔐 Continue with Google[/option]`;
+  }
+  return `Sie haben Google-Registrierung gewählt.\nKlicken Sie auf die Schaltfläche unten, um im sicheren Flow fortzufahren:\n[option url="${safeUrl}"]🔐 Mit Google fortfahren[/option]`;
 }
 
 function normalizeChoiceText(value: string): string {
@@ -633,6 +808,15 @@ function normalizeChoiceText(value: string): string {
     .replace(/[^\p{L}\p{N}\s]+/gu, ' ')
     .replace(/\s+/g, ' ')
     .trim();
+}
+
+function normalizeCatalogSelectionInput(value: string): string {
+  // Strip UI metadata from option clicks:
+  // "Обычный — 60 мин., 35,00 €" -> "Обычный"
+  const compact = value
+    .replace(/\s*[—–-]\s*\d{1,3}\s*(?:мин\.?|min\.?).*$/iu, '')
+    .trim();
+  return normalizeChoiceText(compact);
 }
 
 function tokenizeNormalized(value: string): string[] {
@@ -835,6 +1019,111 @@ function isFullCatalogRequest(text: string, locale: 'de' | 'ru' | 'en'): boolean
   return dePhrases.some((p) => value.includes(p));
 }
 
+function isBookingStartIntent(
+  text: string,
+  locale: 'de' | 'ru' | 'en',
+  hasActiveBookingFlow: boolean,
+): boolean {
+  const value = normalizeInput(text);
+  if (!value) return false;
+
+  const restartPhrases =
+    locale === 'ru'
+      ? ['новый термин', 'новая запись', 'новый прием', 'новый приём', 'начать заново']
+      : locale === 'en'
+        ? ['new appointment', 'new booking', 'start over', 'book again']
+        : ['neuer termin', 'neue buchung', 'neu anfangen', 'erneut buchen'];
+
+  if (restartPhrases.some((p) => value.includes(p))) return true;
+
+  if (hasActiveBookingFlow) return false;
+
+  const startPhrases =
+    locale === 'ru'
+      ? [
+          'записаться на приём',
+          'записаться на прием',
+          'хочу записаться',
+          'продолжить запись',
+        ]
+      : locale === 'en'
+        ? ['book appointment', 'book a slot', 'continue booking', 'i want to book']
+        : ['termin buchen', 'buchung starten', 'buchung fortsetzen', 'ich möchte buchen'];
+
+  return startPhrases.some((p) => value.includes(p));
+}
+
+function isDesiredDateQuestion(text: string, locale: 'de' | 'ru' | 'en'): boolean {
+  const value = normalizeInput(text);
+  if (!value) return false;
+  if (parseDayMonth(value)) return false;
+  if (value.includes(':')) return false; // likely time-related, not date selection
+
+  if (locale === 'ru') {
+    const ruPhrases = [
+      'есть даты',
+      'другая дата',
+      'другую дату',
+      'после 10',
+      'после 10.',
+      'после 10 ',
+      'после 10.03',
+      'на другую дату',
+    ];
+    return ruPhrases.some((p) => value.includes(p));
+  }
+
+  if (locale === 'en') {
+    const enPhrases = [
+      'other date',
+      'another date',
+      'dates after',
+      'after 10',
+      'can i pick date',
+      'preferred date',
+    ];
+    return enPhrases.some((p) => value.includes(p));
+  }
+
+  const dePhrases = [
+    'anderes datum',
+    'andere datum',
+    'daten nach',
+    'nach 10',
+    'wunschdatum',
+  ];
+  return dePhrases.some((p) => value.includes(p));
+}
+
+function buildBookingStartText(
+  locale: 'de' | 'ru' | 'en',
+  groupTitles: string[],
+): string {
+  const intro =
+    locale === 'ru'
+      ? 'Какую услугу вы хотели бы заказать? Вот некоторые из наших предложений:'
+      : locale === 'en'
+        ? 'What service would you like to book? Here are some options:'
+        : 'Welche Leistung möchten Sie buchen? Hier sind einige Optionen:';
+  const ask =
+    locale === 'ru'
+      ? 'Пожалуйста, выберите услугу!'
+      : locale === 'en'
+        ? 'Please choose a service!'
+        : 'Bitte wählen Sie eine Leistung!';
+
+  if (groupTitles.length === 0) {
+    return `${intro}\n${ask}`;
+  }
+
+  const options = groupTitles
+    .slice(0, 8)
+    .map((title) => `[option] ${categoryEmoji(title)} ${title} [/option]`)
+    .join('\n');
+
+  return `${intro}\n${ask}\n${options}`;
+}
+
 function categoryEmoji(title: string): string {
   const value = normalizeChoiceText(title);
   if (
@@ -902,12 +1191,14 @@ async function tryHandleCatalogSelectionFastPath(
   sessionId: string,
   message: string,
 ): Promise<ChatResponse | null> {
-  const input = normalizeChoiceText(message);
+  const input = normalizeCatalogSelectionInput(message);
   if (!input || input.length < 4) return null;
   if (isAffirmativeFollowUp(message)) return null;
+  const hasActiveServiceSelection =
+    (session.context.selectedServiceIds?.length ?? 0) > 0 ||
+    Boolean(session.context.selectedMasterId);
   if (
-    ((session.context.selectedServiceIds?.length ?? 0) > 0 ||
-      Boolean(session.context.selectedMasterId)) &&
+    hasActiveServiceSelection &&
     looksLikeDateOrTimeSelection(message)
   ) {
     return null;
@@ -928,6 +1219,20 @@ async function tryHandleCatalogSelectionFastPath(
   }>;
   if (groups.length === 0) return null;
 
+  // In active booking flow, do not switch service/category from free-form text.
+  // Allow only explicit catalog choices (exact group/service title or service option payload).
+  if (hasActiveServiceSelection && !looksLikeServiceOptionPayload(message)) {
+    const isExactGroupChoice = groups.some(
+      (g) => normalizeChoiceText(g.title) === input,
+    );
+    const isExactServiceChoice = groups.some((g) =>
+      g.services.some((s) => normalizeChoiceText(s.title) === input),
+    );
+    if (!isExactGroupChoice && !isExactServiceChoice) {
+      return null;
+    }
+  }
+
   const matchedGroup = chooseBestMatch(
     groups,
     (g) => normalizeChoiceText(g.title),
@@ -938,8 +1243,10 @@ async function tryHandleCatalogSelectionFastPath(
     const groupNorm = normalizeChoiceText(matchedGroup.title);
     const inputTokens = tokenizeNormalized(input);
     const groupTokens = tokenizeNormalized(groupNorm);
+    const startsWithGroup =
+      input === groupNorm || input.startsWith(`${groupNorm} `);
     const isDirectGroupChoice =
-      input === groupNorm ||
+      startsWithGroup ||
       (input.includes(groupNorm) && inputTokens.length <= groupTokens.length + 2);
 
     if (!isDirectGroupChoice) {
@@ -1171,6 +1478,135 @@ export async function POST(
       session.context.reservedSlot ||
       session.context.draftId,
   );
+
+  // Deterministic booking start/restart entrypoint:
+  // handles intents like "записаться", "новый термин", "book appointment".
+  if (isBookingStartIntent(message, session.locale, hasActiveBookingFlow)) {
+    const startedAt = Date.now();
+    const catalog = await listServices({ locale: session.locale });
+    const durationMs = Date.now() - startedAt;
+    const groups = (catalog.groups ?? []) as Array<{ title: string }>;
+    const groupTitles = groups.map((g) => g.title).filter(Boolean);
+    const text = buildBookingStartText(session.locale, groupTitles);
+
+    appendSessionMessage(sessionId, 'assistant', text);
+    upsertSession(sessionId, {
+      previousResponseId: null,
+      context: {
+        selectedServiceIds: undefined,
+        selectedMasterId: undefined,
+        reservedSlot: undefined,
+        draftId: undefined,
+        lastDateISO: undefined,
+        lastPreferredTime: undefined,
+        lastNoSlots: false,
+        lastSuggestedDateOptions: undefined,
+        awaitingRegistrationMethod: false,
+        pendingVerificationMethod: undefined,
+        awaitingVerificationMethod: false,
+      },
+    });
+
+    console.log(
+      `[AI Chat] session=${sessionId.slice(0, 8)}... fastpath=booking-start groups=${groupTitles.length}`,
+    );
+
+    return NextResponse.json({
+      text,
+      sessionId,
+      toolCalls: [{ name: 'list_services', durationMs }],
+    });
+  }
+
+  // Deterministic handling for free-form date questions while service/master are already fixed.
+  // Example: "есть даты после 10" -> keep current service and ask for exact DD.MM date.
+  if (
+    selectedMasterId &&
+    selectedServiceIds.length > 0 &&
+    isDesiredDateQuestion(message, session.locale)
+  ) {
+    const text =
+      session.locale === 'ru'
+        ? 'Да, можно выбрать желаемую дату.\nНапишите дату в формате ДД.ММ (например, 10.03), и я сразу покажу свободное время.'
+        : session.locale === 'en'
+          ? 'Yes, you can choose your preferred date.\nType a date in DD.MM format (for example, 10.03), and I will show free slots right away.'
+          : 'Ja, Sie können Ihr Wunschdatum wählen.\nSchreiben Sie das Datum im Format TT.MM (zum Beispiel 10.03), und ich zeige sofort freie Zeiten.';
+
+    appendSessionMessage(sessionId, 'assistant', text);
+
+    console.log(
+      `[AI Chat] session=${sessionId.slice(0, 8)}... fastpath=date-guidance`,
+    );
+
+    return NextResponse.json({
+      text,
+      sessionId,
+    });
+  }
+
+  // Deterministic selection flow first:
+  // category click -> concrete services, service click -> masters/date step.
+  // Important: run before scope-guard, otherwise service option clicks can be blocked.
+  const selectionFastPath = await tryHandleCatalogSelectionFastPath(
+    session,
+    sessionId,
+    message,
+  );
+  if (selectionFastPath) {
+    return NextResponse.json(selectionFastPath);
+  }
+
+  // Deterministic registration-method selection after slot reservation.
+  if (session.context.awaitingRegistrationMethod && session.context.reservedSlot) {
+    const selectedMethod = detectRegistrationMethodChoice(message);
+    if (selectedMethod) {
+      if (selectedMethod === 'google_oauth') {
+        const handoffUrl = buildGoogleHandoffUrl(session);
+        const effectiveMethod = handoffUrl ? selectedMethod : 'email_otp';
+        const keepMethodStep = Boolean(handoffUrl);
+        const text = handoffUrl
+          ? buildGoogleHandoffText(session.locale, handoffUrl)
+          : buildContactCollectionTextForMethod(session.locale, 'email_otp');
+
+        appendSessionMessage(sessionId, 'assistant', text);
+        upsertSession(sessionId, {
+          context: {
+            awaitingRegistrationMethod: keepMethodStep,
+            pendingVerificationMethod: effectiveMethod,
+            awaitingVerificationMethod: false,
+          },
+        });
+
+        console.log(
+          `[AI Chat] session=${sessionId.slice(0, 8)}... fastpath=registration-method method=${selectedMethod}`,
+        );
+
+        return NextResponse.json({
+          text,
+          sessionId,
+        });
+      }
+
+      const text = buildContactCollectionTextForMethod(session.locale, selectedMethod);
+      appendSessionMessage(sessionId, 'assistant', text);
+      upsertSession(sessionId, {
+        context: {
+          awaitingRegistrationMethod: false,
+          pendingVerificationMethod: selectedMethod,
+          awaitingVerificationMethod: false,
+        },
+      });
+
+      console.log(
+        `[AI Chat] session=${sessionId.slice(0, 8)}... fastpath=registration-method method=${selectedMethod}`,
+      );
+
+      return NextResponse.json({
+        text,
+        sessionId,
+      });
+    }
+  }
 
   if (shouldApplyScopeGuard(message, session)) {
     const text = buildScopeGuardText(session.locale, hasActiveBookingFlow);
@@ -1566,15 +2002,69 @@ export async function POST(
     });
   }
 
-  // Deterministic selection flow:
-  // category click -> concrete services, service click -> masters/date step.
-  const selectionFastPath = await tryHandleCatalogSelectionFastPath(
-    session,
-    sessionId,
-    message,
-  );
-  if (selectionFastPath) {
-    return NextResponse.json(selectionFastPath);
+  // ─── Deterministic: user picks verification method ────────
+  if (session.context.awaitingVerificationMethod && session.context.draftId) {
+    const chosenMethod = detectVerificationMethodChoice(message);
+    if (chosenMethod) {
+      // Look up the draft to get contact info
+      const draft = await prisma.bookingDraft.findUnique({
+        where: { id: session.context.draftId },
+        select: { email: true, phone: true },
+      });
+
+      if (draft) {
+        const contact = getContactForMethod(chosenMethod, draft.email, draft.phone);
+
+        if (!contact) {
+          const noContactText =
+            session.locale === 'ru'
+              ? 'Для этого метода нет контактных данных. Пожалуйста, выберите другой способ.'
+              : session.locale === 'en'
+                ? 'No contact info available for this method. Please choose another way.'
+                : 'Keine Kontaktdaten für diese Methode vorhanden. Bitte wählen Sie eine andere.';
+          appendSessionMessage(sessionId, 'assistant', noContactText);
+          return NextResponse.json({ text: noContactText, sessionId });
+        }
+
+        const startedAt = Date.now();
+        const verifyRes = await startVerification({
+          method: chosenMethod,
+          draftId: session.context.draftId,
+          contact,
+        });
+        const durationMs = Date.now() - startedAt;
+
+        const text = buildVerificationAutoText(session.locale, {
+          ok: Boolean(verifyRes?.ok),
+          contactMasked:
+            typeof verifyRes === 'object' && verifyRes && 'contactMasked' in verifyRes
+              ? (verifyRes.contactMasked as string | undefined)
+              : undefined,
+          error:
+            typeof verifyRes === 'object' && verifyRes && 'error' in verifyRes
+              ? String(verifyRes.error ?? '')
+              : undefined,
+        });
+
+        appendSessionMessage(sessionId, 'assistant', text);
+        upsertSession(sessionId, {
+          context: {
+            awaitingVerificationMethod: false,
+            pendingVerificationMethod: verifyRes?.ok ? undefined : chosenMethod,
+          },
+        });
+
+        console.log(
+          `[AI Chat] session=${sessionId.slice(0, 8)}... fastpath=verification-method-chosen method=${chosenMethod} ok=${Boolean(verifyRes?.ok)}`,
+        );
+
+        return NextResponse.json({
+          text,
+          sessionId,
+          toolCalls: [{ name: 'start_verification', durationMs }],
+        });
+      }
+    }
   }
 
   // Build messages
@@ -1594,6 +2084,15 @@ export async function POST(
   }
   if (session.context.lastNoSlots !== undefined) {
     stateHints.push(`lastNoSlots=${String(session.context.lastNoSlots)}`);
+  }
+  if (session.context.awaitingRegistrationMethod) {
+    stateHints.push('awaitingRegistrationMethod=true');
+  }
+  if (session.context.pendingVerificationMethod) {
+    stateHints.push(`pendingVerificationMethod=${session.context.pendingVerificationMethod}`);
+  }
+  if (session.context.awaitingVerificationMethod) {
+    stateHints.push('awaitingVerificationMethod=true');
   }
 
   const statePrompt =
@@ -1707,6 +2206,8 @@ export async function POST(
           }
         }
 
+        const isContactPayloadMessage = looksLikeContactPayload(message);
+
         // When the user sends contact details, keep create_draft aligned with
         // the already reserved slot for this session.
         let reserveArgsInBatch:
@@ -1741,9 +2242,26 @@ export async function POST(
               }
             : null;
 
+        // If contacts are being provided, force reserve_slot to use the
+        // slot that is currently reserved in session context.
+        if (isContactPayloadMessage && reserveArgsFromSession) {
+          for (const call of toolCalls) {
+            if (call.name !== 'reserve_slot') continue;
+            const parsed = parsedArgsByCallId.get(call.id);
+            if (!parsed) continue;
+
+            parsed.masterId = reserveArgsFromSession.masterId;
+            parsed.startAt = reserveArgsFromSession.startAt;
+            parsed.endAt = reserveArgsFromSession.endAt;
+            parsed.sessionId = sessionId;
+            call.arguments = JSON.stringify(parsed);
+          }
+        }
+
         const createDraftArgsSource =
-          reserveArgsInBatch ??
-          (looksLikeContactPayload(message) ? reserveArgsFromSession : null);
+          isContactPayloadMessage
+            ? (reserveArgsFromSession ?? reserveArgsInBatch)
+            : reserveArgsInBatch;
 
         if (createDraftArgsSource) {
           for (const call of toolCalls) {
@@ -1773,6 +2291,8 @@ export async function POST(
 
         const results = await Promise.all(toolCalls.map(executeTool));
         const contextPatch: Partial<AiSession['context']> = {};
+        let reservedSlotJustCreated = false;
+        let bookingCompletedInBatch = false;
         let autoVerificationCandidate:
           | { draftId: string; email: string }
           | null = null;
@@ -1784,6 +2304,9 @@ export async function POST(
           contact?: string;
           ok: boolean;
         }> = [];
+        let slotTakenInBatch = false;
+        let slotTakenDateISO: string | undefined;
+        let slotTakenMasterId: string | undefined;
 
         // Add tool results to messages
         for (const result of results) {
@@ -1911,6 +2434,7 @@ export async function POST(
                   endAt: parsedArgs.endAt,
                 };
                 contextPatch.lastNoSlots = false;
+                reservedSlotJustCreated = true;
               }
 
               if (
@@ -1918,6 +2442,12 @@ export async function POST(
                 typeof parsedArgs?.startAt === 'string' &&
                 typeof parsedArgs?.endAt === 'string'
               ) {
+                slotTakenInBatch = true;
+                slotTakenDateISO = parsedArgs.startAt.slice(0, 10);
+                slotTakenMasterId =
+                  typeof parsedArgs.masterId === 'string'
+                    ? parsedArgs.masterId
+                    : slotTakenMasterId;
                 const sameAsCurrentReservation =
                   session.context.reservedSlot?.startAt === parsedArgs.startAt &&
                   session.context.reservedSlot?.endAt === parsedArgs.endAt;
@@ -1925,6 +2455,10 @@ export async function POST(
                 if (!sameAsCurrentReservation) {
                   contextPatch.reservedSlot = undefined;
                 }
+                contextPatch.draftId = undefined;
+                contextPatch.awaitingVerificationMethod = false;
+                contextPatch.awaitingRegistrationMethod = false;
+                contextPatch.pendingVerificationMethod = undefined;
               }
             } catch {
               // Ignore malformed payload
@@ -1985,11 +2519,24 @@ export async function POST(
                 draftId?: string;
                 error?: string;
               };
+
+              if (slotTakenInBatch) {
+                if (payload.draftId && !payload.error) {
+                  await prisma.bookingDraft
+                    .delete({ where: { id: payload.draftId } })
+                    .catch(() => {
+                      /* ignore cleanup errors */
+                    });
+                }
+                continue;
+              }
+
               const email =
                 typeof parsedArgs?.email === 'string' ? parsedArgs.email : null;
 
               if (payload.draftId && !payload.error) {
                 contextPatch.draftId = payload.draftId;
+                contextPatch.awaitingRegistrationMethod = false;
                 if (
                   typeof parsedArgs?.startAt === 'string' &&
                   typeof parsedArgs?.endAt === 'string'
@@ -2012,13 +2559,45 @@ export async function POST(
             try {
               const payload = JSON.parse(result.result) as {
                 ok?: boolean;
+                error?: string;
               };
 
               if (payload.ok) {
+                bookingCompletedInBatch = true;
+                contextPatch.selectedServiceIds = undefined;
+                contextPatch.selectedMasterId = undefined;
                 contextPatch.draftId = undefined;
                 contextPatch.reservedSlot = undefined;
+                contextPatch.lastDateISO = undefined;
+                contextPatch.lastPreferredTime = undefined;
                 contextPatch.lastSuggestedDateOptions = undefined;
                 contextPatch.lastNoSlots = false;
+                contextPatch.awaitingVerificationMethod = false;
+                contextPatch.awaitingRegistrationMethod = false;
+                contextPatch.pendingVerificationMethod = undefined;
+              }
+
+              if (payload.error === 'SLOT_TAKEN') {
+                slotTakenInBatch = true;
+                slotTakenMasterId = session.context.selectedMasterId ?? slotTakenMasterId;
+                slotTakenDateISO =
+                  session.context.reservedSlot?.startAt?.slice(0, 10) ??
+                  session.context.lastDateISO ??
+                  slotTakenDateISO;
+
+                const staleDraftId =
+                  typeof parsedArgs?.draftId === 'string' ? parsedArgs.draftId : undefined;
+                if (staleDraftId) {
+                  await prisma.bookingDraft.delete({ where: { id: staleDraftId } }).catch(() => {
+                    /* ignore cleanup errors */
+                  });
+                }
+
+                contextPatch.draftId = undefined;
+                contextPatch.reservedSlot = undefined;
+                contextPatch.awaitingVerificationMethod = false;
+                contextPatch.awaitingRegistrationMethod = false;
+                contextPatch.pendingVerificationMethod = undefined;
               }
             } catch {
               // Ignore malformed payload
@@ -2035,58 +2614,213 @@ export async function POST(
 
         if (Object.keys(contextPatch).length > 0) {
           upsertSession(sessionId, {
+            previousResponseId: bookingCompletedInBatch ? null : undefined,
             context: contextPatch,
           });
         }
 
-        const matchedExplicitStart = autoVerificationCandidate
-          ? explicitStartVerificationCalls.some(
-              (call) =>
-                call.ok &&
-                call.draftId === autoVerificationCandidate?.draftId &&
-                call.contact === autoVerificationCandidate?.email,
-            )
-          : false;
+        if (slotTakenInBatch) {
+          const staleDraftId =
+            typeof contextPatch.draftId === 'string'
+              ? contextPatch.draftId
+              : typeof session.context.draftId === 'string'
+                ? session.context.draftId
+                : undefined;
+          if (staleDraftId) {
+            await prisma.bookingDraft.delete({ where: { id: staleDraftId } }).catch(() => {
+              /* ignore cleanup errors */
+            });
+          }
 
-        // Reliability guard:
-        // if model created draft but forgot start_verification
-        // OR started verification for a different draft/email, do it server-side.
-        if (autoVerificationCandidate && (!hasExplicitStartVerification || !matchedExplicitStart)) {
-          const startedAt = Date.now();
-          const autoRes = await startVerification({
-            method: 'email_otp',
-            draftId: autoVerificationCandidate.draftId,
-            contact: autoVerificationCandidate.email,
-          });
-          const durationMs = Date.now() - startedAt;
+          const masterIdForRecovery =
+            slotTakenMasterId ??
+            contextPatch.selectedMasterId ??
+            session.context.selectedMasterId;
+          const dateISOForRecovery =
+            slotTakenDateISO ??
+            session.context.lastDateISO ??
+            todayISO();
+          const serviceIdsForRecovery =
+            contextPatch.selectedServiceIds ??
+            session.context.selectedServiceIds ??
+            [];
 
-          const text = buildVerificationAutoText(session.locale, {
-            ok: Boolean(autoRes?.ok),
-            contactMasked:
-              typeof autoRes === 'object' && autoRes && 'contactMasked' in autoRes
-                ? (autoRes.contactMasked as string | undefined)
-                : undefined,
-            error:
-              typeof autoRes === 'object' && autoRes && 'error' in autoRes
-                ? String(autoRes.error ?? '')
-                : undefined,
-          });
+          let text: string;
+          if (masterIdForRecovery && serviceIdsForRecovery.length > 0) {
+            const availability = await searchAvailability({
+              masterId: masterIdForRecovery,
+              dateISO: dateISOForRecovery,
+              serviceIds: serviceIdsForRecovery,
+              preferredTime: 'any',
+            });
+
+            text = buildSlotTakenAlternativesText(
+              session.locale,
+              dateISOForRecovery,
+              availability.slots ?? [],
+            );
+          } else {
+            text = buildSlotTakenAlternativesText(
+              session.locale,
+              dateISOForRecovery,
+              [],
+            );
+          }
 
           appendSessionMessage(sessionId, 'assistant', text);
-
-          const allToolCalls = [
-            ...toolCallLog,
-            { name: 'start_verification', durationMs },
-          ];
+          upsertSession(sessionId, {
+            context: {
+              draftId: undefined,
+              reservedSlot: undefined,
+              awaitingVerificationMethod: false,
+              awaitingRegistrationMethod: false,
+              pendingVerificationMethod: undefined,
+            },
+          });
 
           console.log(
-            `[AI Chat] session=${sessionId.slice(0, 8)}... fastpath=auto-start-verification ok=${Boolean(autoRes?.ok)}`,
+            `[AI Chat] session=${sessionId.slice(0, 8)}... fastpath=slot-taken-recovery date=${dateISOForRecovery}`,
           );
 
           return NextResponse.json({
             text,
             sessionId,
-            toolCalls: allToolCalls,
+            toolCalls: toolCallLog,
+          });
+        }
+
+        const hasDraftAfterTools = Object.prototype.hasOwnProperty.call(contextPatch, 'draftId')
+          ? Boolean(contextPatch.draftId)
+          : Boolean(session.context.draftId);
+        const pendingMethodAfterTools = Object.prototype.hasOwnProperty.call(
+          contextPatch,
+          'pendingVerificationMethod',
+        )
+          ? contextPatch.pendingVerificationMethod
+          : session.context.pendingVerificationMethod;
+
+        // After successful slot reserve, show registration method chooser only
+        // when method is not selected yet.
+        if (reservedSlotJustCreated && !hasDraftAfterTools && !pendingMethodAfterTools) {
+          const text = buildRegistrationMethodChoiceText(session.locale);
+          appendSessionMessage(sessionId, 'assistant', text);
+          upsertSession(sessionId, {
+            context: {
+              awaitingRegistrationMethod: true,
+              pendingVerificationMethod: undefined,
+              awaitingVerificationMethod: false,
+            },
+          });
+
+          console.log(
+            `[AI Chat] session=${sessionId.slice(0, 8)}... fastpath=registration-method-choice-after-reserve`,
+          );
+
+          return NextResponse.json({
+            text,
+            sessionId,
+            toolCalls: toolCallLog,
+          });
+        }
+
+        const matchedExplicitStart = autoVerificationCandidate
+          ? explicitStartVerificationCalls.some(
+              (call) => call.ok && call.draftId === autoVerificationCandidate?.draftId,
+            )
+          : false;
+
+        if (autoVerificationCandidate && (!hasExplicitStartVerification || !matchedExplicitStart)) {
+          const draftForChoice = await prisma.bookingDraft.findUnique({
+            where: { id: autoVerificationCandidate.draftId },
+            select: { email: true, phone: true },
+          });
+
+          const selectedMethod = session.context.pendingVerificationMethod;
+
+          if (
+            selectedMethod &&
+            selectedMethod !== 'google_oauth' &&
+            (selectedMethod === 'email_otp' ||
+              selectedMethod === 'sms_otp' ||
+              selectedMethod === 'telegram_otp')
+          ) {
+            const contact = getContactForMethod(
+              selectedMethod,
+              draftForChoice?.email,
+              draftForChoice?.phone,
+            );
+
+            if (!contact) {
+              const text = buildMissingContactForMethodText(session.locale, selectedMethod);
+              appendSessionMessage(sessionId, 'assistant', text);
+
+              return NextResponse.json({
+                text,
+                sessionId,
+                toolCalls: toolCallLog,
+              });
+            }
+
+            const startedAt = Date.now();
+            const verifyRes = await startVerification({
+              method: selectedMethod,
+              draftId: autoVerificationCandidate.draftId,
+              contact,
+            });
+            const durationMs = Date.now() - startedAt;
+
+            const text = buildVerificationAutoText(session.locale, {
+              ok: Boolean(verifyRes?.ok),
+              contactMasked:
+                typeof verifyRes === 'object' && verifyRes && 'contactMasked' in verifyRes
+                  ? (verifyRes.contactMasked as string | undefined)
+                  : undefined,
+              error:
+                typeof verifyRes === 'object' && verifyRes && 'error' in verifyRes
+                  ? String(verifyRes.error ?? '')
+                  : undefined,
+            });
+
+            appendSessionMessage(sessionId, 'assistant', text);
+            upsertSession(sessionId, {
+              context: {
+                awaitingVerificationMethod: false,
+                pendingVerificationMethod: verifyRes?.ok ? undefined : selectedMethod,
+              },
+            });
+
+            console.log(
+              `[AI Chat] session=${sessionId.slice(0, 8)}... fastpath=verification-start-selected method=${selectedMethod} ok=${Boolean(verifyRes?.ok)}`,
+            );
+
+            return NextResponse.json({
+              text,
+              sessionId,
+              toolCalls: [...toolCallLog, { name: 'start_verification', durationMs }],
+            });
+          }
+
+          // Fallback: method not selected yet -> present choice after draft creation.
+          const text = buildVerificationMethodChoiceText(session.locale, {
+            hasEmail: Boolean(draftForChoice?.email),
+            hasPhone: Boolean(draftForChoice?.phone),
+          });
+
+          appendSessionMessage(sessionId, 'assistant', text);
+          upsertSession(sessionId, {
+            context: {
+              awaitingVerificationMethod: true,
+            },
+          });
+
+          console.log(
+            `[AI Chat] session=${sessionId.slice(0, 8)}... fastpath=verification-method-choice email=${Boolean(draftForChoice?.email)} phone=${Boolean(draftForChoice?.phone)}`,
+          );
+
+          return NextResponse.json({
+            text,
+            sessionId,
+            toolCalls: toolCallLog,
           });
         }
 

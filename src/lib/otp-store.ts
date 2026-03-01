@@ -1,6 +1,6 @@
 // src/lib/otp-store.ts
 
-export type OTPMethod = "email" | "telegram";
+export type OTPMethod = "email" | "telegram" | "sms";
 
 export interface OTPEntry {
   code: string;
@@ -225,6 +225,237 @@ export function debugOTPStore(): void {
     );
   });
 }
+
+
+
+//-------28.02.26
+// // src/lib/otp-store.ts
+
+// export type OTPMethod = "email" | "telegram";
+
+// export interface OTPEntry {
+//   code: string;
+//   expiresAt: number;
+//   telegramUserId?: number;
+//   confirmed?: boolean;
+//   /** ID созданной записи Appointment (для Telegram-автоподтверждения) */
+//   appointmentId?: string;
+// }
+
+// // Расширяем global, чтобы store жил между hot-reload'ами
+// declare global {
+//   // eslint-disable-next-line no-var
+//   var __otpStore: Map<string, OTPEntry> | undefined;
+// }
+
+// function getStore(): Map<string, OTPEntry> {
+//   if (!global.__otpStore) {
+//     global.__otpStore = new Map<string, OTPEntry>();
+//   }
+//   return global.__otpStore;
+// }
+
+// const store = getStore();
+
+// function createKey(method: OTPMethod, email: string, draftId: string): string {
+//   return `${method}:${email}:${draftId}`;
+// }
+
+// /**
+//  * Генерирует 6-значный OTP-код
+//  */
+// export function generateOTP(): string {
+//   return String(Math.floor(100000 + Math.random() * 900000));
+// }
+
+// /**
+//  * Сохраняет OTP
+//  */
+// export function saveOTP(
+//   method: OTPMethod,
+//   email: string,
+//   draftId: string,
+//   code: string,
+//   options?: {
+//     ttlMinutes?: number;
+//     telegramUserId?: number;
+//   },
+// ): void {
+//   const key = createKey(method, email, draftId);
+//   const ttlMs = (options?.ttlMinutes ?? 10) * 60 * 1000;
+//   const expiresAt = Date.now() + ttlMs;
+
+//   const entry: OTPEntry = {
+//     code,
+//     expiresAt,
+//     confirmed: false,
+//   };
+
+//   if (options?.telegramUserId) {
+//     entry.telegramUserId = options.telegramUserId;
+//   }
+
+//   store.set(key, entry);
+//   console.log(`[OTP Store] Сохранён ${method} код для ${email}:${draftId}`);
+// }
+
+// /**
+//  * Получает OTP (автоматически удаляет, если истёк)
+//  */
+// export function getOTP(
+//   method: OTPMethod,
+//   email: string,
+//   draftId: string,
+// ): OTPEntry | null {
+//   const key = createKey(method, email, draftId);
+//   const entry = store.get(key);
+
+//   if (!entry) {
+//     console.log(`[OTP Store] Код не найден для ${email}:${draftId}`);
+//     return null;
+//   }
+
+//   if (Date.now() > entry.expiresAt) {
+//     store.delete(key);
+//     console.log(`[OTP Store] Код истёк для ${email}:${draftId}`);
+//     return null;
+//   }
+
+//   return entry;
+// }
+
+// /**
+//  * Проверяет корректность кода (без отметки confirmed)
+//  */
+// export function verifyOTP(
+//   method: OTPMethod,
+//   email: string,
+//   draftId: string,
+//   code: string,
+// ): boolean {
+//   const entry = getOTP(method, email, draftId);
+
+//   if (!entry) {
+//     return false;
+//   }
+
+//   if (entry.code !== code) {
+//     console.log(
+//       `[OTP Store] Неверный код для ${email}:${draftId}. Ожидалось ${entry.code}, получено ${code}`,
+//     );
+//     return false;
+//   }
+
+//   return true;
+// }
+
+// /**
+//  * Отмечает OTP как подтверждённый (используется в Telegram callback)
+//  */
+// export function confirmOTP(
+//   method: OTPMethod,
+//   email: string,
+//   draftId: string,
+//   telegramUserId?: number,
+// ): boolean {
+//   const key = createKey(method, email, draftId);
+//   const entry = store.get(key);
+
+//   if (!entry) {
+//     console.log(
+//       `[OTP Store] Код не найден для подтверждения: ${email}:${draftId}`,
+//     );
+//     return false;
+//   }
+
+//   if (Date.now() > entry.expiresAt) {
+//     store.delete(key);
+//     console.log(
+//       `[OTP Store] Код истёк при подтверждении для ${email}:${draftId}`,
+//     );
+//     return false;
+//   }
+
+//   entry.confirmed = true;
+//   if (telegramUserId) {
+//     entry.telegramUserId = telegramUserId;
+//   }
+
+//   store.set(key, entry);
+
+//   console.log(
+//     `[OTP Store] ✅ Установлен статус confirmed для ${email}:${draftId}`,
+//   );
+//   return true;
+// }
+
+// /**
+//  * Привязывает Appointment к OTP (нужно, чтобы фронт получил appointmentId по polling)
+//  */
+// export function setAppointmentForOTP(
+//   method: OTPMethod,
+//   email: string,
+//   draftId: string,
+//   appointmentId: string,
+// ): void {
+//   const key = createKey(method, email, draftId);
+//   const entry = store.get(key);
+
+//   if (!entry) {
+//     console.log(
+//       `[OTP Store] Невозможно сохранить appointmentId, запись OTP не найдена: ${email}:${draftId}`,
+//     );
+//     return;
+//   }
+
+//   entry.appointmentId = appointmentId;
+//   store.set(key, entry);
+
+//   console.log(
+//     `[OTP Store] 🔗 Привязан appointment ${appointmentId} к OTP ${email}:${draftId}`,
+//   );
+// }
+
+// /**
+//  * Проверяет, подтверждён ли OTP
+//  */
+// export function isConfirmed(
+//   method: OTPMethod,
+//   email: string,
+//   draftId: string,
+// ): boolean {
+//   const entry = getOTP(method, email, draftId);
+//   return !!entry?.confirmed;
+// }
+
+// /**
+//  * Удаляет OTP
+//  */
+// export function deleteOTP(
+//   method: OTPMethod,
+//   email: string,
+//   draftId: string,
+// ): void {
+//   const key = createKey(method, email, draftId);
+//   store.delete(key);
+//   console.log(`[OTP Store] Удалён код для ${email}:${draftId}`);
+// }
+
+// /**
+//  * Отладочная печать
+//  */
+// export function debugOTPStore(): void {
+//   console.log("=== OTP Store Debug ===");
+//   console.log("Всего кодов:", store.size);
+
+//   store.forEach((entry, key) => {
+//     const [method, email, draftId] = key.split(":");
+//     const expired = Date.now() > entry.expiresAt;
+//     console.log(
+//       `${method} | ${email} | ${draftId} | код=${entry.code} | confirmed=${entry.confirmed} | appointmentId=${entry.appointmentId} | expired=${expired}`,
+//     );
+//   });
+// }
 
 
 

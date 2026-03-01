@@ -80,11 +80,37 @@ interface ContentProps {
 }
 
 /**
- * Parse [option]...[/option] tags and regular text.
+ * Parse [option]...[/option] tags (with optional attributes) and regular text.
  */
-function parseContent(content: string): Array<{ type: 'text'; value: string } | { type: 'option'; value: string }> {
-  const parts: Array<{ type: 'text'; value: string } | { type: 'option'; value: string }> = [];
-  const regex = /\[option\]\s*(.*?)\s*\[\/option\]/g;
+function parseOptionUrl(rawAttrs?: string): string | undefined {
+  if (!rawAttrs) return undefined;
+
+  const attrRegex = /([a-zA-Z_][\w-]*)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s\]]+))/g;
+  let match: RegExpExecArray | null;
+  let rawUrl: string | undefined;
+
+  while ((match = attrRegex.exec(rawAttrs)) !== null) {
+    const key = match[1].toLowerCase();
+    const value = (match[2] ?? match[3] ?? match[4] ?? '').trim();
+    if (key === 'url') {
+      rawUrl = value;
+      break;
+    }
+  }
+
+  if (!rawUrl) return undefined;
+  if (rawUrl.startsWith('/booking/')) return rawUrl;
+  if (/^https?:\/\/[^/]+\/booking\//i.test(rawUrl)) return rawUrl;
+  return undefined;
+}
+
+type ParsedPart =
+  | { type: 'text'; value: string }
+  | { type: 'option'; value: string; url?: string };
+
+function parseContent(content: string): ParsedPart[] {
+  const parts: ParsedPart[] = [];
+  const regex = /\[option(?:\s+([^\]]+))?\]\s*([\s\S]*?)\s*\[\/option\]/gi;
 
   let lastIndex = 0;
   let match: RegExpExecArray | null;
@@ -94,7 +120,11 @@ function parseContent(content: string): Array<{ type: 'text'; value: string } | 
     if (match.index > lastIndex) {
       parts.push({ type: 'text', value: content.slice(lastIndex, match.index) });
     }
-    parts.push({ type: 'option', value: match[1] });
+    parts.push({
+      type: 'option',
+      value: match[2],
+      url: parseOptionUrl(match[1]),
+    });
     lastIndex = regex.lastIndex;
   }
 
@@ -119,7 +149,7 @@ function MessageContent({ content, onOptionClick }: ContentProps) {
 
   // Mixed: text paragraphs + option buttons
   const textParts: string[] = [];
-  const options: string[] = [];
+  const options: Array<{ label: string; url?: string }> = [];
 
   for (const part of parts) {
     if (part.type === 'text') {
@@ -131,7 +161,7 @@ function MessageContent({ content, onOptionClick }: ContentProps) {
       const trimmed = cleaned.trim();
       if (trimmed) textParts.push(trimmed);
     } else {
-      options.push(part.value);
+      options.push({ label: part.value, url: part.url });
     }
   }
 
@@ -145,23 +175,32 @@ function MessageContent({ content, onOptionClick }: ContentProps) {
       {/* Option buttons */}
       {options.length > 0 && (
         <div className="flex flex-col gap-1.5 pt-1">
-          {options.map((opt, i) => (
+          {options.map((opt, i) => {
+            const isClickable = Boolean(opt.url || onOptionClick);
+            return (
             <button
               key={`o-${i}`}
-              onClick={() => onOptionClick?.(stripEmoji(opt))}
-              disabled={!onOptionClick}
+              onClick={() => {
+                if (opt.url) {
+                  window.location.assign(opt.url);
+                  return;
+                }
+                onOptionClick?.(stripEmoji(opt.label));
+              }}
+              disabled={!isClickable}
               className="w-full rounded-lg px-3 py-2 text-left text-sm transition-all hover:scale-[1.01] active:scale-[0.99] disabled:opacity-60 disabled:cursor-default"
               style={{
-                background: onOptionClick
+                background: isClickable
                   ? 'linear-gradient(135deg, rgba(255, 215, 0, 0.1) 0%, rgba(0, 212, 255, 0.08) 100%)'
                   : 'rgba(255, 255, 255, 0.03)',
                 border: '1px solid rgba(255, 215, 0, 0.2)',
-                color: onOptionClick ? '#FFD700' : '#888',
+                color: isClickable ? '#FFD700' : '#888',
               }}
             >
-              {opt}
+              {opt.label}
             </button>
-          ))}
+          );
+          })}
         </div>
       )}
     </div>
