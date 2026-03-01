@@ -10,5 +10,18 @@ const nextConfig = {
       // Минимальный кэш для динамических изображений
       minimumCacheTTL: 0,
     },
+    async headers() {
+      return [
+        {
+          source: "/(.*)",
+          headers: [
+            {
+              key: "Permissions-Policy",
+              value: "microphone=(self)",
+            },
+          ],
+        },
+      ];
+    },
   };
 export default nextConfig;

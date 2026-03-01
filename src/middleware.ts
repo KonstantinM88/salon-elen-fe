@@ -70,6 +70,7 @@ export async function middleware(req: NextRequest) {
   const response = NextResponse.next({
     request: { headers: requestHeaders },
   });
+  response.headers.set("Permissions-Policy", "microphone=(self)");
 
   const langParam = req.nextUrl.searchParams.get("lang");
   if (langParam && isLocale(langParam)) {

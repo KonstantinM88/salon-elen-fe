@@ -2,6 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 
 const ADMIN_PREFIX = "/admin";
+const PERMISSIONS_POLICY_VALUE = "microphone=(self)";
+
+function withPermissionsPolicy(res: NextResponse): NextResponse {
+  res.headers.set("Permissions-Policy", PERMISSIONS_POLICY_VALUE);
+  return res;
+}
 
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
@@ -14,14 +20,14 @@ export async function middleware(req: NextRequest) {
   if (urlLang && SUPPORTED.has(urlLang)) {
     const res = NextResponse.next();
     res.cookies.set("locale", urlLang, { path: "/", maxAge: 31536000 });
-    return res;
+    return withPermissionsPolicy(res);
   }
 
   // ✅ 2) если lang нет, но cookie ru/en — редиректим в URL с lang=
   if (!urlLang && cookieLocale && SUPPORTED.has(cookieLocale) && cookieLocale !== "de") {
     const url = req.nextUrl.clone();
     url.searchParams.set("lang", cookieLocale);
-    return NextResponse.redirect(url);
+    return withPermissionsPolicy(NextResponse.redirect(url));
   }
 
   // --- Админ защита ---
@@ -31,14 +37,14 @@ export async function middleware(req: NextRequest) {
       const url = req.nextUrl.clone();
       url.pathname = "/api/auth/signin";
       url.searchParams.set("callbackUrl", req.nextUrl.pathname + req.nextUrl.search);
-      return NextResponse.redirect(url);
+      return withPermissionsPolicy(NextResponse.redirect(url));
     }
   }
 
   const response = NextResponse.next();
   response.headers.set("x-pathname", pathname);
   response.headers.set("x-locale", cookieLocale || "de");
-  return response;
+  return withPermissionsPolicy(response);
 }
 
 export const config = {

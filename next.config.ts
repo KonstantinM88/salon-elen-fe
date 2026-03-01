@@ -38,6 +38,16 @@ const nextConfig: NextConfig = {
   async headers() {
     return [
       {
+        // Allow microphone in this document (required for getUserMedia in production)
+        source: '/(.*)',
+        headers: [
+          {
+            key: 'Permissions-Policy',
+            value: 'microphone=(self)',
+          },
+        ],
+      },
+      {
         // Кеширование загруженных изображений
         source: '/uploads/:path*',
         headers: [
