@@ -9,11 +9,33 @@ import { Mic, Square, Loader2 } from 'lucide-react';
 
 type VoiceState = 'idle' | 'recording' | 'processing';
 
+export type VoiceMicErrorCode =
+  | 'not-allowed'
+  | 'not-found'
+  | 'in-use'
+  | 'insecure-context'
+  | 'unsupported'
+  | 'iframe-blocked'
+  | 'unknown';
+
+export interface VoiceMicDebugInfo {
+  code: VoiceMicErrorCode;
+  errorName: string;
+  errorMessage: string;
+  secureContext: boolean;
+  inIframe: boolean;
+  hasGetUserMedia: boolean;
+  permissionState: 'granted' | 'denied' | 'prompt' | 'unknown';
+  timestamp: string;
+}
+
 interface VoiceButtonProps {
   /** Called with transcribed text + AI response */
   onResult: (result: { transcript: string; text: string; inputMode?: string }) => void;
   /** Called on error */
   onError?: (error: string) => void;
+  /** Optional diagnostics callback (for admin/debug UI) */
+  onDebug?: (info: VoiceMicDebugInfo) => void;
   /** Session ID for the chat */
   sessionId: string;
   /** Current locale */
@@ -30,6 +52,12 @@ const LABELS = {
     stop: 'Aufnahme beenden',
     processing: 'Wird verarbeitet…',
     noMic: 'Kein Mikrofon verfügbar',
+    micDenied: 'Mikrofonzugriff verweigert. Bitte im Browser erlauben.',
+    micNotFound: 'Kein Mikrofon gefunden. Bitte Gerät prüfen.',
+    micInUse: 'Mikrofon wird von einer anderen App verwendet.',
+    micInsecure: 'Mikrofon benötigt HTTPS (oder localhost).',
+    micUnsupported: 'Browser unterstützt keine Audioaufnahme.',
+    micIframeBlocked: 'Mikrofon durch Browser-/Iframe-Richtlinie blockiert.',
     error: 'Spracherkennung fehlgeschlagen',
   },
   ru: {
@@ -37,6 +65,12 @@ const LABELS = {
     stop: 'Остановить запись',
     processing: 'Обработка…',
     noMic: 'Микрофон недоступен',
+    micDenied: 'Доступ к микрофону запрещён. Разрешите его в браузере.',
+    micNotFound: 'Микрофон не найден. Проверьте устройство.',
+    micInUse: 'Микрофон занят другим приложением.',
+    micInsecure: 'Для микрофона нужен HTTPS (или localhost).',
+    micUnsupported: 'Браузер не поддерживает запись аудио.',
+    micIframeBlocked: 'Микрофон заблокирован политикой iframe/сайта.',
     error: 'Ошибка распознавания голоса',
   },
   en: {
@@ -44,9 +78,19 @@ const LABELS = {
     stop: 'Stop recording',
     processing: 'Processing…',
     noMic: 'No microphone available',
+    micDenied: 'Microphone access denied. Please allow it in the browser.',
+    micNotFound: 'No microphone found. Please check your device.',
+    micInUse: 'Microphone is currently used by another application.',
+    micInsecure: 'Microphone requires HTTPS (or localhost).',
+    micUnsupported: 'This browser does not support audio recording.',
+    micIframeBlocked: 'Microphone is blocked by iframe/site policy.',
     error: 'Voice recognition failed',
   },
 } as const;
+
+type VoiceLabels = {
+  [K in keyof (typeof LABELS)['de']]: string;
+};
 
 // ─── Helpers ────────────────────────────────────────────────────
 
@@ -66,11 +110,61 @@ function pickMimeType(): string {
   return 'audio/webm'; // fallback
 }
 
+function isLocalhostHost(hostname: string): boolean {
+  return hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '::1';
+}
+
+async function getMicPermissionState(): Promise<
+  'granted' | 'denied' | 'prompt' | 'unknown'
+> {
+  try {
+    if (typeof navigator === 'undefined' || !navigator.permissions?.query) {
+      return 'unknown';
+    }
+    const result = await navigator.permissions.query({
+      name: 'microphone' as PermissionName,
+    });
+    if (result.state === 'granted' || result.state === 'denied' || result.state === 'prompt') {
+      return result.state;
+    }
+    return 'unknown';
+  } catch {
+    return 'unknown';
+  }
+}
+
+function classifyMicError(
+  err: unknown,
+  t: VoiceLabels,
+  inIframe: boolean,
+): { message: string; code: VoiceMicErrorCode } {
+  const error = err as DOMException | undefined;
+  const name = error?.name ?? '';
+
+  if (name === 'NotAllowedError' || name === 'SecurityError') {
+    return {
+      message: inIframe ? t.micIframeBlocked : t.micDenied,
+      code: inIframe ? 'iframe-blocked' : 'not-allowed',
+    };
+  }
+  if (name === 'NotFoundError' || name === 'DevicesNotFoundError') {
+    return { message: t.micNotFound, code: 'not-found' };
+  }
+  if (name === 'NotReadableError' || name === 'TrackStartError') {
+    return { message: t.micInUse, code: 'in-use' };
+  }
+  if (name === 'OverconstrainedError') {
+    return { message: t.micNotFound, code: 'not-found' };
+  }
+  return { message: t.noMic, code: 'unknown' };
+}
+
 // ─── Component ──────────────────────────────────────────────────
 
 export function VoiceButton({
   onResult,
   onError,
+  onDebug,
   sessionId,
   locale,
   disabled = false,
@@ -148,7 +242,69 @@ export function VoiceButton({
   );
 
   const startRecording = useCallback(async () => {
+    const inIframe = typeof window !== 'undefined' && window.self !== window.top;
+
     try {
+      if (typeof window === 'undefined') {
+        onDebug?.({
+          code: 'unknown',
+          errorName: 'NO_WINDOW',
+          errorMessage: 'window is undefined',
+          secureContext: false,
+          inIframe,
+          hasGetUserMedia: false,
+          permissionState: 'unknown',
+          timestamp: new Date().toISOString(),
+        });
+        onError?.(t.noMic);
+        setState('idle');
+        return;
+      }
+
+      if (
+        !window.isSecureContext &&
+        !isLocalhostHost(window.location.hostname)
+      ) {
+        onDebug?.({
+          code: 'insecure-context',
+          errorName: 'INSECURE_CONTEXT',
+          errorMessage: 'Microphone requires secure context (HTTPS or localhost)',
+          secureContext: window.isSecureContext,
+          inIframe,
+          hasGetUserMedia:
+            typeof navigator !== 'undefined' &&
+            Boolean(navigator.mediaDevices?.getUserMedia),
+          permissionState: await getMicPermissionState(),
+          timestamp: new Date().toISOString(),
+        });
+        onError?.(t.micInsecure);
+        setState('idle');
+        return;
+      }
+
+      if (
+        typeof navigator === 'undefined' ||
+        !navigator.mediaDevices ||
+        !navigator.mediaDevices.getUserMedia ||
+        typeof MediaRecorder === 'undefined'
+      ) {
+        onDebug?.({
+          code: 'unsupported',
+          errorName: 'UNSUPPORTED_API',
+          errorMessage: 'mediaDevices/getUserMedia/MediaRecorder is unavailable',
+          secureContext: window.isSecureContext,
+          inIframe,
+          hasGetUserMedia:
+            typeof navigator !== 'undefined' &&
+            Boolean(navigator.mediaDevices?.getUserMedia),
+          permissionState: await getMicPermissionState(),
+          timestamp: new Date().toISOString(),
+        });
+        onError?.(t.micUnsupported);
+        setState('idle');
+        return;
+      }
+
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: {
           echoCancellation: true,
@@ -200,11 +356,31 @@ export function VoiceButton({
         });
       }, 1000);
     } catch (err) {
-      console.error('[VoiceButton] Mic error:', err);
-      onError?.(t.noMic);
+      const error = err as DOMException | undefined;
+      const errorName = error?.name ?? 'UNKNOWN';
+      const errorMessage = error?.message ?? '';
+      const classified = classifyMicError(err, t, inIframe);
+      const debugInfo: VoiceMicDebugInfo = {
+        code: classified.code,
+        errorName,
+        errorMessage,
+        secureContext:
+          typeof window !== 'undefined' ? window.isSecureContext : false,
+        inIframe,
+        hasGetUserMedia:
+          typeof navigator !== 'undefined' &&
+          Boolean(navigator.mediaDevices?.getUserMedia),
+        permissionState: await getMicPermissionState(),
+        timestamp: new Date().toISOString(),
+      };
+      console.error('[VoiceButton] Mic error:', {
+        ...debugInfo,
+      });
+      onDebug?.(debugInfo);
+      onError?.(classified.message);
       setState('idle');
     }
-  }, [sendAudio, stopRecording, onError, t.noMic]);
+  }, [sendAudio, stopRecording, onError, onDebug, t]);
 
   const handleClick = useCallback(() => {
     if (disabled) return;

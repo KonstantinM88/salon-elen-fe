@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { MessageCircle, X, Send, Loader2, RotateCcw } from 'lucide-react';
 import { ChatMessage, type Message } from './ChatMessage';
 import { OtpInput } from './OtpInput';
-import { VoiceButton } from './VoiceButton';
+import { VoiceButton, type VoiceMicDebugInfo } from './VoiceButton';
 
 // ─── Config ─────────────────────────────────────────────────────
 
@@ -73,6 +73,8 @@ export default function ChatWidget({ locale: propLocale }: ChatWidgetProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [sessionId, setSessionId] = useState(() => generateSessionId());
   const [inputMode, setInputMode] = useState<InputMode>('text');
+  const [showVoiceDebug, setShowVoiceDebug] = useState(false);
+  const [voiceDebugInfo, setVoiceDebugInfo] = useState<VoiceMicDebugInfo | null>(null);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -102,6 +104,18 @@ export default function ChatWidget({ locale: propLocale }: ChatWidgetProps) {
       ]);
     }
   }, [isOpen, messages.length, t.welcome]);
+
+  // Debug panel visibility for admins/support:
+  // - always on in /admin
+  // - can be enabled on public pages via ?voiceDebug=1 or localStorage.voice_debug=1
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const debugByPath = window.location.pathname.startsWith('/admin');
+    const debugByQuery = new URLSearchParams(window.location.search).get('voiceDebug') === '1';
+    const debugByStorage = window.localStorage.getItem('voice_debug') === '1';
+    setShowVoiceDebug(debugByPath || debugByQuery || debugByStorage);
+  }, []);
 
   const handleNewChat = useCallback(() => {
     setSessionId(generateSessionId());
@@ -269,6 +283,8 @@ export default function ChatWidget({ locale: propLocale }: ChatWidgetProps) {
 
   const handleVoiceResult = useCallback(
     (result: { transcript: string; text: string; inputMode?: string }) => {
+      setVoiceDebugInfo(null);
+
       // Add user message (transcribed text)
       if (result.transcript) {
         setMessages((prev) => [
@@ -318,6 +334,10 @@ export default function ChatWidget({ locale: propLocale }: ChatWidgetProps) {
     },
     [],
   );
+
+  const handleVoiceDebug = useCallback((info: VoiceMicDebugInfo) => {
+    setVoiceDebugInfo(info);
+  }, []);
 
   // ─── Render ───────────────────────────────────────────────────
 
@@ -488,13 +508,24 @@ export default function ChatWidget({ locale: propLocale }: ChatWidgetProps) {
 
                     {/* Voice button — shown when input is empty */}
                     {!input.trim() && (
-                      <VoiceButton
-                        onResult={handleVoiceResult}
-                        onError={handleVoiceError}
-                        sessionId={sessionId}
-                        locale={locale}
-                        disabled={isLoading}
-                      />
+                      <div className="flex flex-col items-end gap-1">
+                        <VoiceButton
+                          onResult={handleVoiceResult}
+                          onError={handleVoiceError}
+                          onDebug={handleVoiceDebug}
+                          sessionId={sessionId}
+                          locale={locale}
+                          disabled={isLoading}
+                        />
+                        {showVoiceDebug && voiceDebugInfo && (
+                          <div className="max-w-[250px] rounded-md border border-amber-400/30 bg-amber-400/10 px-2 py-1 text-[10px] leading-4 text-amber-200">
+                            <div>{`voice-debug: ${voiceDebugInfo.code}`}</div>
+                            <div>{`name: ${voiceDebugInfo.errorName || '-'}`}</div>
+                            <div>{`perm: ${voiceDebugInfo.permissionState}`}</div>
+                            <div>{`secure: ${voiceDebugInfo.secureContext ? 'yes' : 'no'}, iframe: ${voiceDebugInfo.inIframe ? 'yes' : 'no'}`}</div>
+                          </div>
+                        )}
+                      </div>
                     )}
 
                     {/* Send button — shown when there's text */}
