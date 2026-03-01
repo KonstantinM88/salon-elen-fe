@@ -12,6 +12,7 @@ import {
   type VoiceMicDebugInfo,
   type VoiceMicErrorCode,
 } from './VoiceButton';
+import { useMobileViewport } from '@/hooks/useMobileViewport';
 
 // ─── Config ─────────────────────────────────────────────────────
 
@@ -135,6 +136,10 @@ export default function ChatWidget({ locale: propLocale }: ChatWidgetProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [sessionId, setSessionId] = useState(() => generateSessionId());
   const [inputMode, setInputMode] = useState<InputMode>('text');
+  const { height: vpHeight, keyboardOpen, isMobile } = useMobileViewport();
+  const panelRef = useRef<HTMLDivElement>(null);
+  const headerRef = useRef<HTMLDivElement>(null);
+  const [dragY, setDragY] = useState(0);
   const [showVoiceDebug, setShowVoiceDebug] = useState(false);
   const [voiceDebugInfo, setVoiceDebugInfo] = useState<VoiceMicDebugInfo | null>(null);
 
@@ -168,6 +173,37 @@ export default function ChatWidget({ locale: propLocale }: ChatWidgetProps) {
     }
   }, [isOpen, messages.length, t.welcome]);
 
+  // Lock body scroll on mobile when chat is open
+  useEffect(() => {
+    if (!isMobile) return;
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+      // Prevent iOS bounce / pull-to-refresh
+      document.body.style.position = 'fixed';
+      document.body.style.width = '100%';
+      document.body.style.top = `-${window.scrollY}px`;
+    }
+    return () => {
+      const scrollY = document.body.style.top;
+      document.body.style.overflow = '';
+      document.body.style.position = '';
+      document.body.style.width = '';
+      document.body.style.top = '';
+      if (scrollY) {
+        window.scrollTo(0, parseInt(scrollY, 10) * -1);
+      }
+    };
+  }, [isOpen, isMobile]);
+
+  // Auto-scroll when keyboard opens
+  useEffect(() => {
+    if (keyboardOpen) {
+      setTimeout(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+      }, 100);
+    }
+  }, [keyboardOpen]);
+
   // Debug panel visibility for admins/support:
   // - always on in /admin
   // - can be enabled on public pages via ?voiceDebug=1 or localStorage.voice_debug=1
@@ -193,6 +229,7 @@ export default function ChatWidget({ locale: propLocale }: ChatWidgetProps) {
     setInput('');
     setIsLoading(false);
     setInputMode('text');
+    setDragY(0);
   }, [t.welcome]);
 
   // ─── Core send logic ─────────────────────────────────────────
@@ -441,6 +478,18 @@ export default function ChatWidget({ locale: propLocale }: ChatWidgetProps) {
     setVoiceDebugInfo(info);
   }, []);
 
+  // ─── Swipe-to-close (mobile) ──────────────────────────────
+  const handleDragEnd = useCallback(
+    (_: unknown, info: { offset: { y: number }; velocity: { y: number } }) => {
+      // Close if dragged >100px down or fast swipe
+      if (info.offset.y > 100 || info.velocity.y > 500) {
+        setIsOpen(false);
+      }
+      setDragY(0);
+    },
+    [],
+  );
+
   // ─── Render ───────────────────────────────────────────────────
 
   return (
@@ -455,8 +504,10 @@ export default function ChatWidget({ locale: propLocale }: ChatWidgetProps) {
             whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.95 }}
             onClick={() => setIsOpen(true)}
-            className="fixed bottom-6 right-6 z-50 flex h-14 w-14 items-center justify-center rounded-full shadow-lg transition-shadow hover:shadow-xl sm:h-16 sm:w-16"
+            className="fixed z-50 flex h-14 w-14 items-center justify-center rounded-full shadow-lg transition-shadow hover:shadow-xl sm:h-16 sm:w-16"
             style={{
+              bottom: 'max(1.5rem, env(safe-area-inset-bottom, 1.5rem))',
+              right: 'max(1.5rem, env(safe-area-inset-right, 1.5rem))',
               background: 'linear-gradient(135deg, #FFD700 0%, #00D4FF 100%)',
               boxShadow: '0 4px 20px rgba(255, 215, 0, 0.4), 0 0 40px rgba(0, 212, 255, 0.2)',
             }}
@@ -471,26 +522,43 @@ export default function ChatWidget({ locale: propLocale }: ChatWidgetProps) {
       <AnimatePresence>
         {isOpen && (
           <motion.div
+            ref={panelRef}
             initial={{ opacity: 0, y: 20, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.95 }}
             transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-            className="fixed bottom-0 right-0 z-50 flex h-full w-full flex-col sm:bottom-6 sm:right-6 sm:h-[600px] sm:w-[400px] sm:rounded-2xl"
+            className="fixed bottom-0 right-0 z-50 flex w-full flex-col sm:bottom-0 sm:right-6 sm:h-[540px] sm:w-[360px] sm:rounded-2xl"
             style={{
+              height: isMobile ? `${vpHeight}px` : undefined,
               background: 'linear-gradient(180deg, #0A0A0A 0%, #111111 100%)',
               border: '1px solid rgba(255, 215, 0, 0.15)',
               boxShadow:
                 '0 8px 32px rgba(0, 0, 0, 0.6), 0 0 60px rgba(255, 215, 0, 0.08)',
+              paddingTop: isMobile ? 'env(safe-area-inset-top, 0px)' : undefined,
+              paddingBottom: isMobile ? 'env(safe-area-inset-bottom, 0px)' : undefined,
             }}
           >
             {/* ── Header ──────────────────────────────────── */}
-            <div
-              className="flex items-center justify-between rounded-t-none px-4 py-3 sm:rounded-t-2xl"
+            <motion.div
+              ref={headerRef}
+              drag={isMobile ? 'y' : false}
+              dragConstraints={{ top: 0, bottom: 0 }}
+              dragElastic={0.2}
+              onDrag={(_event, info: { offset: { y: number } }) => setDragY(info.offset.y)}
+              onDragEnd={handleDragEnd}
+              className="relative flex cursor-grab touch-none items-center justify-between rounded-t-none px-4 py-3 active:cursor-grabbing sm:cursor-default sm:rounded-t-2xl"
               style={{
                 background: 'linear-gradient(135deg, rgba(255, 215, 0, 0.15) 0%, rgba(0, 212, 255, 0.1) 100%)',
                 borderBottom: '1px solid rgba(255, 215, 0, 0.1)',
               }}
             >
+              {/* Drag indicator — mobile only */}
+              {isMobile && (
+                <div
+                  className="absolute left-1/2 top-1.5 h-1 w-8 -translate-x-1/2 rounded-full bg-white/20"
+                  style={{ opacity: dragY > 0 ? 1 : 0.65 }}
+                />
+              )}
               <div className="flex items-center gap-3">
                 <div
                   className="flex h-9 w-9 items-center justify-center rounded-full text-sm font-bold text-gray-900"
@@ -524,10 +592,13 @@ export default function ChatWidget({ locale: propLocale }: ChatWidgetProps) {
                   <X className="h-5 w-5" />
                 </button>
               </div>
-            </div>
+            </motion.div>
 
             {/* ── Messages ────────────────────────────────── */}
-            <div className="flex-1 overflow-y-auto px-4 py-3 scrollbar-thin">
+            <div
+              className="flex-1 overflow-y-auto overscroll-contain px-4 py-3 scrollbar-thin"
+              style={{ WebkitOverflowScrolling: 'touch' }}
+            >
               {messages.map((msg, idx) => {
                 const isLatestAssistant =
                   msg.role === 'assistant' && idx === messages.length - 1;
@@ -582,7 +653,7 @@ export default function ChatWidget({ locale: propLocale }: ChatWidgetProps) {
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -8 }}
                   transition={{ duration: 0.2 }}
-                  className="px-3 py-3"
+                  className="px-3 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]"
                   style={{
                     borderTop: '1px solid rgba(255, 215, 0, 0.1)',
                     background: 'rgba(255, 255, 255, 0.02)',
