@@ -46,6 +46,49 @@ function normalizePhoneForVerification(phone: string): string {
   return startsWithPlus ? `+${digitsOnly}` : digitsOnly;
 }
 
+function sanitizeEmailCandidate(candidate: string): string {
+  if (!candidate.includes('@')) return candidate;
+
+  const parts = candidate.split('@');
+  if (parts.length !== 2) return candidate;
+
+  let [local, domain] = parts;
+  local = local.replace(/\.+/g, '.').replace(/^\.+|\.+$/g, '');
+  domain = domain.replace(/^\.+/, '').replace(/\.+/g, '.').replace(/\.+$/g, '');
+
+  if (!local || !domain) return candidate;
+  return `${local}@${domain}`;
+}
+
+function normalizeEmailForVerification(email: string): string {
+  const value = String(email || '').trim().toLowerCase().replace(/ё/g, 'е');
+  if (!value) return '';
+
+  let candidate = value
+    .replace(/(собака|sobaka)\s*[.,]/giu, '@')
+    .replace(/\b(собака|sobaka)\b/giu, '@')
+    .replace(/\b(точка|dot)\b/giu, '.');
+
+  candidate = candidate
+    .replace(/\s*@\s*/g, '@')
+    .replace(/\s*\.\s*/g, '.')
+    .replace(/\s+/g, '');
+
+  candidate = candidate.replace(
+    /^([a-z0-9._%+-]+)(?:sobaka|собака)[\s._-]*([a-z0-9-]+(?:\.[a-z0-9-]+)+)$/iu,
+    '$1@$2',
+  );
+
+  candidate = candidate.replace(/@\.{1,}/g, '@');
+  candidate = sanitizeEmailCandidate(candidate);
+
+  return candidate;
+}
+
+function isValidEmailFormat(email: string): boolean {
+  return /^[A-Z0-9._%+-]+@[A-Z0-9-]+(?:\.[A-Z0-9-]+)+$/i.test(email);
+}
+
 function validateSmsPhoneFormat(phone: string): { ok: true; normalized: string } | { ok: false } {
   const normalized = normalizePhoneForVerification(phone);
   if (!normalized.startsWith('+')) return { ok: false };
@@ -74,17 +117,28 @@ async function handleEmailOtp(
   draft: { id: string; email: string; locale: string | null },
   contact: string,
 ): Promise<VerificationResult> {
-  if (draft.email !== contact) {
+  const normalizedDraftEmail = normalizeEmailForVerification(draft.email);
+  const normalizedContact = normalizeEmailForVerification(contact);
+
+  if (normalizedDraftEmail !== normalizedContact) {
     return { ok: false, error: 'EMAIL_MISMATCH' };
   }
 
-  const code = generateOTP();
-  saveOTP('email' as OTPMethod, contact, draft.id, code, { ttlMinutes: 10 });
+  if (!isValidEmailFormat(normalizedContact)) {
+    return {
+      ok: false,
+      error: 'EMAIL_FORMAT_INVALID',
+      message: 'Invalid email format',
+    };
+  }
 
-  console.log(`[AI start_verification] email OTP for ${maskEmail(contact)}: ${code}`);
+  const code = generateOTP();
+  saveOTP('email' as OTPMethod, normalizedContact, draft.id, code, { ttlMinutes: 10 });
+
+  console.log(`[AI start_verification] email OTP for ${maskEmail(normalizedContact)}: ${code}`);
 
   const locale = (draft.locale || 'de') as Locale;
-  const sendResult = await sendOTPEmail(contact, code, {
+  const sendResult = await sendOTPEmail(normalizedContact, code, {
     expiryMinutes: 10,
     locale,
   });
@@ -96,8 +150,8 @@ async function handleEmailOtp(
 
   return {
     ok: true,
-    message: `Verification code sent to ${maskEmail(contact)}`,
-    contactMasked: maskEmail(contact),
+    message: `Verification code sent to ${maskEmail(normalizedContact)}`,
+    contactMasked: maskEmail(normalizedContact),
     expiresInMinutes: 10,
   };
 }

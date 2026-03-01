@@ -18,6 +18,7 @@ import { searchAvailabilityMonth } from '@/lib/ai/tools/search-month';
 import { searchAvailability } from '@/lib/ai/tools/search-availability';
 import { listServices } from '@/lib/ai/tools/list-services';
 import { listMastersForServices } from '@/lib/ai/tools/list-masters';
+import { reserveSlot } from '@/lib/ai/tools/reserve-slot';
 import { startVerification } from '@/lib/ai/tools/start-verification';
 import {
   buildRegistrationMethodChoiceText,
@@ -127,17 +128,194 @@ function isTomorrowRequest(text: string): boolean {
   return value === 'завтра' || value === 'tomorrow' || value === 'morgen';
 }
 
+function looksLikeMonthNameDateInput(text: string): boolean {
+  const value = normalizeInput(text).replace(/ё/g, 'е');
+  if (!value) return false;
+
+  if (
+    /\b\d{1,2}\s+(январ[ья]?|феврал[ья]?|март[а]?|апрел[ья]?|ма[йя]|июн[ья]?|июл[ья]?|август[а]?|сентябр[ья]?|октябр[ья]?|ноябр[ья]?|декабр[ья]?)\b/u.test(
+      value,
+    )
+  ) {
+    return true;
+  }
+
+  if (
+    /\b\d{1,2}\s+(january|february|march|april|may|june|july|august|september|october|november|december)\b/u.test(
+      value,
+    )
+  ) {
+    return true;
+  }
+
+  if (
+    /\b\d{1,2}\s+(januar|februar|maerz|märz|april|mai|juni|juli|august|september|oktober|november|dezember)\b/u.test(
+      value,
+    )
+  ) {
+    return true;
+  }
+
+  return false;
+}
+
+function detectPreferredTimeInput(
+  text: string,
+): 'morning' | 'afternoon' | 'evening' | 'any' | null {
+  const value = normalizeInput(text).replace(/ё/g, 'е');
+  if (!value) return null;
+
+  const hasNegation = /\b(не|not|kein|keine|nicht)\b/u.test(value);
+  const hasMorning =
+    /\b(утро|утром|утра|morning|vormittag)\b/u.test(value) ||
+    value.includes('am vormittag');
+  const hasAfternoon =
+    /\b(день|днем|днём|дня|afternoon|nachmittag)\b/u.test(value) ||
+    value.includes('am nachmittag') ||
+    value.includes('после обеда');
+  const hasEvening =
+    /\b(вечер|вечером|вечера|evening|abend)\b/u.test(value) ||
+    value.includes('am abend');
+
+  if (
+    /\b(любое время|в любое время|любой|any time|anytime|egal|any)\b/u.test(value)
+  ) {
+    return 'any';
+  }
+
+  if (hasMorning && hasNegation && !hasAfternoon && !hasEvening) {
+    // "не подходит утро" -> default to daytime slots.
+    return 'afternoon';
+  }
+
+  if (hasMorning) return 'morning';
+  if (hasAfternoon) return 'afternoon';
+  if (hasEvening) return 'evening';
+
+  return null;
+}
+
+function extractPreferredStartTimeInput(text: string): string | null {
+  const value = normalizeInput(text).replace(/ё/g, 'е');
+  if (!value) return null;
+
+  const hhmm = value.match(/\b([01]?\d|2[0-3])\s*[:.]\s*([0-5]\d)\b/u);
+  if (hhmm) {
+    const hh = hhmm[1].padStart(2, '0');
+    const mm = hhmm[2];
+    return `${hh}:${mm}`;
+  }
+
+  const hhSpaced = value.match(/\b([01]?\d|2[0-3])\s+([0-5]\d)\b/u);
+  if (hhSpaced) {
+    const hh = hhSpaced[1].padStart(2, '0');
+    const mm = hhSpaced[2];
+    return `${hh}:${mm}`;
+  }
+
+  for (const [phrase, hour] of RU_SPOKEN_HOUR_MAP) {
+    if (
+      value.includes(`${phrase} ноль ноль`) ||
+      value.includes(`${phrase} 00`) ||
+      value.includes(`${phrase} ровно`)
+    ) {
+      return `${String(hour).padStart(2, '0')}:00`;
+    }
+  }
+
+  return null;
+}
+
 const TIME_PREFERENCE_INPUTS = new Set<string>([
   'утро',
+  'утром',
+  'утра',
   'день',
+  'днем',
+  'днём',
+  'дня',
+  'после обеда',
   'вечер',
+  'вечером',
+  'вечера',
   'morning',
   'afternoon',
   'evening',
   'vormittag',
+  'am vormittag',
   'nachmittag',
+  'am nachmittag',
   'abend',
+  'am abend',
+  'any',
+  'любое время',
+  'в любое время',
 ]);
+
+const RU_MONTH_NUMBER_MAP: Record<string, number> = {
+  январ: 1,
+  январь: 1,
+  января: 1,
+  феврал: 2,
+  февраль: 2,
+  февраля: 2,
+  март: 3,
+  марта: 3,
+  апрел: 4,
+  апрель: 4,
+  апреля: 4,
+  май: 5,
+  мая: 5,
+  июн: 6,
+  июнь: 6,
+  июня: 6,
+  июл: 7,
+  июль: 7,
+  июля: 7,
+  август: 8,
+  августа: 8,
+  сентябр: 9,
+  сентябрь: 9,
+  сентября: 9,
+  октябр: 10,
+  октябрь: 10,
+  октября: 10,
+  ноябр: 11,
+  ноябрь: 11,
+  ноября: 11,
+  декабр: 12,
+  декабрь: 12,
+  декабря: 12,
+};
+
+const RU_SPOKEN_HOUR_MAP: Array<[string, number]> = [
+  ['двадцать три', 23],
+  ['двадцать два', 22],
+  ['двадцать один', 21],
+  ['двадцать', 20],
+  ['девятнадцать', 19],
+  ['восемнадцать', 18],
+  ['семнадцать', 17],
+  ['шестнадцать', 16],
+  ['пятнадцать', 15],
+  ['четырнадцать', 14],
+  ['тринадцать', 13],
+  ['двенадцать', 12],
+  ['одиннадцать', 11],
+  ['десять', 10],
+  ['девять', 9],
+  ['восемь', 8],
+  ['семь', 7],
+  ['шесть', 6],
+  ['пять', 5],
+  ['четыре', 4],
+  ['три', 3],
+  ['два', 2],
+  ['две', 2],
+  ['один', 1],
+  ['одна', 1],
+  ['ноль', 0],
+];
 
 const BOOKING_DOMAIN_KEYWORDS = [
   // RU
@@ -233,6 +411,9 @@ function looksLikeDateOrTimeSelection(text: string): boolean {
   if (!value) return false;
   if (isNearestDateRequest(value) || isTomorrowRequest(value)) return true;
   if (TIME_PREFERENCE_INPUTS.has(value)) return true;
+  if (detectPreferredTimeInput(value)) return true;
+  if (looksLikeMonthNameDateInput(value)) return true;
+  if (extractPreferredStartTimeInput(value)) return true;
   if (/\b\d{1,2}[:.]\d{2}\s*[–-]\s*\d{1,2}[:.]\d{2}\b/.test(value)) return true;
   if (/\b\d{1,2}[./-]\d{1,2}\b/.test(value)) return true;
   return false;
@@ -243,7 +424,13 @@ function looksLikeContactPayload(text: string): boolean {
   if (!value) return false;
   const hasEmail = /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i.test(value);
   const hasPhone = /(?:\+?\d[\d\s().-]{6,}\d)/.test(value);
-  return hasEmail || hasPhone;
+  const hasObfuscatedEmail =
+    /[A-Z0-9._%+-]+(?:\s*|[-_.]?)(?:sobaka|собака)(?:\s*|[-_.]?)[A-Z0-9.-]+(?:\.[A-Z]{2,})+/iu.test(
+      value,
+    ) ||
+    /\b(email|e-mail|почта|емейл|имейл|майл)\b/iu.test(value) ||
+    /\b(sobaka|собака)\b/iu.test(value);
+  return hasEmail || hasPhone || hasObfuscatedEmail;
 }
 
 function looksLikeServiceOptionPayload(text: string): boolean {
@@ -298,6 +485,8 @@ function looksLikeResendRequest(text: string): boolean {
 function shouldApplyScopeGuard(text: string, session: AiSession): boolean {
   const normalizedInput = normalizeInput(text);
   if (!normalizedInput) return false;
+  const awaitingContact = Boolean(session.context.reservedSlot && !session.context.draftId);
+  const awaitingOtp = Boolean(session.context.draftId);
 
   if (session.context.awaitingRegistrationMethod) {
     // During method-selection step allow only explicit method clicks/texts.
@@ -305,17 +494,12 @@ function shouldApplyScopeGuard(text: string, session: AiSession): boolean {
     return true;
   }
 
-  // Always allow clearly booking-related messages.
-  if (isLikelyBookingDomainMessage(text)) return false;
-
-  const awaitingContact = Boolean(session.context.reservedSlot && !session.context.draftId);
   if (awaitingContact) {
     // During contact step allow name/email/phone-like payloads only.
     if (looksLikeContactPayload(text) || looksLikeNameOnlyPayload(text)) return false;
     return true;
   }
 
-  const awaitingOtp = Boolean(session.context.draftId);
   if (awaitingOtp) {
     // During OTP step allow code, resend requests, email correction and simple confirmations.
     if (
@@ -328,6 +512,26 @@ function shouldApplyScopeGuard(text: string, session: AiSession): boolean {
     }
     return true;
   }
+
+  // If any booking context exists, allow domain-adjacent free-form user phrasing.
+  // This prevents accidental guard triggers in active voice flows.
+  const hasAnyBookingState = Boolean(
+    (session.context.selectedServiceIds?.length ?? 0) > 0 ||
+      session.context.selectedMasterId ||
+      session.context.reservedSlot ||
+      session.context.draftId ||
+      session.context.pendingVerificationMethod ||
+      session.context.awaitingRegistrationMethod ||
+      session.context.awaitingVerificationMethod ||
+      session.context.lastDateISO ||
+      (session.context.lastSuggestedDateOptions?.length ?? 0) > 0,
+  );
+  if (hasAnyBookingState) {
+    return false;
+  }
+
+  // Always allow clearly booking-related messages.
+  if (isLikelyBookingDomainMessage(text)) return false;
 
   // Outside booking scope: block any non-domain chat/small-talk/trivia.
   return true;
@@ -521,6 +725,50 @@ function parseExplicitDateInputToISO(
   return candidate;
 }
 
+function parseMonthNameDateInputToISO(
+  input: string,
+  referenceDateISO: string,
+): string | null {
+  const normalized = normalizeInput(input).replace(/ё/g, 'е');
+  const ruMatch = normalized.match(
+    /\b(\d{1,2})\s+(январ[ья]?|феврал[ья]?|март[а]?|апрел[ья]?|ма[йя]|июн[ья]?|июл[ья]?|август[а]?|сентябр[ья]?|октябр[ья]?|ноябр[ья]?|декабр[ья]?)\b/u,
+  );
+
+  if (!ruMatch) return null;
+
+  const day = Number.parseInt(ruMatch[1], 10);
+  const monthToken = ruMatch[2].toLowerCase();
+  const month = RU_MONTH_NUMBER_MAP[monthToken];
+  if (!day || !month) return null;
+
+  const referenceYear = Number.parseInt(referenceDateISO.slice(0, 4), 10);
+  const fallbackYear = Number.isInteger(referenceYear)
+    ? referenceYear
+    : new Date().getUTCFullYear();
+
+  let candidate = toISODate(fallbackYear, month, day);
+  if (!candidate) return null;
+
+  if (candidate < referenceDateISO) {
+    const nextYearCandidate = toISODate(fallbackYear + 1, month, day);
+    if (nextYearCandidate) {
+      candidate = nextYearCandidate;
+    }
+  }
+
+  return candidate;
+}
+
+function parseFlexibleDateInputToISO(
+  input: string,
+  referenceDateISO: string,
+): string | null {
+  return (
+    parseExplicitDateInputToISO(input, referenceDateISO) ??
+    parseMonthNameDateInputToISO(input, referenceDateISO)
+  );
+}
+
 async function buildNearestDateOptions(params: {
   masterId: string;
   serviceIds: string[];
@@ -654,6 +902,40 @@ function buildSlotTakenAlternativesText(
   return `${intro}\n${followUp}\n${options}`;
 }
 
+function matchSlotFromInput(
+  input: string,
+  slots: Array<{ startAt: string; endAt: string; displayTime: string }>,
+): { startAt: string; endAt: string; displayTime: string } | null {
+  const normalized = normalizeInput(input).replace(/ё/g, 'е');
+  if (!normalized || slots.length === 0) return null;
+
+  const normalizedRanges = slots.map((slot) => {
+    const range = normalizeInput(slot.displayTime).replace(/\s+/g, '');
+    const start = range.split(/[–-]/)[0];
+    return { slot, range, start };
+  });
+
+  const compactInput = normalized.replace(/\s+/g, '');
+
+  for (const item of normalizedRanges) {
+    if (
+      compactInput === item.range ||
+      compactInput.includes(item.range) ||
+      compactInput.includes(item.start)
+    ) {
+      return item.slot;
+    }
+  }
+
+  const preferredStart = extractPreferredStartTimeInput(normalized);
+  if (!preferredStart) return null;
+
+  return (
+    normalizedRanges.find((item) => item.start.startsWith(preferredStart))?.slot ??
+    null
+  );
+}
+
 function fallbackTextByLocale(locale: 'de' | 'ru' | 'en'): string {
   if (locale === 'ru') {
     return 'Извините, не удалось сформировать ответ. Хотите, я сразу покажу ближайшие свободные даты?';
@@ -686,6 +968,16 @@ function buildVerificationAutoText(
       return 'Could not send SMS: phone number format is invalid.\n\nPlease provide the number in international format `+49...` or `+38...` and resend your contact details.';
     }
     return 'SMS konnte nicht gesendet werden: Telefonnummer hat ein ungültiges Format.\n\nBitte geben Sie die Nummer im internationalen Format `+49...` oder `+38...` an und senden Sie Ihre Kontaktdaten erneut.';
+  }
+
+  if (opts.error === 'EMAIL_FORMAT_INVALID') {
+    if (locale === 'ru') {
+      return 'Не удалось отправить код: email указан в неверном формате.\n\nПожалуйста, укажите корректный email в формате `name@example.com`.';
+    }
+    if (locale === 'en') {
+      return 'Could not send code: email format is invalid.\n\nPlease provide a valid email in the `name@example.com` format.';
+    }
+    return 'Der Code konnte nicht gesendet werden: E-Mail-Format ist ungültig.\n\nBitte geben Sie eine korrekte E-Mail im Format `name@example.com` an.';
   }
 
   if (locale === 'ru') {
@@ -1325,6 +1617,12 @@ async function tryHandleCatalogSelectionFastPath(
     }
   }
 
+  const matchedService = chooseBestMatch(
+    flatServices,
+    (s) => normalizeChoiceText(s.title),
+    input,
+  );
+
   const matchedGroup = chooseBestMatch(
     groups,
     (g) => normalizeChoiceText(g.title),
@@ -1333,13 +1631,22 @@ async function tryHandleCatalogSelectionFastPath(
 
   if (matchedGroup) {
     const groupNorm = normalizeChoiceText(matchedGroup.title);
+    const serviceNorm = matchedService
+      ? normalizeChoiceText(matchedService.title)
+      : '';
     const inputTokens = tokenizeNormalized(input);
     const groupTokens = tokenizeNormalized(groupNorm);
+    const hasStrongServiceMatch =
+      Boolean(serviceNorm) &&
+      (input === serviceNorm ||
+        input.includes(serviceNorm) ||
+        serviceNorm.includes(input));
     const startsWithGroup =
       input === groupNorm || input.startsWith(`${groupNorm} `);
     const isDirectGroupChoice =
-      startsWithGroup ||
-      (input.includes(groupNorm) && inputTokens.length <= groupTokens.length + 2);
+      !hasStrongServiceMatch &&
+      (startsWithGroup ||
+        (input.includes(groupNorm) && inputTokens.length <= groupTokens.length + 2));
 
     if (!isDirectGroupChoice) {
       // User most likely clicked a specific service with overlapping words.
@@ -1378,11 +1685,6 @@ async function tryHandleCatalogSelectionFastPath(
     }
   }
 
-  const matchedService = chooseBestMatch(
-    flatServices,
-    (s) => normalizeChoiceText(s.title),
-    input,
-  );
   if (!matchedService) return null;
 
   const startedMasters = Date.now();
@@ -1850,18 +2152,19 @@ export async function POST(
 
   // Deterministic manual date input (e.g. 28.02 / 28-02 / 28/02).
   if (selectedMasterId && selectedServiceIds.length > 0) {
-    const explicitDateISO = parseExplicitDateInputToISO(
+    const explicitDateISO = parseFlexibleDateInputToISO(
       message,
       session.context.lastDateISO ?? todayISO(),
     );
 
     if (explicitDateISO) {
+      const requestedPreferredTime = detectPreferredTimeInput(message) ?? 'any';
       const startedAt = Date.now();
       const availabilityResult = await searchAvailability({
         masterId: selectedMasterId,
         dateISO: explicitDateISO,
         serviceIds: selectedServiceIds,
-        preferredTime: 'any',
+        preferredTime: requestedPreferredTime,
       });
       const durationMs = Date.now() - startedAt;
       const slots = Array.isArray(availabilityResult.slots)
@@ -1874,7 +2177,7 @@ export async function POST(
         upsertSession(sessionId, {
           context: {
             lastDateISO: explicitDateISO,
-            lastPreferredTime: 'any',
+            lastPreferredTime: requestedPreferredTime,
             lastNoSlots: false,
             lastSuggestedDateOptions: undefined,
           },
@@ -1913,12 +2216,12 @@ export async function POST(
       appendSessionMessage(sessionId, 'assistant', text);
       upsertSession(sessionId, {
         context: {
-          lastDateISO: explicitDateISO,
-          lastPreferredTime: 'any',
-          lastNoSlots: optionsMap.length === 0,
-          lastSuggestedDateOptions: optionsMap,
-        },
-      });
+            lastDateISO: explicitDateISO,
+            lastPreferredTime: requestedPreferredTime,
+            lastNoSlots: optionsMap.length === 0,
+            lastSuggestedDateOptions: optionsMap,
+          },
+        });
 
       console.log(
         `[AI Chat] session=${sessionId.slice(0, 8)}... fastpath=manual-date-no-slots date=${explicitDateISO} days=${optionsMap.length}`,
@@ -2007,6 +2310,229 @@ export async function POST(
           { name: 'search_availability', durationMs },
           { name: 'search_availability_month', durationMs: monthDurationMs },
         ],
+      });
+    }
+  }
+
+  // Deterministic follow-up: natural-language preferred time on already chosen date.
+  if (selectedMasterId && selectedServiceIds.length > 0 && session.context.lastDateISO) {
+    const preferredTime = detectPreferredTimeInput(message);
+    if (preferredTime) {
+      const dateISO = session.context.lastDateISO;
+      const startedAt = Date.now();
+      const preferredResult = await searchAvailability({
+        masterId: selectedMasterId,
+        dateISO,
+        serviceIds: selectedServiceIds,
+        preferredTime,
+      });
+      const durationMs = Date.now() - startedAt;
+      const preferredSlots = Array.isArray(preferredResult.slots)
+        ? preferredResult.slots
+        : [];
+
+      if (preferredSlots.length > 0) {
+        const text = buildSlotsForDateText(session.locale, dateISO, preferredSlots);
+        appendSessionMessage(sessionId, 'assistant', text);
+        upsertSession(sessionId, {
+          context: {
+            lastDateISO: dateISO,
+            lastPreferredTime: preferredTime,
+            lastNoSlots: false,
+            lastSuggestedDateOptions: undefined,
+          },
+        });
+
+        console.log(
+          `[AI Chat] session=${sessionId.slice(0, 8)}... fastpath=preferred-time-picked date=${dateISO} preferred=${preferredTime} slots=${preferredSlots.length}`,
+        );
+
+        return NextResponse.json({
+          text,
+          sessionId,
+          toolCalls: [{ name: 'search_availability', durationMs }],
+        });
+      }
+
+      // If no slots for preferred period, show full-day alternatives on the same date.
+      const fallbackStartedAt = Date.now();
+      const anyTimeResult = await searchAvailability({
+        masterId: selectedMasterId,
+        dateISO,
+        serviceIds: selectedServiceIds,
+        preferredTime: 'any',
+      });
+      const fallbackDurationMs = Date.now() - fallbackStartedAt;
+      const anyTimeSlots = Array.isArray(anyTimeResult.slots)
+        ? anyTimeResult.slots
+        : [];
+
+      const noPreferredText =
+        session.locale === 'ru'
+          ? 'На выбранный период свободных слотов нет. Вот все доступные варианты на эту дату:'
+          : session.locale === 'en'
+            ? 'No free slots for that time period. Here are all available options on this date:'
+            : 'Für diesen Zeitraum gibt es keine freien Slots. Hier sind alle verfügbaren Optionen an diesem Datum:';
+
+      const text =
+        anyTimeSlots.length > 0
+          ? `${noPreferredText}\n\n${buildSlotsForDateText(session.locale, dateISO, anyTimeSlots)}`
+          : buildSlotsForDateText(session.locale, dateISO, []);
+
+      appendSessionMessage(sessionId, 'assistant', text);
+      upsertSession(sessionId, {
+        context: {
+          lastDateISO: dateISO,
+          lastPreferredTime: preferredTime,
+          lastNoSlots: anyTimeSlots.length === 0,
+          lastSuggestedDateOptions: undefined,
+        },
+      });
+
+      console.log(
+        `[AI Chat] session=${sessionId.slice(0, 8)}... fastpath=preferred-time-no-slots date=${dateISO} preferred=${preferredTime}`,
+      );
+
+      return NextResponse.json({
+        text,
+        sessionId,
+        toolCalls: [
+          { name: 'search_availability', durationMs },
+          { name: 'search_availability', durationMs: fallbackDurationMs },
+        ],
+      });
+    }
+  }
+
+  // Deterministic follow-up: spoken time slot selection (e.g. "14:00", "четырнадцать ноль ноль").
+  if (
+    selectedMasterId &&
+    selectedServiceIds.length > 0 &&
+    session.context.lastDateISO &&
+    !session.context.reservedSlot
+  ) {
+    const normalizedMessage = normalizeInput(message);
+    const looksLikeSlotChoice =
+      /\b\d{1,2}[:.]\d{2}\s*[–-]\s*\d{1,2}[:.]\d{2}\b/u.test(
+        normalizedMessage,
+      ) ||
+      /\b\d{1,2}[.:]\d{1,2}[.:]\d{1,2}\b/u.test(normalizedMessage) ||
+      Boolean(extractPreferredStartTimeInput(message));
+    if (looksLikeSlotChoice) {
+      const dateISO = session.context.lastDateISO;
+      const startedAt = Date.now();
+      const availabilityResult = await searchAvailability({
+        masterId: selectedMasterId,
+        dateISO,
+        serviceIds: selectedServiceIds,
+        preferredTime: 'any',
+      });
+      const availabilityDurationMs = Date.now() - startedAt;
+      const slots = Array.isArray(availabilityResult.slots)
+        ? availabilityResult.slots
+        : [];
+      const matchedSlot = matchSlotFromInput(message, slots);
+
+      if (matchedSlot) {
+        const reserveStartedAt = Date.now();
+        const reserveResult = await reserveSlot({
+          masterId: selectedMasterId,
+          startAt: matchedSlot.startAt,
+          endAt: matchedSlot.endAt,
+          sessionId,
+        });
+        const reserveDurationMs = Date.now() - reserveStartedAt;
+
+        if (reserveResult.success) {
+          const text = buildRegistrationMethodChoiceText(session.locale);
+          appendSessionMessage(sessionId, 'assistant', text);
+          upsertSession(sessionId, {
+            context: {
+              reservedSlot: {
+                startAt: matchedSlot.startAt,
+                endAt: matchedSlot.endAt,
+              },
+              lastDateISO: dateISO,
+              lastPreferredTime: 'any',
+              lastNoSlots: false,
+              lastSuggestedDateOptions: undefined,
+              awaitingRegistrationMethod: true,
+              pendingVerificationMethod: undefined,
+              awaitingVerificationMethod: false,
+            },
+          });
+
+          console.log(
+            `[AI Chat] session=${sessionId.slice(0, 8)}... fastpath=slot-picked-by-time date=${dateISO} slot="${matchedSlot.displayTime}"`,
+          );
+
+          return NextResponse.json({
+            text,
+            sessionId,
+            toolCalls: [
+              { name: 'search_availability', durationMs: availabilityDurationMs },
+              { name: 'reserve_slot', durationMs: reserveDurationMs },
+            ],
+            inputMode: 'text',
+          });
+        }
+
+        if (reserveResult.error === 'SLOT_TAKEN') {
+          const refreshStartedAt = Date.now();
+          const refreshed = await searchAvailability({
+            masterId: selectedMasterId,
+            dateISO,
+            serviceIds: selectedServiceIds,
+            preferredTime: 'any',
+          });
+          const refreshDurationMs = Date.now() - refreshStartedAt;
+          const text = buildSlotTakenAlternativesText(
+            session.locale,
+            dateISO,
+            refreshed.slots ?? [],
+          );
+
+          appendSessionMessage(sessionId, 'assistant', text);
+          upsertSession(sessionId, {
+            context: {
+              draftId: undefined,
+              reservedSlot: undefined,
+              awaitingVerificationMethod: false,
+              awaitingRegistrationMethod: false,
+              pendingVerificationMethod: undefined,
+            },
+          });
+
+          console.log(
+            `[AI Chat] session=${sessionId.slice(0, 8)}... fastpath=slot-picked-by-time-taken date=${dateISO}`,
+          );
+
+          return NextResponse.json({
+            text,
+            sessionId,
+            toolCalls: [
+              { name: 'search_availability', durationMs: availabilityDurationMs },
+              { name: 'reserve_slot', durationMs: reserveDurationMs },
+              { name: 'search_availability', durationMs: refreshDurationMs },
+            ],
+            inputMode: 'text',
+          });
+        }
+      }
+
+      // User tried to pick time, but we could not map it to a slot.
+      const text =
+        session.locale === 'ru'
+          ? `Не удалось распознать выбранное время. Пожалуйста, выберите один из доступных слотов:\n\n${buildSlotsForDateText(session.locale, dateISO, slots)}`
+          : session.locale === 'en'
+            ? `I could not recognize the selected time. Please choose one of the available slots:\n\n${buildSlotsForDateText(session.locale, dateISO, slots)}`
+            : `Die gewählte Zeit konnte nicht erkannt werden. Bitte wählen Sie einen der verfügbaren Slots:\n\n${buildSlotsForDateText(session.locale, dateISO, slots)}`;
+
+      appendSessionMessage(sessionId, 'assistant', text);
+      return NextResponse.json({
+        text,
+        sessionId,
+        toolCalls: [{ name: 'search_availability', durationMs: availabilityDurationMs }],
       });
     }
   }

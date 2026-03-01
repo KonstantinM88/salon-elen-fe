@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { MessageCircle, X, Send, Loader2, RotateCcw } from 'lucide-react';
 import { ChatMessage, type Message } from './ChatMessage';
 import { OtpInput } from './OtpInput';
+import { VoiceButton } from './VoiceButton';
 
 // ─── Config ─────────────────────────────────────────────────────
 
@@ -81,7 +82,7 @@ export default function ChatWidget({ locale: propLocale }: ChatWidgetProps) {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // Focus input when opening
+  // Focus input when opening (only in text mode)
   useEffect(() => {
     if (isOpen && inputMode === 'text') {
       setTimeout(() => inputRef.current?.focus(), 300);
@@ -116,6 +117,8 @@ export default function ChatWidget({ locale: propLocale }: ChatWidgetProps) {
     setIsLoading(false);
     setInputMode('text');
   }, [t.welcome]);
+
+  // ─── Core send logic ─────────────────────────────────────────
 
   const sendMessage = useCallback(
     async (text: string) => {
@@ -165,7 +168,6 @@ export default function ChatWidget({ locale: propLocale }: ChatWidgetProps) {
         if (data.inputMode === 'otp') {
           setInputMode('otp');
         } else if (data.inputMode === 'text' || inputMode === 'otp') {
-          // Explicit text mode, or we were in OTP and server didn't say stay in OTP
           setInputMode('text');
         }
       } catch (err) {
@@ -180,13 +182,14 @@ export default function ChatWidget({ locale: propLocale }: ChatWidgetProps) {
             isError: true,
           },
         ]);
-        // On error, stay in current mode
       } finally {
         setIsLoading(false);
       }
     },
     [sessionId, locale, t, inputMode],
   );
+
+  // ─── Text input handlers ──────────────────────────────────────
 
   const handleOptionClick = useCallback(
     (text: string) => {
@@ -261,6 +264,62 @@ export default function ChatWidget({ locale: propLocale }: ChatWidgetProps) {
     setMessages((prev) => [...prev, userMsg]);
     sendMessage(resendText);
   }, [isLoading, locale, sendMessage]);
+
+  // ─── Voice handlers ───────────────────────────────────────────
+
+  const handleVoiceResult = useCallback(
+    (result: { transcript: string; text: string; inputMode?: string }) => {
+      // Add user message (transcribed text)
+      if (result.transcript) {
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: `user-voice-${Date.now()}`,
+            role: 'user',
+            content: `🎙 ${result.transcript}`,
+            timestamp: new Date(),
+          },
+        ]);
+      }
+
+      // Add AI response
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: `ai-voice-${Date.now()}`,
+          role: 'assistant',
+          content: result.text,
+          timestamp: new Date(),
+        },
+      ]);
+
+      // Update input mode
+      if (result.inputMode === 'otp') {
+        setInputMode('otp');
+      } else if (result.inputMode === 'text') {
+        setInputMode('text');
+      }
+    },
+    [],
+  );
+
+  const handleVoiceError = useCallback(
+    (error: string) => {
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: `error-voice-${Date.now()}`,
+          role: 'assistant',
+          content: error,
+          timestamp: new Date(),
+          isError: true,
+        },
+      ]);
+    },
+    [],
+  );
+
+  // ─── Render ───────────────────────────────────────────────────
 
   return (
     <>
@@ -348,7 +407,6 @@ export default function ChatWidget({ locale: propLocale }: ChatWidgetProps) {
             {/* ── Messages ────────────────────────────────── */}
             <div className="flex-1 overflow-y-auto px-4 py-3 scrollbar-thin">
               {messages.map((msg, idx) => {
-                // isLatest = last assistant message in the list
                 const isLatestAssistant =
                   msg.role === 'assistant' &&
                   !msg.isError &&
@@ -427,6 +485,19 @@ export default function ChatWidget({ locale: propLocale }: ChatWidgetProps) {
                         el.style.height = `${Math.min(el.scrollHeight, 100)}px`;
                       }}
                     />
+
+                    {/* Voice button — shown when input is empty */}
+                    {!input.trim() && (
+                      <VoiceButton
+                        onResult={handleVoiceResult}
+                        onError={handleVoiceError}
+                        sessionId={sessionId}
+                        locale={locale}
+                        disabled={isLoading}
+                      />
+                    )}
+
+                    {/* Send button — shown when there's text */}
                     <button
                       onClick={handleSend}
                       disabled={!input.trim() || isLoading}
@@ -436,6 +507,8 @@ export default function ChatWidget({ locale: propLocale }: ChatWidgetProps) {
                           input.trim() && !isLoading
                             ? 'linear-gradient(135deg, #FFD700, #FFA000)'
                             : 'rgba(255, 255, 255, 0.1)',
+                        // Hide send button when voice is shown (no text)
+                        display: input.trim() ? 'flex' : 'none',
                       }}
                     >
                       {isLoading ? (
@@ -454,6 +527,466 @@ export default function ChatWidget({ locale: propLocale }: ChatWidgetProps) {
     </>
   );
 }
+
+
+
+//-------01.03.26 добавляем голосовой ввод и подтверждение кода
+// // src/components/ai/ChatWidget.tsx
+// 'use client';
+
+// import { useState, useRef, useEffect, useCallback } from 'react';
+// import { motion, AnimatePresence } from 'framer-motion';
+// import { MessageCircle, X, Send, Loader2, RotateCcw } from 'lucide-react';
+// import { ChatMessage, type Message } from './ChatMessage';
+// import { OtpInput } from './OtpInput';
+
+// // ─── Config ─────────────────────────────────────────────────────
+
+// const API_URL = '/api/ai/chat';
+
+// function generateSessionId(): string {
+//   return crypto.randomUUID();
+// }
+
+// // ─── Translations ───────────────────────────────────────────────
+
+// const UI_TEXT = {
+//   de: {
+//     placeholder: 'Ihre Nachricht...',
+//     welcome: 'Hallo! 👋 Ich bin Elen-AI, Ihr Buchungsassistent. Wie kann ich Ihnen helfen?\n\n[option] 📅 Termin buchen [/option]\n[option] 💅 Leistungen & Preise [/option]\n[option] 📍 Anfahrt & Öffnungszeiten [/option]',
+//     error: 'Entschuldigung, etwas ist schiefgelaufen. Bitte versuchen Sie es erneut.',
+//     rateLimit: 'Bitte warten Sie einen Moment, bevor Sie eine neue Nachricht senden.',
+//     title: 'Salon Elen',
+//     subtitle: 'Buchungsassistent',
+//     newChat: 'Neuer Chat',
+//   },
+//   ru: {
+//     placeholder: 'Ваше сообщение...',
+//     welcome: 'Привет! 👋 Я Elen-AI, ассистент записи. Чем могу помочь?\n\n[option] 📅 Записаться на приём [/option]\n[option] 💅 Услуги и цены [/option]\n[option] 📍 Адрес и часы работы [/option]',
+//     error: 'Извините, произошла ошибка. Попробуйте ещё раз.',
+//     rateLimit: 'Пожалуйста, подождите немного перед отправкой нового сообщения.',
+//     title: 'Salon Elen',
+//     subtitle: 'Ассистент записи',
+//     newChat: 'Новый чат',
+//   },
+//   en: {
+//     placeholder: 'Your message...',
+//     welcome: 'Hello! 👋 I\'m Elen-AI, your booking assistant. How can I help?\n\n[option] 📅 Book an appointment [/option]\n[option] 💅 Services & prices [/option]\n[option] 📍 Location & hours [/option]',
+//     error: 'Sorry, something went wrong. Please try again.',
+//     rateLimit: 'Please wait a moment before sending a new message.',
+//     title: 'Salon Elen',
+//     subtitle: 'Booking Assistant',
+//     newChat: 'New Chat',
+//   },
+// } as const;
+
+// type SupportedLocale = keyof typeof UI_TEXT;
+
+// // ─── Types ──────────────────────────────────────────────────────
+
+// type InputMode = 'text' | 'otp';
+
+// // ─── Component ──────────────────────────────────────────────────
+
+// interface ChatWidgetProps {
+//   locale?: string;
+// }
+
+// export default function ChatWidget({ locale: propLocale }: ChatWidgetProps) {
+//   const locale: SupportedLocale =
+//     propLocale && propLocale in UI_TEXT
+//       ? (propLocale as SupportedLocale)
+//       : 'de';
+//   const t = UI_TEXT[locale];
+
+//   const [isOpen, setIsOpen] = useState(false);
+//   const [messages, setMessages] = useState<Message[]>([]);
+//   const [input, setInput] = useState('');
+//   const [isLoading, setIsLoading] = useState(false);
+//   const [sessionId, setSessionId] = useState(() => generateSessionId());
+//   const [inputMode, setInputMode] = useState<InputMode>('text');
+
+//   const messagesEndRef = useRef<HTMLDivElement>(null);
+//   const inputRef = useRef<HTMLTextAreaElement>(null);
+
+//   // Scroll to bottom on new messages
+//   useEffect(() => {
+//     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+//   }, [messages]);
+
+//   // Focus input when opening
+//   useEffect(() => {
+//     if (isOpen && inputMode === 'text') {
+//       setTimeout(() => inputRef.current?.focus(), 300);
+//     }
+//   }, [isOpen, inputMode]);
+
+//   // Welcome message on first open
+//   useEffect(() => {
+//     if (isOpen && messages.length === 0) {
+//       setMessages([
+//         {
+//           id: 'welcome',
+//           role: 'assistant',
+//           content: t.welcome,
+//           timestamp: new Date(),
+//         },
+//       ]);
+//     }
+//   }, [isOpen, messages.length, t.welcome]);
+
+//   const handleNewChat = useCallback(() => {
+//     setSessionId(generateSessionId());
+//     setMessages([
+//       {
+//         id: 'welcome',
+//         role: 'assistant',
+//         content: t.welcome,
+//         timestamp: new Date(),
+//       },
+//     ]);
+//     setInput('');
+//     setIsLoading(false);
+//     setInputMode('text');
+//   }, [t.welcome]);
+
+//   const sendMessage = useCallback(
+//     async (text: string) => {
+//       setIsLoading(true);
+
+//       try {
+//         const res = await fetch(API_URL, {
+//           method: 'POST',
+//           headers: { 'Content-Type': 'application/json' },
+//           body: JSON.stringify({
+//             sessionId,
+//             message: text,
+//             locale,
+//           }),
+//         });
+
+//         if (res.status === 429) {
+//           setMessages((prev) => [
+//             ...prev,
+//             {
+//               id: `error-${Date.now()}`,
+//               role: 'assistant',
+//               content: t.rateLimit,
+//               timestamp: new Date(),
+//             },
+//           ]);
+//           return;
+//         }
+
+//         if (!res.ok) {
+//           throw new Error(`HTTP ${res.status}`);
+//         }
+
+//         const data = await res.json();
+
+//         setMessages((prev) => [
+//           ...prev,
+//           {
+//             id: `ai-${Date.now()}`,
+//             role: 'assistant',
+//             content: data.text,
+//             timestamp: new Date(),
+//           },
+//         ]);
+
+//         // Switch input mode based on server response
+//         if (data.inputMode === 'otp') {
+//           setInputMode('otp');
+//         } else if (data.inputMode === 'text' || inputMode === 'otp') {
+//           // Explicit text mode, or we were in OTP and server didn't say stay in OTP
+//           setInputMode('text');
+//         }
+//       } catch (err) {
+//         console.error('[ChatWidget] Error:', err);
+//         setMessages((prev) => [
+//           ...prev,
+//           {
+//             id: `error-${Date.now()}`,
+//             role: 'assistant',
+//             content: t.error,
+//             timestamp: new Date(),
+//             isError: true,
+//           },
+//         ]);
+//         // On error, stay in current mode
+//       } finally {
+//         setIsLoading(false);
+//       }
+//     },
+//     [sessionId, locale, t, inputMode],
+//   );
+
+//   const handleOptionClick = useCallback(
+//     (text: string) => {
+//       if (isLoading) return;
+//       const userMsg: Message = {
+//         id: `user-${Date.now()}`,
+//         role: 'user',
+//         content: text,
+//         timestamp: new Date(),
+//       };
+//       setMessages((prev) => [...prev, userMsg]);
+//       sendMessage(text);
+//     },
+//     [isLoading, sendMessage],
+//   );
+
+//   const handleSend = useCallback(async () => {
+//     const text = input.trim();
+//     if (!text || isLoading) return;
+
+//     const userMsg: Message = {
+//       id: `user-${Date.now()}`,
+//       role: 'user',
+//       content: text,
+//       timestamp: new Date(),
+//     };
+
+//     setMessages((prev) => [...prev, userMsg]);
+//     setInput('');
+//     sendMessage(text);
+//   }, [input, isLoading, sendMessage]);
+
+//   const handleKeyDown = (e: React.KeyboardEvent) => {
+//     if (e.key === 'Enter' && !e.shiftKey) {
+//       e.preventDefault();
+//       handleSend();
+//     }
+//   };
+
+//   // ─── OTP handlers ─────────────────────────────────────────────
+
+//   const handleOtpSubmit = useCallback(
+//     (code: string) => {
+//       if (isLoading) return;
+//       const userMsg: Message = {
+//         id: `user-${Date.now()}`,
+//         role: 'user',
+//         content: code,
+//         timestamp: new Date(),
+//       };
+//       setMessages((prev) => [...prev, userMsg]);
+//       sendMessage(code);
+//     },
+//     [isLoading, sendMessage],
+//   );
+
+//   const handleOtpResend = useCallback(() => {
+//     if (isLoading) return;
+//     const resendText =
+//       locale === 'ru'
+//         ? 'отправь код ещё раз'
+//         : locale === 'en'
+//           ? 'send code again'
+//           : 'Code erneut senden';
+
+//     const userMsg: Message = {
+//       id: `user-${Date.now()}`,
+//       role: 'user',
+//       content: resendText,
+//       timestamp: new Date(),
+//     };
+//     setMessages((prev) => [...prev, userMsg]);
+//     sendMessage(resendText);
+//   }, [isLoading, locale, sendMessage]);
+
+//   return (
+//     <>
+//       {/* ── Floating Button ───────────────────────────────── */}
+//       <AnimatePresence>
+//         {!isOpen && (
+//           <motion.button
+//             initial={{ scale: 0, opacity: 0 }}
+//             animate={{ scale: 1, opacity: 1 }}
+//             exit={{ scale: 0, opacity: 0 }}
+//             whileHover={{ scale: 1.1 }}
+//             whileTap={{ scale: 0.95 }}
+//             onClick={() => setIsOpen(true)}
+//             className="fixed bottom-6 right-6 z-50 flex h-14 w-14 items-center justify-center rounded-full shadow-lg transition-shadow hover:shadow-xl sm:h-16 sm:w-16"
+//             style={{
+//               background: 'linear-gradient(135deg, #FFD700 0%, #00D4FF 100%)',
+//               boxShadow: '0 4px 20px rgba(255, 215, 0, 0.4), 0 0 40px rgba(0, 212, 255, 0.2)',
+//             }}
+//             aria-label="Chat öffnen"
+//           >
+//             <MessageCircle className="h-6 w-6 text-gray-900 sm:h-7 sm:w-7" />
+//           </motion.button>
+//         )}
+//       </AnimatePresence>
+
+//       {/* ── Chat Panel ────────────────────────────────────── */}
+//       <AnimatePresence>
+//         {isOpen && (
+//           <motion.div
+//             initial={{ opacity: 0, y: 20, scale: 0.95 }}
+//             animate={{ opacity: 1, y: 0, scale: 1 }}
+//             exit={{ opacity: 0, y: 20, scale: 0.95 }}
+//             transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+//             className="fixed bottom-0 right-0 z-50 flex h-full w-full flex-col sm:bottom-6 sm:right-6 sm:h-[600px] sm:w-[400px] sm:rounded-2xl"
+//             style={{
+//               background: 'linear-gradient(180deg, #0A0A0A 0%, #111111 100%)',
+//               border: '1px solid rgba(255, 215, 0, 0.15)',
+//               boxShadow:
+//                 '0 8px 32px rgba(0, 0, 0, 0.6), 0 0 60px rgba(255, 215, 0, 0.08)',
+//             }}
+//           >
+//             {/* ── Header ──────────────────────────────────── */}
+//             <div
+//               className="flex items-center justify-between rounded-t-none px-4 py-3 sm:rounded-t-2xl"
+//               style={{
+//                 background: 'linear-gradient(135deg, rgba(255, 215, 0, 0.15) 0%, rgba(0, 212, 255, 0.1) 100%)',
+//                 borderBottom: '1px solid rgba(255, 215, 0, 0.1)',
+//               }}
+//             >
+//               <div className="flex items-center gap-3">
+//                 <div
+//                   className="flex h-9 w-9 items-center justify-center rounded-full text-sm font-bold text-gray-900"
+//                   style={{
+//                     background: 'linear-gradient(135deg, #FFD700, #FFA000)',
+//                   }}
+//                 >
+//                   E
+//                 </div>
+//                 <div>
+//                   <h3 className="text-sm font-semibold text-white">
+//                     {t.title}
+//                   </h3>
+//                   <p className="text-xs text-gray-400">{t.subtitle}</p>
+//                 </div>
+//               </div>
+
+//               <div className="flex items-center gap-1">
+//                 <button
+//                   onClick={handleNewChat}
+//                   className="rounded-lg p-2 text-gray-400 transition-colors hover:bg-white/10 hover:text-white"
+//                   title={t.newChat}
+//                 >
+//                   <RotateCcw className="h-4 w-4" />
+//                 </button>
+//                 <button
+//                   onClick={() => setIsOpen(false)}
+//                   className="rounded-lg p-2 text-gray-400 transition-colors hover:bg-white/10 hover:text-white"
+//                   aria-label="Chat schließen"
+//                 >
+//                   <X className="h-5 w-5" />
+//                 </button>
+//               </div>
+//             </div>
+
+//             {/* ── Messages ────────────────────────────────── */}
+//             <div className="flex-1 overflow-y-auto px-4 py-3 scrollbar-thin">
+//               {messages.map((msg, idx) => {
+//                 // isLatest = last assistant message in the list
+//                 const isLatestAssistant =
+//                   msg.role === 'assistant' &&
+//                   !msg.isError &&
+//                   idx === messages.length - 1;
+
+//                 return (
+//                   <ChatMessage
+//                     key={msg.id}
+//                     message={msg}
+//                     onOptionClick={isLatestAssistant ? handleOptionClick : undefined}
+//                     isLatest={isLatestAssistant}
+//                   />
+//                 );
+//               })}
+
+//               {isLoading && (
+//                 <div className="mb-3 flex items-start gap-2">
+//                   <div
+//                     className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold text-gray-900"
+//                     style={{
+//                       background: 'linear-gradient(135deg, #FFD700, #FFA000)',
+//                     }}
+//                   >
+//                     E
+//                   </div>
+//                   <div className="rounded-xl rounded-tl-sm bg-white/5 px-3 py-2">
+//                     <div className="flex gap-1">
+//                       <span className="inline-block h-2 w-2 animate-bounce rounded-full bg-gray-400" style={{ animationDelay: '0ms' }} />
+//                       <span className="inline-block h-2 w-2 animate-bounce rounded-full bg-gray-400" style={{ animationDelay: '150ms' }} />
+//                       <span className="inline-block h-2 w-2 animate-bounce rounded-full bg-gray-400" style={{ animationDelay: '300ms' }} />
+//                     </div>
+//                   </div>
+//                 </div>
+//               )}
+
+//               <div ref={messagesEndRef} />
+//             </div>
+
+//             {/* ── Input Area ─────────────────────────────── */}
+//             <AnimatePresence mode="wait">
+//               {inputMode === 'otp' ? (
+//                 <OtpInput
+//                   key="otp-input"
+//                   onSubmit={handleOtpSubmit}
+//                   isLoading={isLoading}
+//                   locale={locale}
+//                   onResend={handleOtpResend}
+//                 />
+//               ) : (
+//                 <motion.div
+//                   key="text-input"
+//                   initial={{ opacity: 0, y: 8 }}
+//                   animate={{ opacity: 1, y: 0 }}
+//                   exit={{ opacity: 0, y: -8 }}
+//                   transition={{ duration: 0.2 }}
+//                   className="px-3 py-3"
+//                   style={{
+//                     borderTop: '1px solid rgba(255, 215, 0, 0.1)',
+//                     background: 'rgba(255, 255, 255, 0.02)',
+//                   }}
+//                 >
+//                   <div className="flex items-end gap-2">
+//                     <textarea
+//                       ref={inputRef}
+//                       value={input}
+//                       onChange={(e) => setInput(e.target.value)}
+//                       onKeyDown={handleKeyDown}
+//                       placeholder={t.placeholder}
+//                       rows={1}
+//                       disabled={isLoading}
+//                       className="flex-1 resize-none rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-sm text-white placeholder-gray-500 outline-none transition-colors focus:border-yellow-500/40 focus:bg-white/8 disabled:opacity-50"
+//                       style={{ maxHeight: '100px' }}
+//                       onInput={(e) => {
+//                         const el = e.currentTarget;
+//                         el.style.height = 'auto';
+//                         el.style.height = `${Math.min(el.scrollHeight, 100)}px`;
+//                       }}
+//                     />
+//                     <button
+//                       onClick={handleSend}
+//                       disabled={!input.trim() || isLoading}
+//                       className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition-all disabled:opacity-30"
+//                       style={{
+//                         background:
+//                           input.trim() && !isLoading
+//                             ? 'linear-gradient(135deg, #FFD700, #FFA000)'
+//                             : 'rgba(255, 255, 255, 0.1)',
+//                       }}
+//                     >
+//                       {isLoading ? (
+//                         <Loader2 className="h-4 w-4 animate-spin text-gray-400" />
+//                       ) : (
+//                         <Send className="h-4 w-4 text-gray-900" />
+//                       )}
+//                     </button>
+//                   </div>
+//                 </motion.div>
+//               )}
+//             </AnimatePresence>
+//           </motion.div>
+//         )}
+//       </AnimatePresence>
+//     </>
+//   );
+// }
 
 
 
