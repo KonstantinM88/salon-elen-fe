@@ -1,7 +1,7 @@
 // src/components/ai/VoiceButton.tsx
 'use client';
 
-import { useState, useRef, useCallback, useEffect } from 'react';
+import { useState, useRef, useCallback, useEffect, forwardRef, useImperativeHandle } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Mic, Square, Loader2 } from 'lucide-react';
 
@@ -33,7 +33,7 @@ interface VoiceButtonProps {
   /** Called with transcribed text + AI response */
   onResult: (result: { transcript: string; text: string; inputMode?: string }) => void;
   /** Called on error */
-  onError?: (error: string) => void;
+  onError?: (error: string, code?: VoiceMicErrorCode) => void;
   /** Optional diagnostics callback (for admin/debug UI) */
   onDebug?: (info: VoiceMicDebugInfo) => void;
   /** Session ID for the chat */
@@ -42,6 +42,10 @@ interface VoiceButtonProps {
   locale: 'de' | 'ru' | 'en';
   /** Whether the chat is currently loading */
   disabled?: boolean;
+}
+
+export interface VoiceButtonHandle {
+  requestMicAccess: () => void;
 }
 
 // ─── Labels ─────────────────────────────────────────────────────
@@ -161,14 +165,14 @@ function classifyMicError(
 
 // ─── Component ──────────────────────────────────────────────────
 
-export function VoiceButton({
+export const VoiceButton = forwardRef<VoiceButtonHandle, VoiceButtonProps>(function VoiceButton({
   onResult,
   onError,
   onDebug,
   sessionId,
   locale,
   disabled = false,
-}: VoiceButtonProps) {
+}: VoiceButtonProps, ref) {
   const t = LABELS[locale] ?? LABELS.de;
   const [state, setState] = useState<VoiceState>('idle');
   const [duration, setDuration] = useState(0);
@@ -232,7 +236,7 @@ export function VoiceButton({
         });
       } catch (err) {
         console.error('[VoiceButton] Error:', err);
-        onError?.(t.error);
+        onError?.(t.error, 'unknown');
       } finally {
         setState('idle');
         setDuration(0);
@@ -256,7 +260,7 @@ export function VoiceButton({
           permissionState: 'unknown',
           timestamp: new Date().toISOString(),
         });
-        onError?.(t.noMic);
+        onError?.(t.noMic, 'unknown');
         setState('idle');
         return;
       }
@@ -277,7 +281,7 @@ export function VoiceButton({
           permissionState: await getMicPermissionState(),
           timestamp: new Date().toISOString(),
         });
-        onError?.(t.micInsecure);
+        onError?.(t.micInsecure, 'insecure-context');
         setState('idle');
         return;
       }
@@ -300,7 +304,7 @@ export function VoiceButton({
           permissionState: await getMicPermissionState(),
           timestamp: new Date().toISOString(),
         });
-        onError?.(t.micUnsupported);
+        onError?.(t.micUnsupported, 'unsupported');
         setState('idle');
         return;
       }
@@ -377,10 +381,21 @@ export function VoiceButton({
         ...debugInfo,
       });
       onDebug?.(debugInfo);
-      onError?.(classified.message);
+      onError?.(classified.message, classified.code);
       setState('idle');
     }
   }, [sendAudio, stopRecording, onError, onDebug, t]);
+
+  useImperativeHandle(
+    ref,
+    () => ({
+      requestMicAccess: () => {
+        if (disabled || state !== 'idle') return;
+        void startRecording();
+      },
+    }),
+    [disabled, state, startRecording],
+  );
 
   const handleClick = useCallback(() => {
     if (disabled) return;
@@ -455,4 +470,4 @@ export function VoiceButton({
       </motion.button>
     </div>
   );
-}
+});

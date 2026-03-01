@@ -6,7 +6,12 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { MessageCircle, X, Send, Loader2, RotateCcw } from 'lucide-react';
 import { ChatMessage, type Message } from './ChatMessage';
 import { OtpInput } from './OtpInput';
-import { VoiceButton, type VoiceMicDebugInfo } from './VoiceButton';
+import {
+  VoiceButton,
+  type VoiceButtonHandle,
+  type VoiceMicDebugInfo,
+  type VoiceMicErrorCode,
+} from './VoiceButton';
 
 // ─── Config ─────────────────────────────────────────────────────
 
@@ -50,6 +55,21 @@ const UI_TEXT = {
 
 type SupportedLocale = keyof typeof UI_TEXT;
 
+const MIC_ENABLE_OPTION_TEXT: Record<SupportedLocale, string> = {
+  de: 'Mikrofon aktivieren',
+  ru: 'Включить микрофон',
+  en: 'Enable microphone',
+};
+
+const MIC_ACTIONABLE_ERROR_CODES = new Set<VoiceMicErrorCode>([
+  'not-allowed',
+  'not-found',
+  'in-use',
+  'insecure-context',
+  'unsupported',
+  'iframe-blocked',
+]);
+
 // ─── Types ──────────────────────────────────────────────────────
 
 type InputMode = 'text' | 'otp';
@@ -78,6 +98,7 @@ export default function ChatWidget({ locale: propLocale }: ChatWidgetProps) {
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const voiceButtonRef = useRef<VoiceButtonHandle | null>(null);
 
   // Scroll to bottom on new messages
   useEffect(() => {
@@ -208,6 +229,12 @@ export default function ChatWidget({ locale: propLocale }: ChatWidgetProps) {
   const handleOptionClick = useCallback(
     (text: string) => {
       if (isLoading) return;
+
+      if (text.trim().toLowerCase() === MIC_ENABLE_OPTION_TEXT[locale].toLowerCase()) {
+        voiceButtonRef.current?.requestMicAccess();
+        return;
+      }
+
       const userMsg: Message = {
         id: `user-${Date.now()}`,
         role: 'user',
@@ -217,7 +244,7 @@ export default function ChatWidget({ locale: propLocale }: ChatWidgetProps) {
       setMessages((prev) => [...prev, userMsg]);
       sendMessage(text);
     },
-    [isLoading, sendMessage],
+    [isLoading, sendMessage, locale],
   );
 
   const handleSend = useCallback(async () => {
@@ -320,19 +347,31 @@ export default function ChatWidget({ locale: propLocale }: ChatWidgetProps) {
   );
 
   const handleVoiceError = useCallback(
-    (error: string) => {
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: `error-voice-${Date.now()}`,
-          role: 'assistant',
-          content: error,
-          timestamp: new Date(),
-          isError: true,
-        },
-      ]);
+    (error: string, code?: VoiceMicErrorCode) => {
+      const withAction = code ? MIC_ACTIONABLE_ERROR_CODES.has(code) : false;
+      const content = withAction
+        ? `${error}\n\n[option] 🎙 ${MIC_ENABLE_OPTION_TEXT[locale]} [/option]`
+        : error;
+
+      setMessages((prev) => {
+        const last = prev[prev.length - 1];
+        if (last?.role === 'assistant' && last.content === content) {
+          return prev;
+        }
+
+        return [
+          ...prev,
+          {
+            id: `error-voice-${Date.now()}`,
+            role: 'assistant',
+            content,
+            timestamp: new Date(),
+            isError: !withAction,
+          },
+        ];
+      });
     },
-    [],
+    [locale],
   );
 
   const handleVoiceDebug = useCallback((info: VoiceMicDebugInfo) => {
@@ -428,9 +467,7 @@ export default function ChatWidget({ locale: propLocale }: ChatWidgetProps) {
             <div className="flex-1 overflow-y-auto px-4 py-3 scrollbar-thin">
               {messages.map((msg, idx) => {
                 const isLatestAssistant =
-                  msg.role === 'assistant' &&
-                  !msg.isError &&
-                  idx === messages.length - 1;
+                  msg.role === 'assistant' && idx === messages.length - 1;
 
                 return (
                   <ChatMessage
@@ -510,6 +547,7 @@ export default function ChatWidget({ locale: propLocale }: ChatWidgetProps) {
                     {!input.trim() && (
                       <div className="flex flex-col items-end gap-1">
                         <VoiceButton
+                          ref={voiceButtonRef}
                           onResult={handleVoiceResult}
                           onError={handleVoiceError}
                           onDebug={handleVoiceDebug}
