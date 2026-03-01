@@ -15,6 +15,49 @@ interface Args {
   locale: string;
 }
 
+const RU_TO_LATIN_MAP: Record<string, string> = {
+  а: 'a',
+  б: 'b',
+  в: 'v',
+  г: 'g',
+  д: 'd',
+  е: 'e',
+  ё: 'e',
+  ж: 'zh',
+  з: 'z',
+  и: 'i',
+  й: 'y',
+  к: 'k',
+  л: 'l',
+  м: 'm',
+  н: 'n',
+  о: 'o',
+  п: 'p',
+  р: 'r',
+  с: 's',
+  т: 't',
+  у: 'u',
+  ф: 'f',
+  х: 'h',
+  ц: 'ts',
+  ч: 'ch',
+  ш: 'sh',
+  щ: 'sch',
+  ъ: '',
+  ы: 'y',
+  ь: '',
+  э: 'e',
+  ю: 'yu',
+  я: 'ya',
+};
+
+function transliterateRu(text: string): string {
+  return text.replace(/[а-яё]/giu, (ch) => {
+    const lower = ch.toLowerCase();
+    return RU_TO_LATIN_MAP[lower] ?? lower;
+  });
+}
+
 function sanitizeEmailCandidate(candidate: string): string {
   if (!candidate.includes('@')) return candidate;
 
@@ -23,11 +66,19 @@ function sanitizeEmailCandidate(candidate: string): string {
 
   let [local, domain] = parts;
 
-  local = local.replace(/\.+/g, '.').replace(/^\.+|\.+$/g, '');
-  domain = domain.replace(/^\.+/, '').replace(/\.+/g, '.').replace(/\.+$/g, '');
+  local = transliterateRu(local)
+    .replace(/\.+/g, '.')
+    .replace(/^\.+|\.+$/g, '')
+    .replace(/[^a-z0-9._%+-]/gi, '');
+  domain = transliterateRu(domain)
+    .replace(/\bjmail\b/giu, 'gmail')
+    .replace(/^\.+/, '')
+    .replace(/\.+/g, '.')
+    .replace(/\.+$/g, '')
+    .replace(/[^a-z0-9.-]/gi, '');
 
   if (!local || !domain) return candidate;
-  return `${local}@${domain}`;
+  return `${local}@${domain}`.toLowerCase();
 }
 
 function normalizeEmailInput(raw: string): string {
@@ -39,7 +90,7 @@ function normalizeEmailInput(raw: string): string {
 
   candidate = candidate
     .replace(/(собака|sobaka)\s*[.,]/giu, '@')
-    .replace(/\b(собака|sobaka)\b/giu, '@')
+    .replace(/(собака|sobaka)/giu, '@')
     .replace(/\b(точка|dot)\b/giu, '.');
 
   candidate = candidate
@@ -49,10 +100,11 @@ function normalizeEmailInput(raw: string): string {
 
   // Handle glued "userSobaka.gmail.com"
   candidate = candidate.replace(
-    /^([a-z0-9._%+-]+)(?:sobaka|собака)[\s._-]*([a-z0-9-]+(?:\.[a-z0-9-]+)+)$/iu,
+    /^([\p{L}0-9._%+-]+)(?:sobaka|собака)[\s._-]*([a-z0-9-]+(?:\.[a-z0-9-]+)+)$/iu,
     '$1@$2',
   );
 
+  candidate = candidate.replace(/\bjmail\./giu, 'gmail.');
   candidate = candidate.replace(/@\.{1,}/g, '@');
   candidate = sanitizeEmailCandidate(candidate);
 

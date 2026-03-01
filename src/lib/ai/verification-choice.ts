@@ -10,6 +10,10 @@ interface VerificationOptions {
   hasPhone: boolean;
 }
 
+interface MethodChoiceOptions {
+  voiceMode?: boolean;
+}
+
 export type RegistrationMethodChoice =
   | 'google_oauth'
   | 'email_otp'
@@ -20,7 +24,11 @@ export type RegistrationMethodChoice =
  * Build the clickable registration method choice message.
  * This is shown right after slot reservation, before contact collection.
  */
-export function buildRegistrationMethodChoiceText(locale: Locale): string {
+export function buildRegistrationMethodChoiceText(
+  locale: Locale,
+  options?: MethodChoiceOptions,
+): string {
+  const voiceMode = Boolean(options?.voiceMode);
   const header =
     locale === 'ru'
       ? 'Слот забронирован на 5 минут. Выберите способ регистрации и подтверждения:'
@@ -28,15 +36,17 @@ export function buildRegistrationMethodChoiceText(locale: Locale): string {
         ? 'Your slot is reserved for 5 minutes. Choose registration and verification method:'
         : 'Ihr Slot ist für 5 Minuten reserviert. Bitte wählen Sie die Registrierungs- und Verifizierungsmethode:';
 
-  const options: string[] = [];
+  const buttons: string[] = [];
 
-  const googleLabel =
-    locale === 'ru'
-      ? '🔐 Google'
-      : locale === 'en'
+  if (!voiceMode) {
+    const googleLabel =
+      locale === 'ru'
         ? '🔐 Google'
-        : '🔐 Google';
-  options.push(`[option] ${googleLabel} [/option]`);
+        : locale === 'en'
+          ? '🔐 Google'
+          : '🔐 Google';
+    buttons.push(`[option] ${googleLabel} [/option]`);
+  }
 
   const telegramLabel =
     locale === 'ru'
@@ -44,7 +54,7 @@ export function buildRegistrationMethodChoiceText(locale: Locale): string {
       : locale === 'en'
         ? '💬 Telegram'
         : '💬 Telegram';
-  options.push(`[option] ${telegramLabel} [/option]`);
+  buttons.push(`[option] ${telegramLabel} [/option]`);
 
   if (isSmsAvailable()) {
     const smsLabel =
@@ -53,18 +63,20 @@ export function buildRegistrationMethodChoiceText(locale: Locale): string {
         : locale === 'en'
           ? '📱 SMS'
           : '📱 SMS';
-    options.push(`[option] ${smsLabel} [/option]`);
+    buttons.push(`[option] ${smsLabel} [/option]`);
   }
 
-  const emailLabel =
-    locale === 'ru'
-      ? '📧 Email'
-      : locale === 'en'
+  if (!voiceMode) {
+    const emailLabel =
+      locale === 'ru'
         ? '📧 Email'
-        : '📧 E-Mail';
-  options.push(`[option] ${emailLabel} [/option]`);
+        : locale === 'en'
+          ? '📧 Email'
+          : '📧 E-Mail';
+    buttons.push(`[option] ${emailLabel} [/option]`);
+  }
 
-  return `${header}\n\n${options.join('\n')}`;
+  return `${header}\n\n${buttons.join('\n')}`;
 }
 
 /**
@@ -73,8 +85,9 @@ export function buildRegistrationMethodChoiceText(locale: Locale): string {
  */
 export function buildVerificationMethodChoiceText(
   locale: Locale,
-  options: VerificationOptions,
+  options: VerificationOptions & MethodChoiceOptions,
 ): string {
+  const voiceMode = Boolean(options.voiceMode);
   const header =
     locale === 'ru'
       ? 'Данные сохранены! Выберите способ получения кода подтверждения:'
@@ -84,7 +97,7 @@ export function buildVerificationMethodChoiceText(
 
   const buttons: string[] = [];
 
-  if (options.hasEmail) {
+  if (options.hasEmail && !voiceMode) {
     const label =
       locale === 'ru'
         ? '📧 Код на Email'
@@ -114,15 +127,25 @@ export function buildVerificationMethodChoiceText(
     buttons.push(`[option] ${label} [/option]`);
   }
 
-  // Fallback: if no buttons (shouldn't happen), show email only
+  // Fallback: if no buttons (shouldn't happen), keep flow usable.
   if (buttons.length === 0) {
-    const fallbackLabel =
-      locale === 'ru'
-        ? '📧 Код на Email'
-        : locale === 'en'
-          ? '📧 Code via Email'
-          : '📧 Code per E-Mail';
-    buttons.push(`[option] ${fallbackLabel} [/option]`);
+    if (options.hasPhone) {
+      const fallbackPhoneLabel =
+        locale === 'ru'
+          ? '💬 Код в Telegram'
+          : locale === 'en'
+            ? '💬 Code via Telegram'
+            : '💬 Code per Telegram';
+      buttons.push(`[option] ${fallbackPhoneLabel} [/option]`);
+    } else {
+      const fallbackEmailLabel =
+        locale === 'ru'
+          ? '📧 Код на Email'
+          : locale === 'en'
+            ? '📧 Code via Email'
+            : '📧 Code per E-Mail';
+      buttons.push(`[option] ${fallbackEmailLabel} [/option]`);
+    }
   }
 
   return `${header}\n\n${buttons.join('\n')}`;
@@ -165,7 +188,11 @@ const GOOGLE_PATTERNS = ['google', 'гугл', 'гугле', 'гуглe'];
  * Detect method choice from the "registration method" stage.
  * This stage may include Google.
  */
-export function detectRegistrationMethodChoice(text: string): RegistrationMethodChoice | null {
+export function detectRegistrationMethodChoice(
+  text: string,
+  options?: MethodChoiceOptions,
+): RegistrationMethodChoice | null {
+  const voiceMode = Boolean(options?.voiceMode);
   const normalized = text
     .replace(
       /^[\p{Emoji}\p{Emoji_Presentation}\p{Emoji_Modifier}\p{Emoji_Component}\uFE0F]+\s*/u,
@@ -176,8 +203,10 @@ export function detectRegistrationMethodChoice(text: string): RegistrationMethod
 
   if (!normalized) return null;
 
-  for (const pattern of GOOGLE_PATTERNS) {
-    if (normalized.includes(pattern)) return 'google_oauth';
+  if (!voiceMode) {
+    for (const pattern of GOOGLE_PATTERNS) {
+      if (normalized.includes(pattern)) return 'google_oauth';
+    }
   }
 
   for (const pattern of TELEGRAM_PATTERNS) {
@@ -188,8 +217,10 @@ export function detectRegistrationMethodChoice(text: string): RegistrationMethod
     if (normalized.includes(pattern)) return 'sms_otp';
   }
 
-  for (const pattern of EMAIL_PATTERNS) {
-    if (normalized.includes(pattern)) return 'email_otp';
+  if (!voiceMode) {
+    for (const pattern of EMAIL_PATTERNS) {
+      if (normalized.includes(pattern)) return 'email_otp';
+    }
   }
 
   return null;
@@ -199,7 +230,11 @@ export function detectRegistrationMethodChoice(text: string): RegistrationMethod
  * Detect if the user's message is selecting a verification method.
  * Returns the method if detected, null otherwise.
  */
-export function detectVerificationMethodChoice(text: string): VerificationMethod | null {
+export function detectVerificationMethodChoice(
+  text: string,
+  options?: MethodChoiceOptions,
+): VerificationMethod | null {
+  const voiceMode = Boolean(options?.voiceMode);
   const normalized = text
     .replace(
       /^[\p{Emoji}\p{Emoji_Presentation}\p{Emoji_Modifier}\p{Emoji_Component}\uFE0F]+\s*/u,
@@ -219,8 +254,10 @@ export function detectVerificationMethodChoice(text: string): VerificationMethod
     if (normalized.includes(SMS_PATTERN)) return 'sms_otp';
   }
 
-  for (const pattern of EMAIL_PATTERNS) {
-    if (normalized.includes(pattern)) return 'email_otp';
+  if (!voiceMode) {
+    for (const pattern of EMAIL_PATTERNS) {
+      if (normalized.includes(pattern)) return 'email_otp';
+    }
   }
 
   return null;

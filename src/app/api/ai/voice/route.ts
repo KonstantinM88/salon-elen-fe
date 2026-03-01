@@ -8,6 +8,296 @@ import OpenAI, { toFile } from 'openai';
 
 const WHISPER_MODEL = 'whisper-1';
 
+const VALID_EMAIL_RE = /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i;
+const VALID_PHONE_RE = /(?:\+?\d[\d\s().-]{6,}\d)/;
+const EMAIL_INTENT_RE =
+  /\b(email|e-mail|почта|емейл|имейл|майл|gmail|outlook|yahoo|sobaka|собака|точка|dot)\b/iu;
+const PHONE_INTENT_RE =
+  /\b(телефон|номер|phone|mobile|handy|kontakt|контакт|telegram|телеграм|whatsapp)\b/iu;
+
+const RU_UNITS: Record<string, number> = {
+  ноль: 0,
+  нуль: 0,
+  один: 1,
+  одна: 1,
+  два: 2,
+  две: 2,
+  три: 3,
+  четыре: 4,
+  пять: 5,
+  шесть: 6,
+  семь: 7,
+  восемь: 8,
+  девять: 9,
+};
+
+const RU_TEENS: Record<string, number> = {
+  десять: 10,
+  одиннадцать: 11,
+  двенадцать: 12,
+  тринадцать: 13,
+  четырнадцать: 14,
+  пятнадцать: 15,
+  шестнадцать: 16,
+  семнадцать: 17,
+  восемнадцать: 18,
+  девятнадцать: 19,
+};
+
+const RU_TENS: Record<string, number> = {
+  двадцать: 20,
+  тридцать: 30,
+  сорок: 40,
+  пятьдесят: 50,
+  шестьдесят: 60,
+  семьдесят: 70,
+  восемьдесят: 80,
+  девяносто: 90,
+};
+
+const RU_HUNDREDS: Record<string, number> = {
+  сто: 100,
+  двести: 200,
+  триста: 300,
+  четыреста: 400,
+  пятьсот: 500,
+  шестьсот: 600,
+  семьсот: 700,
+  восемьсот: 800,
+  девятьсот: 900,
+};
+
+const RU_TO_LATIN_MAP: Record<string, string> = {
+  а: 'a',
+  б: 'b',
+  в: 'v',
+  г: 'g',
+  д: 'd',
+  е: 'e',
+  ё: 'e',
+  ж: 'zh',
+  з: 'z',
+  и: 'i',
+  й: 'y',
+  к: 'k',
+  л: 'l',
+  м: 'm',
+  н: 'n',
+  о: 'o',
+  п: 'p',
+  р: 'r',
+  с: 's',
+  т: 't',
+  у: 'u',
+  ф: 'f',
+  х: 'h',
+  ц: 'ts',
+  ч: 'ch',
+  ш: 'sh',
+  щ: 'sch',
+  ъ: '',
+  ы: 'y',
+  ь: '',
+  э: 'e',
+  ю: 'yu',
+  я: 'ya',
+};
+
+function transliterateRu(text: string): string {
+  return text.replace(/[а-яё]/giu, (ch) => {
+    const lower = ch.toLowerCase();
+    return RU_TO_LATIN_MAP[lower] ?? lower;
+  });
+}
+
+function sanitizeEmailCandidate(candidate: string): string {
+  const match = candidate.match(/[\p{L}0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/iu);
+  if (!match) return candidate.trim();
+
+  const value = match[0];
+  const parts = value.split('@');
+  if (parts.length !== 2) return value;
+
+  const local = transliterateRu(parts[0].toLowerCase())
+    .replace(/\.+/g, '.')
+    .replace(/^\.+|\.+$/g, '')
+    .replace(/[^a-z0-9._%+-]/g, '');
+  const domain = transliterateRu(parts[1].toLowerCase())
+    .replace(/\bjmail\b/g, 'gmail')
+    .replace(/^\.+/, '')
+    .replace(/\.+/g, '.')
+    .replace(/\.+$/g, '')
+    .replace(/[^a-z0-9.-]/g, '');
+  if (!local || !domain) return value;
+  return `${local}@${domain}`.toLowerCase();
+}
+
+function extractEmailCandidate(text: string): string | null {
+  const normalized = text.toLowerCase().replace(/ё/g, 'е');
+  const hasEmailIntent =
+    EMAIL_INTENT_RE.test(normalized) ||
+    normalized.includes('@') ||
+    normalized.includes('sobaka') ||
+    normalized.includes('собака');
+  if (!hasEmailIntent) {
+    return null;
+  }
+
+  const glued = normalized.match(
+    /([\p{L}0-9._%+-]+)(?:sobaka|собака)[\s._-]*([a-z0-9-]+(?:\.[a-z0-9-]+)+)/iu,
+  );
+  if (glued) {
+    return sanitizeEmailCandidate(`${glued[1]}@${glued[2]}`);
+  }
+
+  const replaced = normalized
+    .replace(/(собака|sobaka)\s*[.,]/giu, '@')
+    .replace(/(собака|sobaka)/giu, '@')
+    .replace(/\b(точка|dot)\b/giu, '.')
+    .replace(/\s*@\s*/g, '@')
+    .replace(/\s*\.\s*/g, '.')
+    .replace(/@\.{1,}/g, '@');
+
+  const match = replaced.match(/[\p{L}0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}/iu);
+  if (!match) return null;
+
+  return sanitizeEmailCandidate(match[0]);
+}
+
+function isSpokenPhoneToken(token: string): boolean {
+  return (
+    token in RU_UNITS ||
+    token in RU_TEENS ||
+    token in RU_TENS ||
+    token in RU_HUNDREDS ||
+    /^\d+$/.test(token)
+  );
+}
+
+function parseSpokenPhoneTokens(tokens: string[]): string {
+  let out = '';
+
+  for (let i = 0; i < tokens.length; i++) {
+    const token = tokens[i];
+
+    if (/^\d+$/.test(token)) {
+      out += token;
+      continue;
+    }
+
+    const hundred = RU_HUNDREDS[token];
+    if (hundred !== undefined) {
+      let value = hundred;
+      const next = tokens[i + 1];
+      if (next) {
+        const teen = RU_TEENS[next];
+        if (teen !== undefined) {
+          value += teen;
+          i += 1;
+        } else {
+          const tens = RU_TENS[next];
+          if (tens !== undefined) {
+            value += tens;
+            i += 1;
+            const unitAfterTens = RU_UNITS[tokens[i + 1]];
+            if (unitAfterTens !== undefined) {
+              value += unitAfterTens;
+              i += 1;
+            }
+          } else {
+            const unit = RU_UNITS[next];
+            if (unit !== undefined) {
+              value += unit;
+              i += 1;
+            }
+          }
+        }
+      }
+      out += String(value);
+      continue;
+    }
+
+    const teen = RU_TEENS[token];
+    if (teen !== undefined) {
+      out += String(teen);
+      continue;
+    }
+
+    const tens = RU_TENS[token];
+    if (tens !== undefined) {
+      let value = tens;
+      const unit = RU_UNITS[tokens[i + 1]];
+      if (unit !== undefined) {
+        value += unit;
+        i += 1;
+      }
+      out += String(value);
+      continue;
+    }
+
+    const unit = RU_UNITS[token];
+    if (unit !== undefined) {
+      out += String(unit);
+    }
+  }
+
+  return out;
+}
+
+function extractSpokenPhone(text: string): string | null {
+  const normalized = text.toLowerCase().replace(/ё/g, 'е');
+  if (!PHONE_INTENT_RE.test(normalized)) return null;
+
+  const tokens = normalized
+    .split(/[^a-zа-я0-9+]+/iu)
+    .map((token) => token.trim())
+    .filter(Boolean);
+  if (tokens.length === 0) return null;
+
+  let bestDigits = '';
+  let bestHasPlus = false;
+
+  for (let i = 0; i < tokens.length; ) {
+    const token = tokens[i];
+    const startsChunk = token === '+' || token === 'плюс' || isSpokenPhoneToken(token);
+    if (!startsChunk) {
+      i += 1;
+      continue;
+    }
+
+    let hasPlus = token === '+' || token === 'плюс';
+    const chunk: string[] = [];
+    if (!hasPlus && isSpokenPhoneToken(token)) {
+      chunk.push(token);
+    }
+    i += 1;
+
+    while (i < tokens.length) {
+      const next = tokens[i];
+      if (next === '+' || next === 'плюс') {
+        hasPlus = true;
+        i += 1;
+        continue;
+      }
+      if (!isSpokenPhoneToken(next)) break;
+      chunk.push(next);
+      i += 1;
+    }
+
+    const digits = parseSpokenPhoneTokens(chunk).replace(/\D/g, '');
+    if (digits.length > bestDigits.length) {
+      bestDigits = digits;
+      bestHasPlus = hasPlus;
+    }
+  }
+
+  if (bestDigits.length < 7) return null;
+
+  if (bestHasPlus) return `+${bestDigits}`;
+  if (bestDigits.startsWith('49') || bestDigits.startsWith('38')) return `+${bestDigits}`;
+  return bestDigits;
+}
+
 /** Map locale to Whisper language hint (ISO 639-1) */
 function whisperLanguage(locale: string): string | undefined {
   switch (locale) {
@@ -26,43 +316,16 @@ function normalizeVoiceTranscript(raw: string, locale: string): string {
   let text = raw.trim();
   if (!text) return text;
 
-  // Email obfuscation normalization for RU/EN speech:
-  // "name sobaka gmail tochka com" -> "name@gmail.com"
-  const hasEmailIntent =
-    /\b(email|e-mail|почта|емейл|имейл|майл|gmail|outlook|yahoo|sobaka|собака|точка|dot)\b/iu.test(
-      text,
-    ) || text.includes('@');
+  const hasEmailAlready = VALID_EMAIL_RE.test(text);
+  const emailCandidate = extractEmailCandidate(text);
+  if (emailCandidate && (!hasEmailAlready || !text.toLowerCase().includes(emailCandidate))) {
+    text = `${text} ${emailCandidate}`;
+  }
 
-  if (hasEmailIntent) {
-    text = text
-      .replace(/ё/g, 'е')
-      .replace(/(собака|sobaka)\s*[.,]/giu, '@')
-      .replace(/\b(собака|sobaka)\b/giu, '@')
-      .replace(/\b(точка|dot)\b/giu, '.')
-      .replace(/\s*@\s*/g, '@')
-      .replace(/\s*\.\s*/g, '.')
-      .replace(/\s+/g, '');
-
-    // Handle glued forms: "userSobaka.gmail.com"
-    text = text.replace(
-      /^([a-z0-9._%+-]+)(?:sobaka|собака)[\s._-]*([a-z0-9-]+(?:\.[a-z0-9-]+)+)$/iu,
-      '$1@$2',
-    );
-
-    text = text.replace(/@\.{1,}/g, '@');
-    if (text.includes('@')) {
-      const parts = text.split('@');
-      if (parts.length === 2) {
-        const local = parts[0].replace(/\.+/g, '.').replace(/^\.+|\.+$/g, '');
-        const domain = parts[1]
-          .replace(/^\.+/, '')
-          .replace(/\.+/g, '.')
-          .replace(/\.+$/g, '');
-        if (local && domain) {
-          text = `${local}@${domain}`;
-        }
-      }
-    }
+  const hasPhoneAlready = VALID_PHONE_RE.test(text);
+  const phoneCandidate = extractSpokenPhone(text);
+  if (phoneCandidate && !hasPhoneAlready) {
+    text = `${text} ${phoneCandidate}`;
   }
 
   // Minor punctuation cleanup after STT.
@@ -172,6 +435,7 @@ export async function POST(req: NextRequest) {
         sessionId,
         message: transcript,
         locale,
+        inputMode: 'voice',
       }),
     });
 

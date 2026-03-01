@@ -26,6 +26,39 @@ export interface FinalizeError {
   message: string;
 }
 
+type ClientLookupCondition = { phone?: string; email?: string };
+
+function fallbackDigits(seed: string): string {
+  const digits = Array.from(seed)
+    .map((ch) => String(ch.charCodeAt(0) % 10))
+    .join('');
+  return digits.slice(0, 12).padEnd(12, '0');
+}
+
+function buildFallbackPhone(draftId: string): string {
+  return `+999${fallbackDigits(draftId)}`;
+}
+
+function buildFallbackEmail(phone: string, draftId: string): string {
+  const phoneToken = phone.replace(/[^\d]+/g, '').slice(-12);
+  const token = phoneToken || fallbackDigits(draftId);
+  const suffix = draftId.slice(-6).toLowerCase();
+  return `noemail+${token}-${suffix}@client.local`;
+}
+
+function isUniqueConstraintError(error: unknown): boolean {
+  if (!error || typeof error !== 'object') return false;
+  const maybe = error as { code?: unknown };
+  return maybe.code === 'P2002';
+}
+
+function buildClientLookupOr(phone?: string, email?: string): ClientLookupCondition[] {
+  return [
+    ...(phone ? [{ phone }] : []),
+    ...(email ? [{ email }] : []),
+  ];
+}
+
 // ─── Main function ──────────────────────────────────────────────
 
 /**
@@ -66,16 +99,15 @@ export async function finalizeBookingFromDraft(
 
       // Find or create Client
       const phoneStr = (draft.phone ?? '').trim();
-      const emailStr = (draft.email ?? '').trim();
+      const emailStr = (draft.email ?? '').trim().toLowerCase();
+      const clientPhone = phoneStr || buildFallbackPhone(draft.id);
+      const clientEmail = emailStr || buildFallbackEmail(clientPhone, draft.id);
       let clientId: string | null = null;
 
       if (phoneStr || emailStr) {
         const existing = await tx.client.findFirst({
           where: {
-            OR: [
-              ...(phoneStr ? [{ phone: phoneStr }] : []),
-              ...(emailStr ? [{ email: emailStr }] : []),
-            ],
+            OR: buildClientLookupOr(phoneStr || undefined, emailStr || undefined),
           },
           select: { id: true },
         });
@@ -85,18 +117,40 @@ export async function finalizeBookingFromDraft(
         }
       }
 
-      if (!clientId && (phoneStr || emailStr)) {
-        const newClient = await tx.client.create({
-          data: {
-            name: draft.customerName,
-            phone: phoneStr,
-            email: emailStr,
-            birthDate: draft.birthDate || new Date('1990-01-01'),
-            referral: draft.referral || null,
-          },
-          select: { id: true },
-        });
-        clientId = newClient.id;
+      if (!clientId) {
+        try {
+          const newClient = await tx.client.create({
+            data: {
+              name: draft.customerName,
+              phone: clientPhone,
+              email: clientEmail,
+              birthDate: draft.birthDate || new Date('1990-01-01'),
+              referral: draft.referral || null,
+            },
+            select: { id: true },
+          });
+          clientId = newClient.id;
+        } catch (error) {
+          if (!isUniqueConstraintError(error)) {
+            throw error;
+          }
+
+          const existingAfterConflict = await tx.client.findFirst({
+            where: {
+              OR: [
+                ...buildClientLookupOr(phoneStr || undefined, emailStr || undefined),
+                ...buildClientLookupOr(clientPhone, clientEmail),
+              ],
+            },
+            select: { id: true },
+          });
+
+          if (!existingAfterConflict) {
+            throw error;
+          }
+
+          clientId = existingAfterConflict.id;
+        }
       }
 
       // Create appointment

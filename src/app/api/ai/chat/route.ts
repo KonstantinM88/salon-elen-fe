@@ -50,6 +50,7 @@ interface ChatRequest {
   sessionId: string;
   message: string;
   locale?: string;
+  inputMode?: 'text' | 'voice' | 'otp';
 }
 
 interface ChatResponse {
@@ -424,13 +425,21 @@ function looksLikeContactPayload(text: string): boolean {
   if (!value) return false;
   const hasEmail = /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i.test(value);
   const hasPhone = /(?:\+?\d[\d\s().-]{6,}\d)/.test(value);
+  const hasPhoneIntent = /\b(телефон|номер|phone|mobile|handy|kontakt|контакт|telegram|телеграм|whatsapp)\b/iu.test(
+    value,
+  );
+  const spokenNumberTokens =
+    value.match(
+      /\b(плюс|plus|ноль|нуль|один|одна|два|две|три|четыре|пять|шесть|семь|восемь|девять|десять|одиннадцать|двенадцать|тринадцать|четырнадцать|пятнадцать|шестнадцать|семнадцать|восемнадцать|девятнадцать|двадцать|тридцать|сорок|пятьдесят|шестьдесят|семьдесят|восемьдесят|девяносто|сто|двести|триста|четыреста|пятьсот|шестьсот|семьсот|восемьсот|девятьсот)\b/giu,
+    ) ?? [];
+  const hasSpokenPhone = hasPhoneIntent && spokenNumberTokens.length >= 3;
   const hasObfuscatedEmail =
     /[A-Z0-9._%+-]+(?:\s*|[-_.]?)(?:sobaka|собака)(?:\s*|[-_.]?)[A-Z0-9.-]+(?:\.[A-Z]{2,})+/iu.test(
       value,
     ) ||
     /\b(email|e-mail|почта|емейл|имейл|майл)\b/iu.test(value) ||
-    /\b(sobaka|собака)\b/iu.test(value);
-  return hasEmail || hasPhone || hasObfuscatedEmail;
+    /(sobaka|собака)/iu.test(value);
+  return hasEmail || hasPhone || hasObfuscatedEmail || hasSpokenPhone;
 }
 
 function looksLikeServiceOptionPayload(text: string): boolean {
@@ -463,6 +472,7 @@ function looksLikeNameOnlyPayload(text: string): boolean {
   if (/\d/.test(value)) return false;
 
   const parts = value
+    .replace(/[.,!;:]+/gu, ' ')
     .split(/\s+/)
     .map((p) => p.trim())
     .filter(Boolean);
@@ -482,7 +492,12 @@ function looksLikeResendRequest(text: string): boolean {
   return RESEND_CODE_HINTS.some((hint) => value.includes(hint));
 }
 
-function shouldApplyScopeGuard(text: string, session: AiSession): boolean {
+function shouldApplyScopeGuard(
+  text: string,
+  session: AiSession,
+  options?: { voiceMode?: boolean },
+): boolean {
+  const voiceMode = Boolean(options?.voiceMode);
   const normalizedInput = normalizeInput(text);
   if (!normalizedInput) return false;
   const awaitingContact = Boolean(session.context.reservedSlot && !session.context.draftId);
@@ -490,13 +505,15 @@ function shouldApplyScopeGuard(text: string, session: AiSession): boolean {
 
   if (session.context.awaitingRegistrationMethod) {
     // During method-selection step allow only explicit method clicks/texts.
-    if (detectRegistrationMethodChoice(text)) return false;
+    if (detectRegistrationMethodChoice(text, { voiceMode })) return false;
     return true;
   }
 
   if (awaitingContact) {
-    // During contact step allow name/email/phone-like payloads only.
+    // Contact collection in voice mode is often free-form and noisy.
+    // Avoid scope-guard loops while we are explicitly waiting for contact data.
     if (looksLikeContactPayload(text) || looksLikeNameOnlyPayload(text)) return false;
+    if (session.context.pendingVerificationMethod) return false;
     return true;
   }
 
@@ -992,13 +1009,21 @@ function buildVerificationAutoText(
 function buildContactCollectionTextForMethod(
   locale: 'de' | 'ru' | 'en',
   method: 'email_otp' | 'sms_otp' | 'telegram_otp',
+  options?: { voiceMode?: boolean },
 ): string {
+  const voiceMode = Boolean(options?.voiceMode);
   if (locale === 'ru') {
     if (method === 'email_otp') {
       return 'Вы выбрали подтверждение по Email.\nПожалуйста, укажите ваше имя и адрес электронной почты для завершения записи.\nВаши данные будут использоваться только для управления записью.';
     }
     if (method === 'sms_otp') {
+      if (voiceMode) {
+        return 'Вы выбрали подтверждение по SMS.\nПожалуйста, укажите ваше имя и номер телефона для завершения записи.\nНомер телефона указывайте в международном формате: +49... или +38...\nВаши данные будут использоваться только для управления записью.';
+      }
       return 'Вы выбрали подтверждение по SMS.\nПожалуйста, укажите ваше имя, номер телефона и адрес электронной почты для завершения записи.\nНомер телефона указывайте в международном формате: +49... или +38...\nВаши данные будут использоваться только для управления записью.';
+    }
+    if (voiceMode) {
+      return 'Вы выбрали подтверждение через Telegram.\nПожалуйста, укажите ваше имя и номер телефона (привязанный к Telegram-боту) для завершения записи.\nНомер телефона указывайте в международном формате: +49... или +38...\nВаши данные будут использоваться только для управления записью.';
     }
     return 'Вы выбрали подтверждение через Telegram.\nПожалуйста, укажите ваше имя, номер телефона (привязанный к Telegram-боту) и адрес электронной почты для завершения записи.\nНомер телефона указывайте в международном формате: +49... или +38...\nВаши данные будут использоваться только для управления записью.';
   }
@@ -1008,7 +1033,13 @@ function buildContactCollectionTextForMethod(
       return 'You chose Email verification.\nPlease provide your name and email address to finish the booking.\nYour data will only be used for appointment management.';
     }
     if (method === 'sms_otp') {
+      if (voiceMode) {
+        return 'You chose SMS verification.\nPlease provide your name and phone number to finish the booking.\nPhone must be in international format: +49... or +38...\nYour data will only be used for appointment management.';
+      }
       return 'You chose SMS verification.\nPlease provide your name, phone number, and email address to finish the booking.\nPhone must be in international format: +49... or +38...\nYour data will only be used for appointment management.';
+    }
+    if (voiceMode) {
+      return 'You chose Telegram verification.\nPlease provide your name and phone number (linked to our Telegram bot) to finish the booking.\nPhone must be in international format: +49... or +38...\nYour data will only be used for appointment management.';
     }
     return 'You chose Telegram verification.\nPlease provide your name, phone number (linked to our Telegram bot), and email address to finish the booking.\nPhone must be in international format: +49... or +38...\nYour data will only be used for appointment management.';
   }
@@ -1017,7 +1048,13 @@ function buildContactCollectionTextForMethod(
     return 'Sie haben E-Mail-Verifizierung gewählt.\nBitte geben Sie Ihren Namen und Ihre E-Mail-Adresse an, um die Buchung abzuschließen.\nIhre Daten werden nur zur Terminverwaltung verwendet.';
   }
   if (method === 'sms_otp') {
+    if (voiceMode) {
+      return 'Sie haben SMS-Verifizierung gewählt.\nBitte geben Sie Ihren Namen und Ihre Telefonnummer an, um die Buchung abzuschließen.\nDie Telefonnummer bitte im internationalen Format angeben: +49... oder +38...\nIhre Daten werden nur zur Terminverwaltung verwendet.';
+    }
     return 'Sie haben SMS-Verifizierung gewählt.\nBitte geben Sie Ihren Namen, Ihre Telefonnummer und Ihre E-Mail-Adresse an, um die Buchung abzuschließen.\nDie Telefonnummer bitte im internationalen Format angeben: +49... oder +38...\nIhre Daten werden nur zur Terminverwaltung verwendet.';
+  }
+  if (voiceMode) {
+    return 'Sie haben Telegram-Verifizierung gewählt.\nBitte geben Sie Ihren Namen und Ihre Telefonnummer (mit Telegram-Bot verknüpft) an, um die Buchung abzuschließen.\nDie Telefonnummer bitte im internationalen Format angeben: +49... oder +38...\nIhre Daten werden nur zur Terminverwaltung verwendet.';
   }
   return 'Sie haben Telegram-Verifizierung gewählt.\nBitte geben Sie Ihren Namen, Ihre Telefonnummer (mit Telegram-Bot verknüpft) und Ihre E-Mail-Adresse an, um die Buchung abzuschließen.\nDie Telefonnummer bitte im internationalen Format angeben: +49... oder +38...\nIhre Daten werden nur zur Terminverwaltung verwendet.';
 }
@@ -1842,7 +1879,8 @@ export async function POST(
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
   }
 
-  const { sessionId, message, locale } = body;
+  const { sessionId, message, locale, inputMode } = body;
+  const isVoiceTurn = inputMode === 'voice';
 
   if (!sessionId || !message?.trim()) {
     return NextResponse.json(
@@ -1946,7 +1984,7 @@ export async function POST(
 
   // Deterministic registration-method selection after slot reservation.
   if (session.context.awaitingRegistrationMethod && session.context.reservedSlot) {
-    const selectedMethod = detectRegistrationMethodChoice(message);
+    const selectedMethod = detectRegistrationMethodChoice(message, { voiceMode: isVoiceTurn });
     if (selectedMethod) {
       if (selectedMethod === 'google_oauth') {
         const handoffUrl = buildGoogleHandoffUrl(session);
@@ -1954,7 +1992,9 @@ export async function POST(
         const keepMethodStep = Boolean(handoffUrl);
         const text = handoffUrl
           ? buildGoogleHandoffText(session.locale, handoffUrl)
-          : buildContactCollectionTextForMethod(session.locale, 'email_otp');
+          : buildContactCollectionTextForMethod(session.locale, 'email_otp', {
+              voiceMode: isVoiceTurn,
+            });
 
         appendSessionMessage(sessionId, 'assistant', text);
         upsertSession(sessionId, {
@@ -1975,7 +2015,9 @@ export async function POST(
         });
       }
 
-      const text = buildContactCollectionTextForMethod(session.locale, selectedMethod);
+      const text = buildContactCollectionTextForMethod(session.locale, selectedMethod, {
+        voiceMode: isVoiceTurn,
+      });
       appendSessionMessage(sessionId, 'assistant', text);
       upsertSession(sessionId, {
         context: {
@@ -1996,7 +2038,7 @@ export async function POST(
     }
   }
 
-  if (shouldApplyScopeGuard(message, session)) {
+  if (shouldApplyScopeGuard(message, session, { voiceMode: isVoiceTurn })) {
     const text = buildScopeGuardText(session.locale, hasActiveBookingFlow);
     appendSessionMessage(sessionId, 'assistant', text);
 
@@ -2444,7 +2486,9 @@ export async function POST(
         const reserveDurationMs = Date.now() - reserveStartedAt;
 
         if (reserveResult.success) {
-          const text = buildRegistrationMethodChoiceText(session.locale);
+          const text = buildRegistrationMethodChoiceText(session.locale, {
+            voiceMode: isVoiceTurn,
+          });
           appendSessionMessage(sessionId, 'assistant', text);
           upsertSession(sessionId, {
             context: {
@@ -2616,7 +2660,9 @@ export async function POST(
 
   // ─── Deterministic: user picks verification method ────────
   if (session.context.awaitingVerificationMethod && session.context.draftId) {
-    const chosenMethod = detectVerificationMethodChoice(message);
+    const chosenMethod = detectVerificationMethodChoice(message, {
+      voiceMode: isVoiceTurn,
+    });
     if (chosenMethod) {
       // Look up the draft to get contact info
       const draft = await prisma.bookingDraft.findUnique({
@@ -2707,11 +2753,17 @@ export async function POST(
   if (session.context.awaitingVerificationMethod) {
     stateHints.push('awaitingVerificationMethod=true');
   }
+  if (isVoiceTurn) {
+    stateHints.push('inputMode=voice');
+  }
 
   const statePrompt =
     stateHints.length > 0
       ? `SESSION STATE (do not reset booking flow): ${stateHints.join(' | ')}`
       : null;
+  const voicePrompt = isVoiceTurn
+    ? 'VOICE INPUT MODE: Keep prompts short. For Telegram/SMS contact collection ask only name + phone. Do not ask for email in voice flow. If email is missing in voice flow, continue with phone-based verification methods.'
+    : null;
 
   const historyMessages: OpenAI.Chat.ChatCompletionMessageParam[] = (
     session.context.chatHistory ?? []
@@ -2728,6 +2780,7 @@ export async function POST(
   const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [
     { role: 'system', content: systemPrompt },
     ...(statePrompt ? [{ role: 'system', content: statePrompt } as const] : []),
+    ...(voicePrompt ? [{ role: 'system', content: voicePrompt } as const] : []),
     ...historyMessages,
     { role: 'user', content: message },
   ];
@@ -2904,13 +2957,29 @@ export async function POST(
           }
         }
 
+        // Prevent race: model may call start_verification in the same batch as create_draft.
+        // Verification must start only after draft is actually persisted.
+        const awaitingContactFlow = Boolean(
+          session.context.reservedSlot &&
+            !session.context.draftId &&
+            session.context.pendingVerificationMethod,
+        );
+        if (awaitingContactFlow) {
+          const hasCreateDraftCall = toolCalls.some((call) => call.name === 'create_draft');
+          if (hasCreateDraftCall) {
+            for (let i = toolCalls.length - 1; i >= 0; i -= 1) {
+              if (toolCalls[i].name === 'start_verification') {
+                toolCalls.splice(i, 1);
+              }
+            }
+          }
+        }
+
         const results = await Promise.all(toolCalls.map(executeTool));
         const contextPatch: Partial<AiSession['context']> = {};
         let reservedSlotJustCreated = false;
         let bookingCompletedInBatch = false;
-        let autoVerificationCandidate:
-          | { draftId: string; email: string }
-          | null = null;
+        let autoVerificationCandidate: { draftId: string } | null = null;
         const hasExplicitStartVerification = results.some(
           (r) => r.name === 'start_verification',
         );
@@ -3149,9 +3218,6 @@ export async function POST(
                 continue;
               }
 
-              const email =
-                typeof parsedArgs?.email === 'string' ? parsedArgs.email : null;
-
               if (payload.draftId && !payload.error) {
                 contextPatch.draftId = payload.draftId;
                 contextPatch.awaitingRegistrationMethod = false;
@@ -3164,9 +3230,7 @@ export async function POST(
                     endAt: parsedArgs.endAt,
                   };
                 }
-                if (email) {
-                  autoVerificationCandidate = { draftId: payload.draftId, email };
-                }
+                autoVerificationCandidate = { draftId: payload.draftId };
               }
             } catch {
               // Ignore malformed payload
@@ -3323,7 +3387,9 @@ export async function POST(
         // After successful slot reserve, show registration method chooser only
         // when method is not selected yet.
         if (reservedSlotJustCreated && !hasDraftAfterTools && !pendingMethodAfterTools) {
-          const text = buildRegistrationMethodChoiceText(session.locale);
+          const text = buildRegistrationMethodChoiceText(session.locale, {
+            voiceMode: isVoiceTurn,
+          });
           appendSessionMessage(sessionId, 'assistant', text);
           upsertSession(sessionId, {
             context: {
@@ -3426,6 +3492,7 @@ export async function POST(
           const text = buildVerificationMethodChoiceText(session.locale, {
             hasEmail: Boolean(draftForChoice?.email),
             hasPhone: Boolean(draftForChoice?.phone),
+            voiceMode: isVoiceTurn,
           });
 
           appendSessionMessage(sessionId, 'assistant', text);
