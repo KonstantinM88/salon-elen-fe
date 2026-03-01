@@ -158,6 +158,8 @@ const BOOKING_DOMAIN_KEYWORDS = [
   'адрес',
   'часы',
   'маник',
+  'ногтев',
+  'дизайн',
   'педик',
   'ресниц',
   'бров',
@@ -1029,12 +1031,22 @@ function isBookingStartIntent(
 
   const restartPhrases =
     locale === 'ru'
-      ? ['новый термин', 'новая запись', 'новый прием', 'новый приём', 'начать заново']
+      ? [
+          'новый термин',
+          'новая запись',
+          'новую запись',
+          'хочу новую запись',
+          'хочу новый термин',
+          'новый прием',
+          'новый приём',
+          'начать заново',
+        ]
       : locale === 'en'
         ? ['new appointment', 'new booking', 'start over', 'book again']
         : ['neuer termin', 'neue buchung', 'neu anfangen', 'erneut buchen'];
 
   if (restartPhrases.some((p) => value.includes(p))) return true;
+  if (locale === 'ru' && /нов(ый|ую)\s+(термин|запис)/u.test(value)) return true;
 
   if (hasActiveBookingFlow) return false;
 
@@ -1192,7 +1204,11 @@ async function tryHandleCatalogSelectionFastPath(
   message: string,
 ): Promise<ChatResponse | null> {
   const input = normalizeCatalogSelectionInput(message);
-  if (!input || input.length < 4) return null;
+  if (!input) return null;
+  const contextServiceIds = session.context.selectedServiceIds ?? [];
+  const isAwaitingMasterChoice =
+    contextServiceIds.length > 0 && !session.context.selectedMasterId;
+  if (input.length < 4 && !isAwaitingMasterChoice) return null;
   if (isAffirmativeFollowUp(message)) return null;
   const hasActiveServiceSelection =
     (session.context.selectedServiceIds?.length ?? 0) > 0 ||
@@ -1218,6 +1234,82 @@ async function tryHandleCatalogSelectionFastPath(
     }>;
   }>;
   if (groups.length === 0) return null;
+
+  const flatServices = groups.flatMap((g) =>
+    g.services.map((s) => ({
+      ...s,
+      groupTitle: g.title,
+    })),
+  );
+
+  // If service is already selected but master is not, treat message as master choice first.
+  if (isAwaitingMasterChoice) {
+    const startedMasters = Date.now();
+    const mastersResult = await listMastersForServices({ serviceIds: contextServiceIds });
+    const mastersDurationMs = Date.now() - startedMasters;
+    const masters = mastersResult.masters ?? [];
+
+    if (masters.length > 1) {
+      const matchedMaster = chooseBestMatch(
+        masters,
+        (m) => normalizeChoiceText(m.name),
+        input,
+      );
+
+      if (matchedMaster) {
+        const matchedNorm = normalizeChoiceText(matchedMaster.name);
+        const isStrongMasterMatch =
+          input === matchedNorm ||
+          input.includes(matchedNorm) ||
+          matchedNorm.includes(input);
+
+        if (isStrongMasterMatch) {
+          const effectiveServiceIds =
+            mastersResult.matchedServiceIds?.length
+              ? mastersResult.matchedServiceIds
+              : contextServiceIds;
+          const serviceTitle =
+            flatServices.find((s) => s.id === effectiveServiceIds[0])?.title ??
+            (session.locale === 'ru'
+              ? 'выбранная услуга'
+              : session.locale === 'en'
+                ? 'selected service'
+                : 'gewählte Leistung');
+
+          const text = buildSingleMasterText(
+            session.locale,
+            serviceTitle,
+            matchedMaster.name,
+          );
+
+          appendSessionMessage(sessionId, 'assistant', text);
+          upsertSession(sessionId, {
+            context: {
+              selectedServiceIds: effectiveServiceIds,
+              selectedMasterId: matchedMaster.id,
+              lastSuggestedDateOptions: undefined,
+              lastDateISO: undefined,
+              lastPreferredTime: undefined,
+              lastNoSlots: false,
+            },
+          });
+
+          console.log(
+            `[AI Chat] session=${sessionId.slice(0, 8)}... fastpath=master-picked master="${matchedMaster.name}" serviceIds=${effectiveServiceIds.length}`,
+          );
+
+          return {
+            text,
+            sessionId,
+            toolCalls: [
+              { name: 'list_services', durationMs: listDurationMs },
+              { name: 'list_masters_for_services', durationMs: mastersDurationMs },
+            ],
+          };
+        }
+      }
+    }
+  }
 
   // In active booking flow, do not switch service/category from free-form text.
   // Allow only explicit catalog choices (exact group/service title or service option payload).
@@ -1285,13 +1377,6 @@ async function tryHandleCatalogSelectionFastPath(
       };
     }
   }
-
-  const flatServices = groups.flatMap((g) =>
-    g.services.map((s) => ({
-      ...s,
-      groupTitle: g.title,
-    })),
-  );
 
   const matchedService = chooseBestMatch(
     flatServices,
@@ -1515,6 +1600,7 @@ export async function POST(
       text,
       sessionId,
       toolCalls: [{ name: 'list_services', durationMs }],
+      inputMode: 'text',
     });
   }
 
@@ -2062,6 +2148,7 @@ export async function POST(
           text,
           sessionId,
           toolCalls: [{ name: 'start_verification', durationMs }],
+          inputMode: verifyRes?.ok ? 'otp' : undefined,
         });
       }
     }
@@ -2144,6 +2231,8 @@ export async function POST(
     });
 
     let iterations = 0;
+    let otpSentDuringSession = false;
+    let bookingCompletedDuringSession = false;
 
     while (iterations < MAX_TOOL_ITERATIONS) {
       const choice = response.choices[0];
@@ -2508,6 +2597,9 @@ export async function POST(
               if (payload.ok && draftIdArg && !contextPatch.draftId) {
                 contextPatch.draftId = draftIdArg;
               }
+              if (payload.ok) {
+                otpSentDuringSession = true;
+              }
             } catch {
               explicitStartVerificationCalls.push({ ok: false });
             }
@@ -2564,6 +2656,8 @@ export async function POST(
 
               if (payload.ok) {
                 bookingCompletedInBatch = true;
+                bookingCompletedDuringSession = true;
+                otpSentDuringSession = false;
                 contextPatch.selectedServiceIds = undefined;
                 contextPatch.selectedMasterId = undefined;
                 contextPatch.draftId = undefined;
@@ -2686,6 +2780,7 @@ export async function POST(
             text,
             sessionId,
             toolCalls: toolCallLog,
+            inputMode: 'text',
           });
         }
 
@@ -2797,6 +2892,7 @@ export async function POST(
               text,
               sessionId,
               toolCalls: [...toolCallLog, { name: 'start_verification', durationMs }],
+              inputMode: verifyRes?.ok ? 'otp' : undefined,
             });
           }
 
@@ -2912,10 +3008,17 @@ export async function POST(
       `[AI Chat] session=${sessionId.slice(0, 8)}... history=${historyMessages.length} tools=${toolCallLog.length} iterations=${iterations}`,
     );
 
+    const finalInputMode = bookingCompletedDuringSession
+      ? 'text'
+      : otpSentDuringSession
+        ? 'otp'
+        : undefined;
+
     return NextResponse.json({
       text,
       sessionId,
       toolCalls: toolCallLog.length > 0 ? toolCallLog : undefined,
+      inputMode: finalInputMode,
     });
   } catch (error) {
     console.error('[AI Chat] OpenAI error:', error);

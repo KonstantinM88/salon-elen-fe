@@ -13,6 +13,13 @@ interface Args {
 type CompleteError = { ok: false; error: string; message?: string };
 type CompleteResult = FinalizeResult | FinalizeError | CompleteError;
 
+const COMPLETE_BOOKING_IN_FLIGHT = new Map<string, Promise<CompleteResult>>();
+const COMPLETE_BOOKING_RECENT = new Map<
+  string,
+  { result: FinalizeResult; expiresAt: number }
+>();
+const COMPLETE_BOOKING_CACHE_TTL_MS = 10 * 60 * 1000;
+
 /**
  * Resolve the OTP method and contact info from the method string and draft.
  */
@@ -37,7 +44,7 @@ function resolveOtpLookup(
   }
 }
 
-export async function completeBooking(args: Args): Promise<CompleteResult> {
+async function completeBookingInternal(args: Args): Promise<CompleteResult> {
   const { method, draftId, code } = args;
 
   // Get draft
@@ -187,86 +194,46 @@ export async function completeBooking(args: Args): Promise<CompleteResult> {
   return result;
 }
 
+export async function completeBooking(args: Args): Promise<CompleteResult> {
+  const { draftId } = args;
+  const now = Date.now();
 
-// // src/lib/ai/tools/complete-booking.ts
+  const cached = COMPLETE_BOOKING_RECENT.get(draftId);
+  if (cached) {
+    if (cached.expiresAt > now) {
+      return cached.result;
+    }
+    COMPLETE_BOOKING_RECENT.delete(draftId);
+  }
 
-// import { verifyOTP, deleteOTP, type OTPMethod } from '@/lib/otp-store';
-// import { prisma } from '@/lib/prisma';
-// import { finalizeBookingFromDraft } from '@/lib/booking/finalize-booking';
+  const inFlight = COMPLETE_BOOKING_IN_FLIGHT.get(draftId);
+  if (inFlight) {
+    return inFlight;
+  }
 
-// interface Args {
-//   method: string;
-//   draftId: string;
-//   code: string;
-// }
+  const promise = completeBookingInternal(args)
+    .then((res) => {
+      if (res.ok) {
+        COMPLETE_BOOKING_RECENT.set(draftId, {
+          result: res,
+          expiresAt: Date.now() + COMPLETE_BOOKING_CACHE_TTL_MS,
+        });
+      }
+      return res;
+    })
+    .finally(() => {
+      COMPLETE_BOOKING_IN_FLIGHT.delete(draftId);
 
-// export async function completeBooking(args: Args) {
-//   const { method, draftId, code } = args;
+      if (COMPLETE_BOOKING_RECENT.size > 200) {
+        const ts = Date.now();
+        for (const [key, value] of COMPLETE_BOOKING_RECENT.entries()) {
+          if (value.expiresAt <= ts) {
+            COMPLETE_BOOKING_RECENT.delete(key);
+          }
+        }
+      }
+    });
 
-//   if (method !== 'email_otp') {
-//     return { ok: false, error: 'UNSUPPORTED_METHOD' };
-//   }
-
-//   // Get draft to find the email
-//   const draft = await prisma.bookingDraft.findUnique({
-//     where: { id: draftId },
-//     select: { email: true },
-//   });
-
-//   if (!draft) {
-//     return { ok: false, error: 'DRAFT_NOT_FOUND' };
-//   }
-
-//   // Verify OTP
-//   const isValid = verifyOTP('email' as OTPMethod, draft.email, draftId, code);
-
-//   if (!isValid) {
-//     return {
-//       ok: false,
-//       error: 'INVALID_CODE',
-//       message: 'Invalid or expired verification code',
-//     };
-//   }
-
-//   // Finalize booking (create Appointment from draft)
-//   const result = await finalizeBookingFromDraft(draftId);
-
-//   if (!result.ok) {
-//     return result;
-//   }
-
-//   // Cleanup OTP
-//   deleteOTP('email' as OTPMethod, draft.email, draftId);
-
-//   console.log(`[AI complete_booking] Appointment created: ${result.appointmentId}`);
-
-//   // Send admin notification (fire-and-forget)
-//   try {
-//     const { sendAdminNotification } = await import('@/lib/send-admin-notification');
-//     const appt = await prisma.appointment.findUnique({
-//       where: { id: result.appointmentId },
-//       include: {
-//         service: { select: { name: true } },
-//         master: { select: { name: true } },
-//       },
-//     });
-//     if (appt) {
-//       void sendAdminNotification({
-//         id: appt.id,
-//         customerName: appt.customerName,
-//         phone: appt.phone,
-//         email: appt.email,
-//         serviceName: appt.service.name,
-//         masterName: appt.master?.name ?? 'N/A',
-//         masterId: appt.masterId,
-//         startAt: appt.startAt,
-//         endAt: appt.endAt,
-//         paymentStatus: appt.paymentStatus,
-//       });
-//     }
-//   } catch (e) {
-//     console.warn('[AI complete_booking] Admin notification failed:', e);
-//   }
-
-//   return result;
-// }
+  COMPLETE_BOOKING_IN_FLIGHT.set(draftId, promise);
+  return promise;
+}
