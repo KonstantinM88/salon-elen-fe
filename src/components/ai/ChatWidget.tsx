@@ -72,6 +72,47 @@ const UI_TEXT = {
 
 type SupportedLocale = keyof typeof UI_TEXT;
 
+function getStreamProgressLabel(
+  locale: SupportedLocale,
+  step?: string,
+  toolName?: string,
+): string | null {
+  const key = step || toolName;
+  if (!key) return null;
+
+  const labels: Record<SupportedLocale, Record<string, string>> = {
+    ru: {
+      loading_services: 'Подбираю доступные услуги…',
+      loading_masters: 'Проверяю мастеров…',
+      searching_slots: 'Ищу свободные слоты…',
+      reserving_slot: 'Резервирую выбранный слот…',
+      creating_draft: 'Подготавливаю запись…',
+      sending_otp: 'Отправляю код подтверждения…',
+      confirming_booking: 'Подтверждаю запись…',
+    },
+    de: {
+      loading_services: 'Verfügbare Leistungen werden geladen…',
+      loading_masters: 'Verfügbare Meister werden geprüft…',
+      searching_slots: 'Freie Zeiten werden gesucht…',
+      reserving_slot: 'Der gewählte Slot wird reserviert…',
+      creating_draft: 'Buchung wird vorbereitet…',
+      sending_otp: 'Bestätigungscode wird gesendet…',
+      confirming_booking: 'Buchung wird bestätigt…',
+    },
+    en: {
+      loading_services: 'Loading available services…',
+      loading_masters: 'Checking available masters…',
+      searching_slots: 'Searching available slots…',
+      reserving_slot: 'Reserving your selected slot…',
+      creating_draft: 'Preparing booking details…',
+      sending_otp: 'Sending verification code…',
+      confirming_booking: 'Confirming your booking…',
+    },
+  };
+
+  return labels[locale][key] ?? null;
+}
+
 const MIC_ENABLE_OPTION_TEXT: Record<SupportedLocale, string> = {
   de: 'Mikrofon aktivieren',
   ru: 'Включить микрофон',
@@ -98,6 +139,7 @@ const MIC_ACTIONABLE_ERROR_CODES = new Set<VoiceMicErrorCode>([
 
 const AUTO_GREETING_MIN_MS = 8000;
 const AUTO_GREETING_MAX_MS = 12000;
+const STREAM_PROGRESS_MIN_UPDATE_MS = 250;
 
 function randomDelayBetween(min: number, max: number): number {
   return Math.floor(Math.random() * (max - min + 1)) + min;
@@ -158,6 +200,7 @@ export default function ChatWidget({ locale: propLocale }: ChatWidgetProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [streamProgress, setStreamProgress] = useState<string | null>(null);
   const [sessionId, setSessionId] = useState(() => generateSessionId());
   const [inputMode, setInputMode] = useState<InputMode>('text');
   const { height: vpHeight, keyboardOpen, isMobile } = useMobileViewport();
@@ -175,6 +218,9 @@ export default function ChatWidget({ locale: propLocale }: ChatWidgetProps) {
   const teaserShownRef = useRef(false);
   const chatAutoGreetingTimerRef = useRef<number | null>(null);
   const chatAutoGreetingShownRef = useRef(false);
+  const progressTimerRef = useRef<number | null>(null);
+  const pendingProgressRef = useRef<string | null>(null);
+  const lastProgressAtRef = useRef(0);
 
   // Scroll to bottom on new messages
   useEffect(() => {
@@ -336,6 +382,58 @@ export default function ChatWidget({ locale: propLocale }: ChatWidgetProps) {
     setShowVoiceDebug(debugByPath || debugByQuery || debugByStorage);
   }, []);
 
+  const clearProgressTimer = useCallback(() => {
+    if (progressTimerRef.current !== null) {
+      window.clearTimeout(progressTimerRef.current);
+      progressTimerRef.current = null;
+    }
+  }, []);
+
+  const setStreamProgressSmooth = useCallback(
+    (next: string | null, options?: { immediate?: boolean }) => {
+      const immediate = options?.immediate === true || next === null;
+      if (immediate) {
+        clearProgressTimer();
+        pendingProgressRef.current = null;
+        lastProgressAtRef.current = Date.now();
+        setStreamProgress(next);
+        return;
+      }
+
+      const now = Date.now();
+      const elapsed = now - lastProgressAtRef.current;
+      if (elapsed >= STREAM_PROGRESS_MIN_UPDATE_MS) {
+        clearProgressTimer();
+        pendingProgressRef.current = null;
+        lastProgressAtRef.current = now;
+        setStreamProgress(next);
+        return;
+      }
+
+      pendingProgressRef.current = next;
+      if (progressTimerRef.current !== null) return;
+
+      progressTimerRef.current = window.setTimeout(() => {
+        progressTimerRef.current = null;
+        if (pendingProgressRef.current === null) return;
+
+        const pending = pendingProgressRef.current;
+        pendingProgressRef.current = null;
+        lastProgressAtRef.current = Date.now();
+        setStreamProgress(pending);
+      }, STREAM_PROGRESS_MIN_UPDATE_MS - elapsed);
+    },
+    [clearProgressTimer],
+  );
+
+  useEffect(
+    () => () => {
+      clearProgressTimer();
+      pendingProgressRef.current = null;
+    },
+    [clearProgressTimer],
+  );
+
   const handleNewChat = useCallback(() => {
     if (chatAutoGreetingTimerRef.current !== null) {
       window.clearTimeout(chatAutoGreetingTimerRef.current);
@@ -353,9 +451,10 @@ export default function ChatWidget({ locale: propLocale }: ChatWidgetProps) {
     ]);
     setInput('');
     setIsLoading(false);
+    setStreamProgressSmooth(null, { immediate: true });
     setInputMode('text');
     setDragY(0);
-  }, [t.welcome]);
+  }, [t.welcome, setStreamProgressSmooth]);
 
   const handleSSEResponse = useCallback(
     async (res: Response) => {
@@ -368,7 +467,38 @@ export default function ChatWidget({ locale: propLocale }: ChatWidgetProps) {
       const msgId = `ai-stream-${Date.now()}`;
       streamingMsgIdRef.current = msgId;
       let accumulated = '';
-      let buffer = '';
+      let streamBuffer = '';
+      let pendingDelta = '';
+      let rafId: number | null = null;
+      let sawMetaDone = false;
+
+      const flushPendingDelta = () => {
+        if (!pendingDelta) return;
+        accumulated += pendingDelta;
+        pendingDelta = '';
+        const current = accumulated;
+        setMessages((prev) =>
+          prev.map((msg) =>
+            msg.id === msgId ? { ...msg, content: current } : msg,
+          ),
+        );
+      };
+
+      const flushPendingDeltaNow = () => {
+        if (rafId !== null) {
+          window.cancelAnimationFrame(rafId);
+          rafId = null;
+        }
+        flushPendingDelta();
+      };
+
+      const scheduleDeltaFlush = () => {
+        if (rafId !== null) return;
+        rafId = window.requestAnimationFrame(() => {
+          rafId = null;
+          flushPendingDelta();
+        });
+      };
 
       setMessages((prev) => [
         ...prev,
@@ -381,16 +511,17 @@ export default function ChatWidget({ locale: propLocale }: ChatWidgetProps) {
       ]);
 
       setIsLoading(false);
+      setStreamProgressSmooth(null, { immediate: true });
 
       try {
         while (true) {
           const { done, value } = await reader.read();
           if (done) break;
 
-          buffer += decoder.decode(value, { stream: true });
+          streamBuffer += decoder.decode(value, { stream: true });
 
-          const lines = buffer.split('\n');
-          buffer = lines.pop() || '';
+          const lines = streamBuffer.split('\n');
+          streamBuffer = lines.pop() || '';
 
           for (const line of lines) {
             if (!line.startsWith('data: ')) continue;
@@ -402,7 +533,9 @@ export default function ChatWidget({ locale: propLocale }: ChatWidgetProps) {
                 t?: string;
                 c?: string;
                 n?: string;
+                step?: string;
                 inputMode?: string;
+                done?: boolean;
                 message?: string;
               };
 
@@ -410,22 +543,27 @@ export default function ChatWidget({ locale: propLocale }: ChatWidgetProps) {
                 case 'd': {
                   const delta = typeof event.c === 'string' ? event.c : '';
                   if (!delta) break;
-                  accumulated += delta;
-                  const current = accumulated;
-                  setMessages((prev) =>
-                    prev.map((msg) =>
-                      msg.id === msgId ? { ...msg, content: current } : msg,
-                    ),
-                  );
+                  pendingDelta += delta;
+                  scheduleDeltaFlush();
                   break;
                 }
                 case 'p': {
-                  if (typeof event.n === 'string' && event.n) {
+                  const label = getStreamProgressLabel(
+                    locale,
+                    typeof event.step === 'string' ? event.step : undefined,
+                    typeof event.n === 'string' ? event.n : undefined,
+                  );
+                  if (label) {
+                    setStreamProgressSmooth(label);
+                  } else if (typeof event.n === 'string' && event.n) {
                     console.log(`[ChatWidget] Tool: ${event.n}`);
                   }
                   break;
                 }
                 case 'm': {
+                  flushPendingDeltaNow();
+                  sawMetaDone = event.done === true;
+                  setStreamProgressSmooth(null, { immediate: true });
                   if (event.inputMode === 'otp') {
                     setInputMode('otp');
                   } else if (event.inputMode === 'text') {
@@ -434,6 +572,8 @@ export default function ChatWidget({ locale: propLocale }: ChatWidgetProps) {
                   break;
                 }
                 case 'e': {
+                  flushPendingDeltaNow();
+                  setStreamProgressSmooth(null, { immediate: true });
                   const errorText =
                     typeof event.message === 'string' && event.message.trim()
                       ? event.message
@@ -456,10 +596,12 @@ export default function ChatWidget({ locale: propLocale }: ChatWidgetProps) {
           }
         }
       } finally {
+        flushPendingDeltaNow();
+        setStreamProgressSmooth(null, { immediate: true });
         reader.releaseLock();
       }
 
-      if (!accumulated) {
+      if (!accumulated && !sawMetaDone) {
         setMessages((prev) =>
           prev.map((msg) =>
             msg.id === msgId ? { ...msg, content: t.error, isError: true } : msg,
@@ -467,7 +609,7 @@ export default function ChatWidget({ locale: propLocale }: ChatWidgetProps) {
         );
       }
     },
-    [t.error],
+    [t.error, locale, setStreamProgressSmooth],
   );
 
   // ─── Core send logic ─────────────────────────────────────────
@@ -475,6 +617,7 @@ export default function ChatWidget({ locale: propLocale }: ChatWidgetProps) {
   const sendMessage = useCallback(
     async (text: string) => {
       setIsLoading(true);
+      setStreamProgressSmooth(null, { immediate: true });
 
       try {
         const res = await fetch(API_URL, {
@@ -512,6 +655,7 @@ export default function ChatWidget({ locale: propLocale }: ChatWidgetProps) {
         }
 
         const data = await res.json();
+        setStreamProgressSmooth(null, { immediate: true });
 
         setMessages((prev) => [
           ...prev,
@@ -531,6 +675,7 @@ export default function ChatWidget({ locale: propLocale }: ChatWidgetProps) {
         }
       } catch (err) {
         console.error('[ChatWidget] Error:', err);
+        setStreamProgressSmooth(null, { immediate: true });
         setMessages((prev) => [
           ...prev,
           {
@@ -543,10 +688,11 @@ export default function ChatWidget({ locale: propLocale }: ChatWidgetProps) {
         ]);
       } finally {
         setIsLoading(false);
+        setStreamProgressSmooth(null, { immediate: true });
         streamingMsgIdRef.current = null;
       }
     },
-    [sessionId, locale, t, inputMode, handleSSEResponse],
+    [sessionId, locale, t, inputMode, handleSSEResponse, setStreamProgressSmooth],
   );
 
   // ─── Text input handlers ──────────────────────────────────────
@@ -931,6 +1077,12 @@ export default function ChatWidget({ locale: propLocale }: ChatWidgetProps) {
                       <span className="inline-block h-2 w-2 animate-bounce rounded-full bg-pink-300" style={{ animationDelay: '300ms' }} />
                     </div>
                   </div>
+                </div>
+              )}
+
+              {!isLoading && streamProgress && (
+                <div className="mb-3 rounded-lg border border-pink-100 bg-white/70 px-3 py-2 text-[11px] text-slate-600 shadow-sm">
+                  {streamProgress}
                 </div>
               )}
 

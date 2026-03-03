@@ -4,17 +4,21 @@
 //
 // Protocol:
 //   data: {"t":"d","c":"chunk text"}\n\n          — text delta
-//   data: {"t":"p","n":"tool_name"}\n\n           — tool progress indicator
-//   data: {"t":"m","inputMode":"text",...}\n\n     — metadata (final event)
+//   data: {"t":"p","n":"tool_name","step":"..."}\n\n — tool progress indicator
+//   data: {"t":"m","done":true,...}\n\n           — metadata (final event)
 //   data: {"t":"e","message":"error msg"}\n\n      — error
+//   : hb\n\n                                      — heartbeat comment
 
 const encoder = new TextEncoder();
+const DELTA_FLUSH_INTERVAL_MS = 60;
+const DELTA_FLUSH_MAX_CHARS = 48;
+const HEARTBEAT_INTERVAL_MS = 20_000;
 
 export interface SSEWriter {
   /** Send a text delta chunk to the client */
   sendDelta(content: string): void;
   /** Notify client that a tool is being executed (optional progress) */
-  sendToolProgress(toolName: string): void;
+  sendToolProgress(toolName: string, step?: string): void;
   /** Send final metadata and close the stream */
   sendMeta(meta: Record<string, unknown>): void;
   /** Send error and close the stream */
@@ -39,28 +43,80 @@ export interface SSEWriter {
 export function createSSEWriter(): SSEWriter {
   let controller: ReadableStreamDefaultController<Uint8Array>;
   let closed = false;
+  let deltaBuffer = '';
+  let lastDeltaFlushAt = Date.now();
+  let deltaFlushTimer: ReturnType<typeof setTimeout> | null = null;
+  let heartbeatTimer: ReturnType<typeof setInterval> | null = null;
 
   const stream = new ReadableStream<Uint8Array>({
     start(c) {
       controller = c;
+      heartbeatTimer = setInterval(() => {
+        enqueueComment('hb');
+      }, HEARTBEAT_INTERVAL_MS);
     },
     cancel() {
       closed = true;
+      clearTimers();
     },
   });
 
-  function enqueue(data: string): void {
+  function clearTimers(): void {
+    if (deltaFlushTimer !== null) {
+      clearTimeout(deltaFlushTimer);
+      deltaFlushTimer = null;
+    }
+    if (heartbeatTimer !== null) {
+      clearInterval(heartbeatTimer);
+      heartbeatTimer = null;
+    }
+  }
+
+  function enqueueData(data: string): void {
     if (closed) return;
     try {
       controller.enqueue(encoder.encode(`data: ${data}\n\n`));
     } catch {
       // Stream already closed by client disconnect
       closed = true;
+      clearTimers();
     }
+  }
+
+  function enqueueComment(comment: string): void {
+    if (closed) return;
+    try {
+      controller.enqueue(encoder.encode(`: ${comment}\n\n`));
+    } catch {
+      closed = true;
+      clearTimers();
+    }
+  }
+
+  function flushDeltaBuffer(): void {
+    if (!deltaBuffer) return;
+    const chunk = deltaBuffer;
+    deltaBuffer = '';
+    lastDeltaFlushAt = Date.now();
+    if (deltaFlushTimer !== null) {
+      clearTimeout(deltaFlushTimer);
+      deltaFlushTimer = null;
+    }
+    enqueueData(JSON.stringify({ t: 'd', c: chunk }));
+  }
+
+  function scheduleDeltaFlush(): void {
+    if (closed || deltaFlushTimer !== null) return;
+    deltaFlushTimer = setTimeout(() => {
+      deltaFlushTimer = null;
+      flushDeltaBuffer();
+    }, DELTA_FLUSH_INTERVAL_MS);
   }
 
   function close(): void {
     if (closed) return;
+    flushDeltaBuffer();
+    clearTimers();
     closed = true;
     try {
       controller.close();
@@ -73,20 +129,42 @@ export function createSSEWriter(): SSEWriter {
     stream,
 
     sendDelta(content: string) {
-      enqueue(JSON.stringify({ t: 'd', c: content }));
+      if (!content) return;
+      deltaBuffer += content;
+
+      const now = Date.now();
+      const hitLengthLimit = deltaBuffer.length >= DELTA_FLUSH_MAX_CHARS;
+      const hitTimeLimit = now - lastDeltaFlushAt >= DELTA_FLUSH_INTERVAL_MS;
+      const hitSafeBoundary = /[\s.,!?;:\n)]$/.test(content);
+
+      if (hitLengthLimit || hitTimeLimit || hitSafeBoundary) {
+        flushDeltaBuffer();
+        return;
+      }
+
+      scheduleDeltaFlush();
     },
 
-    sendToolProgress(toolName: string) {
-      enqueue(JSON.stringify({ t: 'p', n: toolName }));
+    sendToolProgress(toolName: string, step?: string) {
+      flushDeltaBuffer();
+      enqueueData(
+        JSON.stringify({
+          t: 'p',
+          n: toolName,
+          step: step || undefined,
+        }),
+      );
     },
 
     sendMeta(meta: Record<string, unknown>) {
-      enqueue(JSON.stringify({ t: 'm', ...meta }));
+      flushDeltaBuffer();
+      enqueueData(JSON.stringify({ t: 'm', done: true, ...meta }));
       close();
     },
 
     sendError(message: string) {
-      enqueue(JSON.stringify({ t: 'e', message }));
+      flushDeltaBuffer();
+      enqueueData(JSON.stringify({ t: 'e', message }));
       close();
     },
   };

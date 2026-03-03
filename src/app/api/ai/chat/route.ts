@@ -527,6 +527,28 @@ function isLikelyBookingDomainMessage(text: string): boolean {
   return BOOKING_DOMAIN_KEYWORDS.some((keyword) => normalizedInput.includes(keyword));
 }
 
+function mapToolNameToProgressStep(toolName: string): string {
+  switch (toolName) {
+    case 'list_services':
+      return 'loading_services';
+    case 'list_masters_for_services':
+      return 'loading_masters';
+    case 'search_availability':
+    case 'search_availability_month':
+      return 'searching_slots';
+    case 'reserve_slot':
+      return 'reserving_slot';
+    case 'create_draft':
+      return 'creating_draft';
+    case 'start_verification':
+      return 'sending_otp';
+    case 'complete_booking':
+      return 'confirming_booking';
+    default:
+      return `tool:${toolName}`;
+  }
+}
+
 function isConsultationOperationalBookingInput(text: string): boolean {
   const value = normalizeInput(text).replace(/ё/g, 'е');
   if (!value) return false;
@@ -4727,7 +4749,7 @@ export async function POST(
 
         if (useSSE && sse) {
           for (const call of toolCalls) {
-            sse.sendToolProgress(call.name);
+            sse.sendToolProgress(call.name, mapToolNameToProgressStep(call.name));
           }
         }
 
@@ -5369,6 +5391,7 @@ export async function POST(
       }
     }
 
+    const assistantMessageId = `assistant-${Date.now()}`;
     appendSessionMessage(sessionId, 'assistant', text);
 
     if (missingServiceSignals.length > 0) {
@@ -5417,6 +5440,7 @@ export async function POST(
       sse.sendMeta({
         inputMode: finalInputMode,
         sessionId,
+        messageId: assistantMessageId,
         toolCalls: toolCallLog.length > 0 ? toolCallLog : undefined,
       });
       return new NextResponse(sse.stream, {
