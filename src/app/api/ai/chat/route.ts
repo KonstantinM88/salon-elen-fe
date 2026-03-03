@@ -7,6 +7,11 @@ import { buildSystemPrompt } from '@/lib/ai/system-prompt';
 import { TOOLS } from '@/lib/ai/tools-schema';
 import { executeTool, type ToolCallRequest } from '@/lib/ai/tool-executor';
 import {
+  createSSEWriter,
+  SSE_HEADERS,
+} from '@/lib/ai/sse-stream';
+import { streamingGptCall, toolCallsToMessage } from '@/lib/ai/streaming-gpt';
+import {
   type AiSession,
   getSession,
   upsertSession,
@@ -84,6 +89,7 @@ interface ChatRequest {
   message: string;
   locale?: string;
   inputMode?: 'text' | 'voice' | 'otp';
+  stream?: boolean;
 }
 
 interface ChatResponse {
@@ -2644,7 +2650,7 @@ export async function POST(
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
   }
 
-  const { sessionId, message, locale, inputMode } = body;
+  const { sessionId, message, locale, inputMode, stream: wantStream } = body;
   const isVoiceTurn = inputMode === 'voice';
 
   if (!sessionId || !message?.trim()) {
@@ -4474,42 +4480,78 @@ export async function POST(
     },
   }));
 
+  const useSSE = wantStream === true && !isVoiceTurn;
+  const sse = useSSE ? createSSEWriter() : undefined;
+
   try {
     const toolCallLog: { name: string; durationMs: number }[] = [];
     const missingServiceSignals: MissingServiceSignal[] = [];
 
     // Tool-calling loop
-    let response = await client.chat.completions.create({
-      model: MODEL,
-      messages,
-      tools,
-      tool_choice: 'auto',
-      temperature: TEMPERATURE,
-      max_tokens: 1024,
-    });
+    let response: OpenAI.Chat.ChatCompletion | null = null;
+    let streamResult: Awaited<ReturnType<typeof streamingGptCall>> | null = null;
+
+    if (useSSE && sse) {
+      streamResult = await streamingGptCall(
+        client,
+        {
+          model: MODEL,
+          messages,
+          tools,
+          tool_choice: 'auto',
+          temperature: TEMPERATURE,
+          max_tokens: 1024,
+        },
+        sse,
+      );
+    } else {
+      response = await client.chat.completions.create({
+        model: MODEL,
+        messages,
+        tools,
+        tool_choice: 'auto',
+        temperature: TEMPERATURE,
+        max_tokens: 1024,
+      });
+    }
 
     let iterations = 0;
     let otpSentDuringSession = false;
     let bookingCompletedDuringSession = false;
 
     while (iterations < MAX_TOOL_ITERATIONS) {
-      const choice = response.choices[0];
-      if (!choice) break;
+      const choice = response?.choices[0];
+      const streamToolCalls = streamResult?.toolCalls ?? [];
+      const hasToolCalls = useSSE
+        ? streamToolCalls.length > 0
+        : Boolean(
+            choice?.finish_reason === 'tool_calls' &&
+              choice.message.tool_calls &&
+              choice.message.tool_calls.length > 0,
+          );
+
+      if (!useSSE && !choice) break;
 
       // If the model wants to call tools
-      if (
-        choice.finish_reason === 'tool_calls' &&
-        choice.message.tool_calls &&
-        choice.message.tool_calls.length > 0
-      ) {
+      if (hasToolCalls) {
         // Add assistant message with tool calls to history
-        messages.push(choice.message);
+        if (useSSE && streamResult) {
+          messages.push(toolCallsToMessage(streamResult));
+        } else if (choice) {
+          messages.push(choice.message);
+        }
 
         // Execute all tool calls in parallel
         // Note: OpenAI SDK has union types for tool calls, we need explicit narrowing
         const toolCalls: ToolCallRequest[] = [];
         const parsedArgsByCallId = new Map<string, Record<string, unknown>>();
-        for (const tc of choice.message.tool_calls) {
+        const modelToolCalls = useSSE
+          ? streamToolCalls
+          : ((choice?.message.tool_calls ?? []) as Array<{
+              id: string;
+              function: { name: string; arguments: string };
+            }>);
+        for (const tc of modelToolCalls) {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const fn = (tc as any).function as
             | { name: string; arguments: string }
@@ -4651,6 +4693,12 @@ export async function POST(
                 toolCalls.splice(i, 1);
               }
             }
+          }
+        }
+
+        if (useSSE && sse) {
+          for (const call of toolCalls) {
+            sse.sendToolProgress(call.name);
           }
         }
 
@@ -5200,14 +5248,30 @@ export async function POST(
         }
 
         // Call model again with tool results
-        response = await client.chat.completions.create({
-          model: MODEL,
-          messages,
-          tools,
-          tool_choice: 'auto',
-          temperature: TEMPERATURE,
-          max_tokens: 1024,
-        });
+        if (useSSE && sse) {
+          streamResult = await streamingGptCall(
+            client,
+            {
+              model: MODEL,
+              messages,
+              tools,
+              tool_choice: 'auto',
+              temperature: TEMPERATURE,
+              max_tokens: 1024,
+            },
+            sse,
+          );
+          response = null;
+        } else {
+          response = await client.chat.completions.create({
+            model: MODEL,
+            messages,
+            tools,
+            tool_choice: 'auto',
+            temperature: TEMPERATURE,
+            max_tokens: 1024,
+          });
+        }
 
         iterations++;
         continue;
@@ -5218,28 +5282,52 @@ export async function POST(
     }
 
     // Extract final text
-    let finalMessage = response.choices[0]?.message;
-    let text =
-      typeof finalMessage?.content === 'string'
-        ? finalMessage.content.trim()
-        : '';
+    let text = '';
+    if (useSSE) {
+      text =
+        typeof streamResult?.content === 'string' ? streamResult.content.trim() : '';
+    } else {
+      const finalMessage = response?.choices[0]?.message;
+      text =
+        typeof finalMessage?.content === 'string'
+          ? finalMessage.content.trim()
+          : '';
+    }
 
     // If model ended without text (e.g. too many tool iterations), force a final textual reply.
     if (!text) {
       try {
-        const forced = await client.chat.completions.create({
-          model: MODEL,
-          messages,
-          tools,
-          tool_choice: 'none',
-          temperature: TEMPERATURE,
-          max_tokens: 512,
-        });
-        finalMessage = forced.choices[0]?.message;
-        text =
-          typeof finalMessage?.content === 'string'
-            ? finalMessage.content.trim()
-            : '';
+        if (useSSE && sse) {
+          const forced = await streamingGptCall(
+            client,
+            {
+              model: MODEL,
+              messages,
+              tools,
+              tool_choice: 'none',
+              temperature: TEMPERATURE,
+              max_tokens: 512,
+            },
+            sse,
+          );
+          streamResult = forced;
+          text =
+            typeof forced.content === 'string' ? forced.content.trim() : '';
+        } else {
+          const forced = await client.chat.completions.create({
+            model: MODEL,
+            messages,
+            tools,
+            tool_choice: 'none',
+            temperature: TEMPERATURE,
+            max_tokens: 512,
+          });
+          const finalMessage = forced.choices[0]?.message;
+          text =
+            typeof finalMessage?.content === 'string'
+              ? finalMessage.content.trim()
+              : '';
+        }
       } catch (forceError) {
         console.warn('[AI Chat] Forced final response failed:', forceError);
       }
@@ -5247,6 +5335,9 @@ export async function POST(
 
     if (!text) {
       text = fallbackTextByLocale(session.locale);
+      if (useSSE && sse) {
+        sse.sendDelta(text);
+      }
     }
 
     appendSessionMessage(sessionId, 'assistant', text);
@@ -5293,6 +5384,17 @@ export async function POST(
         ? 'otp'
         : undefined;
 
+    if (useSSE && sse) {
+      sse.sendMeta({
+        inputMode: finalInputMode,
+        sessionId,
+        toolCalls: toolCallLog.length > 0 ? toolCallLog : undefined,
+      });
+      return new NextResponse(sse.stream, {
+        headers: SSE_HEADERS,
+      }) as unknown as NextResponse<ChatResponse | { error: string }>;
+    }
+
     return NextResponse.json({
       text,
       sessionId,
@@ -5306,6 +5408,13 @@ export async function POST(
       error instanceof OpenAI.APIError
         ? `OpenAI API error: ${error.status}`
         : 'Internal AI error';
+
+    if (useSSE && sse) {
+      sse.sendError(errorMsg);
+      return new NextResponse(sse.stream, {
+        headers: SSE_HEADERS,
+      }) as unknown as NextResponse<ChatResponse | { error: string }>;
+    }
 
     return NextResponse.json({ error: errorMsg }, { status: 500 });
   }
