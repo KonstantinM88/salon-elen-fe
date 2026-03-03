@@ -3,6 +3,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI, { toFile } from 'openai';
+import { isConsultationIntentByKnowledge } from '@/lib/ai/knowledge';
 
 // ─── Config ─────────────────────────────────────────────────────
 
@@ -400,9 +401,10 @@ export async function POST(req: NextRequest) {
         ? transcription.trim()
         : String(transcription).trim();
     const transcript = normalizeVoiceTranscript(transcriptRaw, locale);
+    const hasConsultationIntent = isConsultationIntentByKnowledge(transcript, locale);
 
     console.log(
-      `[AI Voice] STT ${sttMs}ms locale=${locale} len=${transcript.length} text="${transcript.slice(0, 80)}"`,
+      `[AI Voice] STT ${sttMs}ms locale=${locale} len=${transcript.length} consult=${hasConsultationIntent} text="${transcript.slice(0, 80)}"`,
     );
 
     if (!transcript) {

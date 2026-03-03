@@ -27,6 +27,20 @@ export interface AiSession {
   lastActiveAt: Date;
   /** Accumulated context for the session */
   context: {
+    /** Consultation-first mode (do not auto-jump into booking catalog flow). */
+    consultationMode?: boolean;
+    /** Active consultation topic for consultation-first flow. */
+    consultationTopic?: 'pmu' | 'brows_lashes' | 'hydrafacial';
+    /** Last concrete consultation technique user selected (for seamless bridge to booking). */
+    consultationTechnique?:
+      | 'powder_brows'
+      | 'hairstroke_brows'
+      | 'aquarell_lips'
+      | 'lips_3d'
+      | 'lashline'
+      | 'upper_lower';
+    /** Waiting for explicit confirmation to book the consultation-selected technique. */
+    awaitingConsultationBookingConfirmation?: boolean;
     selectedServiceIds?: string[];
     selectedMasterId?: string;
     reservedSlot?: { startAt: string; endAt: string };

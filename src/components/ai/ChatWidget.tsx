@@ -27,7 +27,7 @@ function generateSessionId(): string {
 const UI_TEXT = {
   de: {
     placeholder: 'Ihre Nachricht...',
-    welcome: 'Hallo! 👋 Ich bin Elen-AI, Ihr Buchungsassistent. Wie kann ich Ihnen helfen?\n\n[option] 📅 Termin buchen [/option]\n[option] 💅 Leistungen & Preise [/option]\n[option] 📍 Anfahrt & Öffnungszeiten [/option]',
+    welcome: 'Hallo! 👋 Ich bin Elen-AI, Ihr Buchungsassistent. Wie kann ich Ihnen helfen?\n\n[option] 📅 Termin buchen [/option]\n[option] 💬 Beratung & Auswahl [/option]\n[option] 💅 Leistungen & Preise [/option]\n[option] 📍 Anfahrt & Öffnungszeiten [/option]',
     error: 'Entschuldigung, etwas ist schiefgelaufen. Bitte versuchen Sie es erneut.',
     rateLimit: 'Bitte warten Sie einen Moment, bevor Sie eine neue Nachricht senden.',
     title: 'Salon Elen',
@@ -36,7 +36,7 @@ const UI_TEXT = {
   },
   ru: {
     placeholder: 'Ваше сообщение...',
-    welcome: 'Привет! 👋 Я Elen-AI, ассистент записи. Чем могу помочь?\n\n[option] 📅 Записаться на приём [/option]\n[option] 💅 Услуги и цены [/option]\n[option] 📍 Адрес и часы работы [/option]',
+    welcome: 'Привет! 👋 Я Elen-AI, ассистент записи. Чем могу помочь?\n\n[option] 📅 Записаться на приём [/option]\n[option] 💬 Консультация и подбор [/option]\n[option] 💅 Услуги и цены [/option]\n[option] 📍 Адрес и часы работы [/option]',
     error: 'Извините, произошла ошибка. Попробуйте ещё раз.',
     rateLimit: 'Пожалуйста, подождите немного перед отправкой нового сообщения.',
     title: 'Salon Elen',
@@ -45,7 +45,7 @@ const UI_TEXT = {
   },
   en: {
     placeholder: 'Your message...',
-    welcome: 'Hello! 👋 I\'m Elen-AI, your booking assistant. How can I help?\n\n[option] 📅 Book an appointment [/option]\n[option] 💅 Services & prices [/option]\n[option] 📍 Location & hours [/option]',
+    welcome: 'Hello! 👋 I\'m Elen-AI, your booking assistant. How can I help?\n\n[option] 📅 Book an appointment [/option]\n[option] 💬 Consultation & guidance [/option]\n[option] 💅 Services & prices [/option]\n[option] 📍 Location & hours [/option]',
     error: 'Sorry, something went wrong. Please try again.',
     rateLimit: 'Please wait a moment before sending a new message.',
     title: 'Salon Elen',

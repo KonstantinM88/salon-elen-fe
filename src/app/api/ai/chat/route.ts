@@ -27,6 +27,22 @@ import {
   detectVerificationMethodChoice,
   getContactForMethod,
 } from '@/lib/ai/verification-choice';
+import {
+  buildKnowledgeConsultationStartText,
+  buildKnowledgePmuHealingText,
+  buildKnowledgePmuLipsChoiceText,
+  buildKnowledgeConsultationStyleText,
+  buildKnowledgeConsultationTopicText,
+  buildKnowledgeSystemMessage,
+  detectKnowledgeConsultationStyle,
+  detectKnowledgeConsultationTopic,
+  detectKnowledgePmuTechnique,
+  buildKnowledgePmuTechniqueText,
+  getKnowledgeMenuOptions,
+  isKnowledgePmuHealingIntent,
+  isKnowledgePmuLipsChoiceIntent,
+  isConsultationIntentByKnowledge,
+} from '@/lib/ai/knowledge';
 import { prisma } from '@/lib/prisma';
 
 // ─── Config ─────────────────────────────────────────────────────
@@ -348,6 +364,12 @@ const BOOKING_DOMAIN_KEYWORDS = [
   'стриж',
   'окраш',
   'код подтверждения',
+  'консультац',
+  'подбор',
+  'подберите',
+  'что подойдет',
+  'что подойдёт',
+  'pmu',
   // DE
   'termin',
   'buch',
@@ -366,9 +388,13 @@ const BOOKING_DOMAIN_KEYWORDS = [
   'wimper',
   'augenbrau',
   'permanent',
+  'pmu',
   'haarschnitt',
   'coloring',
   'bestätigungscode',
+  'beratung',
+  'konsultation',
+  'empfehlung',
   // EN
   'book',
   'booking',
@@ -389,8 +415,14 @@ const BOOKING_DOMAIN_KEYWORDS = [
   'lashes',
   'brows',
   'permanent',
+  'pmu',
   'haircut',
   'verification code',
+  'consultation',
+  'consult',
+  'recommendation',
+  'recommend',
+  'help choose',
 ];
 
 const RESEND_CODE_HINTS = [
@@ -465,6 +497,332 @@ function isLikelyBookingDomainMessage(text: string): boolean {
   return BOOKING_DOMAIN_KEYWORDS.some((keyword) => normalizedInput.includes(keyword));
 }
 
+function isConsultationOperationalBookingInput(text: string): boolean {
+  const value = normalizeInput(text).replace(/ё/g, 'е');
+  if (!value) return false;
+  if (looksLikeDateOrTimeSelection(text)) return true;
+  if (isAffirmativeFollowUp(text)) return true;
+
+  const hints = [
+    'подходит',
+    'подойдет',
+    'подойдёт',
+    'выбрать дату',
+    'выбери дату',
+    'время',
+    'дата',
+    'мастер',
+    'slot',
+    'date',
+    'time',
+    'master',
+    'uhrzeit',
+    'datum',
+    'meister',
+  ];
+  return hints.some((h) => value.includes(h));
+}
+
+type ConsultationTechnique = NonNullable<
+  AiSession['context']['consultationTechnique']
+>;
+
+type SelectionCatalogGroup = {
+  id: string;
+  title: string;
+  services: Array<{
+    id: string;
+    title: string;
+    durationMin: number;
+    priceCents: number | null;
+  }>;
+};
+
+type SelectionCatalogService = {
+  id: string;
+  title: string;
+  groupTitle: string;
+};
+
+function getConsultationTechniqueBookingLabels(
+  locale: 'de' | 'ru' | 'en',
+  technique: ConsultationTechnique,
+): string[] {
+  if (technique === 'powder_brows') {
+    return locale === 'ru'
+      ? ['Пудровые брови', 'Powder Brows']
+      : locale === 'en'
+        ? ['Powder Brows', 'Пудровые брови']
+        : ['Powder Brows', 'Пудровые брови'];
+  }
+  if (technique === 'hairstroke_brows') {
+    return locale === 'ru'
+      ? ['Волосковая техника', 'Hairstroke Brows']
+      : locale === 'en'
+        ? ['Hairstroke Brows', 'Волосковая техника']
+        : ['Hairstroke Brows', 'Волосковая техника'];
+  }
+  if (technique === 'aquarell_lips') {
+    return locale === 'ru'
+      ? ['Акварельные губы', 'Aquarell Lips']
+      : locale === 'en'
+        ? ['Aquarelle Lips', 'Акварельные губы']
+        : ['Aquarell Lips', 'Акварельные губы'];
+  }
+  if (technique === 'lips_3d') {
+    return locale === 'ru'
+      ? ['3D губы', '3D Lips']
+      : locale === 'en'
+        ? ['3D Lips', '3D губы']
+        : ['3D Lips', '3D губы'];
+  }
+  if (technique === 'upper_lower') {
+    return locale === 'ru'
+      ? ['Межресничка верх+низ', 'Верх+низ', 'Wimpernkranz oben + unten']
+      : locale === 'en'
+        ? ['Upper + lower lash line', 'Lash line upper + lower', 'Межресничка верх+низ']
+        : ['Wimpernkranz oben + unten', 'Oben + unten', 'Межресничка верх+низ'];
+  }
+  return locale === 'ru'
+    ? ['Межресничка', 'Lash line', 'Wimpernkranz']
+    : locale === 'en'
+      ? ['Lash line', 'Межресничка', 'Wimpernkranz']
+      : ['Wimpernkranz', 'Lash line', 'Межресничка'];
+}
+
+function isLikelyPmuGroupTitle(title: string): boolean {
+  const value = normalizeChoiceText(title);
+  return (
+    value.includes('pmu') ||
+    value.includes('перманент') ||
+    value.includes('permanent')
+  );
+}
+
+function isLikelyComboOrCorrectionService(title: string): boolean {
+  const raw = title.toLowerCase();
+  const normalized = normalizeChoiceText(title);
+  return (
+    normalized.includes('комбо') ||
+    normalized.includes('combo') ||
+    normalized.includes('коррек') ||
+    normalized.includes('correction') ||
+    normalized.includes('refresh') ||
+    normalized.includes('nachbehandlung') ||
+    normalized.includes('auffrisch') ||
+    raw.includes('+')
+  );
+}
+
+function resolveConsultationTechniqueService(
+  locale: 'de' | 'ru' | 'en',
+  technique: ConsultationTechnique,
+  groups: SelectionCatalogGroup[],
+): SelectionCatalogService | null {
+  const flatServices: SelectionCatalogService[] = groups.flatMap((group) =>
+    group.services.map((service) => ({
+      id: service.id,
+      title: service.title,
+      groupTitle: group.title,
+    })),
+  );
+  if (flatServices.length === 0) return null;
+
+  const pmuPool = flatServices.filter(
+    (service) =>
+      isLikelyPmuGroupTitle(service.groupTitle) ||
+      isLikelyPmuGroupTitle(service.title),
+  );
+  const pool = pmuPool.length > 0 ? pmuPool : flatServices;
+  const labels = getConsultationTechniqueBookingLabels(locale, technique).map((label) =>
+    normalizeChoiceText(label),
+  );
+
+  const browsRe = /(бров|brow|augenbrau)/u;
+  const lipsRe = /(губ|lip|lipp)/u;
+  const lashRe = /(межреснич|lash line|lashline|wimpernkranz)/u;
+  const upperLowerRe = /(верх.*низ|upper.*lower|oben.*unten)/u;
+  const powderRe = /(powder|пудров|puder)/u;
+  const hairstrokeRe = /(hairstroke|волосков|härchen|haerchen)/u;
+  const aquarellRe = /(aquarell|акварел)/u;
+  const lips3dRe = /(3d)/u;
+
+  let best: SelectionCatalogService | null = null;
+  let bestScore = 0;
+
+  for (const service of pool) {
+    const normalizedTitle = normalizeChoiceText(service.title);
+    let score = 0;
+
+    if (labels.some((label) => label === normalizedTitle)) {
+      score += 1200;
+    }
+    if (
+      labels.some(
+        (label) =>
+          label.length > 0 &&
+          (normalizedTitle.includes(label) || label.includes(normalizedTitle)),
+      )
+    ) {
+      score += 250;
+    }
+
+    if (isLikelyPmuGroupTitle(service.groupTitle)) score += 120;
+    if (isLikelyComboOrCorrectionService(service.title)) score -= 900;
+
+    switch (technique) {
+      case 'powder_brows':
+        if (powderRe.test(normalizedTitle)) score += 900;
+        if (browsRe.test(normalizedTitle)) score += 150;
+        if (
+          hairstrokeRe.test(normalizedTitle) ||
+          aquarellRe.test(normalizedTitle) ||
+          lips3dRe.test(normalizedTitle) ||
+          lipsRe.test(normalizedTitle) ||
+          lashRe.test(normalizedTitle)
+        ) {
+          score -= 450;
+        }
+        break;
+      case 'hairstroke_brows':
+        if (hairstrokeRe.test(normalizedTitle)) score += 900;
+        if (browsRe.test(normalizedTitle)) score += 150;
+        if (
+          powderRe.test(normalizedTitle) ||
+          aquarellRe.test(normalizedTitle) ||
+          lips3dRe.test(normalizedTitle) ||
+          lipsRe.test(normalizedTitle) ||
+          lashRe.test(normalizedTitle)
+        ) {
+          score -= 450;
+        }
+        break;
+      case 'aquarell_lips':
+        if (aquarellRe.test(normalizedTitle)) score += 900;
+        if (lipsRe.test(normalizedTitle)) score += 150;
+        if (
+          powderRe.test(normalizedTitle) ||
+          hairstrokeRe.test(normalizedTitle) ||
+          lips3dRe.test(normalizedTitle) ||
+          browsRe.test(normalizedTitle) ||
+          lashRe.test(normalizedTitle)
+        ) {
+          score -= 450;
+        }
+        break;
+      case 'lips_3d':
+        if (lips3dRe.test(normalizedTitle)) score += 850;
+        if (lipsRe.test(normalizedTitle)) score += 150;
+        if (
+          aquarellRe.test(normalizedTitle) ||
+          powderRe.test(normalizedTitle) ||
+          hairstrokeRe.test(normalizedTitle) ||
+          browsRe.test(normalizedTitle) ||
+          lashRe.test(normalizedTitle)
+        ) {
+          score -= 450;
+        }
+        break;
+      case 'lashline':
+        if (lashRe.test(normalizedTitle)) score += 900;
+        if (upperLowerRe.test(normalizedTitle)) score -= 280;
+        if (browsRe.test(normalizedTitle) || lipsRe.test(normalizedTitle)) score -= 420;
+        break;
+      case 'upper_lower':
+        if (upperLowerRe.test(normalizedTitle)) score += 1000;
+        if (lashRe.test(normalizedTitle)) score += 120;
+        if (browsRe.test(normalizedTitle) || lipsRe.test(normalizedTitle)) score -= 420;
+        break;
+    }
+
+    if (score > bestScore) {
+      bestScore = score;
+      best = service;
+    }
+  }
+
+  return bestScore > 0 ? best : null;
+}
+
+function buildConsultationBookingConfirmText(
+  locale: 'de' | 'ru' | 'en',
+  technique: ConsultationTechnique,
+): string {
+  const display = getConsultationTechniqueBookingLabels(locale, technique)[0];
+  if (locale === 'ru') {
+    return `Подтвердите, пожалуйста: записываем вас на услугу "${display}"?\n\n[option] ✅ Да, записаться на ${display} [/option]\n[option] 🔁 Выбрать другую услугу [/option]`;
+  }
+  if (locale === 'en') {
+    return `Please confirm: should I book you for "${display}"?\n\n[option] ✅ Yes, book ${display} [/option]\n[option] 🔁 Choose another service [/option]`;
+  }
+  return `Bitte bestätigen: Soll ich Sie für "${display}" eintragen?\n\n[option] ✅ Ja, ${display} buchen [/option]\n[option] 🔁 Andere Leistung wählen [/option]`;
+}
+
+function buildConsultationPmuTechniqueChoiceText(
+  locale: 'de' | 'ru' | 'en',
+): string {
+  if (locale === 'ru') {
+    return 'Чтобы подобрать время, сначала выберите конкретную PMU-услугу 🌸\n\n[option] 💖 Powder Brows — мягкий эффект, 350 € [/option]\n[option] 🌟 Hairstroke Brows — более детализированный, 450 € [/option]\n[option] 💄 Aquarell Lips — свежий оттенок, 380 € [/option]\n[option] 💋 3D Lips — объёмный эффект, 420 € [/option]\n[option] 👁 Межресничка — выразительный взгляд, 130 € [/option]\n[option] 👁 Межресничка верх+низ — 150 € [/option]';
+  }
+  if (locale === 'en') {
+    return 'To pick a time, please choose a specific PMU service first 🌸\n\n[option] 💖 Powder Brows — soft effect, €350 [/option]\n[option] 🌟 Hairstroke Brows — more detailed, €450 [/option]\n[option] 💄 Aquarelle Lips — fresh color, €380 [/option]\n[option] 💋 3D Lips — fuller effect, €420 [/option]\n[option] 👁 Lash line — expressive look, €130 [/option]\n[option] 👁 Upper + lower lash line — €150 [/option]';
+  }
+  return 'Damit ich eine Zeit finde, wählen Sie zuerst eine konkrete PMU-Leistung 🌸\n\n[option] 💖 Powder Brows — weicher Effekt, 350 € [/option]\n[option] 🌟 Hairstroke Brows — detaillierter, 450 € [/option]\n[option] 💄 Aquarell Lips — frischer Farbton, 380 € [/option]\n[option] 💋 3D Lips — vollerer Effekt, 420 € [/option]\n[option] 👁 Wimpernkranz — ausdrucksvoller Blick, 130 € [/option]\n[option] 👁 Wimpernkranz oben + unten — 150 € [/option]';
+}
+
+function isConsultationBookingConfirmIntent(
+  text: string,
+  locale: 'de' | 'ru' | 'en',
+): boolean {
+  const value = normalizeInput(text).replace(/ё/g, 'е');
+  if (!value) return false;
+  if (isAffirmativeFollowUp(text)) return true;
+
+  if (locale === 'ru') {
+    return (
+      value.includes('да, запис') ||
+      value.includes('да запис') ||
+      value.includes('подтвержда') ||
+      value.includes('записываем')
+    );
+  }
+  if (locale === 'en') {
+    return (
+      value.includes('yes, book') ||
+      value.includes('yes book') ||
+      value.includes('confirm') ||
+      value.includes('book this')
+    );
+  }
+  return (
+    value.includes('ja, buch') ||
+    value.includes('ja buch') ||
+    value.includes('bestatige') ||
+    value.includes('bestätige')
+  );
+}
+
+function isConsultationBookingDeclineIntent(
+  text: string,
+  locale: 'de' | 'ru' | 'en',
+): boolean {
+  const value = normalizeInput(text).replace(/ё/g, 'е');
+  if (!value) return false;
+  if (value === 'нет' || value === 'no' || value === 'nein') return true;
+
+  if (locale === 'ru') {
+    return (
+      value.includes('другую услуг') ||
+      value.includes('выбрать другую') ||
+      value.includes('не эту')
+    );
+  }
+  if (locale === 'en') {
+    return value.includes('another service') || value.includes('not this');
+  }
+  return value.includes('andere leistung') || value.includes('nicht diese');
+}
+
 function looksLikeNameOnlyPayload(text: string): boolean {
   const value = text.trim();
   if (!value || value.length > 60) return false;
@@ -530,6 +888,12 @@ function shouldApplyScopeGuard(
     return true;
   }
 
+  // In consultation mode allow free-form consultation dialogue and do not
+  // force menu/scope answers unless a booking flow is active.
+  if (session.context.consultationMode) {
+    return false;
+  }
+
   // If any booking context exists, allow domain-adjacent free-form user phrasing.
   // This prevents accidental guard triggers in active voice flows.
   const hasAnyBookingState = Boolean(
@@ -558,6 +922,10 @@ function buildScopeGuardText(
   locale: 'de' | 'ru' | 'en',
   hasActiveBookingFlow: boolean,
 ): string {
+  const options = getKnowledgeMenuOptions(locale)
+    .map((item) => `[option] ${item} [/option]`)
+    .join('\n');
+
   if (locale === 'ru') {
     const header = hasActiveBookingFlow
       ? 'Я помогаю только с записью и вопросами о салоне. Давайте продолжим текущую запись.'
@@ -565,7 +933,7 @@ function buildScopeGuardText(
     const continueOption = hasActiveBookingFlow
       ? '[option] ✅ Продолжить запись [/option]\n'
       : '';
-    return `${header}\n\n${continueOption}[option] 📅 Записаться на приём [/option]\n[option] 💅 Услуги и цены [/option]\n[option] 📍 Адрес и часы работы [/option]`;
+    return `${header}\n\n${continueOption}${options}`;
   }
 
   if (locale === 'en') {
@@ -575,7 +943,7 @@ function buildScopeGuardText(
     const continueOption = hasActiveBookingFlow
       ? '[option] ✅ Continue booking [/option]\n'
       : '';
-    return `${header}\n\n${continueOption}[option] 📅 Book appointment [/option]\n[option] 💅 Services & prices [/option]\n[option] 📍 Address & opening hours [/option]`;
+    return `${header}\n\n${continueOption}${options}`;
   }
 
   const header = hasActiveBookingFlow
@@ -584,7 +952,7 @@ function buildScopeGuardText(
   const continueOption = hasActiveBookingFlow
     ? '[option] ✅ Buchung fortsetzen [/option]\n'
     : '';
-  return `${header}\n\n${continueOption}[option] 📅 Termin buchen [/option]\n[option] 💅 Leistungen & Preise [/option]\n[option] 📍 Anfahrt & Öffnungszeiten [/option]`;
+  return `${header}\n\n${continueOption}${options}`;
 }
 
 function formatDateLabel(dateISO: string, locale: 'de' | 'ru' | 'en'): string {
@@ -1384,14 +1752,97 @@ function isBookingStartIntent(
       ? [
           'записаться на приём',
           'записаться на прием',
+          'записаться',
           'хочу записаться',
           'продолжить запись',
+          'подобрать время и записаться',
+          'подобрать время',
         ]
       : locale === 'en'
-        ? ['book appointment', 'book a slot', 'continue booking', 'i want to book']
-        : ['termin buchen', 'buchung starten', 'buchung fortsetzen', 'ich möchte buchen'];
+        ? [
+            'book appointment',
+            'book a slot',
+            'continue booking',
+            'i want to book',
+            'pick time and book',
+          ]
+        : [
+            'termin buchen',
+            'buchung starten',
+            'buchung fortsetzen',
+            'ich möchte buchen',
+            'zeit finden und buchen',
+          ];
 
   return startPhrases.some((p) => value.includes(p));
+}
+
+function isChangeServiceIntent(
+  text: string,
+  locale: 'de' | 'ru' | 'en',
+): boolean {
+  const value = normalizeInput(text).replace(/ё/g, 'е');
+  if (!value) return false;
+
+  if (locale === 'ru') {
+    const phrases = [
+      'новая услуга',
+      'другая услуга',
+      'другую услугу',
+      'сменить услугу',
+      'смени услугу',
+      'поменять услугу',
+      'выбрать другую услугу',
+      'хочу другую услугу',
+    ];
+    return phrases.some((p) => value.includes(p));
+  }
+
+  if (locale === 'en') {
+    const phrases = [
+      'new service',
+      'another service',
+      'change service',
+      'switch service',
+      'choose another service',
+    ];
+    return phrases.some((p) => value.includes(p));
+  }
+
+  const phrases = [
+    'neue leistung',
+    'andere leistung',
+    'leistung wechseln',
+    'andere dienstleistung',
+  ];
+  return phrases.some((p) => value.includes(p));
+}
+
+function isConsultationBookOptionIntent(
+  text: string,
+  locale: 'de' | 'ru' | 'en',
+): boolean {
+  const value = normalizeInput(text).replace(/ё/g, 'е');
+  if (!value) return false;
+
+  if (locale === 'ru') {
+    return (
+      value.includes('подобрать время и записаться') ||
+      value === 'подобрать время'
+    );
+  }
+  if (locale === 'en') {
+    return value.includes('pick time and book');
+  }
+  return value.includes('zeit finden und buchen');
+}
+
+function isConsultationIntent(text: string, locale: 'de' | 'ru' | 'en'): boolean {
+  return isConsultationIntentByKnowledge(text, locale);
+}
+
+function buildConsultationStartText(locale: 'de' | 'ru' | 'en'): string {
+  return buildKnowledgeConsultationStartText(locale);
 }
 
 function isDesiredDateQuestion(text: string, locale: 'de' | 'ru' | 'en'): boolean {
@@ -1904,9 +2355,204 @@ export async function POST(
       session.context.draftId,
   );
 
+  if (
+    !hasActiveBookingFlow &&
+    session.context.awaitingConsultationBookingConfirmation &&
+    session.context.consultationTechnique
+  ) {
+    const technique = session.context.consultationTechnique;
+
+    if (isConsultationBookingConfirmIntent(message, session.locale)) {
+      const fallbackStartedAt = Date.now();
+      const fallbackCatalog = await listServices({ locale: session.locale });
+      const fallbackDurationMs = Date.now() - fallbackStartedAt;
+      const fallbackGroups = (fallbackCatalog.groups ?? []) as SelectionCatalogGroup[];
+      const resolvedService = resolveConsultationTechniqueService(
+        session.locale,
+        technique,
+        fallbackGroups,
+      );
+
+      let selectionFastPath: ChatResponse | null = null;
+      if (resolvedService) {
+        selectionFastPath = await tryHandleCatalogSelectionFastPath(
+          session,
+          sessionId,
+          resolvedService.title,
+        );
+      }
+      if (!selectionFastPath) {
+        const bookingLabels = getConsultationTechniqueBookingLabels(
+          session.locale,
+          technique,
+        );
+        for (const label of bookingLabels) {
+          selectionFastPath = await tryHandleCatalogSelectionFastPath(
+            session,
+            sessionId,
+            label,
+          );
+          if (selectionFastPath) break;
+        }
+      }
+
+      if (selectionFastPath) {
+        upsertSession(sessionId, {
+          context: {
+            consultationMode: false,
+            consultationTopic: undefined,
+            consultationTechnique: undefined,
+            awaitingConsultationBookingConfirmation: false,
+          },
+        });
+
+        console.log(
+          `[AI Chat] session=${sessionId.slice(0, 8)}... fastpath=consultation-booking-confirm technique=${technique} service="${resolvedService?.title ?? 'n/a'}"`,
+        );
+
+        return NextResponse.json(selectionFastPath);
+      }
+
+      const fallbackGroupTitles = fallbackGroups
+        .map((g) => g.title)
+        .filter(Boolean);
+      const text = buildBookingStartText(session.locale, fallbackGroupTitles);
+      appendSessionMessage(sessionId, 'assistant', text);
+      upsertSession(sessionId, {
+        context: {
+          consultationMode: false,
+          consultationTopic: undefined,
+          consultationTechnique: undefined,
+          awaitingConsultationBookingConfirmation: false,
+          selectedServiceIds: undefined,
+          selectedMasterId: undefined,
+          lastSuggestedDateOptions: undefined,
+          lastDateISO: undefined,
+          lastPreferredTime: undefined,
+          lastNoSlots: false,
+        },
+      });
+
+      console.log(
+        `[AI Chat] session=${sessionId.slice(0, 8)}... fastpath=consultation-booking-confirm-fallback technique=${technique}`,
+      );
+
+      return NextResponse.json({
+        text,
+        sessionId,
+        toolCalls: [{ name: 'list_services', durationMs: fallbackDurationMs }],
+        inputMode: 'text',
+      });
+    }
+
+    if (isConsultationBookingDeclineIntent(message, session.locale)) {
+      const topic = session.context.consultationTopic ?? 'pmu';
+      const text = buildKnowledgeConsultationTopicText(session.locale, topic);
+      appendSessionMessage(sessionId, 'assistant', text);
+      upsertSession(sessionId, {
+        context: {
+          awaitingConsultationBookingConfirmation: false,
+          consultationTechnique: undefined,
+        },
+      });
+
+      console.log(
+        `[AI Chat] session=${sessionId.slice(0, 8)}... fastpath=consultation-booking-decline`,
+      );
+
+      return NextResponse.json({
+        text,
+        sessionId,
+      });
+    }
+
+    const text = buildConsultationBookingConfirmText(session.locale, technique);
+    appendSessionMessage(sessionId, 'assistant', text);
+
+    console.log(
+      `[AI Chat] session=${sessionId.slice(0, 8)}... fastpath=consultation-booking-confirm-repeat`,
+    );
+
+    return NextResponse.json({
+      text,
+      sessionId,
+    });
+  }
+
+  if (
+    (hasActiveBookingFlow || session.context.consultationMode) &&
+    isChangeServiceIntent(message, session.locale)
+  ) {
+    const staleDraftId = session.context.draftId;
+    if (staleDraftId) {
+      await prisma.bookingDraft.delete({ where: { id: staleDraftId } }).catch(() => {
+        /* ignore cleanup errors */
+      });
+    }
+    await prisma.temporarySlotReservation.deleteMany({
+      where: { sessionId },
+    }).catch(() => {
+      /* ignore cleanup errors */
+    });
+
+    const startedAt = Date.now();
+    const catalog = await listServices({ locale: session.locale });
+    const durationMs = Date.now() - startedAt;
+    const groups = (catalog.groups ?? []) as Array<{ title: string }>;
+    const groupTitles = groups.map((g) => g.title).filter(Boolean);
+    const restartText = buildBookingStartText(session.locale, groupTitles);
+    const intro =
+      session.locale === 'ru'
+        ? 'Хорошо, выберем другую услугу 🌸'
+        : session.locale === 'en'
+          ? 'Sure, let us choose another service 🌸'
+          : 'Gerne, wir wählen eine andere Leistung 🌸';
+    const text = `${intro}\n\n${restartText}`;
+
+    appendSessionMessage(sessionId, 'assistant', text);
+    upsertSession(sessionId, {
+      previousResponseId: null,
+      context: {
+        consultationMode: false,
+        consultationTopic: undefined,
+        consultationTechnique: undefined,
+        awaitingConsultationBookingConfirmation: false,
+        selectedServiceIds: undefined,
+        selectedMasterId: undefined,
+        reservedSlot: undefined,
+        draftId: undefined,
+        lastDateISO: undefined,
+        lastPreferredTime: undefined,
+        lastNoSlots: false,
+        lastSuggestedDateOptions: undefined,
+        awaitingRegistrationMethod: false,
+        pendingVerificationMethod: undefined,
+        awaitingVerificationMethod: false,
+      },
+    });
+
+    console.log(
+      `[AI Chat] session=${sessionId.slice(0, 8)}... fastpath=change-service groups=${groupTitles.length}`,
+    );
+
+    return NextResponse.json({
+      text,
+      sessionId,
+      toolCalls: [{ name: 'list_services', durationMs }],
+      inputMode: 'text',
+    });
+  }
+
   // Deterministic booking start/restart entrypoint:
   // handles intents like "записаться", "новый термин", "book appointment".
-  if (isBookingStartIntent(message, session.locale, hasActiveBookingFlow)) {
+  if (
+    isBookingStartIntent(message, session.locale, hasActiveBookingFlow) &&
+    !(
+      session.context.consultationMode &&
+      !hasActiveBookingFlow &&
+      isConsultationBookOptionIntent(message, session.locale)
+    )
+  ) {
     const startedAt = Date.now();
     const catalog = await listServices({ locale: session.locale });
     const durationMs = Date.now() - startedAt;
@@ -1918,6 +2564,10 @@ export async function POST(
     upsertSession(sessionId, {
       previousResponseId: null,
       context: {
+        consultationMode: false,
+        consultationTopic: undefined,
+        consultationTechnique: undefined,
+        awaitingConsultationBookingConfirmation: false,
         selectedServiceIds: undefined,
         selectedMasterId: undefined,
         reservedSlot: undefined,
@@ -1941,6 +2591,286 @@ export async function POST(
       sessionId,
       toolCalls: [{ name: 'list_services', durationMs }],
       inputMode: 'text',
+    });
+  }
+
+  // Deterministic consultation entrypoint for the new menu option.
+  if (
+    !hasActiveBookingFlow &&
+    !session.context.consultationMode &&
+    isConsultationIntent(message, session.locale)
+  ) {
+    const text = buildConsultationStartText(session.locale);
+    appendSessionMessage(sessionId, 'assistant', text);
+    upsertSession(sessionId, {
+      context: {
+        consultationMode: true,
+        consultationTopic: undefined,
+        consultationTechnique: undefined,
+        awaitingConsultationBookingConfirmation: false,
+        selectedServiceIds: undefined,
+        selectedMasterId: undefined,
+        reservedSlot: undefined,
+        draftId: undefined,
+        lastDateISO: undefined,
+        lastPreferredTime: undefined,
+        lastNoSlots: false,
+        lastSuggestedDateOptions: undefined,
+        awaitingRegistrationMethod: false,
+        pendingVerificationMethod: undefined,
+        awaitingVerificationMethod: false,
+      },
+    });
+
+    console.log(
+      `[AI Chat] session=${sessionId.slice(0, 8)}... fastpath=consultation-start`,
+    );
+
+    return NextResponse.json({
+      text,
+      sessionId,
+    });
+  }
+
+  // Consultation-first mode: keep a friendly advisory flow until user explicitly
+  // asks to proceed to booking.
+  if (!hasActiveBookingFlow && session.context.consultationMode) {
+    const activeConsultationTopic = session.context.consultationTopic;
+
+    if (!activeConsultationTopic) {
+      const consultationTopic = detectKnowledgeConsultationTopic(message, session.locale);
+      if (consultationTopic) {
+        const text = buildKnowledgeConsultationTopicText(
+          session.locale,
+          consultationTopic,
+        );
+        appendSessionMessage(sessionId, 'assistant', text);
+        upsertSession(sessionId, {
+          context: {
+            consultationTopic,
+            consultationTechnique: undefined,
+            awaitingConsultationBookingConfirmation: false,
+          },
+        });
+
+        console.log(
+          `[AI Chat] session=${sessionId.slice(0, 8)}... fastpath=consultation-topic topic=${consultationTopic}`,
+        );
+
+        return NextResponse.json({
+          text,
+          sessionId,
+        });
+      }
+    }
+
+    if (
+      (activeConsultationTopic === 'pmu' || !activeConsultationTopic) &&
+      isKnowledgePmuHealingIntent(message, session.locale)
+    ) {
+      const text = buildKnowledgePmuHealingText(session.locale);
+      appendSessionMessage(sessionId, 'assistant', text);
+      upsertSession(sessionId, {
+        context: {
+          consultationTopic: 'pmu',
+          consultationTechnique: undefined,
+          awaitingConsultationBookingConfirmation: false,
+        },
+      });
+
+      console.log(
+        `[AI Chat] session=${sessionId.slice(0, 8)}... fastpath=consultation-healing`,
+      );
+
+      return NextResponse.json({
+        text,
+        sessionId,
+      });
+    }
+
+    if (
+      (activeConsultationTopic === 'pmu' || !activeConsultationTopic) &&
+      isKnowledgePmuLipsChoiceIntent(message, session.locale)
+    ) {
+      const text = buildKnowledgePmuLipsChoiceText(session.locale);
+      appendSessionMessage(sessionId, 'assistant', text);
+      upsertSession(sessionId, {
+        context: {
+          consultationTopic: 'pmu',
+          consultationTechnique: undefined,
+          awaitingConsultationBookingConfirmation: false,
+        },
+      });
+
+      console.log(
+        `[AI Chat] session=${sessionId.slice(0, 8)}... fastpath=consultation-lips-options`,
+      );
+
+      return NextResponse.json({
+        text,
+        sessionId,
+      });
+    }
+
+    const technique = detectKnowledgePmuTechnique(message, session.locale);
+    if (technique) {
+      const text = buildKnowledgePmuTechniqueText(session.locale, technique);
+      appendSessionMessage(sessionId, 'assistant', text);
+      upsertSession(sessionId, {
+        context: {
+          consultationTechnique: technique,
+          awaitingConsultationBookingConfirmation: false,
+        },
+      });
+
+      console.log(
+        `[AI Chat] session=${sessionId.slice(0, 8)}... fastpath=consultation-technique technique=${technique}`,
+      );
+
+      return NextResponse.json({
+        text,
+        sessionId,
+      });
+    }
+
+    const consultationStyle = detectKnowledgeConsultationStyle(
+      message,
+      session.locale,
+    );
+    if (consultationStyle) {
+      const text = buildKnowledgeConsultationStyleText(
+        session.locale,
+        consultationStyle,
+      );
+      appendSessionMessage(sessionId, 'assistant', text);
+      upsertSession(sessionId, {
+        context: {
+          consultationTechnique: undefined,
+          awaitingConsultationBookingConfirmation: false,
+        },
+      });
+
+      console.log(
+        `[AI Chat] session=${sessionId.slice(0, 8)}... fastpath=consultation-style style=${consultationStyle}`,
+      );
+
+      return NextResponse.json({
+        text,
+        sessionId,
+      });
+    }
+
+    const consultationTopic = detectKnowledgeConsultationTopic(message, session.locale);
+    if (consultationTopic && consultationTopic !== activeConsultationTopic) {
+      const text = buildKnowledgeConsultationTopicText(
+        session.locale,
+        consultationTopic,
+      );
+      appendSessionMessage(sessionId, 'assistant', text);
+      upsertSession(sessionId, {
+        context: {
+          consultationTopic,
+          consultationTechnique: undefined,
+          awaitingConsultationBookingConfirmation: false,
+        },
+      });
+
+      console.log(
+        `[AI Chat] session=${sessionId.slice(0, 8)}... fastpath=consultation-topic topic=${consultationTopic}`,
+      );
+
+      return NextResponse.json({
+        text,
+        sessionId,
+      });
+    }
+
+    if (isConsultationOperationalBookingInput(message)) {
+      const technique = session.context.consultationTechnique;
+      if (technique) {
+        const text = buildConsultationBookingConfirmText(session.locale, technique);
+        appendSessionMessage(sessionId, 'assistant', text);
+        upsertSession(sessionId, {
+          context: {
+            awaitingConsultationBookingConfirmation: true,
+          },
+        });
+
+        console.log(
+          `[AI Chat] session=${sessionId.slice(0, 8)}... fastpath=consultation-bridge-to-booking-confirm technique=${technique}`,
+        );
+
+        return NextResponse.json({
+          text,
+          sessionId,
+        });
+      }
+
+      if (activeConsultationTopic === 'pmu') {
+        const text = buildConsultationPmuTechniqueChoiceText(session.locale);
+        appendSessionMessage(sessionId, 'assistant', text);
+
+        console.log(
+          `[AI Chat] session=${sessionId.slice(0, 8)}... fastpath=consultation-bridge-to-booking-pmu-technique-required`,
+        );
+
+        return NextResponse.json({
+          text,
+          sessionId,
+        });
+      }
+
+      const startedAt = Date.now();
+      const catalog = await listServices({ locale: session.locale });
+      const durationMs = Date.now() - startedAt;
+      const groups = (catalog.groups ?? []) as Array<{ title: string }>;
+      const groupTitles = groups.map((g) => g.title).filter(Boolean);
+      const text = buildBookingStartText(session.locale, groupTitles);
+      appendSessionMessage(sessionId, 'assistant', text);
+      upsertSession(sessionId, {
+        context: {
+          consultationMode: false,
+          consultationTopic: undefined,
+          consultationTechnique: undefined,
+          awaitingConsultationBookingConfirmation: false,
+          selectedServiceIds: undefined,
+          selectedMasterId: undefined,
+          reservedSlot: undefined,
+          draftId: undefined,
+          lastDateISO: undefined,
+          lastPreferredTime: undefined,
+          lastNoSlots: false,
+          lastSuggestedDateOptions: undefined,
+          awaitingRegistrationMethod: false,
+          pendingVerificationMethod: undefined,
+          awaitingVerificationMethod: false,
+        },
+      });
+
+      console.log(
+        `[AI Chat] session=${sessionId.slice(0, 8)}... fastpath=consultation-bridge-to-booking-start groups=${groupTitles.length}`,
+      );
+
+      return NextResponse.json({
+        text,
+        sessionId,
+        toolCalls: [{ name: 'list_services', durationMs }],
+        inputMode: 'text',
+      });
+    }
+
+    const text = activeConsultationTopic
+      ? buildKnowledgeConsultationTopicText(session.locale, activeConsultationTopic)
+      : buildConsultationStartText(session.locale);
+    appendSessionMessage(sessionId, 'assistant', text);
+
+    console.log(
+      `[AI Chat] session=${sessionId.slice(0, 8)}... fastpath=consultation-fallback topic=${activeConsultationTopic ?? 'none'}`,
+    );
+
+    return NextResponse.json({
+      text,
+      sessionId,
     });
   }
 
@@ -1973,12 +2903,23 @@ export async function POST(
   // Deterministic selection flow first:
   // category click -> concrete services, service click -> masters/date step.
   // Important: run before scope-guard, otherwise service option clicks can be blocked.
-  const selectionFastPath = await tryHandleCatalogSelectionFastPath(
-    session,
-    sessionId,
-    message,
-  );
+  let selectionFastPath: ChatResponse | null = null;
+  if (!session.context.consultationMode || hasActiveBookingFlow) {
+    selectionFastPath = await tryHandleCatalogSelectionFastPath(
+      session,
+      sessionId,
+      message,
+    );
+  }
   if (selectionFastPath) {
+    upsertSession(sessionId, {
+      context: {
+        consultationMode: false,
+        consultationTopic: undefined,
+        consultationTechnique: undefined,
+        awaitingConsultationBookingConfirmation: false,
+      },
+    });
     return NextResponse.json(selectionFastPath);
   }
 
@@ -2728,7 +3669,14 @@ export async function POST(
 
   // Build messages
   const systemPrompt = buildSystemPrompt(session.locale);
+  const knowledgePrompt = buildKnowledgeSystemMessage(session.locale);
   const stateHints: string[] = [];
+  if (session.context.consultationMode) {
+    stateHints.push('consultationMode=true');
+  }
+  if (session.context.consultationTopic) {
+    stateHints.push(`consultationTopic=${session.context.consultationTopic}`);
+  }
   if (session.context.selectedServiceIds && session.context.selectedServiceIds.length > 0) {
     stateHints.push(`selectedServiceIds=${session.context.selectedServiceIds.join(',')}`);
   }
@@ -2779,6 +3727,7 @@ export async function POST(
   // Keep recent dialogue context to avoid flow resets between turns.
   const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [
     { role: 'system', content: systemPrompt },
+    { role: 'system', content: knowledgePrompt },
     ...(statePrompt ? [{ role: 'system', content: statePrompt } as const] : []),
     ...(voicePrompt ? [{ role: 'system', content: voicePrompt } as const] : []),
     ...historyMessages,
@@ -2995,6 +3944,13 @@ export async function POST(
         // Add tool results to messages
         for (const result of results) {
           const parsedArgs = parsedArgsByCallId.get(result.id);
+
+          if (result.name !== 'list_services') {
+            contextPatch.consultationMode = false;
+            contextPatch.consultationTopic = undefined;
+            contextPatch.consultationTechnique = undefined;
+            contextPatch.awaitingConsultationBookingConfirmation = false;
+          }
 
           if (result.name === 'list_services') {
             try {
