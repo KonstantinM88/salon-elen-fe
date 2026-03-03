@@ -642,10 +642,10 @@ export default function ChatWidget({ locale: propLocale }: ChatWidgetProps) {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 10, scale: 0.98 }}
             transition={{ duration: 0.22 }}
-            className="fixed bottom-24 right-6 z-50 max-w-[280px] rounded-2xl border border-white/15 bg-black/70 px-4 py-3 text-sm text-white shadow-2xl backdrop-blur-md sm:bottom-28 sm:right-6"
+            className="fixed bottom-24 right-6 z-50 max-w-[300px] rounded-2xl border border-pink-200/80 bg-white/85 px-4 py-3 text-sm text-slate-800 shadow-[0_18px_50px_rgba(236,72,153,0.18)] backdrop-blur-md sm:bottom-28 sm:right-6"
           >
             <div className="flex items-start gap-3">
-              <div className="mt-0.5 h-2.5 w-2.5 flex-none rounded-full bg-emerald-400 shadow-[0_0_18px_rgba(52,211,153,0.55)]" />
+              <div className="mt-0.5 h-2.5 w-2.5 flex-none rounded-full bg-pink-500 shadow-[0_0_18px_rgba(236,72,153,0.35)]" />
               <div className="leading-snug">
                 {(() => {
                   const path = typeof window !== 'undefined' ? window.location.pathname : '';
@@ -659,14 +659,14 @@ export default function ChatWidget({ locale: propLocale }: ChatWidgetProps) {
               <button
                 type="button"
                 onClick={openChat}
-                className="rounded-xl bg-white/10 px-3 py-1.5 text-xs font-medium text-white hover:bg-white/15"
+                className="rounded-xl bg-pink-500 px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-pink-600 focus:outline-none focus:ring-2 focus:ring-pink-300"
               >
                 {locale === 'de' ? 'Chat öffnen' : locale === 'ru' ? 'Открыть чат' : 'Open chat'}
               </button>
               <button
                 type="button"
                 onClick={() => setShowTeaser(false)}
-                className="rounded-xl px-3 py-1.5 text-xs font-medium text-white/70 hover:text-white"
+                className="rounded-xl px-3 py-1.5 text-xs font-medium text-slate-500 hover:text-slate-700"
               >
                 {locale === 'de' ? 'Später' : locale === 'ru' ? 'Позже' : 'Later'}
               </button>
@@ -686,12 +686,12 @@ export default function ChatWidget({ locale: propLocale }: ChatWidgetProps) {
             style={{
               bottom: 'max(1.5rem, env(safe-area-inset-bottom, 1.5rem))',
               right: 'max(1.5rem, env(safe-area-inset-right, 1.5rem))',
-              background: 'linear-gradient(135deg, #FFD700 0%, #00D4FF 100%)',
-              boxShadow: '0 4px 20px rgba(255, 215, 0, 0.4), 0 0 40px rgba(0, 212, 255, 0.2)',
+              background: 'linear-gradient(135deg, #F472B6 0%, #FDA4AF 45%, #FDE68A 100%)',
+              boxShadow: '0 10px 30px rgba(236, 72, 153, 0.25), 0 2px 10px rgba(0,0,0,0.06)',
             }}
             aria-label="Chat öffnen"
           >
-            <MessageCircle className="h-6 w-6 text-gray-900 sm:h-7 sm:w-7" />
+            <MessageCircle className="h-6 w-6 text-white sm:h-7 sm:w-7" />
           </motion.button>
         )}
       </AnimatePresence>
@@ -708,10 +708,10 @@ export default function ChatWidget({ locale: propLocale }: ChatWidgetProps) {
             className="fixed bottom-0 right-0 z-50 flex w-full flex-col sm:bottom-0 sm:right-6 sm:h-[540px] sm:w-[360px] sm:rounded-2xl"
             style={{
               height: isMobile ? `${vpHeight}px` : undefined,
-              background: 'linear-gradient(180deg, #0A0A0A 0%, #111111 100%)',
-              border: '1px solid rgba(255, 215, 0, 0.15)',
+              background: 'linear-gradient(180deg, #FFF7FA 0%, #FDE7F1 55%, #FDF2F8 100%)',
+              border: '1px solid rgba(236, 72, 153, 0.22)',
               boxShadow:
-                '0 8px 32px rgba(0, 0, 0, 0.6), 0 0 60px rgba(255, 215, 0, 0.08)',
+                '0 18px 60px rgba(236, 72, 153, 0.18), 0 8px 24px rgba(0, 0, 0, 0.08)',
               paddingTop: isMobile ? 'env(safe-area-inset-top, 0px)' : undefined,
               paddingBottom: isMobile ? 'env(safe-area-inset-bottom, 0px)' : undefined,
             }}
@@ -726,45 +726,45 @@ export default function ChatWidget({ locale: propLocale }: ChatWidgetProps) {
               onDragEnd={handleDragEnd}
               className="relative flex cursor-grab touch-none items-center justify-between rounded-t-none px-4 py-3 active:cursor-grabbing sm:cursor-default sm:rounded-t-2xl"
               style={{
-                background: 'linear-gradient(135deg, rgba(255, 215, 0, 0.15) 0%, rgba(0, 212, 255, 0.1) 100%)',
-                borderBottom: '1px solid rgba(255, 215, 0, 0.1)',
+                background: 'linear-gradient(135deg, rgba(236, 72, 153, 0.14) 0%, rgba(253, 164, 175, 0.18) 45%, rgba(255, 255, 255, 0.55) 100%)',
+                borderBottom: '1px solid rgba(236, 72, 153, 0.14)',
               }}
             >
               {/* Drag indicator — mobile only */}
               {isMobile && (
                 <div
-                  className="absolute left-1/2 top-1.5 h-1 w-8 -translate-x-1/2 rounded-full bg-white/20"
+                  className="absolute left-1/2 top-1.5 h-1 w-8 -translate-x-1/2 rounded-full bg-pink-300/60"
                   style={{ opacity: dragY > 0 ? 1 : 0.65 }}
                 />
               )}
               <div className="flex items-center gap-3">
                 <div
-                  className="flex h-9 w-9 items-center justify-center rounded-full text-sm font-bold text-gray-900"
+                  className="flex h-9 w-9 items-center justify-center rounded-full text-sm font-bold text-white"
                   style={{
-                    background: 'linear-gradient(135deg, #FFD700, #FFA000)',
+                    background: 'linear-gradient(135deg, #F472B6, #FB7185)',
                   }}
                 >
                   E
                 </div>
                 <div>
-                  <h3 className="text-sm font-semibold text-white">
+                  <h3 className="text-sm font-semibold text-slate-900">
                     {t.title}
                   </h3>
-                  <p className="text-xs text-gray-400">{t.subtitle}</p>
+                  <p className="text-xs text-slate-600">{t.subtitle}</p>
                 </div>
               </div>
 
               <div className="flex items-center gap-1">
                 <button
                   onClick={handleNewChat}
-                  className="rounded-lg p-2 text-gray-400 transition-colors hover:bg-white/10 hover:text-white"
+                  className="rounded-lg p-2 text-slate-500 transition-colors hover:bg-pink-100 hover:text-slate-900"
                   title={t.newChat}
                 >
                   <RotateCcw className="h-4 w-4" />
                 </button>
                 <button
                   onClick={closeChat}
-                  className="rounded-lg p-2 text-gray-400 transition-colors hover:bg-white/10 hover:text-white"
+                  className="rounded-lg p-2 text-slate-500 transition-colors hover:bg-pink-100 hover:text-slate-900"
                   aria-label="Chat schließen"
                 >
                   <X className="h-5 w-5" />
@@ -774,7 +774,7 @@ export default function ChatWidget({ locale: propLocale }: ChatWidgetProps) {
 
             {/* ── Messages ────────────────────────────────── */}
             <div
-              className="flex-1 overflow-y-auto overscroll-contain px-4 py-3 scrollbar-thin"
+              className="flex-1 overflow-y-auto overscroll-contain px-4 py-3 scrollbar-thin text-slate-900"
               style={{ WebkitOverflowScrolling: 'touch' }}
             >
               {messages.map((msg, idx) => {
@@ -796,16 +796,16 @@ export default function ChatWidget({ locale: propLocale }: ChatWidgetProps) {
                   <div
                     className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold text-gray-900"
                     style={{
-                      background: 'linear-gradient(135deg, #FFD700, #FFA000)',
+                      background: 'linear-gradient(135deg, #F472B6, #FB7185)',
                     }}
                   >
                     E
                   </div>
-                  <div className="rounded-xl rounded-tl-sm bg-white/5 px-3 py-2">
+                  <div className="rounded-xl rounded-tl-sm bg-white/70 px-3 py-2 shadow-sm border border-pink-100">
                     <div className="flex gap-1">
-                      <span className="inline-block h-2 w-2 animate-bounce rounded-full bg-gray-400" style={{ animationDelay: '0ms' }} />
-                      <span className="inline-block h-2 w-2 animate-bounce rounded-full bg-gray-400" style={{ animationDelay: '150ms' }} />
-                      <span className="inline-block h-2 w-2 animate-bounce rounded-full bg-gray-400" style={{ animationDelay: '300ms' }} />
+                      <span className="inline-block h-2 w-2 animate-bounce rounded-full bg-pink-300" style={{ animationDelay: '0ms' }} />
+                      <span className="inline-block h-2 w-2 animate-bounce rounded-full bg-pink-300" style={{ animationDelay: '150ms' }} />
+                      <span className="inline-block h-2 w-2 animate-bounce rounded-full bg-pink-300" style={{ animationDelay: '300ms' }} />
                     </div>
                   </div>
                 </div>
@@ -833,8 +833,8 @@ export default function ChatWidget({ locale: propLocale }: ChatWidgetProps) {
                   transition={{ duration: 0.2 }}
                   className="px-3 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]"
                   style={{
-                    borderTop: '1px solid rgba(255, 215, 0, 0.1)',
-                    background: 'rgba(255, 255, 255, 0.02)',
+                    borderTop: '1px solid rgba(236, 72, 153, 0.14)',
+                    background: 'rgba(255, 255, 255, 0.75)',
                   }}
                 >
                   <div className="flex items-end gap-2">
@@ -846,7 +846,7 @@ export default function ChatWidget({ locale: propLocale }: ChatWidgetProps) {
                       placeholder={t.placeholder}
                       rows={1}
                       disabled={isLoading}
-                      className="flex-1 resize-none rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-sm text-white placeholder-gray-500 outline-none transition-colors focus:border-yellow-500/40 focus:bg-white/8 disabled:opacity-50"
+                      className="flex-1 resize-none rounded-xl border border-pink-200/80 bg-white px-3 py-2.5 text-sm text-slate-900 placeholder-slate-400 outline-none transition-colors focus:border-pink-400 focus:ring-2 focus:ring-pink-200 disabled:opacity-50"
                       style={{ maxHeight: '100px' }}
                       onInput={(e) => {
                         const el = e.currentTarget;
@@ -886,16 +886,16 @@ export default function ChatWidget({ locale: propLocale }: ChatWidgetProps) {
                       style={{
                         background:
                           input.trim() && !isLoading
-                            ? 'linear-gradient(135deg, #FFD700, #FFA000)'
-                            : 'rgba(255, 255, 255, 0.1)',
+                            ? 'linear-gradient(135deg, #F472B6, #FB7185)'
+                            : 'rgba(236, 72, 153, 0.12)',
                         // Hide send button when voice is shown (no text)
                         display: input.trim() ? 'flex' : 'none',
                       }}
                     >
                       {isLoading ? (
-                        <Loader2 className="h-4 w-4 animate-spin text-gray-400" />
+                        <Loader2 className="h-4 w-4 animate-spin text-pink-500" />
                       ) : (
-                        <Send className="h-4 w-4 text-gray-900" />
+                        <Send className="h-4 w-4 text-white" />
                       )}
                     </button>
                   </div>
@@ -908,6 +908,919 @@ export default function ChatWidget({ locale: propLocale }: ChatWidgetProps) {
     </>
   );
 }
+
+
+//----03.03.26 меняю на светлую тему
+// // src/components/ai/ChatWidget.tsx
+// 'use client';
+
+// import { useState, useRef, useEffect, useCallback } from 'react';
+// import { motion, AnimatePresence } from 'framer-motion';
+// import { MessageCircle, X, Send, Loader2, RotateCcw } from 'lucide-react';
+// import { ChatMessage, type Message } from './ChatMessage';
+// import { OtpInput } from './OtpInput';
+// import {
+//   VoiceButton,
+//   type VoiceButtonHandle,
+//   type VoiceMicDebugInfo,
+//   type VoiceMicErrorCode,
+// } from './VoiceButton';
+// import { useMobileViewport } from '@/hooks/useMobileViewport';
+
+// // ─── Config ─────────────────────────────────────────────────────
+
+// const API_URL = '/api/ai/chat';
+
+// function generateSessionId(): string {
+//   return crypto.randomUUID();
+// }
+
+// // ─── Translations ───────────────────────────────────────────────
+
+// const UI_TEXT = {
+//   de: {
+//     placeholder: 'Ihre Nachricht...',
+//     welcome: 'Hallo! 👋 Ich bin Elen-AI, Ihr Buchungsassistent. Wie kann ich Ihnen helfen?\n\n[option] 📅 Termin buchen [/option]\n[option] 💬 Beratung & Auswahl [/option]\n[option] 💅 Leistungen & Preise [/option]\n[option] 📍 Anfahrt & Öffnungszeiten [/option]',
+//     autoGreeting:
+//       '🌸 Möchten Sie einen Termin buchen oder Preise erfahren?\n\n[option] 📅 Termin buchen [/option]\n[option] 💅 Leistungen & Preise [/option]',
+//     teaserDefault: '🌸 Soll ich Ihnen helfen, schnell einen Termin zu finden?',
+//     teaserPrices: '🌸 Möchten Sie Preise für PMU, Brows/Lashes oder Hydrafacial?',
+//     teaserBooking: '🌸 Soll ich Ihnen bei der Terminwahl helfen?',
+//     error: 'Entschuldigung, etwas ist schiefgelaufen. Bitte versuchen Sie es erneut.',
+//     rateLimit: 'Bitte warten Sie einen Moment, bevor Sie eine neue Nachricht senden.',
+//     title: 'Salon Elen',
+//     subtitle: 'Buchungsassistent',
+//     newChat: 'Neuer Chat',
+//   },
+//   ru: {
+//     placeholder: 'Ваше сообщение...',
+//     welcome: 'Привет! 👋 Я Elen-AI, ассистент записи. Чем могу помочь?\n\n[option] 📅 Записаться на приём [/option]\n[option] 💬 Консультация и подбор [/option]\n[option] 💅 Услуги и цены [/option]\n[option] 📍 Адрес и часы работы [/option]',
+//     autoGreeting:
+//       '🌸 Хотите записаться на приём или узнать цены?\n\n[option] 📅 Записаться на приём [/option]\n[option] 💅 Услуги и цены [/option]',
+//     teaserDefault: '🌸 Хотите, я помогу быстро подобрать удобный термин?',
+//     teaserPrices: '🌸 Подсказать цены на PMU, брови/ресницы или Hydrafacial?',
+//     teaserBooking: '🌸 Помочь выбрать дату и время?',
+//     error: 'Извините, произошла ошибка. Попробуйте ещё раз.',
+//     rateLimit: 'Пожалуйста, подождите немного перед отправкой нового сообщения.',
+//     title: 'Salon Elen',
+//     subtitle: 'Ассистент записи',
+//     newChat: 'Новый чат',
+//   },
+//   en: {
+//     placeholder: 'Your message...',
+//     welcome: 'Hello! 👋 I\'m Elen-AI, your booking assistant. How can I help?\n\n[option] 📅 Book an appointment [/option]\n[option] 💬 Consultation & guidance [/option]\n[option] 💅 Services & prices [/option]\n[option] 📍 Location & hours [/option]',
+//     autoGreeting:
+//       '🌸 Would you like to book an appointment or check prices?\n\n[option] 📅 Book an appointment [/option]\n[option] 💅 Services & prices [/option]',
+//     teaserDefault: '🌸 Would you like help finding a suitable appointment?',
+//     teaserPrices: '🌸 Would you like prices for PMU, brows/lashes or Hydrafacial?',
+//     teaserBooking: '🌸 Would you like help choosing a time?',
+//     error: 'Sorry, something went wrong. Please try again.',
+//     rateLimit: 'Please wait a moment before sending a new message.',
+//     title: 'Salon Elen',
+//     subtitle: 'Booking Assistant',
+//     newChat: 'New Chat',
+//   },
+// } as const;
+
+// type SupportedLocale = keyof typeof UI_TEXT;
+
+// const MIC_ENABLE_OPTION_TEXT: Record<SupportedLocale, string> = {
+//   de: 'Mikrofon aktivieren',
+//   ru: 'Включить микрофон',
+//   en: 'Enable microphone',
+// };
+
+// const MIC_SETTINGS_HELP_TEXT: Record<SupportedLocale, string> = {
+//   de:
+//     'Öffnen Sie die Website-Berechtigungen (Schloss-Symbol in der Adresszeile), erlauben Sie das Mikrofon und laden Sie die Seite neu.',
+//   ru:
+//     'Откройте разрешения сайта (значок замка в адресной строке), включите микрофон и обновите страницу.',
+//   en:
+//     'Open site permissions (lock icon in the address bar), allow microphone access, then reload the page.',
+// };
+
+// const MIC_ACTIONABLE_ERROR_CODES = new Set<VoiceMicErrorCode>([
+//   'not-allowed',
+//   'not-found',
+//   'in-use',
+//   'insecure-context',
+//   'unsupported',
+//   'iframe-blocked',
+// ]);
+
+// const AUTO_GREETING_MIN_MS = 8000;
+// const AUTO_GREETING_MAX_MS = 12000;
+
+// function randomDelayBetween(min: number, max: number): number {
+//   return Math.floor(Math.random() * (max - min + 1)) + min;
+// }
+
+// function resolveMicSettingsUrl(): string | null {
+//   if (typeof window === 'undefined' || typeof navigator === 'undefined') return null;
+
+//   const ua = navigator.userAgent.toLowerCase();
+//   const origin = encodeURIComponent(window.location.origin);
+
+//   const isChromium =
+//     (ua.includes('chrome') || ua.includes('chromium') || ua.includes('edg') || ua.includes('opr')) &&
+//     !ua.includes('firefox');
+
+//   if (isChromium) {
+//     return `chrome://settings/content/siteDetails?site=${origin}`;
+//   }
+//   if (ua.includes('firefox')) {
+//     return 'about:preferences#privacy';
+//   }
+
+//   return null;
+// }
+
+// function tryOpenMicSettings(): boolean {
+//   if (typeof window === 'undefined') return false;
+//   const url = resolveMicSettingsUrl();
+//   if (!url) return false;
+
+//   try {
+//     window.location.assign(url);
+//     return true;
+//   } catch {
+//     return false;
+//   }
+// }
+
+// // ─── Types ──────────────────────────────────────────────────────
+
+// type InputMode = 'text' | 'otp';
+
+// // ─── Component ──────────────────────────────────────────────────
+
+// interface ChatWidgetProps {
+//   locale?: string;
+// }
+
+// export default function ChatWidget({ locale: propLocale }: ChatWidgetProps) {
+//   const locale: SupportedLocale =
+//     propLocale && propLocale in UI_TEXT
+//       ? (propLocale as SupportedLocale)
+//       : 'de';
+//   const t = UI_TEXT[locale];
+
+//   const [isOpen, setIsOpen] = useState(false);
+//   const [showTeaser, setShowTeaser] = useState(false);
+//   const [messages, setMessages] = useState<Message[]>([]);
+//   const [input, setInput] = useState('');
+//   const [isLoading, setIsLoading] = useState(false);
+//   const [sessionId, setSessionId] = useState(() => generateSessionId());
+//   const [inputMode, setInputMode] = useState<InputMode>('text');
+//   const { height: vpHeight, keyboardOpen, isMobile } = useMobileViewport();
+//   const panelRef = useRef<HTMLDivElement>(null);
+//   const headerRef = useRef<HTMLDivElement>(null);
+//   const [dragY, setDragY] = useState(0);
+//   const [showVoiceDebug, setShowVoiceDebug] = useState(false);
+//   const [voiceDebugInfo, setVoiceDebugInfo] = useState<VoiceMicDebugInfo | null>(null);
+
+//   const messagesEndRef = useRef<HTMLDivElement>(null);
+//   const inputRef = useRef<HTMLTextAreaElement>(null);
+//   const voiceButtonRef = useRef<VoiceButtonHandle | null>(null);
+//   const teaserTimerRef = useRef<number | null>(null);
+//   const teaserShownRef = useRef(false);
+//   const chatAutoGreetingTimerRef = useRef<number | null>(null);
+//   const chatAutoGreetingShownRef = useRef(false);
+
+//   // Scroll to bottom on new messages
+//   useEffect(() => {
+//     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+//   }, [messages]);
+
+//   // Focus input when opening (only in text mode)
+//   useEffect(() => {
+//     if (isOpen && inputMode === 'text') {
+//       setTimeout(() => inputRef.current?.focus(), 300);
+//     }
+//   }, [isOpen, inputMode]);
+
+//   // Welcome message on first open
+//   useEffect(() => {
+//     if (isOpen && messages.length === 0) {
+//       chatAutoGreetingShownRef.current = false;
+//       setMessages([
+//         {
+//           id: 'welcome',
+//           role: 'assistant',
+//           content: t.welcome,
+//           timestamp: new Date(),
+//         },
+//       ]);
+//     }
+//   }, [isOpen, messages.length, t.welcome]);
+
+//   // Teaser bubble on the page (6–10s): appears before opening chat, then disappears on interaction.
+//   useEffect(() => {
+//     // Clear timer when chat opens
+//     if (isOpen) {
+//       setShowTeaser(false);
+//       if (teaserTimerRef.current !== null) {
+//         window.clearTimeout(teaserTimerRef.current);
+//         teaserTimerRef.current = null;
+//       }
+//       return;
+//     }
+
+//     // Show only once per page load
+//     if (teaserShownRef.current) return;
+
+//     const delay = randomDelayBetween(6000, 10000);
+//     teaserTimerRef.current = window.setTimeout(() => {
+//       if (isOpen) return;
+//       teaserShownRef.current = true;
+//       setShowTeaser(true);
+//       teaserTimerRef.current = null;
+//     }, delay);
+
+//     return () => {
+//       if (teaserTimerRef.current !== null) {
+//         window.clearTimeout(teaserTimerRef.current);
+//         teaserTimerRef.current = null;
+//       }
+//     };
+//   }, [isOpen]);
+
+//   // Auto-greeting (8–12s): only when chat is open and user has not sent anything yet.
+//   useEffect(() => {
+//     if (!isOpen) {
+//       if (chatAutoGreetingTimerRef.current !== null) {
+//         window.clearTimeout(chatAutoGreetingTimerRef.current);
+//         chatAutoGreetingTimerRef.current = null;
+//       }
+//       return;
+//     }
+
+//     const hasUserInteracted = messages.some((msg) => msg.role === 'user');
+//     const hasOnlyWelcome =
+//       messages.length === 1 &&
+//       messages[0]?.role === 'assistant' &&
+//       messages[0]?.id === 'welcome';
+
+//     if (!hasOnlyWelcome || hasUserInteracted || chatAutoGreetingShownRef.current) {
+//       if (chatAutoGreetingTimerRef.current !== null) {
+//         window.clearTimeout(chatAutoGreetingTimerRef.current);
+//         chatAutoGreetingTimerRef.current = null;
+//       }
+//       return;
+//     }
+
+//     const delay = randomDelayBetween(AUTO_GREETING_MIN_MS, AUTO_GREETING_MAX_MS);
+//     chatAutoGreetingTimerRef.current = window.setTimeout(() => {
+//       setMessages((prev) => {
+//         const userInteracted = prev.some((msg) => msg.role === 'user');
+//         const stillOnlyWelcome =
+//           prev.length === 1 &&
+//           prev[0]?.role === 'assistant' &&
+//           prev[0]?.id === 'welcome';
+
+//         if (userInteracted || !stillOnlyWelcome || chatAutoGreetingShownRef.current) {
+//           return prev;
+//         }
+
+//         chatAutoGreetingShownRef.current = true;
+//         return [
+//           ...prev,
+//           {
+//             id: `auto-greeting-${Date.now()}`,
+//             role: 'assistant',
+//             content: t.autoGreeting,
+//             timestamp: new Date(),
+//           },
+//         ];
+//       });
+//       chatAutoGreetingTimerRef.current = null;
+//     }, delay);
+
+//     return () => {
+//       if (chatAutoGreetingTimerRef.current !== null) {
+//         window.clearTimeout(chatAutoGreetingTimerRef.current);
+//         chatAutoGreetingTimerRef.current = null;
+//       }
+//     };
+//   }, [isOpen, messages, t.autoGreeting]);
+
+//   // Lock body scroll on mobile when chat is open
+//   useEffect(() => {
+//     if (!isMobile) return;
+//     if (isOpen) {
+//       document.body.style.overflow = 'hidden';
+//       // Prevent iOS bounce / pull-to-refresh
+//       document.body.style.position = 'fixed';
+//       document.body.style.width = '100%';
+//       document.body.style.top = `-${window.scrollY}px`;
+//     }
+//     return () => {
+//       const scrollY = document.body.style.top;
+//       document.body.style.overflow = '';
+//       document.body.style.position = '';
+//       document.body.style.width = '';
+//       document.body.style.top = '';
+//       if (scrollY) {
+//         window.scrollTo(0, parseInt(scrollY, 10) * -1);
+//       }
+//     };
+//   }, [isOpen, isMobile]);
+
+//   // Auto-scroll when keyboard opens
+//   useEffect(() => {
+//     if (keyboardOpen) {
+//       setTimeout(() => {
+//         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+//       }, 100);
+//     }
+//   }, [keyboardOpen]);
+
+//   // Debug panel visibility for admins/support:
+//   // - always on in /admin
+//   // - can be enabled on public pages via ?voiceDebug=1 or localStorage.voice_debug=1
+//   useEffect(() => {
+//     if (typeof window === 'undefined') return;
+
+//     const debugByPath = window.location.pathname.startsWith('/admin');
+//     const debugByQuery = new URLSearchParams(window.location.search).get('voiceDebug') === '1';
+//     const debugByStorage = window.localStorage.getItem('voice_debug') === '1';
+//     setShowVoiceDebug(debugByPath || debugByQuery || debugByStorage);
+//   }, []);
+
+//   const handleNewChat = useCallback(() => {
+//     if (chatAutoGreetingTimerRef.current !== null) {
+//       window.clearTimeout(chatAutoGreetingTimerRef.current);
+//       chatAutoGreetingTimerRef.current = null;
+//     }
+//     chatAutoGreetingShownRef.current = false;
+//     setSessionId(generateSessionId());
+//     setMessages([
+//       {
+//         id: 'welcome',
+//         role: 'assistant',
+//         content: t.welcome,
+//         timestamp: new Date(),
+//       },
+//     ]);
+//     setInput('');
+//     setIsLoading(false);
+//     setInputMode('text');
+//     setDragY(0);
+//   }, [t.welcome]);
+
+//   // ─── Core send logic ─────────────────────────────────────────
+
+//   const sendMessage = useCallback(
+//     async (text: string) => {
+//       setIsLoading(true);
+
+//       try {
+//         const res = await fetch(API_URL, {
+//           method: 'POST',
+//           headers: { 'Content-Type': 'application/json' },
+//           body: JSON.stringify({
+//             sessionId,
+//             message: text,
+//             locale,
+//           }),
+//         });
+
+//         if (res.status === 429) {
+//           setMessages((prev) => [
+//             ...prev,
+//             {
+//               id: `error-${Date.now()}`,
+//               role: 'assistant',
+//               content: t.rateLimit,
+//               timestamp: new Date(),
+//             },
+//           ]);
+//           return;
+//         }
+
+//         if (!res.ok) {
+//           throw new Error(`HTTP ${res.status}`);
+//         }
+
+//         const data = await res.json();
+
+//         setMessages((prev) => [
+//           ...prev,
+//           {
+//             id: `ai-${Date.now()}`,
+//             role: 'assistant',
+//             content: data.text,
+//             timestamp: new Date(),
+//           },
+//         ]);
+
+//         // Switch input mode based on server response
+//         if (data.inputMode === 'otp') {
+//           setInputMode('otp');
+//         } else if (data.inputMode === 'text' || inputMode === 'otp') {
+//           setInputMode('text');
+//         }
+//       } catch (err) {
+//         console.error('[ChatWidget] Error:', err);
+//         setMessages((prev) => [
+//           ...prev,
+//           {
+//             id: `error-${Date.now()}`,
+//             role: 'assistant',
+//             content: t.error,
+//             timestamp: new Date(),
+//             isError: true,
+//           },
+//         ]);
+//       } finally {
+//         setIsLoading(false);
+//       }
+//     },
+//     [sessionId, locale, t, inputMode],
+//   );
+
+//   // ─── Text input handlers ──────────────────────────────────────
+
+//   const handleOptionClick = useCallback(
+//     (text: string) => {
+//       if (isLoading) return;
+
+//       if (text.trim().toLowerCase() === MIC_ENABLE_OPTION_TEXT[locale].toLowerCase()) {
+//         // If browser already stores a hard "denied", open settings directly.
+//         if (
+//           voiceDebugInfo?.code === 'not-allowed' &&
+//           voiceDebugInfo.permissionState === 'denied'
+//         ) {
+//           const opened = tryOpenMicSettings();
+//           if (!opened) {
+//             setMessages((prev) => [
+//               ...prev,
+//               {
+//                 id: `mic-help-${Date.now()}`,
+//                 role: 'assistant',
+//                 content: MIC_SETTINGS_HELP_TEXT[locale],
+//                 timestamp: new Date(),
+//                 isError: false,
+//               },
+//             ]);
+//           }
+//           return;
+//         }
+
+//         voiceButtonRef.current?.requestMicAccess();
+//         return;
+//       }
+
+//       const userMsg: Message = {
+//         id: `user-${Date.now()}`,
+//         role: 'user',
+//         content: text,
+//         timestamp: new Date(),
+//       };
+//       setMessages((prev) => [...prev, userMsg]);
+//       sendMessage(text);
+//     },
+//     [isLoading, sendMessage, locale, voiceDebugInfo],
+//   );
+
+//   const handleSend = useCallback(async () => {
+//     const text = input.trim();
+//     if (!text || isLoading) return;
+
+//     const userMsg: Message = {
+//       id: `user-${Date.now()}`,
+//       role: 'user',
+//       content: text,
+//       timestamp: new Date(),
+//     };
+
+//     setMessages((prev) => [...prev, userMsg]);
+//     setInput('');
+//     sendMessage(text);
+//   }, [input, isLoading, sendMessage]);
+
+//   const handleKeyDown = (e: React.KeyboardEvent) => {
+//     if (e.key === 'Enter' && !e.shiftKey) {
+//       e.preventDefault();
+//       handleSend();
+//     }
+//   };
+
+//   // ─── OTP handlers ─────────────────────────────────────────────
+
+//   const handleOtpSubmit = useCallback(
+//     (code: string) => {
+//       if (isLoading) return;
+//       const userMsg: Message = {
+//         id: `user-${Date.now()}`,
+//         role: 'user',
+//         content: code,
+//         timestamp: new Date(),
+//       };
+//       setMessages((prev) => [...prev, userMsg]);
+//       sendMessage(code);
+//     },
+//     [isLoading, sendMessage],
+//   );
+
+//   const handleOtpResend = useCallback(() => {
+//     if (isLoading) return;
+//     const resendText =
+//       locale === 'ru'
+//         ? 'отправь код ещё раз'
+//         : locale === 'en'
+//           ? 'send code again'
+//           : 'Code erneut senden';
+
+//     const userMsg: Message = {
+//       id: `user-${Date.now()}`,
+//       role: 'user',
+//       content: resendText,
+//       timestamp: new Date(),
+//     };
+//     setMessages((prev) => [...prev, userMsg]);
+//     sendMessage(resendText);
+//   }, [isLoading, locale, sendMessage]);
+
+//   // ─── Voice handlers ───────────────────────────────────────────
+
+//   const handleVoiceResult = useCallback(
+//     (result: { transcript: string; text: string; inputMode?: string }) => {
+//       setVoiceDebugInfo(null);
+
+//       // Add user message (transcribed text)
+//       if (result.transcript) {
+//         setMessages((prev) => [
+//           ...prev,
+//           {
+//             id: `user-voice-${Date.now()}`,
+//             role: 'user',
+//             content: `🎙 ${result.transcript}`,
+//             timestamp: new Date(),
+//           },
+//         ]);
+//       }
+
+//       // Add AI response
+//       setMessages((prev) => [
+//         ...prev,
+//         {
+//           id: `ai-voice-${Date.now()}`,
+//           role: 'assistant',
+//           content: result.text,
+//           timestamp: new Date(),
+//         },
+//       ]);
+
+//       // Update input mode
+//       if (result.inputMode === 'otp') {
+//         setInputMode('otp');
+//       } else if (result.inputMode === 'text') {
+//         setInputMode('text');
+//       }
+//     },
+//     [],
+//   );
+
+//   const handleVoiceError = useCallback(
+//     (error: string, code?: VoiceMicErrorCode) => {
+//       const withAction = code ? MIC_ACTIONABLE_ERROR_CODES.has(code) : false;
+//       const content = withAction
+//         ? `${error}\n\n[option] 🎙 ${MIC_ENABLE_OPTION_TEXT[locale]} [/option]`
+//         : error;
+
+//       setMessages((prev) => {
+//         const last = prev[prev.length - 1];
+//         if (last?.role === 'assistant' && last.content === content) {
+//           return prev;
+//         }
+
+//         return [
+//           ...prev,
+//           {
+//             id: `error-voice-${Date.now()}`,
+//             role: 'assistant',
+//             content,
+//             timestamp: new Date(),
+//             isError: !withAction,
+//           },
+//         ];
+//       });
+//     },
+//     [locale],
+//   );
+
+//   const handleVoiceDebug = useCallback((info: VoiceMicDebugInfo) => {
+//     setVoiceDebugInfo(info);
+//   }, []);
+
+//   // ─── Swipe-to-close (mobile) ──────────────────────────────
+//   const handleDragEnd = useCallback(
+//     (_: unknown, info: { offset: { y: number }; velocity: { y: number } }) => {
+//       // Close if dragged >100px down or fast swipe
+//       if (info.offset.y > 100 || info.velocity.y > 500) {
+//         setIsOpen(false);
+//       }
+//       setDragY(0);
+//     },
+//     [],
+//   );
+
+//   // ─── Render ───────────────────────────────────────────────────
+
+//   const openChat = useCallback(() => {
+//     setIsOpen(true);
+//     setShowTeaser(false);
+//     teaserShownRef.current = true;
+//     if (teaserTimerRef.current !== null) {
+//       window.clearTimeout(teaserTimerRef.current);
+//       teaserTimerRef.current = null;
+//     }
+//   }, []);
+
+//   const closeChat = useCallback(() => {
+//     setIsOpen(false);
+//   }, []);
+
+
+//   return (
+//     <>
+//       {/* ── Floating Button ───────────────────────────────── */}
+//       <AnimatePresence>
+
+//         {!isOpen && showTeaser && (
+//           <motion.div
+//             key="chat-teaser"
+//             initial={{ opacity: 0, y: 10, scale: 0.98 }}
+//             animate={{ opacity: 1, y: 0, scale: 1 }}
+//             exit={{ opacity: 0, y: 10, scale: 0.98 }}
+//             transition={{ duration: 0.22 }}
+//             className="fixed bottom-24 right-6 z-50 max-w-[280px] rounded-2xl border border-white/15 bg-black/70 px-4 py-3 text-sm text-white shadow-2xl backdrop-blur-md sm:bottom-28 sm:right-6"
+//           >
+//             <div className="flex items-start gap-3">
+//               <div className="mt-0.5 h-2.5 w-2.5 flex-none rounded-full bg-emerald-400 shadow-[0_0_18px_rgba(52,211,153,0.55)]" />
+//               <div className="leading-snug">
+//                 {(() => {
+//                   const path = typeof window !== 'undefined' ? window.location.pathname : '';
+//                   if (path.includes('/prices')) return t.teaserPrices;
+//                   if (path.includes('/booking')) return t.teaserBooking;
+//                   return t.teaserDefault;
+//                 })()}
+//               </div>
+//             </div>
+//             <div className="mt-2 flex gap-2">
+//               <button
+//                 type="button"
+//                 onClick={openChat}
+//                 className="rounded-xl bg-white/10 px-3 py-1.5 text-xs font-medium text-white hover:bg-white/15"
+//               >
+//                 {locale === 'de' ? 'Chat öffnen' : locale === 'ru' ? 'Открыть чат' : 'Open chat'}
+//               </button>
+//               <button
+//                 type="button"
+//                 onClick={() => setShowTeaser(false)}
+//                 className="rounded-xl px-3 py-1.5 text-xs font-medium text-white/70 hover:text-white"
+//               >
+//                 {locale === 'de' ? 'Später' : locale === 'ru' ? 'Позже' : 'Later'}
+//               </button>
+//             </div>
+//           </motion.div>
+//         )}
+//         {!isOpen && (
+//           <motion.button
+//             key="chat-launcher"
+//             initial={{ scale: 0, opacity: 0 }}
+//             animate={{ scale: 1, opacity: 1 }}
+//             exit={{ scale: 0, opacity: 0 }}
+//             whileHover={{ scale: 1.1 }}
+//             whileTap={{ scale: 0.95 }}
+//             onClick={openChat}
+//             className="fixed z-50 flex h-14 w-14 items-center justify-center rounded-full shadow-lg transition-shadow hover:shadow-xl sm:h-16 sm:w-16"
+//             style={{
+//               bottom: 'max(1.5rem, env(safe-area-inset-bottom, 1.5rem))',
+//               right: 'max(1.5rem, env(safe-area-inset-right, 1.5rem))',
+//               background: 'linear-gradient(135deg, #FFD700 0%, #00D4FF 100%)',
+//               boxShadow: '0 4px 20px rgba(255, 215, 0, 0.4), 0 0 40px rgba(0, 212, 255, 0.2)',
+//             }}
+//             aria-label="Chat öffnen"
+//           >
+//             <MessageCircle className="h-6 w-6 text-gray-900 sm:h-7 sm:w-7" />
+//           </motion.button>
+//         )}
+//       </AnimatePresence>
+
+//       {/* ── Chat Panel ────────────────────────────────────── */}
+//       <AnimatePresence>
+//         {isOpen && (
+//           <motion.div
+//             ref={panelRef}
+//             initial={{ opacity: 0, y: 20, scale: 0.95 }}
+//             animate={{ opacity: 1, y: 0, scale: 1 }}
+//             exit={{ opacity: 0, y: 20, scale: 0.95 }}
+//             transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+//             className="fixed bottom-0 right-0 z-50 flex w-full flex-col sm:bottom-0 sm:right-6 sm:h-[540px] sm:w-[360px] sm:rounded-2xl"
+//             style={{
+//               height: isMobile ? `${vpHeight}px` : undefined,
+//               background: 'linear-gradient(180deg, #0A0A0A 0%, #111111 100%)',
+//               border: '1px solid rgba(255, 215, 0, 0.15)',
+//               boxShadow:
+//                 '0 8px 32px rgba(0, 0, 0, 0.6), 0 0 60px rgba(255, 215, 0, 0.08)',
+//               paddingTop: isMobile ? 'env(safe-area-inset-top, 0px)' : undefined,
+//               paddingBottom: isMobile ? 'env(safe-area-inset-bottom, 0px)' : undefined,
+//             }}
+//           >
+//             {/* ── Header ──────────────────────────────────── */}
+//             <motion.div
+//               ref={headerRef}
+//               drag={isMobile ? 'y' : false}
+//               dragConstraints={{ top: 0, bottom: 0 }}
+//               dragElastic={0.2}
+//               onDrag={(_event, info: { offset: { y: number } }) => setDragY(info.offset.y)}
+//               onDragEnd={handleDragEnd}
+//               className="relative flex cursor-grab touch-none items-center justify-between rounded-t-none px-4 py-3 active:cursor-grabbing sm:cursor-default sm:rounded-t-2xl"
+//               style={{
+//                 background: 'linear-gradient(135deg, rgba(255, 215, 0, 0.15) 0%, rgba(0, 212, 255, 0.1) 100%)',
+//                 borderBottom: '1px solid rgba(255, 215, 0, 0.1)',
+//               }}
+//             >
+//               {/* Drag indicator — mobile only */}
+//               {isMobile && (
+//                 <div
+//                   className="absolute left-1/2 top-1.5 h-1 w-8 -translate-x-1/2 rounded-full bg-white/20"
+//                   style={{ opacity: dragY > 0 ? 1 : 0.65 }}
+//                 />
+//               )}
+//               <div className="flex items-center gap-3">
+//                 <div
+//                   className="flex h-9 w-9 items-center justify-center rounded-full text-sm font-bold text-gray-900"
+//                   style={{
+//                     background: 'linear-gradient(135deg, #FFD700, #FFA000)',
+//                   }}
+//                 >
+//                   E
+//                 </div>
+//                 <div>
+//                   <h3 className="text-sm font-semibold text-white">
+//                     {t.title}
+//                   </h3>
+//                   <p className="text-xs text-gray-400">{t.subtitle}</p>
+//                 </div>
+//               </div>
+
+//               <div className="flex items-center gap-1">
+//                 <button
+//                   onClick={handleNewChat}
+//                   className="rounded-lg p-2 text-gray-400 transition-colors hover:bg-white/10 hover:text-white"
+//                   title={t.newChat}
+//                 >
+//                   <RotateCcw className="h-4 w-4" />
+//                 </button>
+//                 <button
+//                   onClick={closeChat}
+//                   className="rounded-lg p-2 text-gray-400 transition-colors hover:bg-white/10 hover:text-white"
+//                   aria-label="Chat schließen"
+//                 >
+//                   <X className="h-5 w-5" />
+//                 </button>
+//               </div>
+//             </motion.div>
+
+//             {/* ── Messages ────────────────────────────────── */}
+//             <div
+//               className="flex-1 overflow-y-auto overscroll-contain px-4 py-3 scrollbar-thin"
+//               style={{ WebkitOverflowScrolling: 'touch' }}
+//             >
+//               {messages.map((msg, idx) => {
+//                 const isLatestAssistant =
+//                   msg.role === 'assistant' && idx === messages.length - 1;
+
+//                 return (
+//                   <ChatMessage
+//                     key={msg.id}
+//                     message={msg}
+//                     onOptionClick={isLatestAssistant ? handleOptionClick : undefined}
+//                     isLatest={isLatestAssistant}
+//                   />
+//                 );
+//               })}
+
+//               {isLoading && (
+//                 <div className="mb-3 flex items-start gap-2">
+//                   <div
+//                     className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold text-gray-900"
+//                     style={{
+//                       background: 'linear-gradient(135deg, #FFD700, #FFA000)',
+//                     }}
+//                   >
+//                     E
+//                   </div>
+//                   <div className="rounded-xl rounded-tl-sm bg-white/5 px-3 py-2">
+//                     <div className="flex gap-1">
+//                       <span className="inline-block h-2 w-2 animate-bounce rounded-full bg-gray-400" style={{ animationDelay: '0ms' }} />
+//                       <span className="inline-block h-2 w-2 animate-bounce rounded-full bg-gray-400" style={{ animationDelay: '150ms' }} />
+//                       <span className="inline-block h-2 w-2 animate-bounce rounded-full bg-gray-400" style={{ animationDelay: '300ms' }} />
+//                     </div>
+//                   </div>
+//                 </div>
+//               )}
+
+//               <div ref={messagesEndRef} />
+//             </div>
+
+//             {/* ── Input Area ─────────────────────────────── */}
+//             <AnimatePresence mode="wait">
+//               {inputMode === 'otp' ? (
+//                 <OtpInput
+//                   key="otp-input"
+//                   onSubmit={handleOtpSubmit}
+//                   isLoading={isLoading}
+//                   locale={locale}
+//                   onResend={handleOtpResend}
+//                 />
+//               ) : (
+//                 <motion.div
+//                   key="text-input"
+//                   initial={{ opacity: 0, y: 8 }}
+//                   animate={{ opacity: 1, y: 0 }}
+//                   exit={{ opacity: 0, y: -8 }}
+//                   transition={{ duration: 0.2 }}
+//                   className="px-3 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]"
+//                   style={{
+//                     borderTop: '1px solid rgba(255, 215, 0, 0.1)',
+//                     background: 'rgba(255, 255, 255, 0.02)',
+//                   }}
+//                 >
+//                   <div className="flex items-end gap-2">
+//                     <textarea
+//                       ref={inputRef}
+//                       value={input}
+//                       onChange={(e) => setInput(e.target.value)}
+//                       onKeyDown={handleKeyDown}
+//                       placeholder={t.placeholder}
+//                       rows={1}
+//                       disabled={isLoading}
+//                       className="flex-1 resize-none rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-sm text-white placeholder-gray-500 outline-none transition-colors focus:border-yellow-500/40 focus:bg-white/8 disabled:opacity-50"
+//                       style={{ maxHeight: '100px' }}
+//                       onInput={(e) => {
+//                         const el = e.currentTarget;
+//                         el.style.height = 'auto';
+//                         el.style.height = `${Math.min(el.scrollHeight, 100)}px`;
+//                       }}
+//                     />
+
+//                     {/* Voice button — shown when input is empty */}
+//                     {!input.trim() && (
+//                       <div className="flex flex-col items-end gap-1">
+//                         <VoiceButton
+//                           ref={voiceButtonRef}
+//                           onResult={handleVoiceResult}
+//                           onError={handleVoiceError}
+//                           onDebug={handleVoiceDebug}
+//                           sessionId={sessionId}
+//                           locale={locale}
+//                           disabled={isLoading}
+//                         />
+//                         {showVoiceDebug && voiceDebugInfo && (
+//                           <div className="max-w-[250px] rounded-md border border-amber-400/30 bg-amber-400/10 px-2 py-1 text-[10px] leading-4 text-amber-200">
+//                             <div>{`voice-debug: ${voiceDebugInfo.code}`}</div>
+//                             <div>{`name: ${voiceDebugInfo.errorName || '-'}`}</div>
+//                             <div>{`perm: ${voiceDebugInfo.permissionState}`}</div>
+//                             <div>{`secure: ${voiceDebugInfo.secureContext ? 'yes' : 'no'}, iframe: ${voiceDebugInfo.inIframe ? 'yes' : 'no'}`}</div>
+//                           </div>
+//                         )}
+//                       </div>
+//                     )}
+
+//                     {/* Send button — shown when there's text */}
+//                     <button
+//                       onClick={handleSend}
+//                       disabled={!input.trim() || isLoading}
+//                       className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition-all disabled:opacity-30"
+//                       style={{
+//                         background:
+//                           input.trim() && !isLoading
+//                             ? 'linear-gradient(135deg, #FFD700, #FFA000)'
+//                             : 'rgba(255, 255, 255, 0.1)',
+//                         // Hide send button when voice is shown (no text)
+//                         display: input.trim() ? 'flex' : 'none',
+//                       }}
+//                     >
+//                       {isLoading ? (
+//                         <Loader2 className="h-4 w-4 animate-spin text-gray-400" />
+//                       ) : (
+//                         <Send className="h-4 w-4 text-gray-900" />
+//                       )}
+//                     </button>
+//                   </div>
+//                 </motion.div>
+//               )}
+//             </AnimatePresence>
+//           </motion.div>
+//         )}
+//       </AnimatePresence>
+//     </>
+//   );
+// }
 
 
 
