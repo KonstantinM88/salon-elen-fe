@@ -76,6 +76,14 @@ export function buildRegistrationMethodChoiceText(
     buttons.push(`[option] ${emailLabel} [/option]`);
   }
 
+  const cancelLabel =
+    locale === 'ru'
+      ? '❌ Отменить текущую запись'
+      : locale === 'en'
+        ? '❌ Cancel current booking'
+        : '❌ Aktuelle Buchung abbrechen';
+  buttons.push(`[option] ${cancelLabel} [/option]`);
+
   return `${header}\n\n${buttons.join('\n')}`;
 }
 

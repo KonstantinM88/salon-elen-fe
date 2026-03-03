@@ -28,17 +28,34 @@ import {
   getContactForMethod,
 } from '@/lib/ai/verification-choice';
 import {
+  buildKnowledgeBrowsLashesDetailsText,
+  buildKnowledgeBrowsLashesComparisonText,
+  buildKnowledgeBrowsLashesStyleText,
   buildKnowledgeConsultationStartText,
   buildKnowledgePmuHealingText,
   buildKnowledgePmuLipsChoiceText,
+  buildKnowledgeHydrafacialGoalText,
+  buildKnowledgeHydrafacialDetailsText,
+  buildKnowledgeHydrafacialComparisonText,
+  buildKnowledgeOccasionText,
   buildKnowledgeConsultationStyleText,
   buildKnowledgeConsultationTopicText,
+  buildKnowledgePmuTechniqueDetailsText,
   buildKnowledgeSystemMessage,
+  detectKnowledgeOccasion,
   detectKnowledgeConsultationStyle,
   detectKnowledgeConsultationTopic,
+  detectKnowledgeHydrafacialGoal,
   detectKnowledgePmuTechnique,
   buildKnowledgePmuTechniqueText,
+  buildKnowledgeLocationHoursText,
   getKnowledgeMenuOptions,
+  isKnowledgeBrowsLashesDetailsIntent,
+  isKnowledgeBrowsLashesComparisonIntent,
+  isKnowledgeDetailsIntent,
+  isKnowledgeHydrafacialDetailsIntent,
+  isKnowledgeHydrafacialComparisonIntent,
+  isKnowledgeLocationHoursIntent,
   isKnowledgePmuHealingIntent,
   isKnowledgePmuLipsChoiceIntent,
   isConsultationIntentByKnowledge,
@@ -481,6 +498,13 @@ function looksLikeServiceOptionPayload(text: string): boolean {
   return /[—–-]\s*\d{1,3}\s*(?:мин\.?|min\.?)/iu.test(value);
 }
 
+function looksLikePricedOptionPayload(text: string): boolean {
+  const value = normalizeInput(text);
+  if (!value) return false;
+  // UI option payload used in consultation blocks: "<service> — ... 55 €"
+  return /[—–-].*\d{1,4}(?:[.,]\d{1,2})?\s*€/iu.test(value);
+}
+
 function isLikelyBookingDomainMessage(text: string): boolean {
   const normalizedInput = normalizeInput(text);
   if (!normalizedInput) return false;
@@ -519,6 +543,12 @@ function isConsultationOperationalBookingInput(text: string): boolean {
     'uhrzeit',
     'datum',
     'meister',
+    'записаться',
+    'запись',
+    'book',
+    'booking',
+    'buchen',
+    'buchung',
   ];
   return hints.some((h) => value.includes(h));
 }
@@ -762,12 +792,138 @@ function buildConsultationPmuTechniqueChoiceText(
   locale: 'de' | 'ru' | 'en',
 ): string {
   if (locale === 'ru') {
-    return 'Чтобы подобрать время, сначала выберите конкретную PMU-услугу 🌸\n\n[option] 💖 Powder Brows — мягкий эффект, 350 € [/option]\n[option] 🌟 Hairstroke Brows — более детализированный, 450 € [/option]\n[option] 💄 Aquarell Lips — свежий оттенок, 380 € [/option]\n[option] 💋 3D Lips — объёмный эффект, 420 € [/option]\n[option] 👁 Межресничка — выразительный взгляд, 130 € [/option]\n[option] 👁 Межресничка верх+низ — 150 € [/option]';
+    return 'Чтобы подобрать время, сначала выберите конкретную PMU-услугу 🌸\n\n[option] 💖 Пудровые брови (Powder Brows) — мягкий эффект, 350 € [/option]\n[option] 🌟 Волосковая техника (Hairstroke Brows) — более детализированный, 450 € [/option]\n[option] 💄 Акварельные губы (Aquarell Lips) — свежий оттенок, 380 € [/option]\n[option] 💋 3D губы (3D Lips) — объёмный эффект, 420 € [/option]\n[option] 👁 Межресничка — выразительный взгляд, 130 € [/option]\n[option] 👁 Межресничка верх+низ — 150 € [/option]';
   }
   if (locale === 'en') {
     return 'To pick a time, please choose a specific PMU service first 🌸\n\n[option] 💖 Powder Brows — soft effect, €350 [/option]\n[option] 🌟 Hairstroke Brows — more detailed, €450 [/option]\n[option] 💄 Aquarelle Lips — fresh color, €380 [/option]\n[option] 💋 3D Lips — fuller effect, €420 [/option]\n[option] 👁 Lash line — expressive look, €130 [/option]\n[option] 👁 Upper + lower lash line — €150 [/option]';
   }
   return 'Damit ich eine Zeit finde, wählen Sie zuerst eine konkrete PMU-Leistung 🌸\n\n[option] 💖 Powder Brows — weicher Effekt, 350 € [/option]\n[option] 🌟 Hairstroke Brows — detaillierter, 450 € [/option]\n[option] 💄 Aquarell Lips — frischer Farbton, 380 € [/option]\n[option] 💋 3D Lips — vollerer Effekt, 420 € [/option]\n[option] 👁 Wimpernkranz — ausdrucksvoller Blick, 130 € [/option]\n[option] 👁 Wimpernkranz oben + unten — 150 € [/option]';
+}
+
+function buildHydrafacialSelectedServiceDetailsText(
+  locale: 'de' | 'ru' | 'en',
+  serviceTitle: string,
+): string | null {
+  const titleNorm = normalizeChoiceText(serviceTitle);
+  const bookingCta =
+    locale === 'ru'
+      ? '[option] 📅 Подобрать время и записаться [/option]'
+      : locale === 'en'
+        ? '[option] 📅 Pick time and book [/option]'
+        : '[option] 📅 Zeit finden und buchen [/option]';
+
+  if (titleNorm.includes('signature')) {
+    if (locale === 'ru') {
+      return `Signature Hydrafacial 🌿 Базовый формат: глубокое очищение, мягкая экстракция и интенсивное увлажнение.
+Подходит для регулярного ухода и быстрого «освежения» кожи без восстановления.
+Цена: **140 €**.
+
+${bookingCta}`;
+    }
+    if (locale === 'en') {
+      return `Signature Hydrafacial 🌿 Base format: deep cleansing, gentle extraction and intense hydration.
+Best for regular maintenance and a quick skin refresh with zero downtime.
+Price: **€140**.
+
+${bookingCta}`;
+    }
+    return `Signature Hydrafacial 🌿 Basisformat: Tiefenreinigung, sanfte Extraktion und intensive Hydration.
+Ideal für regelmäßige Pflege und einen schnellen Frische-Effekt ohne Ausfallzeit.
+Preis: **140 €**.
+
+${bookingCta}`;
+  }
+
+  if (titleNorm.includes('deluxe')) {
+    if (locale === 'ru') {
+      return `Deluxe Hydrafacial ✨ Всё из Signature + усиленный пилинг и LED-терапия.
+Подходит, если кожа выглядит уставшей или тусклой и нужен более заметный результат.
+Цена: **180 €**.
+
+${bookingCta}`;
+    }
+    if (locale === 'en') {
+      return `Deluxe Hydrafacial ✨ Everything in Signature + intensive peel and LED therapy.
+Great if skin looks tired or dull and you want a more visible glow result.
+Price: **€180**.
+
+${bookingCta}`;
+    }
+    return `Deluxe Hydrafacial ✨ Enthält alles aus Signature + intensives Peeling und LED-Therapie.
+Ideal bei müder, fahler Haut für einen sichtbareren Glow-Effekt.
+Preis: **180 €**.
+
+${bookingCta}`;
+  }
+
+  if (titleNorm.includes('platinum')) {
+    if (locale === 'ru') {
+      return `Platinum Hydrafacial 👑 Всё из Deluxe + лимфодренаж и премиум-сыворотки.
+Максимально насыщенный формат для выраженного glow-эффекта и подготовки к событию.
+Цена: **270 €**.
+
+${bookingCta}`;
+    }
+    if (locale === 'en') {
+      return `Platinum Hydrafacial 👑 Everything in Deluxe + lymphatic drainage and premium serums.
+Our most intensive format for maximum glow and event-level skin prep.
+Price: **€270**.
+
+${bookingCta}`;
+    }
+    return `Platinum Hydrafacial 👑 Enthält alles aus Deluxe + Lymphdrainage und Premium-Seren.
+Unser intensivstes Format für maximalen Glow und Event-Vorbereitung.
+Preis: **270 €**.
+
+${bookingCta}`;
+  }
+
+  return null;
+}
+
+function buildSelectedServiceDetailsText(
+  locale: 'de' | 'ru' | 'en',
+  serviceTitle: string,
+  groupTitle?: string,
+): string {
+  const technique = detectKnowledgePmuTechnique(serviceTitle, locale);
+  if (technique) {
+    return buildKnowledgePmuTechniqueDetailsText(locale, technique);
+  }
+
+  const combined = `${normalizeChoiceText(groupTitle ?? '')} ${normalizeChoiceText(serviceTitle)}`;
+  const isHydrafacial =
+    combined.includes('hydra') ||
+    combined.includes('hydrafacial') ||
+    combined.includes('гидра');
+  if (isHydrafacial) {
+    return (
+      buildHydrafacialSelectedServiceDetailsText(locale, serviceTitle) ??
+      buildKnowledgeHydrafacialDetailsText(locale)
+    );
+  }
+
+  const browsLashesRe = /(бров|ресниц|lash|brow|wimper|augenbrau)/u;
+  if (browsLashesRe.test(combined)) {
+    return buildKnowledgeBrowsLashesDetailsText(locale);
+  }
+
+  if (locale === 'ru') {
+    return `${serviceTitle} 🌸
+Могу рассказать подробнее о результате, длительности и подготовке к процедуре.
+
+[option] 📅 Подобрать время и записаться [/option]`;
+  }
+  if (locale === 'en') {
+    return `${serviceTitle} 🌸
+I can share more about expected result, duration, and how to prepare for the treatment.
+
+[option] 📅 Pick time and book [/option]`;
+  }
+  return `${serviceTitle} 🌸
+Ich kann gern mehr zum Ergebnis, zur Dauer und zur Vorbereitung auf die Behandlung erklären.
+
+[option] 📅 Zeit finden und buchen [/option]`;
 }
 
 function isConsultationBookingConfirmIntent(
@@ -955,6 +1111,20 @@ function buildScopeGuardText(
   return `${header}\n\n${continueOption}${options}`;
 }
 
+function buildMainMenuText(locale: 'de' | 'ru' | 'en'): string {
+  const options = getKnowledgeMenuOptions(locale)
+    .map((item) => `[option] ${item} [/option]`)
+    .join('\n');
+
+  if (locale === 'ru') {
+    return `Готово, вернула в начало 🌸 Чем могу помочь?\n\n${options}`;
+  }
+  if (locale === 'en') {
+    return `Done, I returned to the main menu 🌸 How can I help?\n\n${options}`;
+  }
+  return `Erledigt, ich bin zurück im Hauptmenü 🌸 Wobei kann ich helfen?\n\n${options}`;
+}
+
 function formatDateLabel(dateISO: string, locale: 'de' | 'ru' | 'en'): string {
   const [y, m, d] = dateISO.split('-').map((v) => parseInt(v, 10));
   const dt = new Date(Date.UTC(y, (m || 1) - 1, d || 1, 12, 0, 0));
@@ -966,18 +1136,27 @@ function formatDateLabel(dateISO: string, locale: 'de' | 'ru' | 'en'): string {
   });
 }
 
+function buildCancelBookingOption(locale: 'de' | 'ru' | 'en'): string {
+  return locale === 'ru'
+    ? '[option] ❌ Отменить текущую запись [/option]'
+    : locale === 'en'
+      ? '[option] ❌ Cancel current booking [/option]'
+      : '[option] ❌ Aktuelle Buchung abbrechen [/option]';
+}
+
 function buildNoSlotsFollowUpText(
   locale: 'de' | 'ru' | 'en',
   optionsMap: DateSuggestionOption[],
 ): string {
+  const cancelOption = buildCancelBookingOption(locale);
   if (optionsMap.length === 0) {
     if (locale === 'ru') {
-      return 'К сожалению, в ближайшие даты свободных окон не нашлось. Хотите, я проверю другого мастера?';
+      return `К сожалению, в ближайшие даты свободных окон не нашлось. Хотите, я проверю другого мастера?\n\n${cancelOption}`;
     }
     if (locale === 'en') {
-      return 'Unfortunately, I could not find free slots in the nearest dates. Do you want me to check another master?';
+      return `Unfortunately, I could not find free slots in the nearest dates. Do you want me to check another master?\n\n${cancelOption}`;
     }
-    return 'Leider habe ich in den nächsten Tagen keine freien Slots gefunden. Soll ich einen anderen Meister prüfen?';
+    return `Leider habe ich in den nächsten Tagen keine freien Slots gefunden. Soll ich einen anderen Meister prüfen?\n\n${cancelOption}`;
   }
 
   const header =
@@ -1003,7 +1182,7 @@ function buildNoSlotsFollowUpText(
         ? 'Or type your preferred date in DD.MM format (for example, 10.03).'
         : 'Oder geben Sie Ihr Wunschdatum im Format TT.MM ein (zum Beispiel 10.03).';
 
-  return `${header}\n\n${options}\n\n${manualHint}`;
+  return `${header}\n\n${options}\n${cancelOption}\n\n${manualHint}`;
 }
 
 function mapMonthDaysToOptions(
@@ -1229,15 +1408,16 @@ function buildSlotsForDateText(
   dateISO: string,
   slots: Array<{ displayTime: string }>,
 ): string {
+  const cancelOption = buildCancelBookingOption(locale);
   const label = formatDateLabel(dateISO, locale);
   if (slots.length === 0) {
     if (locale === 'ru') {
-      return `На ${label} свободных слотов нет. Хотите, я предложу другие даты?`;
+      return `На ${label} свободных слотов нет. Хотите, я предложу другие даты?\n\n${cancelOption}`;
     }
     if (locale === 'en') {
-      return `There are no free slots on ${label}. Do you want me to suggest other dates?`;
+      return `There are no free slots on ${label}. Do you want me to suggest other dates?\n\n${cancelOption}`;
     }
-    return `Für ${label} gibt es keine freien Slots. Soll ich andere Tage vorschlagen?`;
+    return `Für ${label} gibt es keine freien Slots. Soll ich andere Tage vorschlagen?\n\n${cancelOption}`;
   }
 
   const header =
@@ -1252,7 +1432,7 @@ function buildSlotsForDateText(
     .map((s) => `[option] 🕐 ${s.displayTime} [/option]`)
     .join('\n');
 
-  return `${header}\n\n${options}`;
+  return `${header}\n\n${options}\n${cancelOption}`;
 }
 
 function buildSlotTakenAlternativesText(
@@ -1260,6 +1440,7 @@ function buildSlotTakenAlternativesText(
   dateISO: string,
   slots: Array<{ displayTime: string }>,
 ): string {
+  const cancelOption = buildCancelBookingOption(locale);
   const label = formatDateLabel(dateISO, locale);
   const intro =
     locale === 'ru'
@@ -1284,7 +1465,7 @@ function buildSlotTakenAlternativesText(
     .map((s) => `[option] 🕐 ${s.displayTime} [/option]`)
     .join('\n');
 
-  return `${intro}\n${followUp}\n${options}`;
+  return `${intro}\n${followUp}\n${options}\n${cancelOption}`;
 }
 
 function matchSlotFromInput(
@@ -1642,13 +1823,14 @@ function buildSingleMasterText(
   serviceTitle: string,
   masterName: string,
 ): string {
+  const cancelOption = buildCancelBookingOption(locale);
   if (locale === 'ru') {
-    return `Вы выбрали услугу "${serviceTitle}".\n\nЭту услугу выполнит мастер ${masterName}.\n\nСначала выберите дату, затем время:\n\n[option] 📅 Завтра [/option]\n[option] 📅 Ближайшая дата [/option]\n\nИли напишите дату в формате ДД.ММ.`;
+    return `Вы выбрали услугу "${serviceTitle}".\n\nЭту услугу выполнит мастер ${masterName}.\n\nСначала выберите дату, затем время:\n\n[option] 📅 Завтра [/option]\n[option] 📅 Ближайшая дата [/option]\n${cancelOption}\n\nИли напишите дату в формате ДД.ММ.`;
   }
   if (locale === 'en') {
-    return `You selected "${serviceTitle}".\n\nThis service can be done by ${masterName}.\n\nPlease choose a date first, then we will pick time:\n\n[option] 📅 Tomorrow [/option]\n[option] 📅 Nearest date [/option]\n\nOr type a date in DD.MM format.`;
+    return `You selected "${serviceTitle}".\n\nThis service can be done by ${masterName}.\n\nPlease choose a date first, then we will pick time:\n\n[option] 📅 Tomorrow [/option]\n[option] 📅 Nearest date [/option]\n${cancelOption}\n\nOr type a date in DD.MM format.`;
   }
-  return `Sie haben die Leistung "${serviceTitle}" gewählt.\n\nDiese Leistung übernimmt ${masterName}.\n\nBitte wählen Sie zuerst ein Datum, danach die Uhrzeit:\n\n[option] 📅 Morgen [/option]\n[option] 📅 Nächstes Datum [/option]\n\nOder schreiben Sie ein Datum im Format TT.MM.`;
+  return `Sie haben die Leistung "${serviceTitle}" gewählt.\n\nDiese Leistung übernimmt ${masterName}.\n\nBitte wählen Sie zuerst ein Datum, danach die Uhrzeit:\n\n[option] 📅 Morgen [/option]\n[option] 📅 Nächstes Datum [/option]\n${cancelOption}\n\nOder schreiben Sie ein Datum im Format TT.MM.`;
 }
 
 function buildMultipleMastersText(
@@ -1789,6 +1971,11 @@ function isChangeServiceIntent(
       'новая услуга',
       'другая услуга',
       'другую услугу',
+      'назад к услугам',
+      'назад к выбору услуг',
+      'назад к выбору услуги',
+      'вернуться к услугам',
+      'возврат к услугам',
       'сменить услугу',
       'смени услугу',
       'поменять услугу',
@@ -1802,6 +1989,8 @@ function isChangeServiceIntent(
     const phrases = [
       'new service',
       'another service',
+      'back to services',
+      'return to services',
       'change service',
       'switch service',
       'choose another service',
@@ -1812,8 +2001,106 @@ function isChangeServiceIntent(
   const phrases = [
     'neue leistung',
     'andere leistung',
+    'zuruck zu leistungen',
+    'zurück zu leistungen',
     'leistung wechseln',
     'andere dienstleistung',
+  ];
+  return phrases.some((p) => value.includes(p));
+}
+
+function isCancelBookingIntent(
+  text: string,
+  locale: 'de' | 'ru' | 'en',
+): boolean {
+  const value = normalizeInput(text).replace(/ё/g, 'е');
+  if (!value) return false;
+
+  if (locale === 'ru') {
+    const phrases = [
+      'отмени запись',
+      'отмена записи',
+      'отменить запись',
+      'отмени текущую запись',
+      'отменить текущую запись',
+      'отменить бронь',
+      'отмени бронь',
+      'отмена брони',
+      'сбрось запись',
+    ];
+    return phrases.some((p) => value.includes(p));
+  }
+
+  if (locale === 'en') {
+    const phrases = [
+      'cancel booking',
+      'cancel appointment',
+      'cancel my booking',
+      'cancel current booking',
+      'cancel the current booking',
+    ];
+    return phrases.some((p) => value.includes(p));
+  }
+
+  const phrases = [
+    'buchung abbrechen',
+    'termin absagen',
+    'aktuelle buchung abbrechen',
+    'aktuelle buchung stornieren',
+    'buchung stornieren',
+  ];
+  return phrases.some((p) => value.includes(p));
+}
+
+function isResetToMainMenuIntent(
+  text: string,
+  locale: 'de' | 'ru' | 'en',
+): boolean {
+  const value = normalizeInput(text).replace(/ё/g, 'е');
+  if (!value) return false;
+
+  if (locale === 'ru') {
+    const phrases = [
+      'вернись в самое начало',
+      'вернуться в самое начало',
+      'вернись в начало',
+      'вернуться в начало',
+      'назад в главное меню',
+      'вернуться в главное меню',
+      'в главное меню',
+      'в самое начало',
+      'в начало',
+      'главное меню',
+      'начать сначала',
+      'начни сначала',
+      'сначала',
+      'сбрось диалог',
+      'сбрось чат',
+    ];
+    return phrases.some((p) => value.includes(p));
+  }
+
+  if (locale === 'en') {
+    const phrases = [
+      'back to start',
+      'return to start',
+      'go to main menu',
+      'main menu',
+      'start from beginning',
+      'reset chat',
+    ];
+    return phrases.some((p) => value.includes(p));
+  }
+
+  const phrases = [
+    'zuruck zum anfang',
+    'zurück zum anfang',
+    'zum anfang',
+    'hauptmenu',
+    'hauptmenü',
+    'neu starten',
+    'chat zurucksetzen',
+    'chat zurücksetzen',
   ];
   return phrases.some((p) => value.includes(p));
 }
@@ -1835,6 +2122,33 @@ function isConsultationBookOptionIntent(
     return value.includes('pick time and book');
   }
   return value.includes('zeit finden und buchen');
+}
+
+function isConsultationSpecificBookingIntent(
+  text: string,
+  locale: 'de' | 'ru' | 'en',
+): boolean {
+  const value = normalizeInput(text).replace(/ё/g, 'е');
+  if (!value) return false;
+
+  if (locale === 'ru') {
+    return (
+      value.includes('записаться на ') ||
+      value.includes('да записаться на ') ||
+      value.includes('хочу записаться на ')
+    );
+  }
+  if (locale === 'en') {
+    return (
+      value.includes('book ') ||
+      value.includes('i want to book ')
+    );
+  }
+  return (
+    value.includes('buchen ') ||
+    value.includes('ich mochte buchen ') ||
+    value.includes('ich möchte buchen ')
+  );
 }
 
 function isConsultationIntent(text: string, locale: 'de' | 'ru' | 'en'): boolean {
@@ -2447,7 +2761,10 @@ export async function POST(
 
     if (isConsultationBookingDeclineIntent(message, session.locale)) {
       const topic = session.context.consultationTopic ?? 'pmu';
-      const text = buildKnowledgeConsultationTopicText(session.locale, topic);
+      const text =
+        topic === 'pmu'
+          ? buildConsultationPmuTechniqueChoiceText(session.locale)
+          : buildKnowledgeConsultationTopicText(session.locale, topic);
       appendSessionMessage(sessionId, 'assistant', text);
       upsertSession(sessionId, {
         context: {
@@ -2476,6 +2793,123 @@ export async function POST(
     return NextResponse.json({
       text,
       sessionId,
+    });
+  }
+
+  const hasAnyInteractiveFlow = Boolean(
+    hasActiveBookingFlow ||
+      session.context.consultationMode ||
+      session.context.awaitingRegistrationMethod ||
+      session.context.awaitingVerificationMethod ||
+      session.context.pendingVerificationMethod,
+  );
+
+  if (hasAnyInteractiveFlow && isCancelBookingIntent(message, session.locale)) {
+    const staleDraftId = session.context.draftId;
+    if (staleDraftId) {
+      await prisma.bookingDraft.delete({ where: { id: staleDraftId } }).catch(() => {
+        /* ignore cleanup errors */
+      });
+    }
+    await prisma.temporarySlotReservation.deleteMany({
+      where: { sessionId },
+    }).catch(() => {
+      /* ignore cleanup errors */
+    });
+
+    const text =
+      session.locale === 'ru'
+        ? 'Текущую запись отменили. Чем могу помочь дальше? 🌸\n\n' +
+          getKnowledgeMenuOptions(session.locale)
+            .map((item) => `[option] ${item} [/option]`)
+            .join('\n')
+        : session.locale === 'en'
+          ? 'Current booking has been canceled. What would you like to do next? 🌸\n\n' +
+            getKnowledgeMenuOptions(session.locale)
+              .map((item) => `[option] ${item} [/option]`)
+              .join('\n')
+          : 'Die aktuelle Buchung wurde abgebrochen. Wie darf ich weiterhelfen? 🌸\n\n' +
+            getKnowledgeMenuOptions(session.locale)
+              .map((item) => `[option] ${item} [/option]`)
+              .join('\n');
+
+    appendSessionMessage(sessionId, 'assistant', text);
+    upsertSession(sessionId, {
+      previousResponseId: null,
+      context: {
+        consultationMode: false,
+        consultationTopic: undefined,
+        consultationTechnique: undefined,
+        awaitingConsultationBookingConfirmation: false,
+        selectedServiceIds: undefined,
+        selectedMasterId: undefined,
+        reservedSlot: undefined,
+        draftId: undefined,
+        lastDateISO: undefined,
+        lastPreferredTime: undefined,
+        lastNoSlots: false,
+        lastSuggestedDateOptions: undefined,
+        awaitingRegistrationMethod: false,
+        pendingVerificationMethod: undefined,
+        awaitingVerificationMethod: false,
+      },
+    });
+
+    console.log(
+      `[AI Chat] session=${sessionId.slice(0, 8)}... fastpath=booking-cancelled`,
+    );
+
+    return NextResponse.json({
+      text,
+      sessionId,
+      inputMode: 'text',
+    });
+  }
+
+  if (isResetToMainMenuIntent(message, session.locale)) {
+    const staleDraftId = session.context.draftId;
+    if (staleDraftId) {
+      await prisma.bookingDraft.delete({ where: { id: staleDraftId } }).catch(() => {
+        /* ignore cleanup errors */
+      });
+    }
+    await prisma.temporarySlotReservation.deleteMany({
+      where: { sessionId },
+    }).catch(() => {
+      /* ignore cleanup errors */
+    });
+
+    const text = buildMainMenuText(session.locale);
+    appendSessionMessage(sessionId, 'assistant', text);
+    upsertSession(sessionId, {
+      previousResponseId: null,
+      context: {
+        consultationMode: false,
+        consultationTopic: undefined,
+        consultationTechnique: undefined,
+        awaitingConsultationBookingConfirmation: false,
+        selectedServiceIds: undefined,
+        selectedMasterId: undefined,
+        reservedSlot: undefined,
+        draftId: undefined,
+        lastDateISO: undefined,
+        lastPreferredTime: undefined,
+        lastNoSlots: false,
+        lastSuggestedDateOptions: undefined,
+        awaitingRegistrationMethod: false,
+        pendingVerificationMethod: undefined,
+        awaitingVerificationMethod: false,
+      },
+    });
+
+    console.log(
+      `[AI Chat] session=${sessionId.slice(0, 8)}... fastpath=main-menu-reset`,
+    );
+
+    return NextResponse.json({
+      text,
+      sessionId,
+      inputMode: 'text',
     });
   }
 
@@ -2550,7 +2984,10 @@ export async function POST(
     !(
       session.context.consultationMode &&
       !hasActiveBookingFlow &&
-      isConsultationBookOptionIntent(message, session.locale)
+      (
+        isConsultationBookOptionIntent(message, session.locale) ||
+        isConsultationSpecificBookingIntent(message, session.locale)
+      )
     )
   ) {
     const startedAt = Date.now();
@@ -2591,6 +3028,42 @@ export async function POST(
       sessionId,
       toolCalls: [{ name: 'list_services', durationMs }],
       inputMode: 'text',
+    });
+  }
+
+  // ---------- Occasion-based recommendation ----------
+  const detectedOccasion = detectKnowledgeOccasion(message, session.locale);
+  if (
+    detectedOccasion &&
+    !hasActiveBookingFlow &&
+    !session.context.consultationMode &&
+    !looksLikeServiceOptionPayload(message) &&
+    !looksLikePricedOptionPayload(message)
+  ) {
+    const text = buildKnowledgeOccasionText(
+      session.locale as 'de' | 'en' | 'ru',
+      detectedOccasion,
+    );
+    appendSessionMessage(sessionId, 'assistant', text);
+
+    if (!session.context.consultationMode) {
+      upsertSession(sessionId, {
+        context: {
+          consultationMode: true,
+          consultationTopic: detectedOccasion === 'correction' ? 'pmu' : undefined,
+          consultationTechnique: undefined,
+          awaitingConsultationBookingConfirmation: false,
+        },
+      });
+    }
+
+    console.log(
+      `[AI Chat] session=${sessionId.slice(0, 8)}... fastpath=occasion-${detectedOccasion}`,
+    );
+
+    return NextResponse.json({
+      text,
+      sessionId,
     });
   }
 
@@ -2664,6 +3137,96 @@ export async function POST(
       }
     }
 
+    // ---------- consultation → Hydrafacial comparison ----------
+    if (
+      isKnowledgeHydrafacialComparisonIntent(message, session.locale)
+    ) {
+      const text = buildKnowledgeHydrafacialComparisonText(
+        session.locale as 'de' | 'en' | 'ru',
+      );
+      appendSessionMessage(sessionId, 'assistant', text);
+      upsertSession(sessionId, {
+        context: {
+          consultationTopic: 'hydrafacial',
+          consultationTechnique: undefined,
+          awaitingConsultationBookingConfirmation: false,
+        },
+      });
+
+      console.log(
+        `[AI Chat] session=${sessionId.slice(0, 8)}... fastpath=consultation-hydrafacial-compare`,
+      );
+
+      return NextResponse.json({
+        text,
+        sessionId,
+      });
+    }
+
+    // ---------- consultation → Brows & Lashes comparison ----------
+    if (
+      isKnowledgeBrowsLashesComparisonIntent(message, session.locale)
+    ) {
+      const text = buildKnowledgeBrowsLashesComparisonText(
+        session.locale as 'de' | 'en' | 'ru',
+      );
+      appendSessionMessage(sessionId, 'assistant', text);
+      upsertSession(sessionId, {
+        context: {
+          consultationTopic: 'brows_lashes',
+          consultationTechnique: undefined,
+          awaitingConsultationBookingConfirmation: false,
+        },
+      });
+
+      console.log(
+        `[AI Chat] session=${sessionId.slice(0, 8)}... fastpath=consultation-brows-lashes-compare`,
+      );
+
+      return NextResponse.json({
+        text,
+        sessionId,
+      });
+    }
+
+    if (
+      activeConsultationTopic === 'hydrafacial' &&
+      isKnowledgeHydrafacialDetailsIntent(message, session.locale)
+    ) {
+      const text = buildKnowledgeHydrafacialDetailsText(
+        session.locale as 'de' | 'en' | 'ru',
+      );
+      appendSessionMessage(sessionId, 'assistant', text);
+
+      console.log(
+        `[AI Chat] session=${sessionId.slice(0, 8)}... fastpath=consultation-hydrafacial-details`,
+      );
+
+      return NextResponse.json({
+        text,
+        sessionId,
+      });
+    }
+
+    if (
+      activeConsultationTopic === 'brows_lashes' &&
+      isKnowledgeBrowsLashesDetailsIntent(message, session.locale)
+    ) {
+      const text = buildKnowledgeBrowsLashesDetailsText(
+        session.locale as 'de' | 'en' | 'ru',
+      );
+      appendSessionMessage(sessionId, 'assistant', text);
+
+      console.log(
+        `[AI Chat] session=${sessionId.slice(0, 8)}... fastpath=consultation-brows-lashes-details`,
+      );
+
+      return NextResponse.json({
+        text,
+        sessionId,
+      });
+    }
+
     if (
       (activeConsultationTopic === 'pmu' || !activeConsultationTopic) &&
       isKnowledgePmuHealingIntent(message, session.locale)
@@ -2714,7 +3277,30 @@ export async function POST(
 
     const technique = detectKnowledgePmuTechnique(message, session.locale);
     if (technique) {
-      const text = buildKnowledgePmuTechniqueText(session.locale, technique);
+      if (isConsultationOperationalBookingInput(message)) {
+        const text = buildConsultationBookingConfirmText(session.locale, technique);
+        appendSessionMessage(sessionId, 'assistant', text);
+        upsertSession(sessionId, {
+          context: {
+            consultationTechnique: technique,
+            awaitingConsultationBookingConfirmation: true,
+          },
+        });
+
+        console.log(
+          `[AI Chat] session=${sessionId.slice(0, 8)}... fastpath=consultation-technique-booking-cta technique=${technique}`,
+        );
+
+        return NextResponse.json({
+          text,
+          sessionId,
+        });
+      }
+
+      const wantsDetails = isKnowledgeDetailsIntent(message, session.locale);
+      const text = wantsDetails
+        ? buildKnowledgePmuTechniqueDetailsText(session.locale, technique)
+        : buildKnowledgePmuTechniqueText(session.locale, technique);
       appendSessionMessage(sessionId, 'assistant', text);
       upsertSession(sessionId, {
         context: {
@@ -2724,7 +3310,7 @@ export async function POST(
       });
 
       console.log(
-        `[AI Chat] session=${sessionId.slice(0, 8)}... fastpath=consultation-technique technique=${technique}`,
+        `[AI Chat] session=${sessionId.slice(0, 8)}... fastpath=${wantsDetails ? 'consultation-technique-details' : 'consultation-technique'} technique=${technique}`,
       );
 
       return NextResponse.json({
@@ -2733,15 +3319,96 @@ export async function POST(
       });
     }
 
+    if (
+      session.context.consultationTechnique &&
+      isKnowledgeDetailsIntent(message, session.locale)
+    ) {
+      const text = buildKnowledgePmuTechniqueDetailsText(
+        session.locale,
+        session.context.consultationTechnique,
+      );
+      appendSessionMessage(sessionId, 'assistant', text);
+
+      console.log(
+        `[AI Chat] session=${sessionId.slice(0, 8)}... fastpath=consultation-technique-details-followup technique=${session.context.consultationTechnique}`,
+      );
+
+      return NextResponse.json({
+        text,
+        sessionId,
+      });
+    }
+
+    if (
+      activeConsultationTopic &&
+      activeConsultationTopic !== 'pmu' &&
+      (
+        looksLikeServiceOptionPayload(message) ||
+        looksLikePricedOptionPayload(message) ||
+        isConsultationSpecificBookingIntent(message, session.locale)
+      )
+    ) {
+      const consultationSelection = await tryHandleCatalogSelectionFastPath(
+        session,
+        sessionId,
+        message,
+      );
+      if (consultationSelection) {
+        upsertSession(sessionId, {
+          context: {
+            consultationMode: false,
+            consultationTopic: undefined,
+            consultationTechnique: undefined,
+            awaitingConsultationBookingConfirmation: false,
+          },
+        });
+
+        console.log(
+          `[AI Chat] session=${sessionId.slice(0, 8)}... fastpath=consultation-service-selection topic=${activeConsultationTopic}`,
+        );
+
+        return NextResponse.json(consultationSelection);
+      }
+    }
+
+    if (activeConsultationTopic === 'hydrafacial') {
+      const hydrafacialGoal = detectKnowledgeHydrafacialGoal(
+        message,
+        session.locale,
+      );
+      if (hydrafacialGoal) {
+        const text = buildKnowledgeHydrafacialGoalText(
+          session.locale,
+          hydrafacialGoal,
+        );
+        appendSessionMessage(sessionId, 'assistant', text);
+        upsertSession(sessionId, {
+          context: {
+            consultationTechnique: undefined,
+            awaitingConsultationBookingConfirmation: false,
+          },
+        });
+
+        console.log(
+          `[AI Chat] session=${sessionId.slice(0, 8)}... fastpath=consultation-hydrafacial-goal goal=${hydrafacialGoal}`,
+        );
+
+        return NextResponse.json({
+          text,
+          sessionId,
+        });
+      }
+    }
+
     const consultationStyle = detectKnowledgeConsultationStyle(
       message,
       session.locale,
     );
     if (consultationStyle) {
-      const text = buildKnowledgeConsultationStyleText(
-        session.locale,
-        consultationStyle,
-      );
+      const text =
+        activeConsultationTopic === 'brows_lashes'
+          ? buildKnowledgeBrowsLashesStyleText(session.locale, consultationStyle)
+          : buildKnowledgeConsultationStyleText(session.locale, consultationStyle);
       appendSessionMessage(sessionId, 'assistant', text);
       upsertSession(sessionId, {
         context: {
@@ -2900,6 +3567,54 @@ export async function POST(
     });
   }
 
+  // Deterministic details response for the currently selected service in booking flow.
+  // Prevents random-language fallbacks from the LLM when user asks "подробнее".
+  if (
+    hasActiveBookingFlow &&
+    selectedServiceIds.length > 0 &&
+    isKnowledgeDetailsIntent(message, session.locale)
+  ) {
+    const startedAt = Date.now();
+    const catalog = await listServices({ locale: session.locale });
+    const durationMs = Date.now() - startedAt;
+    const groups = (catalog.groups ?? []) as Array<{
+      id: string;
+      title: string;
+      services: Array<{
+        id: string;
+        title: string;
+      }>;
+    }>;
+    const selectedService = groups
+      .flatMap((group) =>
+        group.services.map((service) => ({
+          id: service.id,
+          title: service.title,
+          groupTitle: group.title,
+        })),
+      )
+      .find((service) => selectedServiceIds.includes(service.id));
+
+    if (selectedService) {
+      const text = buildSelectedServiceDetailsText(
+        session.locale,
+        selectedService.title,
+        selectedService.groupTitle,
+      );
+      appendSessionMessage(sessionId, 'assistant', text);
+
+      console.log(
+        `[AI Chat] session=${sessionId.slice(0, 8)}... fastpath=booking-selected-service-details service="${selectedService.title}"`,
+      );
+
+      return NextResponse.json({
+        text,
+        sessionId,
+        toolCalls: [{ name: 'list_services', durationMs }],
+      });
+    }
+  }
+
   // Deterministic selection flow first:
   // category click -> concrete services, service click -> masters/date step.
   // Important: run before scope-guard, otherwise service option clicks can be blocked.
@@ -3014,6 +3729,21 @@ export async function POST(
       text,
       sessionId,
       toolCalls: [{ name: 'list_services', durationMs }],
+    });
+  }
+
+  // Deterministic location/hours reply to avoid language drift in generic LLM answers.
+  if (isKnowledgeLocationHoursIntent(message, session.locale)) {
+    const text = buildKnowledgeLocationHoursText(session.locale);
+    appendSessionMessage(sessionId, 'assistant', text);
+
+    console.log(
+      `[AI Chat] session=${sessionId.slice(0, 8)}... fastpath=location-hours`,
+    );
+
+    return NextResponse.json({
+      text,
+      sessionId,
     });
   }
 

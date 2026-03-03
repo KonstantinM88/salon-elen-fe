@@ -609,6 +609,70 @@ export const PERMANENT_HALLE = {
       EN: ["Signature Hydrafacial: €140", "Deluxe Hydrafacial: €180", "Platinum Hydrafacial: €270"],
       RU: ["Signature Hydrafacial: 140 €", "Deluxe Hydrafacial: 180 €", "Platinum Hydrafacial: 270 €"],
     },
+    tiers: {
+      signature: {
+        duration_min: 60,
+        includes: {
+          DE: ["Tiefenreinigung", "Säure-Peeling", "Extraktion (Porenreinigung)", "Feuchtigkeitspflege mit Hyaluronsäure"],
+          EN: ["Deep cleansing", "Acid peeling", "Extraction (pore cleansing)", "Hydration with hyaluronic acid"],
+          RU: ["Глубокое очищение", "Кислотный пилинг", "Экстракция (очищение пор)", "Увлажнение гиалуроновой кислотой"],
+        },
+        best_for: {
+          DE: "Perfekt als regelmäßige Grundpflege alle 4–6 Wochen oder als Einstieg 🌸",
+          EN: "Perfect as regular maintenance every 4–6 weeks or as a first treatment 🌸",
+          RU: "Идеально как регулярный уход раз в 4–6 недель или для первого знакомства 🌸",
+        },
+      },
+      deluxe: {
+        duration_min: 75,
+        includes: {
+          DE: ["Alles aus Signature", "Intensiveres Peeling", "LED-Lichttherapie (Hauterneuerung)", "Antioxidantien-Booster"],
+          EN: ["Everything in Signature", "More intensive peeling", "LED light therapy (skin renewal)", "Antioxidant booster"],
+          RU: ["Всё из Signature", "Усиленный пилинг", "LED-терапия (обновление кожи)", "Антиоксидантный бустер"],
+        },
+        best_for: {
+          DE: "Ideal bei müder, fahler Haut die einen sichtbaren Boost braucht 🌿",
+          EN: "Ideal for tired, dull skin that needs a visible boost 🌿",
+          RU: "Идеально для уставшей, тусклой кожи, которой нужен заметный буст 🌿",
+        },
+      },
+      platinum: {
+        duration_min: 90,
+        includes: {
+          DE: ["Alles aus Deluxe", "Lymphdrainage-Massage", "Premium-Booster-Seren", "Spezial-Maske für maximale Regeneration"],
+          EN: ["Everything in Deluxe", "Lymphatic drainage massage", "Premium booster serums", "Special mask for maximum regeneration"],
+          RU: ["Всё из Deluxe", "Лимфодренажный массаж", "Премиум бустер-сыворотки", "Специальная маска для максимальной регенерации"],
+        },
+        best_for: {
+          DE: "Die VIP-Verwöhnung: vor Events, Hochzeiten oder als ultimatives Self-Care-Erlebnis ✨",
+          EN: "The VIP pampering: before events, weddings, or as the ultimate self-care experience ✨",
+          RU: "VIP-процедура: перед мероприятиями, свадьбой или как максимальный self-care ✨",
+        },
+      },
+    },
+    faq: {
+      DE: {
+        how_it_works: "Hydrafacial arbeitet mit patentierter Vortex-Technologie in 3 Schritten: Reinigung, sanfte Extraktion und Befeuchtung 🌿 Komplett schmerzfrei.",
+        skin_types: "Geeignet für alle Hauttypen — auch bei empfindlicher oder zu Akne neigender Haut 🌸",
+        downtime: "Keine Ausfallzeit! Direkt nach der Behandlung sieht die Haut frisch und strahlend aus ✨",
+        frequency: "Für optimale Ergebnisse alle 4–6 Wochen. Als Einzelbehandlung vor Events auch super.",
+        with_makeup: "Am besten 24 Stunden nach der Behandlung kein Make-up tragen, damit die Wirkstoffe optimal wirken.",
+      },
+      EN: {
+        how_it_works: "Hydrafacial uses patented Vortex technology in 3 steps: cleansing, gentle extraction, and hydration 🌿 Completely painless.",
+        skin_types: "Suitable for all skin types — including sensitive and acne-prone skin 🌸",
+        downtime: "Zero downtime! Skin looks fresh and radiant immediately after treatment ✨",
+        frequency: "Every 4–6 weeks for optimal results. Also great as a one-off before events.",
+        with_makeup: "Best to skip makeup for 24 hours after treatment to let the active ingredients work.",
+      },
+      RU: {
+        how_it_works: "Hydrafacial использует патентованную Vortex-технологию в 3 этапа: очищение, мягкая экстракция и увлажнение 🌿 Полностью безболезненно.",
+        skin_types: "Подходит для всех типов кожи — даже чувствительной и проблемной 🌸",
+        downtime: "Никакого периода восстановления! Кожа выглядит свежей и сияющей сразу после процедуры ✨",
+        frequency: "Для лучших результатов раз в 4–6 недель. Отлично и как разовая процедура перед мероприятием.",
+        with_makeup: "Лучше не наносить макияж 24 часа после процедуры, чтобы активные вещества подействовали.",
+      },
+    },
   },
 
   // ---------------------------
@@ -681,6 +745,110 @@ export const PERMANENT_HALLE = {
       },
     },
   },
+
+  // ---------------------------
+  // SERVICE PERSONAS — Who is each service best for
+  // ---------------------------
+  servicePersonas: {
+    powder_brows: {
+      DE: "Ideal für: Frauen, die morgens „aufwachen und fertig sein“ möchten. Natürlich, weich, für den Alltag.",
+      EN: "Ideal for: Women who want to wake up ready. Natural, soft, for everyday life.",
+      RU: "Идеально для: девушек, которые хотят просыпаться уже «с макияжем». Натурально, мягко, на каждый день.",
+    },
+    hairstroke_brows: {
+      DE: "Ideal für: Wer mehr Textur und Natürlichkeit möchte — sichtbare Härchen wie „echte“ Brauen.",
+      EN: "Ideal for: Those who want more texture and naturalness — visible strokes like real brows.",
+      RU: "Идеально для: тех, кто хочет больше текстуры — видны «волоски» как настоящие брови.",
+    },
+    aquarell_lips: {
+      DE: "Ideal für: Wer frische, natürliche Lippenfarbe möchte — ohne harten Kontur-Effekt.",
+      EN: "Ideal for: Those who want fresh, natural lip color — without a harsh outline.",
+      RU: "Идеально для: свежий натуральный оттенок губ — без жёсткого контура.",
+    },
+    lips_3d: {
+      DE: "Ideal für: Wer mehr Farbe und etwas Volumeneffekt möchte — für Frauen, die Lippenstift lieben.",
+      EN: "Ideal for: Those who want more color and a slight volume effect — for lipstick lovers.",
+      RU: "Идеально для: больше цвета и лёгкий эффект объёма — для тех, кто любит яркие губы.",
+    },
+    lash_lift: {
+      DE: "Ideal für: Frauen, die ohne Wimperntusche voller, geschwungener aussehen möchten. Null Aufwand, 6–8 Wochen Haltbarkeit.",
+      EN: "Ideal for: Women who want fuller, curled lashes without mascara. Zero maintenance, lasts 6–8 weeks.",
+      RU: "Идеально для: тех, кто хочет пышные изогнутые ресницы без туши. Без усилий, держится 6–8 недель.",
+    },
+    brow_lift: {
+      DE: "Ideal für: Widerspenstige Brauen in Form bringen. Wirken voller und gepflegter. 4–6 Wochen Halt.",
+      EN: "Ideal for: Taming unruly brows. They look fuller and neater. Lasts 4–6 weeks.",
+      RU: "Идеально для: непослушных бровей — ложатся в форму, выглядят пышнее и аккуратнее. Держится 4–6 недель.",
+    },
+    hydrafacial_signature: {
+      DE: "Ideal für: Regelmäßige Pflege, Einstieg in Hydrafacial, oder schnelle Auffrischung zwischen Events.",
+      EN: "Ideal for: Regular maintenance, trying Hydrafacial for the first time, or a quick refresh.",
+      RU: "Идеально для: регулярного ухода, первого знакомства с Hydrafacial или быстрого освежения.",
+    },
+    hydrafacial_deluxe: {
+      DE: "Ideal für: Müde, fahle Haut die sichtbar aufgeweckt werden soll. Spürbarer Unterschied nach einer Sitzung.",
+      EN: "Ideal for: Tired, dull skin that needs a visible wake-up. Noticeable difference after one session.",
+      RU: "Идеально для: уставшей тусклой кожи, которую нужно «разбудить». Заметный результат после одной процедуры.",
+    },
+    hydrafacial_platinum: {
+      DE: "Ideal für: Vor Hochzeiten/Events, als Geschenk, oder maximale Verwöhnung. Premium-Erlebnis.",
+      EN: "Ideal for: Before weddings/events, as a gift, or maximum pampering. Premium experience.",
+      RU: "Идеально для: перед свадьбой/мероприятием, как подарок, или для максимального удовольствия.",
+    },
+  },
+
+  // ---------------------------
+  // OCCASION-BASED RECOMMENDATIONS
+  // ---------------------------
+  occasions: {
+    wedding: {
+      DE: {
+        timeline: "Hochzeit-Beauty-Plan 💍\n• 6–8 Wochen vorher: PMU (Brauen und/oder Lippen)\n• 4–6 Wochen vorher: PMU-Korrektur\n• 1 Woche vorher: Hydrafacial Platinum + Lash Lift\n• Am Tag: aufwachen und strahlen! ✨",
+        tip: "Die meisten Bräute wählen Powder Brows + Aquarell Lips für ein natürlich-perfektes Ergebnis 🌸",
+      },
+      EN: {
+        timeline: "Wedding beauty plan 💍\n• 6–8 weeks before: PMU (brows and/or lips)\n• 4–6 weeks before: PMU touch-up\n• 1 week before: Hydrafacial Platinum + Lash Lift\n• On the day: wake up and glow! ✨",
+        tip: "Most brides choose Powder Brows + Aquarelle Lips for a naturally flawless result 🌸",
+      },
+      RU: {
+        timeline: "Бьюти-план к свадьбе 💍\n• 6–8 недель до: PMU (брови и/или губы)\n• 4–6 недель до: коррекция PMU\n• 1 неделя до: Hydrafacial Platinum + Lash Lift\n• В день свадьбы: просыпаетесь уже красивой! ✨",
+        tip: "Самый популярный выбор невест — Powder Brows + акварельные губы для идеально-натурального результата 🌸",
+      },
+    },
+    vacation: {
+      DE: {
+        tip: "Urlaubs-Tipp: PMU mindestens 4 Wochen vorher buchen 🌿 Dann ist alles verheilt und Sie brauchen kein Make-up am Strand, im Pool oder bei Abendessen.",
+      },
+      EN: {
+        tip: "Vacation tip: book PMU at least 4 weeks before your trip 🌿 Everything will be healed and you won't need makeup at the beach, pool, or dinner.",
+      },
+      RU: {
+        tip: "Совет к отпуску: PMU лучше сделать минимум за 4 недели до поездки 🌿 Всё заживёт и не нужно будет думать о макияже на пляже, в бассейне или за ужином.",
+      },
+    },
+    first_time: {
+      DE: {
+        reassurance: "Wenn es Ihr erstes Mal ist — keine Sorge! 🌸 Wir empfehlen die natürlichste Variante, stimmen alles vorab ab und Sie entscheiden in Ruhe. Aufbauen kann man immer.",
+      },
+      EN: {
+        reassurance: "If it's your first time — don't worry! 🌸 We recommend the most natural option, align everything beforehand, and you decide at your own pace. You can always build on it later.",
+      },
+      RU: {
+        reassurance: "Если это ваш первый перманент — не переживайте! 🌸 Мы рекомендуем самый натуральный вариант, всё согласовываем заранее и вы решаете спокойно. Усилить всегда можно позже.",
+      },
+    },
+    correction: {
+      DE: {
+        info: "Wenn Ihr PMU verblasst ist oder Sie eine andere Form wünschen — eine Auffrischung/Korrektur ist jederzeit möglich 🌿\nPreise: 2 Monate: 120€ | 12–24M: 175€ | 24M+: 230€ | Klein: 39€",
+      },
+      EN: {
+        info: "If your PMU has faded or you'd like a different shape — a refresh/correction is always possible 🌿\nPrices: 2 months: €120 | 12–24M: €175 | 24M+: €230 | Small: €39",
+      },
+      RU: {
+        info: "Если перманент побледнел или хотите скорректировать форму — обновление/коррекция всегда возможна 🌿\nЦены: до 2 мес: 120€ | 12–24 мес: 175€ | 24+ мес: 230€ | Маленькая: 39€",
+      },
+    },
+  },
 } as const;
 
 export type AssistantLocale = 'de' | 'en' | 'ru';
@@ -720,6 +888,83 @@ export function buildKnowledgeConsultationStartText(locale?: string): string {
     return `${intro}\n\n[option] 💄 PMU: brows, lips, lash line [/option]\n[option] ✨ Brows & lashes: lifting/styling [/option]\n[option] 💧 Hydrafacial: choose format [/option]\n[option] 📅 Pick time and book [/option]`;
   }
   return `${intro}\n\n[option] 💄 PMU: Augenbrauen, Lippen, Wimpernkranz [/option]\n[option] ✨ Brows & Lashes: Lifting/Styling [/option]\n[option] 💧 Hydrafacial: passendes Paket [/option]\n[option] 📅 Zeit finden und buchen [/option]`;
+}
+
+export function isKnowledgeLocationHoursIntent(
+  text: string,
+  locale?: string,
+): boolean {
+  const value = text.toLowerCase().replace(/ё/g, 'е').trim();
+  if (!value) return false;
+
+  const normalized = normalizeLocale(locale);
+  if (normalized === 'ru') {
+    return (
+      value.includes('адрес') ||
+      value.includes('часы работы') ||
+      value.includes('где вы находитесь') ||
+      value.includes('как добраться') ||
+      value.includes('адрес и часы работы')
+    );
+  }
+
+  if (normalized === 'en') {
+    return (
+      value.includes('address') ||
+      value.includes('location') ||
+      value.includes('opening hours') ||
+      value.includes('working hours') ||
+      value.includes('location and hours')
+    );
+  }
+
+  return (
+    value.includes('adresse') ||
+    value.includes('öffnungszeiten') ||
+    value.includes('oeffnungszeiten') ||
+    value.includes('standort')
+  );
+}
+
+export function buildKnowledgeLocationHoursText(locale?: string): string {
+  const lang = localeToLang(locale);
+
+  if (lang === 'RU') {
+    return `Наш салон **Permanent Halle** находится по адресу:
+**Lessingstraße 37, 06114 Halle (Saale), Deutschland**.
+
+Часы работы:
+• Пн–Пт: **10:00–19:00**
+• Сб: **10:00–16:00**
+• Вс: **выходной**
+
+[option] ↩️ Назад в главное меню [/option]
+[option] 📅 Записаться [/option]`;
+  }
+
+  if (lang === 'EN') {
+    return `Our salon **Permanent Halle** is located at:
+**Lessingstraße 37, 06114 Halle (Saale), Germany**.
+
+Opening hours:
+• Mon–Fri: **10:00–19:00**
+• Sat: **10:00–16:00**
+• Sun: **closed**
+
+[option] ↩️ Back to main menu [/option]
+[option] 📅 Book appointment [/option]`;
+  }
+
+  return `Unser Salon **Permanent Halle** befindet sich hier:
+**Lessingstraße 37, 06114 Halle (Saale), Deutschland**.
+
+Öffnungszeiten:
+• Mo–Fr: **10:00–19:00**
+• Sa: **10:00–16:00**
+• So: **geschlossen**
+
+[option] ↩️ Zum Hauptmenü [/option]
+[option] 📅 Termin buchen [/option]`;
 }
 
 export function isConsultationIntentByKnowledge(
@@ -821,6 +1066,7 @@ export type KnowledgePmuTechnique =
   | 'lips_3d'
   | 'lashline'
   | 'upper_lower';
+export type KnowledgeHydrafacialGoal = 'signature' | 'deluxe' | 'platinum';
 
 export function detectKnowledgeConsultationTopic(
   text: string,
@@ -925,6 +1171,126 @@ export function buildKnowledgeConsultationTopicText(
     return 'Super, wir wählen Brows/Lashes passend zu Ihrem Wunsch 🌸 Welches Ergebnis möchten Sie?\n\n[option] Sehr natürlich [/option]\n[option] Etwas definierter [/option]\n[option] Passend zum Budget [/option]\n[option] ❓ Lifting vs Styling vergleichen [/option]\n[option] 📅 Zeit finden und buchen [/option]';
   }
   return 'Sehr gute Wahl 🌿 Für Hydrafacial finde ich das passende Paket. Was ist aktuell wichtiger?\n\n[option] Tiefenreinigung und Frische [/option]\n[option] Mehr Glow und ebenmäßiger Teint [/option]\n[option] Maximaler Premium-Effekt [/option]\n[option] ❓ Unterschied Signature/Deluxe/Platinum [/option]\n[option] 📅 Zeit finden und buchen [/option]';
+}
+
+export function detectKnowledgeHydrafacialGoal(
+  text: string,
+  locale?: string,
+): KnowledgeHydrafacialGoal | null {
+  const value = text.toLowerCase().replace(/ё/g, 'е').trim();
+  if (!value) return null;
+
+  // Keep concrete priced options for catalog-selection fastpath.
+  if (/[—–-].*\d{1,4}(?:[.,]\d{1,2})?\s*€/.test(value)) return null;
+
+  const normalized = normalizeLocale(locale);
+
+  if (normalized === 'ru') {
+    if (
+      value.includes('глубокое очищение и свежесть') ||
+      (value.includes('глубок') && value.includes('очищ')) ||
+      (value.includes('очищ') && value.includes('свеж'))
+    ) {
+      return 'signature';
+    }
+    if (
+      value.includes('больше сияния и ровный тон') ||
+      value.includes('ровный тон') ||
+      value.includes('сияни')
+    ) {
+      return 'deluxe';
+    }
+    if (
+      value.includes('максимальный премиум-уход') ||
+      (value.includes('премиум') && value.includes('уход')) ||
+      value.includes('максимальный уход')
+    ) {
+      return 'platinum';
+    }
+    return null;
+  }
+
+  if (normalized === 'en') {
+    if (
+      value.includes('deep cleanse and freshness') ||
+      (value.includes('deep') && value.includes('cleanse'))
+    ) {
+      return 'signature';
+    }
+    if (
+      value.includes('more glow and even tone') ||
+      value.includes('even tone') ||
+      value.includes('more glow')
+    ) {
+      return 'deluxe';
+    }
+    if (
+      value.includes('maximum premium care') ||
+      value.includes('premium care') ||
+      value.includes('maximum glow')
+    ) {
+      return 'platinum';
+    }
+    return null;
+  }
+
+  if (
+    value.includes('tiefenreinigung und frische') ||
+    (value.includes('tiefenreinigung') && value.includes('frische'))
+  ) {
+    return 'signature';
+  }
+  if (
+    value.includes('mehr glow und ebenmaßiger teint') ||
+    value.includes('mehr glow und ebenmassiger teint') ||
+    value.includes('ebenmassiger teint') ||
+    value.includes('ebenmaßiger teint')
+  ) {
+    return 'deluxe';
+  }
+  if (
+    value.includes('maximaler premium-effekt') ||
+    value.includes('maximaler premium effekt') ||
+    (value.includes('premium') && value.includes('effekt'))
+  ) {
+    return 'platinum';
+  }
+  return null;
+}
+
+export function buildKnowledgeHydrafacialGoalText(
+  locale: AssistantLocale | undefined,
+  goal: KnowledgeHydrafacialGoal,
+): string {
+  const normalized = normalizeLocale(locale);
+
+  if (normalized === 'ru') {
+    if (goal === 'signature') {
+      return 'Отличный выбор 🌿 Для цели «очищение и свежесть» чаще всего подходит **Signature Hydrafacial**.\nЭто базовый и очень комфортный формат: глубокое очищение, мягкая экстракция и увлажнение.\n\n[option] 💧 Signature Hydrafacial — 140 € [/option]\n[option] ✨ Deluxe Hydrafacial — 180 € [/option]\n[option] 👑 Platinum Hydrafacial — 270 € [/option]\n[option] ❓ Чем отличается Signature/Deluxe/Platinum [/option]\n[option] ❓ Подробнее о форматах [/option]\n[option] 📅 Подобрать время и записаться [/option]';
+    }
+    if (goal === 'deluxe') {
+      return 'Отлично 🌸 Для задачи «сияние и ровный тон» обычно выбирают **Deluxe Hydrafacial**.\nОн включает всё из Signature + усиленный пилинг и LED-терапию для более заметного glow-эффекта.\n\n[option] ✨ Deluxe Hydrafacial — 180 € [/option]\n[option] 💧 Signature Hydrafacial — 140 € [/option]\n[option] 👑 Platinum Hydrafacial — 270 € [/option]\n[option] ❓ Чем отличается Signature/Deluxe/Platinum [/option]\n[option] ❓ Подробнее о форматах [/option]\n[option] 📅 Подобрать время и записаться [/option]';
+    }
+    return 'Супер выбор ✨ Если нужен максимально выраженный результат, лучше всего подходит **Platinum Hydrafacial**.\nЭто самый полный формат: всё из Deluxe + лимфодренаж и премиум-сыворотки.\n\n[option] 👑 Platinum Hydrafacial — 270 € [/option]\n[option] ✨ Deluxe Hydrafacial — 180 € [/option]\n[option] 💧 Signature Hydrafacial — 140 € [/option]\n[option] ❓ Чем отличается Signature/Deluxe/Platinum [/option]\n[option] ❓ Подробнее о форматах [/option]\n[option] 📅 Подобрать время и записаться [/option]';
+  }
+
+  if (normalized === 'en') {
+    if (goal === 'signature') {
+      return 'Great choice 🌿 For a “clean and fresh” goal, **Signature Hydrafacial** is usually the best fit.\nIt is the core format: deep cleanse, gentle extraction, and hydration.\n\n[option] 💧 Signature Hydrafacial — €140 [/option]\n[option] ✨ Deluxe Hydrafacial — €180 [/option]\n[option] 👑 Platinum Hydrafacial — €270 [/option]\n[option] ❓ Signature vs Deluxe vs Platinum [/option]\n[option] ❓ More details about formats [/option]\n[option] 📅 Pick time and book [/option]';
+    }
+    if (goal === 'deluxe') {
+      return 'Perfect 🌸 For “more glow and even tone,” clients usually choose **Deluxe Hydrafacial**.\nIt includes everything in Signature, plus stronger peel and LED therapy for a brighter result.\n\n[option] ✨ Deluxe Hydrafacial — €180 [/option]\n[option] 💧 Signature Hydrafacial — €140 [/option]\n[option] 👑 Platinum Hydrafacial — €270 [/option]\n[option] ❓ Signature vs Deluxe vs Platinum [/option]\n[option] ❓ More details about formats [/option]\n[option] 📅 Pick time and book [/option]';
+    }
+    return 'Excellent choice ✨ If you want maximum visible effect, **Platinum Hydrafacial** is the strongest option.\nIt includes everything in Deluxe, plus lymphatic drainage and premium serums.\n\n[option] 👑 Platinum Hydrafacial — €270 [/option]\n[option] ✨ Deluxe Hydrafacial — €180 [/option]\n[option] 💧 Signature Hydrafacial — €140 [/option]\n[option] ❓ Signature vs Deluxe vs Platinum [/option]\n[option] ❓ More details about formats [/option]\n[option] 📅 Pick time and book [/option]';
+  }
+
+  if (goal === 'signature') {
+    return 'Sehr gute Wahl 🌿 Für „Tiefenreinigung und Frische“ passt meist **Signature Hydrafacial** am besten.\nDas ist das Basisformat: gründliche Reinigung, sanfte Extraktion und Feuchtigkeit.\n\n[option] 💧 Signature Hydrafacial — 140 € [/option]\n[option] ✨ Deluxe Hydrafacial — 180 € [/option]\n[option] 👑 Platinum Hydrafacial — 270 € [/option]\n[option] ❓ Unterschied Signature/Deluxe/Platinum [/option]\n[option] ❓ Mehr Details zu den Formaten [/option]\n[option] 📅 Zeit finden und buchen [/option]';
+  }
+  if (goal === 'deluxe') {
+    return 'Perfekt 🌸 Für „mehr Glow und ebenmäßigen Teint“ wird meist **Deluxe Hydrafacial** gewählt.\nEs enthält alles aus Signature plus intensiveres Peeling und LED-Therapie.\n\n[option] ✨ Deluxe Hydrafacial — 180 € [/option]\n[option] 💧 Signature Hydrafacial — 140 € [/option]\n[option] 👑 Platinum Hydrafacial — 270 € [/option]\n[option] ❓ Unterschied Signature/Deluxe/Platinum [/option]\n[option] ❓ Mehr Details zu den Formaten [/option]\n[option] 📅 Zeit finden und buchen [/option]';
+  }
+  return 'Top Wahl ✨ Für den maximalen Effekt ist **Platinum Hydrafacial** am stärksten.\nDas ist das umfassendste Format: alles aus Deluxe plus Lymphdrainage und Premium-Seren.\n\n[option] 👑 Platinum Hydrafacial — 270 € [/option]\n[option] ✨ Deluxe Hydrafacial — 180 € [/option]\n[option] 💧 Signature Hydrafacial — 140 € [/option]\n[option] ❓ Unterschied Signature/Deluxe/Platinum [/option]\n[option] ❓ Mehr Details zu den Formaten [/option]\n[option] 📅 Zeit finden und buchen [/option]';
 }
 
 export function isKnowledgePmuHealingIntent(
@@ -1032,31 +1398,66 @@ export function buildKnowledgeConsultationStyleText(
 
   if (normalized === 'ru') {
     if (style === 'natural') {
-      return 'Для максимально натурального результата чаще выбирают **Powder Brows** 🌸\n\n[option] 💖 Powder Brows — мягкий эффект, 350 € [/option]\n[option] 🌟 Hairstroke Brows — более детализированный, 450 € [/option]\n[option] 📅 Подобрать время и записаться [/option]';
+      return 'Для максимально натурального результата чаще выбирают **Пудровые брови (Powder Brows)** 🌸\n\n[option] 💖 Пудровые брови (Powder Brows) — мягкий эффект, 350 € [/option]\n[option] 🌟 Волосковая техника (Hairstroke Brows) — более детализированный, 450 € [/option]\n[option] ✅ Записаться на Пудровые брови [/option]\n[option] 📅 Подобрать время и записаться [/option]';
     }
     if (style === 'expressive') {
-      return 'Для более яркого и выразительного результата подойдут эти варианты 🌸\n\n[option] 💖 Powder Brows — мягкий эффект, 350 € [/option]\n[option] 🌟 Hairstroke Brows — более детализированный, 450 € [/option]\n[option] 📅 Подобрать время и записаться [/option]';
+      return 'Для более яркого и выразительного результата подойдут эти варианты 🌸\n\n[option] 💖 Пудровые брови (Powder Brows) — мягкий эффект, 350 € [/option]\n[option] 🌟 Волосковая техника (Hairstroke Brows) — более детализированный, 450 € [/option]\n[option] ✅ Записаться на Волосковую технику [/option]\n[option] 📅 Подобрать время и записаться [/option]';
     }
-    return 'Если ориентироваться на бюджет, оптимальный старт — **Powder Brows 350 €** 🌿\n\n[option] 💖 Powder Brows — мягкий эффект, 350 € [/option]\n[option] 🌟 Hairstroke Brows — более детализированный, 450 € [/option]\n[option] 📅 Подобрать время и записаться [/option]';
+    return 'Если ориентироваться на бюджет, оптимальный старт — **Пудровые брови (350 €)** 🌿\n\n[option] 💖 Пудровые брови (Powder Brows) — мягкий эффект, 350 € [/option]\n[option] 🌟 Волосковая техника (Hairstroke Brows) — более детализированный, 450 € [/option]\n[option] ✅ Записаться на Пудровые брови [/option]\n[option] 📅 Подобрать время и записаться [/option]';
   }
 
   if (normalized === 'en') {
     if (style === 'natural') {
-      return 'For a very natural look, clients often choose **Powder Brows** 🌸\n\n[option] 💖 Powder Brows — soft effect, €350 [/option]\n[option] 🌟 Hairstroke Brows — more detailed, €450 [/option]\n[option] 📅 Pick time and book [/option]';
+      return 'For a very natural look, clients often choose **Powder Brows** 🌸\n\n[option] 💖 Powder Brows — soft effect, €350 [/option]\n[option] 🌟 Hairstroke Brows — more detailed, €450 [/option]\n[option] ✅ Book Powder Brows [/option]\n[option] 📅 Pick time and book [/option]';
     }
     if (style === 'expressive') {
-      return 'For a brighter and more defined result, these two options fit best 🌸\n\n[option] 💖 Powder Brows — soft effect, €350 [/option]\n[option] 🌟 Hairstroke Brows — more detailed, €450 [/option]\n[option] 📅 Pick time and book [/option]';
+      return 'For a brighter and more defined result, these two options fit best 🌸\n\n[option] 💖 Powder Brows — soft effect, €350 [/option]\n[option] 🌟 Hairstroke Brows — more detailed, €450 [/option]\n[option] ✅ Book Hairstroke Brows [/option]\n[option] 📅 Pick time and book [/option]';
     }
-    return 'If budget is key, **Powder Brows €350** is usually the best start 🌿\n\n[option] 💖 Powder Brows — soft effect, €350 [/option]\n[option] 🌟 Hairstroke Brows — more detailed, €450 [/option]\n[option] 📅 Pick time and book [/option]';
+    return 'If budget is key, **Powder Brows €350** is usually the best start 🌿\n\n[option] 💖 Powder Brows — soft effect, €350 [/option]\n[option] 🌟 Hairstroke Brows — more detailed, €450 [/option]\n[option] ✅ Book Powder Brows [/option]\n[option] 📅 Pick time and book [/option]';
   }
 
   if (style === 'natural') {
-    return 'Für ein sehr natürliches Ergebnis wird meist **Powder Brows** gewählt 🌸\n\n[option] 💖 Powder Brows — weicher Effekt, 350 € [/option]\n[option] 🌟 Hairstroke Brows — detaillierter, 450 € [/option]\n[option] 📅 Zeit finden und buchen [/option]';
+    return 'Für ein sehr natürliches Ergebnis wird meist **Powder Brows** gewählt 🌸\n\n[option] 💖 Powder Brows — weicher Effekt, 350 € [/option]\n[option] 🌟 Hairstroke Brows — detaillierter, 450 € [/option]\n[option] ✅ Powder Brows buchen [/option]\n[option] 📅 Zeit finden und buchen [/option]';
   }
   if (style === 'expressive') {
-    return 'Für ein ausdrucksstärkeres Ergebnis passen diese zwei Optionen am besten 🌸\n\n[option] 💖 Powder Brows — weicher Effekt, 350 € [/option]\n[option] 🌟 Hairstroke Brows — detaillierter, 450 € [/option]\n[option] 📅 Zeit finden und buchen [/option]';
+    return 'Für ein ausdrucksstärkeres Ergebnis passen diese zwei Optionen am besten 🌸\n\n[option] 💖 Powder Brows — weicher Effekt, 350 € [/option]\n[option] 🌟 Hairstroke Brows — detaillierter, 450 € [/option]\n[option] ✅ Hairstroke Brows buchen [/option]\n[option] 📅 Zeit finden und buchen [/option]';
   }
-  return 'Wenn Budget wichtig ist, ist **Powder Brows 350 €** oft der beste Einstieg 🌿\n\n[option] 💖 Powder Brows — weicher Effekt, 350 € [/option]\n[option] 🌟 Hairstroke Brows — detaillierter, 450 € [/option]\n[option] 📅 Zeit finden und buchen [/option]';
+  return 'Wenn Budget wichtig ist, ist **Powder Brows 350 €** oft der beste Einstieg 🌿\n\n[option] 💖 Powder Brows — weicher Effekt, 350 € [/option]\n[option] 🌟 Hairstroke Brows — detaillierter, 450 € [/option]\n[option] ✅ Powder Brows buchen [/option]\n[option] 📅 Zeit finden und buchen [/option]';
+}
+
+export function buildKnowledgeBrowsLashesStyleText(
+  locale: AssistantLocale | undefined,
+  style: KnowledgeConsultationStyle,
+): string {
+  const normalized = normalizeLocale(locale);
+
+  if (normalized === 'ru') {
+    if (style === 'natural') {
+      return 'Для максимально натурального эффекта в Brows/Lashes чаще выбирают мягкие варианты 🌸\n\n[option] ✨ Лифтинг ресниц — 55 € [/option]\n[option] 🌸 Подтяжка бровей — 50 € [/option]\n[option] 💫 Комбо — лифтинг ресниц + классическая коррекция бровей — 75 € [/option]\n[option] ✅ Записаться на Подтяжка бровей [/option]\n[option] 📅 Подобрать время и записаться [/option]';
+    }
+    if (style === 'expressive') {
+      return 'Для более яркого результата в Brows/Lashes подойдут эти варианты 🌸\n\n[option] 🌸 Гибридные брови — 60 € [/option]\n[option] 💫 Комбо — лифтинг ресниц + гибридные брови — 120 € [/option]\n[option] ✨ Лифтинг ресниц — 55 € [/option]\n[option] ✅ Записаться на Гибридные брови [/option]\n[option] 📅 Подобрать время и записаться [/option]';
+    }
+    return 'Если ориентироваться на бюджет, в Brows/Lashes чаще выбирают базовые форматы 🌿\n\n[option] 🌸 Подтяжка бровей — 50 € [/option]\n[option] ✨ Лифтинг ресниц — 55 € [/option]\n[option] 💫 Комбо — лифтинг ресниц + классическая коррекция бровей — 75 € [/option]\n[option] ✅ Записаться на Подтяжка бровей [/option]\n[option] 📅 Подобрать время и записаться [/option]';
+  }
+
+  if (normalized === 'en') {
+    if (style === 'natural') {
+      return 'For a very natural brows/lashes result, clients usually choose these options 🌸\n\n[option] ✨ Lash Lift — €55 [/option]\n[option] 🌸 Brow Lift — €50 [/option]\n[option] 💫 Combo — Lash Lift + Brow Classic — €75 [/option]\n[option] ✅ Book Brow Lift [/option]\n[option] 📅 Pick time and book [/option]';
+    }
+    if (style === 'expressive') {
+      return 'For a more expressive brows/lashes effect, these options fit best 🌸\n\n[option] 🌸 Hybrid Brows — €60 [/option]\n[option] 💫 Combo — Lash Lift + Hybrid Brows — €120 [/option]\n[option] ✨ Lash Lift — €55 [/option]\n[option] ✅ Book Hybrid Brows [/option]\n[option] 📅 Pick time and book [/option]';
+    }
+    return 'If budget is key, these brows/lashes formats are usually the best start 🌿\n\n[option] 🌸 Brow Lift — €50 [/option]\n[option] ✨ Lash Lift — €55 [/option]\n[option] 💫 Combo — Lash Lift + Brow Classic — €75 [/option]\n[option] ✅ Book Brow Lift [/option]\n[option] 📅 Pick time and book [/option]';
+  }
+
+  if (style === 'natural') {
+    return 'Für ein sehr natürliches Brows/Lashes-Ergebnis werden meist diese Optionen gewählt 🌸\n\n[option] ✨ Lash Lift — 55 € [/option]\n[option] 🌸 Brow Lift — 50 € [/option]\n[option] 💫 Kombi — Lash Lift + Brow Classic — 75 € [/option]\n[option] ✅ Brow Lift buchen [/option]\n[option] 📅 Zeit finden und buchen [/option]';
+  }
+  if (style === 'expressive') {
+    return 'Für ein ausdrucksstärkeres Brows/Lashes-Ergebnis passen diese Optionen am besten 🌸\n\n[option] 🌸 Hybrid Brows — 60 € [/option]\n[option] 💫 Kombi — Lash Lift + Hybrid Brows — 120 € [/option]\n[option] ✨ Lash Lift — 55 € [/option]\n[option] ✅ Hybrid Brows buchen [/option]\n[option] 📅 Zeit finden und buchen [/option]';
+  }
+  return 'Wenn Budget wichtig ist, sind diese Brows/Lashes-Formate meist der beste Einstieg 🌿\n\n[option] 🌸 Brow Lift — 50 € [/option]\n[option] ✨ Lash Lift — 55 € [/option]\n[option] 💫 Kombi — Lash Lift + Brow Classic — 75 € [/option]\n[option] ✅ Brow Lift buchen [/option]\n[option] 📅 Zeit finden und buchen [/option]';
 }
 
 export function isKnowledgePmuLipsChoiceIntent(
@@ -1110,7 +1511,7 @@ export function buildKnowledgePmuLipsChoiceText(
   const normalized = normalizeLocale(locale);
 
   if (normalized === 'ru') {
-    return 'Для губ чаще выбирают один из этих вариантов 🌸\n\n[option] 💄 Aquarell Lips — свежий оттенок, 380 € [/option]\n[option] 💋 3D Lips — объёмный эффект, 420 € [/option]\n[option] 📅 Подобрать время и записаться [/option]';
+    return 'Для губ чаще выбирают один из этих вариантов 🌸\n\n[option] 💄 Акварельные губы (Aquarell Lips) — свежий оттенок, 380 € [/option]\n[option] 💋 3D губы (3D Lips) — объёмный эффект, 420 € [/option]\n[option] 📅 Подобрать время и записаться [/option]';
   }
   if (normalized === 'en') {
     return 'For lips, clients usually choose one of these options 🌸\n\n[option] 💄 Aquarelle Lips — fresh color, €380 [/option]\n[option] 💋 3D Lips — fuller effect, €420 [/option]\n[option] 📅 Pick time and book [/option]';
@@ -1143,7 +1544,7 @@ export function detectKnowledgePmuTechnique(
   // Do not collapse high-level PMU topic choice into a specific technique.
   if (looksLikeTopLevelPmuChoice || mentionedAreas >= 2) return null;
 
-  if (value.includes('powder')) return 'powder_brows';
+  if (value.includes('powder') || value.includes('пудров')) return 'powder_brows';
   if (value.includes('hairstroke') || value.includes('волосков')) return 'hairstroke_brows';
   if (value.includes('aquarell') || value.includes('акварел')) return 'aquarell_lips';
   if (value.includes('3d lips') || value.includes('3d губ')) return 'lips_3d';
@@ -1189,50 +1590,512 @@ export function buildKnowledgePmuTechniqueText(
 
   const ru: Record<KnowledgePmuTechnique, string> = {
     powder_brows:
-      'Powder Brows 🌸 Мягкий пудровый эффект, максимально натурально в повседневности. Цена: **350 €**.\n\n[option] 🌟 Сравнить с Hairstroke Brows [/option]\n[option] 📅 Подобрать время и записаться [/option]',
+      'Пудровые брови (Powder Brows) 🌸 Мягкий пудровый эффект, максимально натурально в повседневности. Цена: **350 €**.\n\n[option] 🌟 Сравнить с Волосковой техникой [/option]\n[option] ❓ Подробнее об услуге [/option]\n[option] 📅 Подобрать время и записаться [/option]',
     hairstroke_brows:
-      'Hairstroke Brows 🌸 Более выраженная текстура, эффект «волосков». Цена: **450 €**.\n\n[option] 💖 Сравнить с Powder Brows [/option]\n[option] 📅 Подобрать время и записаться [/option]',
+      'Волосковая техника (Hairstroke Brows) 🌸 Более выраженная текстура, эффект «волосков». Цена: **450 €**.\n\n[option] 💖 Сравнить с Пудровыми бровями [/option]\n[option] ❓ Подробнее об услуге [/option]\n[option] 📅 Подобрать время и записаться [/option]',
     aquarell_lips:
-      'Aquarell Lips 🌸 Мягкий ровный оттенок без жёсткого контура. Цена: **380 €**.\n\n[option] 💄 Сравнить с 3D Lips [/option]\n[option] 📅 Подобрать время и записаться [/option]',
+      'Акварельные губы (Aquarell Lips) 🌸 Мягкий ровный оттенок без жёсткого контура. Цена: **380 €**.\n\n[option] 💄 Сравнить с 3D губами [/option]\n[option] ❓ Подробнее об услуге [/option]\n[option] 📅 Подобрать время и записаться [/option]',
     lips_3d:
-      '3D Lips 🌸 Более насыщенный и объёмный эффект. Цена: **420 €**.\n\n[option] 💋 Сравнить с Aquarell Lips [/option]\n[option] 📅 Подобрать время и записаться [/option]',
+      '3D губы (3D Lips) 🌸 Более насыщенный и объёмный эффект. Цена: **420 €**.\n\n[option] 💋 Сравнить с Акварельными губами [/option]\n[option] ❓ Подробнее об услуге [/option]\n[option] 📅 Подобрать время и записаться [/option]',
     lashline:
-      'Межресничка 🌸 Деликатно подчёркивает линию ресниц. Цена: **130 €**.\n\n[option] 👁 Вариант верх+низ (150 €) [/option]\n[option] 📅 Подобрать время и записаться [/option]',
+      'Межресничка 🌸 Деликатно подчёркивает линию ресниц. Цена: **130 €**.\n\n[option] 👁 Вариант верх+низ (150 €) [/option]\n[option] ❓ Подробнее об услуге [/option]\n[option] 📅 Подобрать время и записаться [/option]',
     upper_lower:
-      'Межресничка верх+низ 🌸 Более выраженный результат. Цена: **150 €**.\n\n[option] 👁 Деликатный вариант только межресничка (130 €) [/option]\n[option] 📅 Подобрать время и записаться [/option]',
+      'Межресничка верх+низ 🌸 Более выраженный результат. Цена: **150 €**.\n\n[option] 👁 Деликатный вариант только межресничка (130 €) [/option]\n[option] ❓ Подробнее об услуге [/option]\n[option] 📅 Подобрать время и записаться [/option]',
   };
 
   const en: Record<KnowledgePmuTechnique, string> = {
     powder_brows:
-      'Powder Brows 🌸 Soft, natural powder effect. Price: **€350**.\n\n[option] 🌟 Compare with Hairstroke Brows [/option]\n[option] 📅 Pick time and book [/option]',
+      'Powder Brows 🌸 Soft, natural powder effect. Price: **€350**.\n\n[option] 🌟 Compare with Hairstroke Brows [/option]\n[option] ❓ More details [/option]\n[option] 📅 Pick time and book [/option]',
     hairstroke_brows:
-      'Hairstroke Brows 🌸 More visible hair texture. Price: **€450**.\n\n[option] 💖 Compare with Powder Brows [/option]\n[option] 📅 Pick time and book [/option]',
+      'Hairstroke Brows 🌸 More visible hair texture. Price: **€450**.\n\n[option] 💖 Compare with Powder Brows [/option]\n[option] ❓ More details [/option]\n[option] 📅 Pick time and book [/option]',
     aquarell_lips:
-      'Aquarelle Lips 🌸 Soft even color without a hard outline. Price: **€380**.\n\n[option] 💄 Compare with 3D Lips [/option]\n[option] 📅 Pick time and book [/option]',
+      'Aquarelle Lips 🌸 Soft even color without a hard outline. Price: **€380**.\n\n[option] 💄 Compare with 3D Lips [/option]\n[option] ❓ More details [/option]\n[option] 📅 Pick time and book [/option]',
     lips_3d:
-      '3D Lips 🌸 More intense, fuller effect. Price: **€420**.\n\n[option] 💋 Compare with Aquarelle Lips [/option]\n[option] 📅 Pick time and book [/option]',
+      '3D Lips 🌸 More intense, fuller effect. Price: **€420**.\n\n[option] 💋 Compare with Aquarelle Lips [/option]\n[option] ❓ More details [/option]\n[option] 📅 Pick time and book [/option]',
     lashline:
-      'Lash line 🌸 Subtle enhancement of lash contour. Price: **€130**.\n\n[option] 👁 Upper + lower option (€150) [/option]\n[option] 📅 Pick time and book [/option]',
+      'Lash line 🌸 Subtle enhancement of lash contour. Price: **€130**.\n\n[option] 👁 Upper + lower option (€150) [/option]\n[option] ❓ More details [/option]\n[option] 📅 Pick time and book [/option]',
     upper_lower:
-      'Upper + lower lash line 🌸 More defined result. Price: **€150**.\n\n[option] 👁 Subtle lash line only (€130) [/option]\n[option] 📅 Pick time and book [/option]',
+      'Upper + lower lash line 🌸 More defined result. Price: **€150**.\n\n[option] 👁 Subtle lash line only (€130) [/option]\n[option] ❓ More details [/option]\n[option] 📅 Pick time and book [/option]',
   };
 
   const de: Record<KnowledgePmuTechnique, string> = {
     powder_brows:
-      'Powder Brows 🌸 Weicher, natürlicher Puder-Effekt. Preis: **350 €**.\n\n[option] 🌟 Mit Hairstroke Brows vergleichen [/option]\n[option] 📅 Zeit finden und buchen [/option]',
+      'Powder Brows 🌸 Weicher, natürlicher Puder-Effekt. Preis: **350 €**.\n\n[option] 🌟 Mit Hairstroke Brows vergleichen [/option]\n[option] ❓ Mehr Details [/option]\n[option] 📅 Zeit finden und buchen [/option]',
     hairstroke_brows:
-      'Hairstroke Brows 🌸 Sichtbarere Härchenstruktur. Preis: **450 €**.\n\n[option] 💖 Mit Powder Brows vergleichen [/option]\n[option] 📅 Zeit finden und buchen [/option]',
+      'Hairstroke Brows 🌸 Sichtbarere Härchenstruktur. Preis: **450 €**.\n\n[option] 💖 Mit Powder Brows vergleichen [/option]\n[option] ❓ Mehr Details [/option]\n[option] 📅 Zeit finden und buchen [/option]',
     aquarell_lips:
-      'Aquarell Lips 🌸 Weicher, gleichmäßiger Ton ohne harte Kontur. Preis: **380 €**.\n\n[option] 💄 Mit 3D Lips vergleichen [/option]\n[option] 📅 Zeit finden und buchen [/option]',
+      'Aquarell Lips 🌸 Weicher, gleichmäßiger Ton ohne harte Kontur. Preis: **380 €**.\n\n[option] 💄 Mit 3D Lips vergleichen [/option]\n[option] ❓ Mehr Details [/option]\n[option] 📅 Zeit finden und buchen [/option]',
     lips_3d:
-      '3D Lips 🌸 Intensiverer, vollerer Effekt. Preis: **420 €**.\n\n[option] 💋 Mit Aquarell Lips vergleichen [/option]\n[option] 📅 Zeit finden und buchen [/option]',
+      '3D Lips 🌸 Intensiverer, vollerer Effekt. Preis: **420 €**.\n\n[option] 💋 Mit Aquarell Lips vergleichen [/option]\n[option] ❓ Mehr Details [/option]\n[option] 📅 Zeit finden und buchen [/option]',
     lashline:
-      'Wimpernkranz 🌸 Dezente Betonung der Wimpernlinie. Preis: **130 €**.\n\n[option] 👁 Oben + unten (150 €) [/option]\n[option] 📅 Zeit finden und buchen [/option]',
+      'Wimpernkranz 🌸 Dezente Betonung der Wimpernlinie. Preis: **130 €**.\n\n[option] 👁 Oben + unten (150 €) [/option]\n[option] ❓ Mehr Details [/option]\n[option] 📅 Zeit finden und buchen [/option]',
     upper_lower:
-      'Wimpernkranz oben + unten 🌸 Deutlich definierteres Ergebnis. Preis: **150 €**.\n\n[option] 👁 Nur Wimpernkranz (130 €) [/option]\n[option] 📅 Zeit finden und buchen [/option]',
+      'Wimpernkranz oben + unten 🌸 Deutlich definierteres Ergebnis. Preis: **150 €**.\n\n[option] 👁 Nur Wimpernkranz (130 €) [/option]\n[option] ❓ Mehr Details [/option]\n[option] 📅 Zeit finden und buchen [/option]',
   };
 
   if (normalized === 'ru') return ru[technique];
   if (normalized === 'en') return en[technique];
   return de[technique];
+}
+
+export function isKnowledgeDetailsIntent(
+  text: string,
+  _locale?: string,
+): boolean {
+  const value = text.toLowerCase().replace(/ё/g, 'е').trim();
+  if (!value) return false;
+
+  return (
+    value.includes('подроб') ||
+    value.includes('расскажи') ||
+    value.includes('детальн') ||
+    value.includes('в деталях') ||
+    value.includes('больше деталей') ||
+    value.includes('more details') ||
+    value.includes('tell me more') ||
+    value.includes('details') ||
+    value.includes('explain') ||
+    value.includes('mehr info') ||
+    value.includes('mehr details') ||
+    value.includes('genauer') ||
+    value.includes('erzahl')
+  );
+}
+
+export function buildKnowledgePmuTechniqueDetailsText(
+  locale: AssistantLocale | undefined,
+  technique: KnowledgePmuTechnique,
+): string {
+  const normalized = normalizeLocale(locale);
+
+  const ru: Record<KnowledgePmuTechnique, string> = {
+    powder_brows:
+      'Пудровые брови (Powder Brows) 🌸 Это мягкое пудровое напыление: брови выглядят оформленно, но без резких границ.\nПодходит, если хотите натуральный ежедневный эффект «уже с макияжем».\nЦена: **350 €**.\n\n[option] 🌟 Сравнить с Волосковой техникой [/option]\n[option] 📅 Подобрать время и записаться [/option]',
+    hairstroke_brows:
+      'Волосковая техника (Hairstroke Brows) 🌸 Техника с более выраженной «волосковой» текстурой и чёткой прорисовкой.\nПодходит, если хотите более заметный и структурный результат.\nЦена: **450 €**.\n\n[option] 💖 Сравнить с Пудровыми бровями [/option]\n[option] 📅 Подобрать время и записаться [/option]',
+    aquarell_lips:
+      'Акварельные губы (Aquarell Lips) 🌸 Даёт мягкий, свежий оттенок губ без жёсткого контура.\nИдеально, если нужен деликатный, естественный результат на каждый день.\nЦена: **380 €**.\n\n[option] 💋 Сравнить с 3D губами [/option]\n[option] 📅 Подобрать время и записаться [/option]',
+    lips_3d:
+      '3D губы (3D Lips) 🌸 Более насыщенный цвет и визуально более объёмный эффект по сравнению с акварельной техникой.\nВыбирают, когда хочется ярче и выразительнее.\nЦена: **420 €**.\n\n[option] 💄 Сравнить с Акварельными губами [/option]\n[option] 📅 Подобрать время и записаться [/option]',
+    lashline:
+      'Межресничка 🌸 Деликатное заполнение межресничного пространства: взгляд становится выразительнее, но без явной стрелки.\nЦена: **130 €**.\n\n[option] 👁 Вариант верх+низ (150 €) [/option]\n[option] 📅 Подобрать время и записаться [/option]',
+    upper_lower:
+      'Межресничка верх+низ 🌸 Более заметный результат за счёт проработки обеих линий.\nХорошо, если хотите более выразительный эффект без ежедневной подводки.\nЦена: **150 €**.\n\n[option] 👁 Деликатный вариант только межресничка (130 €) [/option]\n[option] 📅 Подобрать время и записаться [/option]',
+  };
+
+  const en: Record<KnowledgePmuTechnique, string> = {
+    powder_brows:
+      'Powder Brows 🌸 A soft powder shading effect: brows look polished without harsh edges.\nBest if you want a natural everyday “wake up ready” look.\nPrice: **€350**.\n\n[option] 🌟 Compare with Hairstroke Brows [/option]\n[option] 📅 Pick time and book [/option]',
+    hairstroke_brows:
+      'Hairstroke Brows 🌸 A more defined hair-stroke texture with clearer structure.\nBest if you want a more noticeable and sculpted result.\nPrice: **€450**.\n\n[option] 💖 Compare with Powder Brows [/option]\n[option] 📅 Pick time and book [/option]',
+    aquarell_lips:
+      'Aquarelle Lips 🌸 Soft fresh lip tint without a hard contour line.\nGreat for a subtle, natural everyday result.\nPrice: **€380**.\n\n[option] 💋 Compare with 3D Lips [/option]\n[option] 📅 Pick time and book [/option]',
+    lips_3d:
+      '3D Lips 🌸 More saturated color with a fuller visual effect compared to Aquarelle Lips.\nBest if you want a brighter, more expressive finish.\nPrice: **€420**.\n\n[option] 💄 Compare with Aquarelle Lips [/option]\n[option] 📅 Pick time and book [/option]',
+    lashline:
+      'Lash line 🌸 A delicate fill between lashes for a more expressive look without a strong eyeliner effect.\nPrice: **€130**.\n\n[option] 👁 Upper + lower option (€150) [/option]\n[option] 📅 Pick time and book [/option]',
+    upper_lower:
+      'Upper + lower lash line 🌸 A stronger result by defining both lash lines.\nGreat if you want extra expression without daily eyeliner.\nPrice: **€150**.\n\n[option] 👁 Subtle lash line only (€130) [/option]\n[option] 📅 Pick time and book [/option]',
+  };
+
+  const de: Record<KnowledgePmuTechnique, string> = {
+    powder_brows:
+      'Powder Brows 🌸 Weicher Puder-Effekt ohne harte Kanten.\nIdeal, wenn Sie einen natürlichen Alltags-Look möchten.\nPreis: **350 €**.\n\n[option] 🌟 Mit Hairstroke Brows vergleichen [/option]\n[option] 📅 Zeit finden und buchen [/option]',
+    hairstroke_brows:
+      'Hairstroke Brows 🌸 Deutlichere Härchenstruktur mit definierter Form.\nIdeal für ein markanteres, strukturiertes Ergebnis.\nPreis: **450 €**.\n\n[option] 💖 Mit Powder Brows vergleichen [/option]\n[option] 📅 Zeit finden und buchen [/option]',
+    aquarell_lips:
+      'Aquarell Lips 🌸 Weicher, frischer Farbton ohne harte Kontur.\nIdeal für ein natürliches Ergebnis im Alltag.\nPreis: **380 €**.\n\n[option] 💋 Mit 3D Lips vergleichen [/option]\n[option] 📅 Zeit finden und buchen [/option]',
+    lips_3d:
+      '3D Lips 🌸 Sattere Farbe mit vollerem visuellen Effekt im Vergleich zu Aquarell Lips.\nIdeal, wenn Sie ein ausdrucksstärkeres Ergebnis möchten.\nPreis: **420 €**.\n\n[option] 💄 Mit Aquarell Lips vergleichen [/option]\n[option] 📅 Zeit finden und buchen [/option]',
+    lashline:
+      'Wimpernkranz 🌸 Dezente Auffüllung zwischen den Wimpern für mehr Ausdruck ohne harte Linie.\nPreis: **130 €**.\n\n[option] 👁 Oben + unten (150 €) [/option]\n[option] 📅 Zeit finden und buchen [/option]',
+    upper_lower:
+      'Wimpernkranz oben + unten 🌸 Deutlicheres Ergebnis durch Betonung beider Linien.\nIdeal für mehr Ausdruck ohne tägliches Eyeliner-Make-up.\nPreis: **150 €**.\n\n[option] 👁 Nur Wimpernkranz (130 €) [/option]\n[option] 📅 Zeit finden und buchen [/option]',
+  };
+
+  if (normalized === 'ru') return ru[technique];
+  if (normalized === 'en') return en[technique];
+  return de[technique];
+}
+
+export function buildKnowledgeHydrafacialComparisonText(
+  locale: 'de' | 'en' | 'ru' | undefined,
+): string {
+  const l = locale ?? 'de';
+
+  if (l === 'ru') {
+    return `Сравнение форматов Hydrafacial 🌸
+
+**Signature (140 €, ~60 мин)**
+Очищение + экстракция + увлажнение. Отличная основа для регулярного ухода.
+
+**Deluxe (180 €, ~75 мин)**
+Всё из Signature + усиленный пилинг + LED-терапия. Для уставшей, тусклой кожи.
+
+**Platinum (270 €, ~90 мин)**
+Всё из Deluxe + лимфодренаж + премиум-сыворотки. Максимальный glow перед событием.
+
+[option] 💧 Signature Hydrafacial — 140 € [/option]
+[option] ✨ Deluxe Hydrafacial — 180 € [/option]
+[option] 👑 Platinum Hydrafacial — 270 € [/option]
+[option] ❓ Подробнее о форматах [/option]
+[option] 📅 Подобрать время и записаться [/option]`;
+  }
+
+  if (l === 'en') {
+    return `Hydrafacial formats compared 🌸
+
+**Signature (€140, ~60 min)**
+Cleansing + extraction + hydration. Great foundation for regular care.
+
+**Deluxe (€180, ~75 min)**
+Everything in Signature + intensive peeling + LED therapy. For tired, dull skin.
+
+**Platinum (€270, ~90 min)**
+Everything in Deluxe + lymphatic drainage + premium serums. Maximum glow before an event.
+
+[option] 💧 Signature Hydrafacial — €140 [/option]
+[option] ✨ Deluxe Hydrafacial — €180 [/option]
+[option] 👑 Platinum Hydrafacial — €270 [/option]
+[option] ❓ More details about formats [/option]
+[option] 📅 Pick time and book [/option]`;
+  }
+
+  return `Hydrafacial-Formate im Vergleich 🌸
+
+**Signature (140 €, ~60 Min)**
+Reinigung + Extraktion + Feuchtigkeit. Perfekte Basis für regelmäßige Pflege.
+
+**Deluxe (180 €, ~75 Min)**
+Alles aus Signature + intensives Peeling + LED-Therapie. Für müde, fahle Haut.
+
+**Platinum (270 €, ~90 Min)**
+Alles aus Deluxe + Lymphdrainage + Premium-Seren. Maximaler Glow vor Events.
+
+[option] 💧 Signature Hydrafacial — 140 € [/option]
+[option] ✨ Deluxe Hydrafacial — 180 € [/option]
+[option] 👑 Platinum Hydrafacial — 270 € [/option]
+[option] ❓ Mehr Details zu den Formaten [/option]
+[option] 📅 Zeit finden und buchen [/option]`;
+}
+
+export function isKnowledgeHydrafacialComparisonIntent(
+  text: string,
+  _locale?: string,
+): boolean {
+  const v = text.toLowerCase().replace(/ё/g, 'е').trim();
+  if (!v) return false;
+
+  if (
+    (v.includes('signature') && v.includes('deluxe')) ||
+    (v.includes('deluxe') && v.includes('platinum')) ||
+    (v.includes('signature') && v.includes('platinum'))
+  ) return true;
+
+  if (v.includes('unterschied') && v.includes('hydra')) return true;
+  if ((v.includes('отличается') || v.includes('разница') || v.includes('сравни')) && (v.includes('hydra') || v.includes('гидра'))) {
+    return true;
+  }
+  if ((v.includes('compare') || v.includes('difference')) && v.includes('hydra')) return true;
+
+  if (v.includes('unterschied signature') || v.includes('чем отличается signature')) return true;
+  if (v.includes('signature vs') || v.includes('signature/deluxe/platinum')) return true;
+
+  return false;
+}
+
+export function isKnowledgeHydrafacialDetailsIntent(
+  text: string,
+  locale?: string,
+): boolean {
+  const v = text.toLowerCase().replace(/ё/g, 'е').trim();
+  if (!v) return false;
+  if (isKnowledgeDetailsIntent(text, locale)) return true;
+
+  return (
+    v.includes('подробнее о форматах') ||
+    v.includes('details about formats') ||
+    v.includes('details about hydrafacial') ||
+    v.includes('mehr details zu den formaten') ||
+    (v.includes('подробнее') && (v.includes('hydra') || v.includes('гидра')))
+  );
+}
+
+export function buildKnowledgeHydrafacialDetailsText(
+  locale: 'de' | 'en' | 'ru' | undefined,
+): string {
+  const l = locale ?? 'de';
+
+  if (l === 'ru') {
+    return `Как выбрать формат Hydrafacial 🌸
+
+**Signature (140 €, ~60 мин)**
+Если нужен регулярный базовый уход: очищение, экстракция и увлажнение без перегруза.
+
+**Deluxe (180 €, ~75 мин)**
+Если кожа выглядит уставшей/тусклой: к базе добавляется усиленный пилинг и LED.
+
+**Platinum (270 €, ~90 мин)**
+Если нужен максимум эффекта: добавляется лимфодренаж и премиум-сыворотки.
+
+[option] 💧 Signature Hydrafacial — 140 € [/option]
+[option] ✨ Deluxe Hydrafacial — 180 € [/option]
+[option] 👑 Platinum Hydrafacial — 270 € [/option]
+[option] 📅 Подобрать время и записаться [/option]`;
+  }
+
+  if (l === 'en') {
+    return `How to choose your Hydrafacial format 🌸
+
+**Signature (€140, ~60 min)**
+Best for regular baseline care: cleanse, extraction, hydration.
+
+**Deluxe (€180, ~75 min)**
+Best when skin looks tired/dull: adds stronger peel and LED to the base.
+
+**Platinum (€270, ~90 min)**
+Best for maximum visible result: adds lymphatic drainage and premium serums.
+
+[option] 💧 Signature Hydrafacial — €140 [/option]
+[option] ✨ Deluxe Hydrafacial — €180 [/option]
+[option] 👑 Platinum Hydrafacial — €270 [/option]
+[option] 📅 Pick time and book [/option]`;
+  }
+
+  return `So wählen Sie das passende Hydrafacial-Format 🌸
+
+**Signature (140 €, ~60 Min)**
+Ideal als regelmäßige Basis: Reinigung, Extraktion, Feuchtigkeit.
+
+**Deluxe (180 €, ~75 Min)**
+Ideal bei müder/fahler Haut: stärkere Exfoliation + LED zusätzlich zur Basis.
+
+**Platinum (270 €, ~90 Min)**
+Ideal für maximalen Effekt: zusätzlich Lymphdrainage und Premium-Seren.
+
+[option] 💧 Signature Hydrafacial — 140 € [/option]
+[option] ✨ Deluxe Hydrafacial — 180 € [/option]
+[option] 👑 Platinum Hydrafacial — 270 € [/option]
+[option] 📅 Zeit finden und buchen [/option]`;
+}
+
+export function buildKnowledgeBrowsLashesComparisonText(
+  locale: 'de' | 'en' | 'ru' | undefined,
+): string {
+  const l = locale ?? 'de';
+
+  if (l === 'ru') {
+    return `Сравнение процедур для бровей и ресниц 🌸
+
+**Ламинирование ресниц (Lash Lift) — 55 €**
+Ресницы изогнуты вверх, выглядят длиннее и пышнее. Держится 6–8 недель.
+
+**Ламинирование бровей (Brow Lift) — 50 €**
+Волоски ложатся в идеальную форму. Брови выглядят гуще. 4–6 недель.
+
+**Hybrid Brows — 60 €**
+Ламинирование + окрашивание для максимального объёма и цвета.
+
+**Комбо-выгода:**
+Lash Lift + Brow Classic = **75 €** (вместо 95 € по отдельности) 🌿
+
+[option] ✨ Лифтинг ресниц — 55 € [/option]
+[option] 🌸 Подтяжка бровей — 50 € [/option]
+[option] 💫 Комбо — лифтинг ресниц + классическая коррекция бровей — 75 € [/option]
+[option] ❓ Подробнее о процедурах [/option]
+[option] 📅 Подобрать время и записаться [/option]`;
+  }
+
+  if (l === 'en') {
+    return `Brows & lashes comparison 🌸
+
+**Lash Lift — €55**
+Lashes curled upward, look longer and fuller. Lasts 6–8 weeks.
+
+**Brow Lift — €50**
+Brow hairs set into perfect shape. Brows look fuller. 4–6 weeks.
+
+**Hybrid Brows — €60**
+Lifting + tinting for maximum volume and color.
+
+**Combo deal:**
+Lash Lift + Brow Classic = **€75** (instead of €95 separately) 🌿
+
+[option] ✨ Lash Lift — €55 [/option]
+[option] 🌸 Brow Lift — €50 [/option]
+[option] 💫 Combo: Lash Lift + Brow Classic — €75 [/option]
+[option] ❓ More details [/option]
+[option] 📅 Pick time and book [/option]`;
+  }
+
+  return `Brows & Lashes im Vergleich 🌸
+
+**Lash Lift — 55 €**
+Wimpern nach oben geschwungen, wirken länger und voller. 6–8 Wochen Halt.
+
+**Brow Lift — 50 €**
+Brauen in perfekte Form gelegt, wirken voller. 4–6 Wochen Halt.
+
+**Hybrid Brows — 60 €**
+Lifting + Färbung für maximales Volumen und Farbe.
+
+**Kombi-Vorteil:**
+Lash Lift + Brow Classic = **75 €** (statt 95 € einzeln) 🌿
+
+[option] ✨ Lash Lift — 55 € [/option]
+[option] 🌸 Brow Lift — 50 € [/option]
+[option] 💫 Kombi: Lash Lift + Brow Classic — 75 € [/option]
+[option] ❓ Mehr Details [/option]
+[option] 📅 Zeit finden und buchen [/option]`;
+}
+
+export function isKnowledgeBrowsLashesComparisonIntent(
+  text: string,
+  _locale?: string,
+): boolean {
+  const v = text.toLowerCase().replace(/ё/g, 'е').trim();
+  if (!v) return false;
+
+  if (v.includes('lifting vs styling') || v.includes('lifting und styling')) return true;
+  if (v.includes('сравнить лифтинг') || v.includes('лифтинг и стайлинг')) return true;
+  if (v.includes('compare lifting') || v.includes('lifting vs')) return true;
+
+  return false;
+}
+
+export function isKnowledgeBrowsLashesDetailsIntent(
+  text: string,
+  locale?: string,
+): boolean {
+  const v = text.toLowerCase().replace(/ё/g, 'е').trim();
+  if (!v) return false;
+  if (isKnowledgeDetailsIntent(text, locale)) return true;
+
+  return (
+    v.includes('подробнее о процедурах') ||
+    v.includes('more details') ||
+    v.includes('mehr details')
+  );
+}
+
+export function buildKnowledgeBrowsLashesDetailsText(
+  locale: 'de' | 'en' | 'ru' | undefined,
+): string {
+  const l = locale ?? 'de';
+
+  if (l === 'ru') {
+    return `Подробнее по Brows/Lashes 🌸
+
+**Ламинирование ресниц (55 €)**
+Делает ресницы визуально длиннее и приподнятыми; эффект обычно 6–8 недель.
+
+**Ламинирование бровей (50 €)**
+Фиксирует волоски в аккуратной форме; брови выглядят плотнее, эффект 4–6 недель.
+
+**Комбо Lash Lift + Brow Classic (75 €)**
+Удобный вариант, если хотите сразу оформить и взгляд, и брови в один визит.
+
+[option] ✨ Лифтинг ресниц — 55 € [/option]
+[option] 🌸 Подтяжка бровей — 50 € [/option]
+[option] 💫 Комбо — лифтинг ресниц + классическая коррекция бровей — 75 € [/option]
+[option] 📅 Подобрать время и записаться [/option]`;
+  }
+
+  if (l === 'en') {
+    return `More details on Brows/Lashes 🌸
+
+**Lash Lift (€55)**
+Makes lashes look longer and lifted; result usually lasts 6–8 weeks.
+
+**Brow Lift (€50)**
+Sets brow hairs in shape; brows look fuller for about 4–6 weeks.
+
+**Combo Lash Lift + Brow Classic (€75)**
+Great if you want both eyes and brows refined in one visit.
+
+[option] ✨ Lash Lift — €55 [/option]
+[option] 🌸 Brow Lift — €50 [/option]
+[option] 💫 Combo: Lash Lift + Brow Classic — €75 [/option]
+[option] 📅 Pick time and book [/option]`;
+  }
+
+  return `Mehr Details zu Brows/Lashes 🌸
+
+**Lash Lift (55 €)**
+Lässt die Wimpern länger und angehoben wirken; Halt meist 6–8 Wochen.
+
+**Brow Lift (50 €)**
+Bringt die Brauen in Form; vollerer Look für etwa 4–6 Wochen.
+
+**Kombi Lash Lift + Brow Classic (75 €)**
+Praktisch, wenn Sie Wimpern und Brauen in einem Termin auffrischen möchten.
+
+[option] ✨ Lash Lift — 55 € [/option]
+[option] 🌸 Brow Lift — 50 € [/option]
+[option] 💫 Kombi: Lash Lift + Brow Classic — 75 € [/option]
+[option] 📅 Zeit finden und buchen [/option]`;
+}
+
+export type KnowledgeOccasion = 'wedding' | 'vacation' | 'first_time' | 'correction';
+
+export function detectKnowledgeOccasion(
+  text: string,
+  _locale?: string,
+): KnowledgeOccasion | null {
+  const v = text.toLowerCase().replace(/ё/g, 'е').trim();
+  if (!v) return null;
+
+  if (v.includes('hochzeit') || v.includes('braut') || v.includes('свадьб') || v.includes('невест') || v.includes('wedding') || v.includes('bride')) {
+    return 'wedding';
+  }
+
+  if (v.includes('urlaub') || v.includes('отпуск') || v.includes('vacation') || v.includes('holiday') || v.includes('reise') || v.includes('trip') || v.includes('поездк') || v.includes('море') || v.includes('strand') || v.includes('beach')) {
+    return 'vacation';
+  }
+
+  if (v.includes('erstes mal') || v.includes('первый раз') || v.includes('first time') || v.includes('noch nie') || v.includes('never had') || v.includes('никогда не делал')) {
+    return 'first_time';
+  }
+
+  const correctionKeywordRe =
+    /(auffrisch|korrektur|коррекци|обновить|обновлен|refresh|touch-?up|verblasst|побледнел|faded)/u;
+  const correctionContextRe =
+    /(pmu|перманент|перманентн|перман|татуаж|permanent\s*make-?up)/u;
+  if (correctionKeywordRe.test(v) && correctionContextRe.test(v)) {
+    return 'correction';
+  }
+
+  return null;
+}
+
+export function buildKnowledgeOccasionText(
+  locale: 'de' | 'en' | 'ru' | undefined,
+  occasion: KnowledgeOccasion,
+): string {
+  const l = locale ?? 'de';
+
+  const texts: Record<KnowledgeOccasion, Record<'de' | 'en' | 'ru', string>> = {
+    wedding: {
+      de: `Wie schön — Glückwunsch! 💍 Hier ist unser Hochzeit-Beauty-Plan:\n\n• 6–8 Wochen vorher: PMU (Brauen und/oder Lippen)\n• 4–6 Wochen vorher: PMU-Korrektur\n• 1 Woche vorher: Hydrafacial Platinum + Lash Lift\n• Am Tag: aufwachen und strahlen! ✨\n\nDie meisten Bräute wählen Powder Brows + Aquarell Lips 🌸\n\n[option] 💄 PMU Brauen für die Hochzeit [/option]\n[option] 💋 PMU Lippen für die Hochzeit [/option]\n[option] ✨ Hydrafacial Platinum [/option]\n[option] 📅 Beratungstermin buchen [/option]`,
+      en: `How lovely — congratulations! 💍 Here's our wedding beauty plan:\n\n• 6–8 weeks before: PMU (brows and/or lips)\n• 4–6 weeks before: PMU touch-up\n• 1 week before: Hydrafacial Platinum + Lash Lift\n• On the day: wake up and glow! ✨\n\nMost brides choose Powder Brows + Aquarelle Lips 🌸\n\n[option] 💄 PMU brows for the wedding [/option]\n[option] 💋 PMU lips for the wedding [/option]\n[option] ✨ Hydrafacial Platinum [/option]\n[option] 📅 Book consultation [/option]`,
+      ru: `Как приятно — поздравляю! 💍 Вот наш бьюти-план к свадьбе:\n\n• 6–8 недель до: PMU (брови и/или губы)\n• 4–6 недель до: коррекция PMU\n• 1 неделю до: Hydrafacial Platinum + Lash Lift\n• В день свадьбы: просыпаетесь красивой! ✨\n\nСамый популярный выбор невест — Powder Brows + акварельные губы 🌸\n\n[option] 💄 PMU брови к свадьбе [/option]\n[option] 💋 PMU губы к свадьбе [/option]\n[option] ✨ Hydrafacial Platinum [/option]\n[option] 📅 Записаться на консультацию [/option]`,
+    },
+    vacation: {
+      de: `Tolle Idee, sich für den Urlaub vorzubereiten! 🌴\n\nPMU am besten 4–6 Wochen vorher buchen, dann ist alles verheilt. Kein Make-up am Strand, im Pool oder beim Abendessen — einfach genießen 🌸\n\nBesonders beliebt vor dem Urlaub:\n\n[option] 💄 Powder Brows — 350 € [/option]\n[option] 💋 Aquarell Lips — 380 € [/option]\n[option] ✨ Lash Lift — 55 € [/option]\n[option] 📅 Termin finden [/option]`,
+      en: `Great idea to prep for vacation! 🌴\n\nBook PMU 4–6 weeks before your trip so everything heals. No makeup at the beach, pool, or dinner — just enjoy 🌸\n\nMost popular before vacation:\n\n[option] 💄 Powder Brows — €350 [/option]\n[option] 💋 Aquarelle Lips — €380 [/option]\n[option] ✨ Lash Lift — €55 [/option]\n[option] 📅 Find appointment [/option]`,
+      ru: `Отличная идея подготовиться к отпуску! 🌴\n\nPMU лучше сделать за 4–6 недель до поездки — всё заживёт. Никакого макияжа на пляже, в бассейне или за ужином — просто отдыхайте 🌸\n\nСамое популярное перед отпуском:\n\n[option] 💄 Powder Brows — 350 € [/option]\n[option] 💋 Акварельные губы — 380 € [/option]\n[option] ✨ Lash Lift — 55 € [/option]\n[option] 📅 Подобрать время [/option]`,
+    },
+    first_time: {
+      de: `Wie schön, dass Sie sich informieren! 🌸 Beim ersten Mal empfehlen wir immer die natürlichste Variante.\n\nSo läuft's ab: Wir besprechen alles in Ruhe, zeichnen die Form vor und Sie geben erst dann Ihr OK. Keine Überraschungen!\n\nDie meisten Kundinnen sagen danach: "Warum habe ich das nicht früher gemacht!" 😊\n\n[option] 💄 Powder Brows — natürlichste Variante [/option]\n[option] 💋 Aquarell Lips — sanfte Farbe [/option]\n[option] ✨ Lash Lift — der einfachste Einstieg [/option]\n[option] ❓ Mehr Infos zur Heilung [/option]\n[option] 📅 Beratungstermin buchen [/option]`,
+      en: `So nice that you're looking into it! 🌸 For first-timers, we always recommend the most natural option.\n\nHere's how it works: We discuss everything calmly, pre-draw the shape, and you give the OK only when you're happy. No surprises!\n\nMost clients say afterwards: "Why didn't I do this sooner!" 😊\n\n[option] 💄 Powder Brows — most natural option [/option]\n[option] 💋 Aquarelle Lips — soft color [/option]\n[option] ✨ Lash Lift — easiest entry point [/option]\n[option] ❓ More about healing [/option]\n[option] 📅 Book consultation [/option]`,
+      ru: `Как здорово, что вы интересуетесь! 🌸 Для первого раза мы всегда рекомендуем максимально натуральный вариант.\n\nКак проходит: обсуждаем всё спокойно, рисуем эскиз и вы даёте «ок» только когда довольны. Никаких сюрпризов!\n\nБольшинство клиенток потом говорят: «Почему я не сделала это раньше!» 😊\n\n[option] 💄 Powder Brows — самый натуральный вариант [/option]\n[option] 💋 Акварельные губы — нежный цвет [/option]\n[option] ✨ Lash Lift — самый простой старт [/option]\n[option] ❓ Подробнее о заживлении [/option]\n[option] 📅 Записаться на консультацию [/option]`,
+    },
+    correction: {
+      de: `Auffrischung oder Korrektur ist jederzeit möglich 🌿\n\nWann war Ihre letzte PMU-Behandlung? Davon hängt der Preis ab:\n\n[option] Vor ca. 2 Monaten — Korrektur 120 € [/option]\n[option] 12–24 Monate her — Auffrischung 175 € [/option]\n[option] Über 24 Monate — Auffrischung 230 € [/option]\n[option] Kleine Korrektur — 39 € [/option]\n[option] 📅 Termin finden [/option]`,
+      en: `Refresh or correction is always possible 🌿\n\nWhen was your last PMU treatment? The price depends on that:\n\n[option] About 2 months ago — correction €120 [/option]\n[option] 12–24 months ago — refresh €175 [/option]\n[option] Over 24 months — refresh €230 [/option]\n[option] Small correction — €39 [/option]\n[option] 📅 Find appointment [/option]`,
+      ru: `Обновление или коррекция возможны в любое время 🌿\n\nКогда была последняя процедура? От этого зависит цена:\n\n[option] Около 2 месяцев назад — коррекция 120 € [/option]\n[option] 12–24 месяца назад — обновление 175 € [/option]\n[option] Больше 24 месяцев — обновление 230 € [/option]\n[option] Маленькая коррекция — 39 € [/option]\n[option] 📅 Подобрать время [/option]`,
+    },
+  };
+
+  return texts[occasion][l] ?? texts[occasion].de;
 }
