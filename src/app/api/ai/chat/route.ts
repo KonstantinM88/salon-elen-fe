@@ -2305,6 +2305,18 @@ async function tryHandleCatalogSelectionFastPath(
 ): Promise<ChatResponse | null> {
   const input = normalizeCatalogSelectionInput(message);
   if (!input) return null;
+  const normalizedMessage = normalizeInput(message);
+  const inputTokens = tokenizeNormalized(input);
+  const explicitCatalogPayload =
+    looksLikeServiceOptionPayload(message) || looksLikePricedOptionPayload(message);
+  const hasSelectionVerb = /\b(запис|выб|book|buchen|choose|select|auswahl)\b/u.test(
+    normalizedMessage,
+  );
+  // Prevent accidental service auto-selection from long free-form prompts
+  // (e.g. FAQ/consultation questions) that only weakly overlap with service titles.
+  if (!explicitCatalogPayload && inputTokens.length > 8 && !hasSelectionVerb) {
+    return null;
+  }
   const contextServiceIds = session.context.selectedServiceIds ?? [];
   const isAwaitingMasterChoice =
     contextServiceIds.length > 0 && !session.context.selectedMasterId;
@@ -2494,6 +2506,23 @@ async function tryHandleCatalogSelectionFastPath(
   }
 
   if (!matchedService) return null;
+
+  const matchedServiceNorm = normalizeChoiceText(matchedService.title);
+  const matchedServiceTokens = tokenizeNormalized(matchedServiceNorm);
+  const inputTokenSet = new Set(inputTokens);
+  const overlapCount = matchedServiceTokens.reduce(
+    (acc, token) => (inputTokenSet.has(token) ? acc + 1 : acc),
+    0,
+  );
+  const hasStrongServiceMatch =
+    input === matchedServiceNorm ||
+    input.includes(matchedServiceNorm) ||
+    matchedServiceNorm.includes(input) ||
+    overlapCount >= Math.max(2, Math.ceil(matchedServiceTokens.length / 2));
+
+  if (!explicitCatalogPayload && !hasStrongServiceMatch && inputTokens.length > 4) {
+    return null;
+  }
 
   const startedMasters = Date.now();
   const mastersResult = await listMastersForServices({ serviceIds: [matchedService.id] });
