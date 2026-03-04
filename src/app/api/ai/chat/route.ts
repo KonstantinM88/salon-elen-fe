@@ -1578,6 +1578,71 @@ function buildMainMenuText(locale: 'de' | 'ru' | 'en'): string {
   return `Erledigt, ich bin zurück im Hauptmenü 🌸 Wobei kann ich helfen?\n\n${options}`;
 }
 
+function isGreetingIntent(
+  text: string,
+  locale: 'de' | 'ru' | 'en',
+): boolean {
+  if (isLikelyBookingDomainMessage(text)) return false;
+  if (looksLikeServiceOptionPayload(text) || looksLikePricedOptionPayload(text)) return false;
+
+  const normalized = normalizeInput(text)
+    .replace(/ё/g, 'е')
+    .replace(/[!?.,;:]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  if (!normalized) return false;
+
+  const maxTokens = 5;
+  if (normalized.split(' ').length > maxTokens) return false;
+
+  if (locale === 'ru') {
+    const greetings = new Set([
+      'привет',
+      'приветик',
+      'здравствуй',
+      'здравствуйте',
+      'доброе утро',
+      'добрый день',
+      'добрый вечер',
+      'салют',
+    ]);
+    return greetings.has(normalized);
+  }
+  if (locale === 'en') {
+    const greetings = new Set([
+      'hi',
+      'hello',
+      'hey',
+      'good morning',
+      'good afternoon',
+      'good evening',
+    ]);
+    return greetings.has(normalized);
+  }
+
+  const greetings = new Set([
+    'hallo',
+    'hi',
+    'hey',
+    'guten morgen',
+    'guten tag',
+    'guten abend',
+    'servus',
+    'moin',
+  ]);
+  return greetings.has(normalized);
+}
+
+function buildGreetingText(locale: 'de' | 'ru' | 'en'): string {
+  if (locale === 'ru') {
+    return 'Привет! 👋 Рада тебя видеть. Я помогу записаться, подобрать услугу или подсказать цены и свободное время. Что выберем?';
+  }
+  if (locale === 'en') {
+    return 'Hello! 👋 Nice to see you. I can help with booking, choosing a service, prices, and available time slots. What would you like to do?';
+  }
+  return 'Hallo! 👋 Schön, Sie zu sehen. Ich helfe bei Terminbuchung, Serviceauswahl, Preisen und freien Zeiten. Womit möchten Sie starten?';
+}
+
 function formatDateLabel(dateISO: string, locale: 'de' | 'ru' | 'en'): string {
   const [y, m, d] = dateISO.split('-').map((v) => parseInt(v, 10));
   const dt = new Date(Date.UTC(y, (m || 1) - 1, d || 1, 12, 0, 0));
@@ -2157,6 +2222,70 @@ function normalizeCatalogSelectionInput(value: string): string {
     .replace(/\s*[—–-]\s*\d{1,3}\s*(?:мин\.?|min\.?).*$/iu, '')
     .trim();
   return normalizeChoiceText(compact);
+}
+
+function normalizeServiceHintTypos(
+  value: string,
+  locale: 'de' | 'ru' | 'en',
+): string {
+  let fixed = value;
+
+  if (locale === 'ru') {
+    fixed = fixed
+      .replace(/\bмаинкюр\b/gu, 'маникюр')
+      .replace(/\bманикур\b/gu, 'маникюр')
+      .replace(/\bпермамент\b/gu, 'перманент')
+      .replace(/\bперманет\b/gu, 'перманент')
+      .replace(/\bстришка\b/gu, 'стрижка');
+  } else if (locale === 'en') {
+    fixed = fixed
+      .replace(/\bmanucure\b/gu, 'manicure')
+      .replace(/\bpeducure\b/gu, 'pedicure')
+      .replace(/\bhair cut\b/gu, 'haircut');
+  } else {
+    fixed = fixed
+      .replace(/\bmanikur\b/gu, 'manikure')
+      .replace(/\bhaar schnitt\b/gu, 'haarschnitt');
+  }
+
+  return fixed.trim();
+}
+
+function extractServiceSelectionInput(
+  text: string,
+  locale: 'de' | 'ru' | 'en',
+): string {
+  const normalized = normalizeInput(text).replace(/ё/g, 'е').trim();
+  if (!normalized) return normalized;
+
+  let candidate = normalized;
+
+  if (locale === 'ru') {
+    candidate = candidate
+      .replace(
+        /^(?:пожалуйста\s+)?(?:хочу\s+)?(?:запис(?:аться|ать)?|запись)\s*(?:на\s*)?(?:прием|приём)?\s*(?:на\s*)?/u,
+        '',
+      )
+      .replace(/^(?:мне\s+)?(?:нужно\s+)?(?:запись|записаться)\s*(?:на\s*)?/u, '')
+      .trim();
+  } else if (locale === 'en') {
+    candidate = candidate
+      .replace(
+        /^(?:please\s+)?(?:i\s+want\s+to\s+|i\s+would\s+like\s+to\s+)?(?:book|schedule)\s*(?:an?\s*)?(?:appointment|slot)?\s*(?:for\s*)?/u,
+        '',
+      )
+      .trim();
+  } else {
+    candidate = candidate
+      .replace(
+        /^(?:bitte\s+)?(?:ich\s+m(?:o|ö)chte\s+)?(?:buchen|termin\s+buchen|einen?\s+termin\s+buchen)\s*(?:fur|für)?\s*/u,
+        '',
+      )
+      .trim();
+  }
+
+  const effective = candidate || normalized;
+  return normalizeServiceHintTypos(effective, locale);
 }
 
 function tokenizeNormalized(value: string): string[] {
@@ -3116,10 +3245,16 @@ async function tryHandleCatalogSelectionFastPath(
         serviceNorm.includes(input));
     const startsWithGroup =
       input === groupNorm || input.startsWith(`${groupNorm} `);
+    const isBookingVerbGroupChoice =
+      hasSelectionVerb &&
+      input.includes(groupNorm);
     const isDirectGroupChoice =
       !hasStrongServiceMatch &&
-      (startsWithGroup ||
-        (input.includes(groupNorm) && inputTokens.length <= groupTokens.length + 2));
+      (
+        startsWithGroup ||
+        isBookingVerbGroupChoice ||
+        (input.includes(groupNorm) && inputTokens.length <= groupTokens.length + 2)
+      );
 
     if (!isDirectGroupChoice) {
       // User most likely clicked a specific service with overlapping words.
@@ -3408,7 +3543,7 @@ export async function POST(
         consultationUsed: Boolean(latestContext.consultationMode),
         consultationTopic: latestContext.consultationTopic,
         ...metrics,
-      });
+      }, session.locale);
     } catch (analyticsError) {
       console.error(
         `[AI Analytics] session=${sessionId.slice(0, 8)}... tracking failed`,
@@ -3735,6 +3870,21 @@ export async function POST(
     });
   }
 
+  if (!hasAnyInteractiveFlow && isGreetingIntent(message, session.locale)) {
+    const text = buildGreetingText(session.locale);
+    appendSessionMessage(sessionId, 'assistant', text);
+
+    console.log(
+      `[AI Chat] session=${sessionId.slice(0, 8)}... fastpath=greeting`,
+    );
+
+    return NextResponse.json({
+      text,
+      sessionId,
+      inputMode: 'text',
+    });
+  }
+
   if (
     (hasActiveBookingFlow || session.context.consultationMode) &&
     isChangeServiceIntent(message, session.locale)
@@ -3812,6 +3962,21 @@ export async function POST(
       )
     )
   ) {
+    // If user already named a concrete service ("хочу записаться на маникюр"),
+    // resolve selection immediately instead of sending the generic category list again.
+    const serviceSelectionInput = extractServiceSelectionInput(
+      message,
+      session.locale,
+    );
+    const directSelection = await tryHandleCatalogSelectionFastPath(
+      session,
+      sessionId,
+      serviceSelectionInput,
+    );
+    if (directSelection) {
+      return NextResponse.json(directSelection);
+    }
+
     const startedAt = Date.now();
     const catalog = await listServices({ locale: session.locale });
     const durationMs = Date.now() - startedAt;

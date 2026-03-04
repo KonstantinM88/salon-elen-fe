@@ -154,6 +154,7 @@ export function initSessionAnalytics(info: SessionInfo): void {
 export function trackRequestMetrics(
   sessionId: string,
   metrics: RequestMetrics,
+  locale = 'de',
 ): void {
   const toolCount = metrics.toolCalls?.length ?? 0;
   const toolTotalMs = metrics.toolCalls?.reduce((sum, t) => sum + t.durationMs, 0) ?? 0;
@@ -198,11 +199,34 @@ export function trackRequestMetrics(
     update.consultationUsed = true;
   }
 
-  // Fire-and-forget update
+  const createFunnelStage: FunnelStage =
+    metrics.bookingCompleted ? 'completed' : (metrics.funnelStage ?? 'none');
+
+  // Fire-and-forget upsert (safe against init/update race).
   prisma.aiChatSession
-    .update({
+    .upsert({
       where: { sessionId },
-      data: update,
+      create: {
+        sessionId,
+        locale,
+        endedAt: new Date(),
+        messageCount: 1,
+        assistantMsgCount: 1,
+        gptCallCount: metrics.isGptCall ? 1 : 0,
+        fastPathCount: metrics.isFastPath ? 1 : 0,
+        usedStreaming: Boolean(metrics.isStreaming),
+        usedVoice: Boolean(metrics.isVoice),
+        toolCallCount: toolCount,
+        toolTotalMs,
+        errorCount: metrics.error ? 1 : 0,
+        retryCount: metrics.retried ? 1 : 0,
+        bookingCompleted: Boolean(metrics.bookingCompleted),
+        appointmentId: metrics.bookingCompleted && metrics.appointmentId ? metrics.appointmentId : null,
+        consultationUsed: Boolean(metrics.consultationUsed),
+        consultationTopics: metrics.consultationTopic ? metrics.consultationTopic : null,
+        funnelStage: createFunnelStage,
+      },
+      update,
     })
     .then(async (row) => {
       // Update funnel stage if we advanced further

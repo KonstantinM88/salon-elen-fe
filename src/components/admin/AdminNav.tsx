@@ -13,6 +13,7 @@ import {
   Users,
   CalendarDays,
   BarChart3,
+  Bot,
   UserCog,
   UserSquare2,
   User,
@@ -33,6 +34,7 @@ type NavItem = {
     | "calendar"
     | "users"
     | "stats"
+    | "ai"
     | "monitoring";
   href: string;
   icon: React.ReactNode;
@@ -49,6 +51,7 @@ const NAV_ALL: NavItem[] = [
   { key: "calendar", href: "/admin/calendar", icon: <CalendarDays className="h-5 w-5" /> },
   { key: "users", href: "/admin/users", icon: <UserCog className="h-5 w-5" /> },
   { key: "stats", href: "/admin/stats", icon: <BarChart3 className="h-5 w-5" /> },
+  { key: "ai", href: "/admin/ai", icon: <Bot className="h-5 w-5" /> },
   { key: "monitoring", href: "/admin/dashboard", icon: <LayoutDashboard className="h-5 w-5" /> },
 ];
 
@@ -64,6 +67,7 @@ const NAV_LABELS: Record<SeoLocale, Record<NavItem["key"], string>> = {
     calendar: "Kalender",
     users: "Benutzer",
     stats: "Statistik",
+    ai: "AI Assistent",
     monitoring: "Monitoring",
   },
   ru: {
@@ -77,6 +81,7 @@ const NAV_LABELS: Record<SeoLocale, Record<NavItem["key"], string>> = {
     calendar: "Календарь",
     users: "Пользователи",
     stats: "Статистика",
+    ai: "AI Ассистент",
     monitoring: "Мониторинг",
   },
   en: {
@@ -90,6 +95,7 @@ const NAV_LABELS: Record<SeoLocale, Record<NavItem["key"], string>> = {
     calendar: "Calendar",
     users: "Users",
     stats: "Stats",
+    ai: "AI Assistant",
     monitoring: "Monitoring",
   },
 };
@@ -97,7 +103,7 @@ const NAV_LABELS: Record<SeoLocale, Record<NavItem["key"], string>> = {
 const VISIBLE_BY_ROLE: Record<Role, NavItem["key"][]> = {
   ADMIN: [
     "dashboard", "profile", "news", "services", "bookings",
-    "clients", "masters", "calendar", "users", "stats", "monitoring",
+    "clients", "masters", "calendar", "users", "stats", "ai", "monitoring",
   ],
   MASTER: ["dashboard", "profile", "bookings", "clients", "calendar"],
   USER: ["dashboard", "profile"],
@@ -204,6 +210,15 @@ const COLORS: Record<
     chipTo: "to-purple-500/25",
     itemGlow: "shadow-[0_0_30px_-8px_rgba(217,70,239,0.45)]",
     glow: "fuchsia",
+  },
+  ai: {
+    iconLight: "text-violet-600",
+    iconDark: "text-violet-300",
+    ring: "ring-violet-400/30",
+    chipFrom: "from-violet-600/25",
+    chipTo: "to-indigo-500/25",
+    itemGlow: "shadow-[0_0_30px_-8px_rgba(139,92,246,0.45)]",
+    glow: "violet",
   },
   monitoring: {
     iconLight: "text-orange-600",

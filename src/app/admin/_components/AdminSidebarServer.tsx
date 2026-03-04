@@ -8,6 +8,7 @@ import {
   Users2,
   CalendarDays,
   BarChart3,
+  Bot,
 } from "lucide-react";
 
 export default async function AdminSidebarServer() {
@@ -25,6 +26,7 @@ export default async function AdminSidebarServer() {
     { label: "Клиенты", href: "/admin/clients", icon: <Users2 className="h-4 w-4" />, tone: "sky" as const },
     { label: "Календарь", href: "/admin/calendar", icon: <CalendarDays className="h-4 w-4" />, tone: "sky" as const },
     { label: "Статистика", href: "/admin/stats", icon: <BarChart3 className="h-4 w-4" />, tone: "emerald" as const },
+    { label: "AI Ассистент", href: "/admin/ai", icon: <Bot className="h-4 w-4" />, tone: "violet" as const },
   ];
 
   return <AdminSidebar items={items} title="ADMIN" />;
