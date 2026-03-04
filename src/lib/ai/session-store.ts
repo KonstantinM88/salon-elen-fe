@@ -3,6 +3,7 @@
 // For production with multiple instances, replace with Redis.
 
 import type { Locale } from '@/i18n/locales';
+import { finalizeSessionAnalytics } from '@/lib/ai/ai-analytics';
 
 // ─── Types ──────────────────────────────────────────────────────
 
@@ -30,7 +31,7 @@ export interface AiSession {
     /** Consultation-first mode (do not auto-jump into booking catalog flow). */
     consultationMode?: boolean;
     /** Active consultation topic for consultation-first flow. */
-    consultationTopic?: 'pmu' | 'brows_lashes' | 'hydrafacial';
+    consultationTopic?: 'pmu' | 'brows_lashes' | 'nails' | 'hair' | 'hydrafacial';
     /** Last concrete consultation technique user selected (for seamless bridge to booking). */
     consultationTechnique?:
       | 'powder_brows'
@@ -106,6 +107,7 @@ export function getSession(sessionId: string): AiSession | null {
 
   // Check expiry
   if (Date.now() - session.lastActiveAt.getTime() > SESSION_TTL_MS) {
+    finalizeSessionAnalytics(sessionId);
     sessions.delete(sessionId);
     return null;
   }
@@ -219,6 +221,7 @@ function cleanup() {
   // Clean expired sessions
   for (const [id, session] of sessions.entries()) {
     if (now - session.lastActiveAt.getTime() > SESSION_TTL_MS) {
+      finalizeSessionAnalytics(id);
       sessions.delete(id);
     }
   }

@@ -882,12 +882,12 @@ export function buildKnowledgeConsultationStartText(locale?: string): string {
   const intro = PERMANENT_HALLE.pmu.consultation_start[lang];
 
   if (lang === 'RU') {
-    return `${intro}\n\n[option] 💄 PMU: брови, губы, межресничка [/option]\n[option] ✨ Брови и ресницы: лифтинг/стайлинг [/option]\n[option] 💧 Hydrafacial: подбор формата [/option]\n[option] 📅 Подобрать время и записаться [/option]`;
+    return `${intro}\n\n[option] 💄 PMU: брови, губы, межресничка [/option]\n[option] ✨ Брови и ресницы: лифтинг/стайлинг [/option]\n[option] 💅 Маникюр: подбор услуги [/option]\n[option] ✂️ Стрижка: подбор услуги [/option]\n[option] 💧 Hydrafacial: подбор формата [/option]\n[option] 📅 Подобрать время и записаться [/option]`;
   }
   if (lang === 'EN') {
-    return `${intro}\n\n[option] 💄 PMU: brows, lips, lash line [/option]\n[option] ✨ Brows & lashes: lifting/styling [/option]\n[option] 💧 Hydrafacial: choose format [/option]\n[option] 📅 Pick time and book [/option]`;
+    return `${intro}\n\n[option] 💄 PMU: brows, lips, lash line [/option]\n[option] ✨ Brows & lashes: lifting/styling [/option]\n[option] 💅 Nails: choose service [/option]\n[option] ✂️ Haircut: choose service [/option]\n[option] 💧 Hydrafacial: choose format [/option]\n[option] 📅 Pick time and book [/option]`;
   }
-  return `${intro}\n\n[option] 💄 PMU: Augenbrauen, Lippen, Wimpernkranz [/option]\n[option] ✨ Brows & Lashes: Lifting/Styling [/option]\n[option] 💧 Hydrafacial: passendes Paket [/option]\n[option] 📅 Zeit finden und buchen [/option]`;
+  return `${intro}\n\n[option] 💄 PMU: Augenbrauen, Lippen, Wimpernkranz [/option]\n[option] ✨ Brows & Lashes: Lifting/Styling [/option]\n[option] 💅 Maniküre: Leistung wählen [/option]\n[option] ✂️ Haarschnitt: Leistung wählen [/option]\n[option] 💧 Hydrafacial: passendes Paket [/option]\n[option] 📅 Zeit finden und buchen [/option]`;
 }
 
 export function isKnowledgeLocationHoursIntent(
@@ -1057,7 +1057,12 @@ export function buildKnowledgeSystemMessage(locale?: string): string {
   ].join('\n');
 }
 
-export type KnowledgeConsultationTopic = 'pmu' | 'brows_lashes' | 'hydrafacial';
+export type KnowledgeConsultationTopic =
+  | 'pmu'
+  | 'brows_lashes'
+  | 'nails'
+  | 'hair'
+  | 'hydrafacial';
 export type KnowledgeConsultationStyle = 'natural' | 'expressive' | 'budget';
 export type KnowledgePmuTechnique =
   | 'powder_brows'
@@ -1090,6 +1095,20 @@ export function detectKnowledgeConsultationTopic(
       return 'pmu';
     }
     if (
+      value.includes('маник') ||
+      value.includes('педик') ||
+      value.includes('ногт')
+    ) {
+      return 'nails';
+    }
+    if (
+      value.includes('стриж') ||
+      value.includes('волос') ||
+      value.includes('окрашив')
+    ) {
+      return 'hair';
+    }
+    if (
       value.includes('бров') ||
       value.includes('ресниц') ||
       value.includes('лифтинг') ||
@@ -1110,6 +1129,21 @@ export function detectKnowledgeConsultationTopic(
       return 'pmu';
     }
     if (
+      value.includes('nail') ||
+      value.includes('manicure') ||
+      value.includes('pedicure')
+    ) {
+      return 'nails';
+    }
+    if (
+      value.includes('hair') ||
+      value.includes('haircut') ||
+      value.includes('coloring') ||
+      value.includes('colouring')
+    ) {
+      return 'hair';
+    }
+    if (
       value.includes('brow') ||
       value.includes('lash') ||
       value.includes('lifting') ||
@@ -1126,6 +1160,20 @@ export function detectKnowledgeConsultationTopic(
     value.includes('wimpernkranz')
   ) {
     return 'pmu';
+  }
+  if (
+    value.includes('manik') ||
+    value.includes('nagel') ||
+    value.includes('pedik')
+  ) {
+    return 'nails';
+  }
+  if (
+    value.includes('haarschnitt') ||
+    value.includes('haare') ||
+    value.includes('farbe')
+  ) {
+    return 'hair';
   }
   if (
     value.includes('augenbrau') ||
@@ -1151,6 +1199,12 @@ export function buildKnowledgeConsultationTopicText(
     if (topic === 'brows_lashes') {
       return 'Супер, подберём брови/ресницы под ваш запрос 🌸 Какой результат хотите получить?\n\n[option] Максимально натурально [/option]\n[option] Чуть ярче и выразительнее [/option]\n[option] Подобрать вариант по бюджету [/option]\n[option] ❓ Сравнить лифтинг и стайлинг [/option]\n[option] 📅 Подобрать время и записаться [/option]';
     }
+    if (topic === 'nails') {
+      return 'Отлично, поможем с маникюром 🌸 Какой формат интересует?\n\n[option] Классический — 60 мин., 35,00 € [/option]\n[option] Наращивание ногтей — 120 мин., 70,00 € [/option]\n[option] Японский — 75 мин., 42,00 € [/option]\n[option] 📅 Подобрать время и записаться [/option]';
+    }
+    if (topic === 'hair') {
+      return 'Супер, подберём вариант по стрижке 🌿 Что хотите сделать?\n\n[option] Женская — 60 мин., 45,00 € [/option]\n[option] Мужская — 45 мин., 30,00 € [/option]\n[option] Окрашивание волос — 90 мин., 75,00 € [/option]\n[option] 📅 Подобрать время и записаться [/option]';
+    }
     return 'Отличный выбор 🌿 По Hydrafacial подскажу формат под задачу кожи. Что сейчас важнее?\n\n[option] Глубокое очищение и свежесть [/option]\n[option] Больше сияния и ровный тон [/option]\n[option] Максимальный премиум-уход [/option]\n[option] ❓ Чем отличается Signature/Deluxe/Platinum [/option]\n[option] 📅 Подобрать время и записаться [/option]';
   }
 
@@ -1161,6 +1215,12 @@ export function buildKnowledgeConsultationTopicText(
     if (topic === 'brows_lashes') {
       return "Perfect, let's tailor brows/lashes to your goal 🌸 What result do you want?\n\n[option] Very natural look [/option]\n[option] More defined expression [/option]\n[option] Best option by budget [/option]\n[option] ❓ Compare lifting vs styling [/option]\n[option] 📅 Pick time and book [/option]";
     }
+    if (topic === 'nails') {
+      return "Great, let's choose the right nails service 🌸 What would you like?\n\n[option] Classic — 60 min., €35 [/option]\n[option] Nail extensions — 120 min., €70 [/option]\n[option] Japanese — 75 min., €42 [/option]\n[option] 📅 Pick time and book [/option]";
+    }
+    if (topic === 'hair') {
+      return "Perfect, let's pick the right haircut option 🌿 What do you need?\n\n[option] Women's haircut — 60 min., €45 [/option]\n[option] Men's haircut — 45 min., €30 [/option]\n[option] Hair coloring — 90 min., €75 [/option]\n[option] 📅 Pick time and book [/option]";
+    }
     return "Great choice 🌿 I can help choose the right Hydrafacial format. What's your main goal now?\n\n[option] Deep cleanse and freshness [/option]\n[option] More glow and even tone [/option]\n[option] Maximum premium care [/option]\n[option] ❓ Signature vs Deluxe vs Platinum [/option]\n[option] 📅 Pick time and book [/option]";
   }
 
@@ -1169,6 +1229,12 @@ export function buildKnowledgeConsultationTopicText(
   }
   if (topic === 'brows_lashes') {
     return 'Super, wir wählen Brows/Lashes passend zu Ihrem Wunsch 🌸 Welches Ergebnis möchten Sie?\n\n[option] Sehr natürlich [/option]\n[option] Etwas definierter [/option]\n[option] Passend zum Budget [/option]\n[option] ❓ Lifting vs Styling vergleichen [/option]\n[option] 📅 Zeit finden und buchen [/option]';
+  }
+  if (topic === 'nails') {
+    return 'Gern, wir finden die passende Maniküre 🌸 Welche Leistung möchten Sie?\n\n[option] Klassisch — 60 Min., 35,00 € [/option]\n[option] Nagelverlängerung — 120 Min., 70,00 € [/option]\n[option] Japanisch — 75 Min., 42,00 € [/option]\n[option] 📅 Zeit finden und buchen [/option]';
+  }
+  if (topic === 'hair') {
+    return 'Super, wir wählen die passende Leistung für Haare 🌿 Was passt für Sie?\n\n[option] Damenhaarschnitt — 60 Min., 45,00 € [/option]\n[option] Herrenhaarschnitt — 45 Min., 30,00 € [/option]\n[option] Haare färben — 90 Min., 75,00 € [/option]\n[option] 📅 Zeit finden und buchen [/option]';
   }
   return 'Sehr gute Wahl 🌿 Für Hydrafacial finde ich das passende Paket. Was ist aktuell wichtiger?\n\n[option] Tiefenreinigung und Frische [/option]\n[option] Mehr Glow und ebenmäßiger Teint [/option]\n[option] Maximaler Premium-Effekt [/option]\n[option] ❓ Unterschied Signature/Deluxe/Platinum [/option]\n[option] 📅 Zeit finden und buchen [/option]';
 }
@@ -1309,7 +1375,6 @@ export function isKnowledgePmuHealingIntent(
       value.includes('заживлен') ||
       value.includes('побочн') ||
       value.includes('осложнен') ||
-      value.includes('противопоказ') ||
       value.includes('реакци') ||
       value.includes('безопасно') ||
       value.includes('опасно')
@@ -1325,7 +1390,6 @@ export function isKnowledgePmuHealingIntent(
       value.includes('side effect') ||
       value.includes('side-effects') ||
       value.includes('adverse effect') ||
-      value.includes('contraindication') ||
       value.includes('risk') ||
       value.includes('is it safe')
     );
@@ -1336,9 +1400,44 @@ export function isKnowledgePmuHealingIntent(
     value.includes('heilung und pflege') ||
     (value.includes('heilung') && value.includes('beratung')) ||
     value.includes('nebenwirkung') ||
-    value.includes('kontraindikation') ||
     value.includes('risiko') ||
     value.includes('ist es sicher')
+  );
+}
+
+export function isKnowledgePmuContraindicationsIntent(
+  text: string,
+  locale?: string,
+): boolean {
+  const value = text.toLowerCase().replace(/ё/g, 'е').trim();
+  if (!value) return false;
+  const normalized = normalizeLocale(locale);
+
+  if (normalized === 'ru') {
+    return (
+      value.includes('противопоказ') ||
+      value.includes('кому нельзя') ||
+      value.includes('кому не подходит') ||
+      value.includes('кому лучше не') ||
+      (value.includes('нельзя') &&
+        (value.includes('pmu') || value.includes('перманент') || value.includes('татуаж')))
+    );
+  }
+
+  if (normalized === 'en') {
+    return (
+      value.includes('contraindication') ||
+      value.includes('not suitable') ||
+      value.includes('who should avoid') ||
+      (value.includes('cannot') && value.includes('pmu'))
+    );
+  }
+
+  return (
+    value.includes('kontraindikation') ||
+    value.includes('nicht geeignet') ||
+    value.includes('wer sollte vermeiden') ||
+    (value.includes('nicht') && value.includes('pmu'))
   );
 }
 
@@ -1789,6 +1888,78 @@ export function buildKnowledgePmuTechniqueSafetyText(
       'Wimpernkranz 🌸 Typische vorübergehende Reaktionen:\n• leichte Lid-Empfindlichkeit und geringe Schwellung für 1-2 Tage;\n• kurzfristig sind Trockenheit/tränende Augen möglich;\n• die Pigmentierung wirkt anfangs etwas stärker.\n\nWenn Beschwerden deutlich sind oder zunehmen, bitte sofort der Meisterin schreiben.\n\n[option] ❓ Mehr zur PMU-Heilung [/option]\n[option] 📅 Zeit finden und buchen [/option]',
     upper_lower:
       'Wimpernkranz oben + unten 🌸 Typische vorübergehende Reaktionen:\n• leichte Lid-Empfindlichkeit und geringe Schwellung für 1-2 Tage;\n• kurzfristig sind Trockenheit/tränende Augen möglich;\n• die Pigmentierung wirkt anfangs etwas stärker.\n\nWenn die Reaktion stark ist oder zunimmt, bitte sofort der Meisterin schreiben.\n\n[option] ❓ Mehr zur PMU-Heilung [/option]\n[option] 📅 Zeit finden und buchen [/option]',
+  };
+
+  if (normalized === 'ru') return ru[technique];
+  if (normalized === 'en') return en[technique];
+  return de[technique];
+}
+
+export function buildKnowledgePmuContraindicationsText(
+  locale: AssistantLocale | undefined,
+): string {
+  const normalized = normalizeLocale(locale);
+
+  if (normalized === 'ru') {
+    return 'Противопоказания к PMU (в целом) 🌸\n• активные воспаления, высыпания или повреждения кожи в зоне процедуры;\n• острые инфекции и выраженное недомогание;\n• склонность к сильным аллергическим реакциям на пигменты/анестетики;\n• приём препаратов, влияющих на свёртываемость крови — только после согласования;\n• беременность и лактация — по индивидуальному согласованию с врачом.\n\nМы работаем только в косметических рамках, поэтому перед процедурой мастер всегда делает персональный safety-check.\n\n[option] ❓ Что важно по реакции после PMU [/option]\n[option] 📅 Подобрать время и записаться [/option]';
+  }
+
+  if (normalized === 'en') {
+    return 'PMU contraindications (general) 🌸\n• active inflammation, rash, or skin damage in the treatment area;\n• acute infections or feeling unwell;\n• strong allergy history to pigments/anesthetics;\n• blood-thinning medication requires prior approval;\n• pregnancy and breastfeeding: individual clearance with your doctor first.\n\nWe provide cosmetic services only, so your master always performs a personal safety check before treatment.\n\n[option] ❓ Typical PMU reactions after treatment [/option]\n[option] 📅 Pick time and book [/option]';
+  }
+
+  return 'PMU-Kontraindikationen (allgemein) 🌸\n• aktive Entzündungen, Ausschläge oder Hautverletzungen im Behandlungsbereich;\n• akute Infekte oder deutliches Unwohlsein;\n• starke Allergieneigung gegenüber Pigmenten/Anästhetika;\n• blutverdünnende Medikamente nur nach vorheriger Abstimmung;\n• Schwangerschaft und Stillzeit nur nach individueller ärztlicher Freigabe.\n\nWir arbeiten rein kosmetisch, deshalb macht die Meisterin vorab immer einen persönlichen Safety-Check.\n\n[option] ❓ Typische Reaktionen nach PMU [/option]\n[option] 📅 Zeit finden und buchen [/option]';
+}
+
+export function buildKnowledgePmuTechniqueContraindicationsText(
+  locale: AssistantLocale | undefined,
+  technique: KnowledgePmuTechnique,
+): string {
+  const normalized = normalizeLocale(locale);
+
+  const ru: Record<KnowledgePmuTechnique, string> = {
+    powder_brows:
+      'Powder Brows 🌸 Когда лучше отложить процедуру:\n• активные воспаления/дерматит в зоне бровей;\n• повреждения кожи (ссадины, свежие раздражения) в зоне работы;\n• выраженная аллергическая реактивность без предварительного согласования.\n\nПеред процедурой мастер всегда проверяет состояние кожи и подтверждает безопасность.\n\n[option] ❓ Что важно по реакции после PMU [/option]\n[option] 📅 Подобрать время и записаться [/option]',
+    hairstroke_brows:
+      'Hairstroke Brows 🌸 Когда лучше отложить процедуру:\n• активные воспаления/дерматит в зоне бровей;\n• повреждения кожи (ссадины, свежие раздражения) в зоне работы;\n• выраженная аллергическая реактивность без предварительного согласования.\n\nПеред процедурой мастер всегда проверяет состояние кожи и подтверждает безопасность.\n\n[option] ❓ Что важно по реакции после PMU [/option]\n[option] 📅 Подобрать время и записаться [/option]',
+    aquarell_lips:
+      'Акварельные губы 🌸 Когда лучше отложить процедуру:\n• активный герпес или воспаление в зоне губ;\n• трещины, повреждения или сильное раздражение губ;\n• выраженная аллергическая реактивность без предварительного согласования.\n\nПеред процедурой мастер обязательно делает safety-check по зоне губ.\n\n[option] ❓ Что важно по реакции после PMU [/option]\n[option] 📅 Подобрать время и записаться [/option]',
+    lips_3d:
+      '3D губы 🌸 Когда лучше отложить процедуру:\n• активный герпес или воспаление в зоне губ;\n• трещины, повреждения или сильное раздражение губ;\n• выраженная аллергическая реактивность без предварительного согласования.\n\nПеред процедурой мастер обязательно делает safety-check по зоне губ.\n\n[option] ❓ Что важно по реакции после PMU [/option]\n[option] 📅 Подобрать время и записаться [/option]',
+    lashline:
+      'Межресничка 🌸 Когда лучше отложить процедуру:\n• активные воспаления глаз/век (например, конъюнктивит, ячмень);\n• раздражение или повреждения кожи век;\n• недавние офтальмологические вмешательства — нужен допуск врача.\n\nПеред процедурой мастер проверяет зону век и подтверждает, что всё безопасно.\n\n[option] ❓ Что важно по реакции после PMU [/option]\n[option] 📅 Подобрать время и записаться [/option]',
+    upper_lower:
+      'Межресничка верх+низ 🌸 Когда лучше отложить процедуру:\n• активные воспаления глаз/век (например, конъюнктивит, ячмень);\n• раздражение или повреждения кожи век;\n• недавние офтальмологические вмешательства — нужен допуск врача.\n\nПеред процедурой мастер проверяет зону век и подтверждает, что всё безопасно.\n\n[option] ❓ Что важно по реакции после PMU [/option]\n[option] 📅 Подобрать время и записаться [/option]',
+  };
+
+  const en: Record<KnowledgePmuTechnique, string> = {
+    powder_brows:
+      'Powder Brows 🌸 When to postpone:\n• active inflammation/dermatitis in the brow area;\n• skin damage or fresh irritation in the treatment zone;\n• strong allergy history without prior approval.\n\nYour master checks skin condition before treatment and confirms safety.\n\n[option] ❓ Typical PMU reactions after treatment [/option]\n[option] 📅 Pick time and book [/option]',
+    hairstroke_brows:
+      'Hairstroke Brows 🌸 When to postpone:\n• active inflammation/dermatitis in the brow area;\n• skin damage or fresh irritation in the treatment zone;\n• strong allergy history without prior approval.\n\nYour master checks skin condition before treatment and confirms safety.\n\n[option] ❓ Typical PMU reactions after treatment [/option]\n[option] 📅 Pick time and book [/option]',
+    aquarell_lips:
+      'Aquarelle Lips 🌸 When to postpone:\n• active herpes or inflammation in the lip area;\n• cracks, skin damage, or strong irritation on the lips;\n• strong allergy history without prior approval.\n\nYour master performs a dedicated lip safety check before treatment.\n\n[option] ❓ Typical PMU reactions after treatment [/option]\n[option] 📅 Pick time and book [/option]',
+    lips_3d:
+      '3D Lips 🌸 When to postpone:\n• active herpes or inflammation in the lip area;\n• cracks, skin damage, or strong irritation on the lips;\n• strong allergy history without prior approval.\n\nYour master performs a dedicated lip safety check before treatment.\n\n[option] ❓ Typical PMU reactions after treatment [/option]\n[option] 📅 Pick time and book [/option]',
+    lashline:
+      'Lash line 🌸 When to postpone:\n• active eye/eyelid inflammation (e.g., conjunctivitis, stye);\n• irritation or skin damage on eyelids;\n• recent ophthalmology procedures without doctor clearance.\n\nYour master checks the eyelid area before treatment and confirms safety.\n\n[option] ❓ Typical PMU reactions after treatment [/option]\n[option] 📅 Pick time and book [/option]',
+    upper_lower:
+      'Upper + lower lash line 🌸 When to postpone:\n• active eye/eyelid inflammation (e.g., conjunctivitis, stye);\n• irritation or skin damage on eyelids;\n• recent ophthalmology procedures without doctor clearance.\n\nYour master checks the eyelid area before treatment and confirms safety.\n\n[option] ❓ Typical PMU reactions after treatment [/option]\n[option] 📅 Pick time and book [/option]',
+  };
+
+  const de: Record<KnowledgePmuTechnique, string> = {
+    powder_brows:
+      'Powder Brows 🌸 Wann besser verschieben:\n• aktive Entzündung/Dermatitis im Brauenbereich;\n• Hautverletzungen oder frische Reizungen in der Zone;\n• starke Allergieneigung ohne vorherige Abstimmung.\n\nDie Meisterin prüft die Haut vorab und bestätigt die Sicherheit.\n\n[option] ❓ Typische Reaktionen nach PMU [/option]\n[option] 📅 Zeit finden und buchen [/option]',
+    hairstroke_brows:
+      'Hairstroke Brows 🌸 Wann besser verschieben:\n• aktive Entzündung/Dermatitis im Brauenbereich;\n• Hautverletzungen oder frische Reizungen in der Zone;\n• starke Allergieneigung ohne vorherige Abstimmung.\n\nDie Meisterin prüft die Haut vorab und bestätigt die Sicherheit.\n\n[option] ❓ Typische Reaktionen nach PMU [/option]\n[option] 📅 Zeit finden und buchen [/option]',
+    aquarell_lips:
+      'Aquarell Lips 🌸 Wann besser verschieben:\n• aktiver Herpes oder Entzündung im Lippenbereich;\n• Risse, Hautverletzungen oder starke Reizung an den Lippen;\n• starke Allergieneigung ohne vorherige Abstimmung.\n\nVor der Behandlung erfolgt immer ein Safety-Check der Lippenzone.\n\n[option] ❓ Typische Reaktionen nach PMU [/option]\n[option] 📅 Zeit finden und buchen [/option]',
+    lips_3d:
+      '3D Lips 🌸 Wann besser verschieben:\n• aktiver Herpes oder Entzündung im Lippenbereich;\n• Risse, Hautverletzungen oder starke Reizung an den Lippen;\n• starke Allergieneigung ohne vorherige Abstimmung.\n\nVor der Behandlung erfolgt immer ein Safety-Check der Lippenzone.\n\n[option] ❓ Typische Reaktionen nach PMU [/option]\n[option] 📅 Zeit finden und buchen [/option]',
+    lashline:
+      'Wimpernkranz 🌸 Wann besser verschieben:\n• aktive Augen-/Lidentzündung (z. B. Bindehautentzündung, Gerstenkorn);\n• Reizung oder Hautverletzung an den Lidern;\n• kürzliche augenärztliche Eingriffe ohne ärztliche Freigabe.\n\nDie Meisterin prüft die Lidzone vorab und bestätigt die Sicherheit.\n\n[option] ❓ Typische Reaktionen nach PMU [/option]\n[option] 📅 Zeit finden und buchen [/option]',
+    upper_lower:
+      'Wimpernkranz oben + unten 🌸 Wann besser verschieben:\n• aktive Augen-/Lidentzündung (z. B. Bindehautentzündung, Gerstenkorn);\n• Reizung oder Hautverletzung an den Lidern;\n• kürzliche augenärztliche Eingriffe ohne ärztliche Freigabe.\n\nDie Meisterin prüft die Lidzone vorab und bestätigt die Sicherheit.\n\n[option] ❓ Typische Reaktionen nach PMU [/option]\n[option] 📅 Zeit finden und buchen [/option]',
   };
 
   if (normalized === 'ru') return ru[technique];

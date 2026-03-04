@@ -19,6 +19,12 @@ import {
   appendSessionMessage,
 } from '@/lib/ai/session-store';
 import {
+  initSessionAnalytics,
+  trackRequestMetrics,
+  detectFunnelStage,
+  type RequestMetrics,
+} from '@/lib/ai/ai-analytics';
+import {
   withRetry,
   createLoopTimeout,
   classifyError,
@@ -52,7 +58,9 @@ import {
   buildKnowledgeOccasionText,
   buildKnowledgeConsultationStyleText,
   buildKnowledgeConsultationTopicText,
+  buildKnowledgePmuContraindicationsText,
   buildKnowledgePmuTechniqueDetailsText,
+  buildKnowledgePmuTechniqueContraindicationsText,
   buildKnowledgePmuTechniqueSafetyText,
   buildKnowledgeSystemMessage,
   detectKnowledgeOccasion,
@@ -69,6 +77,7 @@ import {
   isKnowledgeHydrafacialDetailsIntent,
   isKnowledgeHydrafacialComparisonIntent,
   isKnowledgeLocationHoursIntent,
+  isKnowledgePmuContraindicationsIntent,
   isKnowledgePmuHealingIntent,
   isKnowledgePmuLipsChoiceIntent,
   isConsultationIntentByKnowledge,
@@ -182,7 +191,7 @@ function looksLikeMonthNameDateInput(text: string): boolean {
   if (!value) return false;
 
   if (
-    /\b\d{1,2}\s+(январ[ья]?|феврал[ья]?|март[а]?|апрел[ья]?|ма[йя]|июн[ья]?|июл[ья]?|август[а]?|сентябр[ья]?|октябр[ья]?|ноябр[ья]?|декабр[ья]?)\b/u.test(
+    /(?:^|[^\p{L}\p{N}])\d{1,2}\s+(январ[ья]?|феврал[ья]?|март[а]?|апрел[ья]?|ма[йя]|июн[ья]?|июл[ья]?|август[а]?|сентябр[ья]?|октябр[ья]?|ноябр[ья]?|декабр[ья]?)(?:$|[^\p{L}\p{N}])/u.test(
       value,
     )
   ) {
@@ -190,7 +199,7 @@ function looksLikeMonthNameDateInput(text: string): boolean {
   }
 
   if (
-    /\b\d{1,2}\s+(january|february|march|april|may|june|july|august|september|october|november|december)\b/u.test(
+    /(?:^|[^\p{L}\p{N}])\d{1,2}\s+(january|february|march|april|may|june|july|august|september|october|november|december)(?:$|[^\p{L}\p{N}])/u.test(
       value,
     )
   ) {
@@ -198,7 +207,7 @@ function looksLikeMonthNameDateInput(text: string): boolean {
   }
 
   if (
-    /\b\d{1,2}\s+(januar|februar|maerz|märz|april|mai|juni|juli|august|september|oktober|november|dezember)\b/u.test(
+    /(?:^|[^\p{L}\p{N}])\d{1,2}\s+(januar|februar|maerz|märz|april|mai|juni|juli|august|september|oktober|november|dezember)(?:$|[^\p{L}\p{N}])/u.test(
       value,
     )
   ) {
@@ -585,6 +594,91 @@ function isConsultationOperationalBookingInput(text: string): boolean {
     'buchung',
   ];
   return hints.some((h) => value.includes(h));
+}
+
+function isServiceAvailabilityInquiry(
+  text: string,
+  locale: 'de' | 'ru' | 'en',
+): boolean {
+  const value = normalizeInput(text).replace(/ё/g, 'е');
+  if (!value) return false;
+  if (looksLikeServiceOptionPayload(text) || looksLikePricedOptionPayload(text)) return false;
+  if (looksLikeDateOrTimeSelection(text)) return false;
+
+  const serviceHints = [
+    'маник',
+    'ногт',
+    'педик',
+    'бров',
+    'ресниц',
+    'перманент',
+    'pmu',
+    'hydra',
+    'hydrafacial',
+    'стриж',
+    'окраш',
+    'lifting',
+    'lash',
+    'brow',
+    'nail',
+    'nagel',
+    'wimper',
+    'augenbrau',
+    'haarschnitt',
+  ];
+  const hasServiceHint = serviceHints.some((hint) => value.includes(hint));
+  if (!hasServiceHint) return false;
+
+  const hasQuestionMark = /[?？]/u.test(text);
+
+  if (locale === 'ru') {
+    const ruCues = [
+      'есть ли',
+      'есть у вас',
+      'у вас есть',
+      'а есть',
+      'интересует',
+      'меня интересует',
+      'интересует услуга',
+      'интересуюсь',
+      'предлагаете',
+      'делаете',
+      'оказываете',
+      'имеется',
+      'видел на сайте',
+      'видела на сайте',
+      'на сайте в услугах',
+      'в списке услуг',
+      'в прайсе',
+    ];
+    return hasQuestionMark || ruCues.some((cue) => value.includes(cue));
+  }
+  if (locale === 'en') {
+    const enCues = [
+      'do you have',
+      'is there',
+      'do you offer',
+      'interested in',
+      'i am interested in',
+      'offer',
+      'i saw on the site',
+      'on your site',
+      'in your services list',
+    ];
+    return hasQuestionMark || enCues.some((cue) => value.includes(cue));
+  }
+  const deCues = [
+    'gibt es',
+    'bieten sie',
+    'habt ihr',
+    'haben sie',
+    'interessiere mich',
+    'ich interessiere mich',
+    'ich habe auf der website gesehen',
+    'auf ihrer website',
+    'in der leistungsliste',
+  ];
+  return hasQuestionMark || deCues.some((cue) => value.includes(cue));
 }
 
 type ConsultationTechnique = NonNullable<
@@ -1178,6 +1272,7 @@ function buildSelectedServiceDetailsText(
   locale: 'de' | 'ru' | 'en',
   serviceTitle: string,
   groupTitle?: string,
+  durationMin?: number,
 ): string {
   const technique = detectKnowledgePmuTechnique(serviceTitle, locale);
   if (technique) {
@@ -1201,20 +1296,85 @@ function buildSelectedServiceDetailsText(
     return buildKnowledgeBrowsLashesDetailsText(locale);
   }
 
+  const durationText =
+    typeof durationMin === 'number' && durationMin > 0
+      ? locale === 'ru'
+        ? `Длительность: около **${durationMin} мин.**.`
+        : locale === 'en'
+          ? `Duration: about **${durationMin} min**.`
+          : `Dauer: etwa **${durationMin} Min.**.`
+      : locale === 'ru'
+        ? 'Длительность зависит от выбранного формата.'
+        : locale === 'en'
+          ? 'Duration depends on the selected format.'
+          : 'Die Dauer hängt vom gewählten Format ab.';
+
+  const nailsRe = /(маник|ногт|педик|nail|nagel|manik)/u;
+  if (nailsRe.test(combined)) {
+    if (locale === 'ru') {
+      return `${serviceTitle} 💅
+Классический маникюр обычно включает придание формы ногтям, обработку кутикулы и аккуратный уход за ногтевой пластиной.
+${durationText}
+Перед визитом лучше сообщить, есть ли чувствительность кожи или предыдущее покрытие, чтобы мастер подобрал комфортный формат процедуры.
+
+[option] 📅 Подобрать время и записаться [/option]`;
+    }
+    if (locale === 'en') {
+      return `${serviceTitle} 💅
+Classic manicure usually includes nail shaping, cuticle care, and neat basic nail treatment.
+${durationText}
+Before the visit, it helps to mention any skin sensitivity or existing coating so the master can choose the most comfortable procedure format.
+
+[option] 📅 Pick time and book [/option]`;
+    }
+    return `${serviceTitle} 💅
+Eine klassische Maniküre umfasst in der Regel Nagelform, Nagelhautpflege und eine saubere Basispflege der Nägel.
+${durationText}
+Vor dem Termin ist es hilfreich, eventuelle Hautempfindlichkeit oder vorhandenes Material zu erwähnen, damit die Meisterin das passende Vorgehen wählt.
+
+[option] 📅 Zeit finden und buchen [/option]`;
+  }
+
+  const hairRe = /(стриж|волос|окраш|hair|haarschnitt|farbe)/u;
+  if (hairRe.test(combined)) {
+    if (locale === 'ru') {
+      return `${serviceTitle} ✂️
+Это услуга по стрижке/волосам с подбором формы под тип волос и желаемый результат.
+${durationText}
+Перед визитом удобно подготовить референс (фото желаемого результата), чтобы быстрее согласовать длину и форму.
+
+[option] 📅 Подобрать время и записаться [/option]`;
+    }
+    if (locale === 'en') {
+      return `${serviceTitle} ✂️
+This is a haircut/hair service where shape is adjusted to your hair type and desired result.
+${durationText}
+It is useful to bring a reference photo so the length and shape can be aligned quickly.
+
+[option] 📅 Pick time and book [/option]`;
+    }
+    return `${serviceTitle} ✂️
+Das ist eine Haar-/Schnittleistung, bei der Form und Ergebnis auf Ihren Haartyp abgestimmt werden.
+${durationText}
+Ein Referenzfoto ist hilfreich, damit Länge und Form schnell abgestimmt werden können.
+
+[option] 📅 Zeit finden und buchen [/option]`;
+  }
+
   if (locale === 'ru') {
     return `${serviceTitle} 🌸
-Могу рассказать подробнее о результате, длительности и подготовке к процедуре.
+Это услуга из нашего каталога. Могу помочь подобрать формат, мастера и ближайшее время.
 
 [option] 📅 Подобрать время и записаться [/option]`;
   }
   if (locale === 'en') {
     return `${serviceTitle} 🌸
-I can share more about expected result, duration, and how to prepare for the treatment.
+This service is available in our catalog. I can help choose format, specialist, and nearest time.
 
 [option] 📅 Pick time and book [/option]`;
   }
   return `${serviceTitle} 🌸
-Ich kann gern mehr zum Ergebnis, zur Dauer und zur Vorbereitung auf die Behandlung erklären.
+Diese Leistung ist in unserem Katalog verfügbar. Ich helfe gern bei Auswahl von Format, Meisterin und nächster freier Zeit.
 
 [option] 📅 Zeit finden und buchen [/option]`;
 }
@@ -1595,7 +1755,7 @@ function parseMonthNameDateInputToISO(
 ): string | null {
   const normalized = normalizeInput(input).replace(/ё/g, 'е');
   const ruMatch = normalized.match(
-    /\b(\d{1,2})\s+(январ[ья]?|феврал[ья]?|март[а]?|апрел[ья]?|ма[йя]|июн[ья]?|июл[ья]?|август[а]?|сентябр[ья]?|октябр[ья]?|ноябр[ья]?|декабр[ья]?)\b/u,
+    /(?:^|[^\p{L}\p{N}])(\d{1,2})\s+(январ[ья]?|феврал[ья]?|март[а]?|апрел[ья]?|ма[йя]|июн[ья]?|июл[ья]?|август[а]?|сентябр[ья]?|октябр[ья]?|ноябр[ья]?|декабр[ья]?)(?:$|[^\p{L}\p{N}])/u,
   );
 
   if (!ruMatch) return null;
@@ -2071,9 +2231,11 @@ function formatPrice(locale: 'de' | 'ru' | 'en', priceCents: number | null): str
 function formatServiceOption(
   locale: 'de' | 'ru' | 'en',
   service: { title: string; durationMin: number; priceCents: number | null },
+  groupTitle?: string,
 ): string {
   const minutes = locale === 'ru' ? 'мин.' : 'min.';
-  return `[option] 💅 ${service.title} — ${service.durationMin} ${minutes}, ${formatPrice(locale, service.priceCents)} [/option]`;
+  const icon = categoryEmoji(groupTitle ?? '');
+  return `[option] ${icon} ${service.title} — ${service.durationMin} ${minutes}, ${formatPrice(locale, service.priceCents)} [/option]`;
 }
 
 function buildCategoryToServiceText(
@@ -2095,6 +2257,75 @@ function buildCategoryToServiceText(
         : 'Welche Leistung möchten Sie wählen?';
 
   return `${intro}\n\n${options.join('\n')}\n\n${question}`;
+}
+
+function buildServiceAvailabilityGroupText(
+  locale: 'de' | 'ru' | 'en',
+  categoryTitle: string,
+  options: string[],
+  hasActiveBookingFlow: boolean,
+): string {
+  const continueOption = hasActiveBookingFlow
+    ? locale === 'ru'
+      ? '\n[option] ✅ Продолжить текущую запись [/option]'
+      : locale === 'en'
+        ? '\n[option] ✅ Continue current booking [/option]'
+        : '\n[option] ✅ Aktuelle Buchung fortsetzen [/option]'
+    : '';
+
+  if (locale === 'ru') {
+    return `Да, у нас есть услуги в категории "${categoryTitle}" 🌸\n\n${options.join('\n')}${continueOption}\n\nВыберите услугу, и я помогу с записью.`;
+  }
+  if (locale === 'en') {
+    return `Yes, we offer services in "${categoryTitle}" 🌸\n\n${options.join('\n')}${continueOption}\n\nChoose a service and I will help with booking.`;
+  }
+  return `Ja, wir bieten Leistungen in der Kategorie "${categoryTitle}" an 🌸\n\n${options.join('\n')}${continueOption}\n\nWählen Sie eine Leistung, dann helfe ich mit der Buchung.`;
+}
+
+function buildServiceAvailabilitySingleText(
+  locale: 'de' | 'ru' | 'en',
+  serviceTitle: string,
+  groupTitle: string,
+  hasActiveBookingFlow: boolean,
+): string {
+  const serviceOption = `[option] ${categoryEmoji(groupTitle)} ${serviceTitle} [/option]`;
+  const continueOption = hasActiveBookingFlow
+    ? locale === 'ru'
+      ? '\n[option] ✅ Продолжить текущую запись [/option]'
+      : locale === 'en'
+        ? '\n[option] ✅ Continue current booking [/option]'
+        : '\n[option] ✅ Aktuelle Buchung fortsetzen [/option]'
+    : '';
+
+  if (locale === 'ru') {
+    return `Да, услуга "${serviceTitle}" есть в нашем каталоге 🌸\n\n${serviceOption}${continueOption}\n\nЕсли хотите, перейдем к выбору даты и времени.`;
+  }
+  if (locale === 'en') {
+    return `Yes, "${serviceTitle}" is available in our catalog 🌸\n\n${serviceOption}${continueOption}\n\nIf you want, we can continue with date and time selection.`;
+  }
+  return `Ja, "${serviceTitle}" ist in unserem Katalog verfügbar 🌸\n\n${serviceOption}${continueOption}\n\nWenn Sie möchten, machen wir direkt mit Datum und Uhrzeit weiter.`;
+}
+
+function buildServiceAvailabilityNotFoundText(
+  locale: 'de' | 'ru' | 'en',
+  options: string[],
+  hasActiveBookingFlow: boolean,
+): string {
+  const continueOption = hasActiveBookingFlow
+    ? locale === 'ru'
+      ? '\n[option] ✅ Продолжить текущую запись [/option]'
+      : locale === 'en'
+        ? '\n[option] ✅ Continue current booking [/option]'
+        : '\n[option] ✅ Aktuelle Buchung fortsetzen [/option]'
+    : '';
+
+  if (locale === 'ru') {
+    return `Похоже, такой услуги сейчас нет в активном каталоге.\n\n${options.join('\n')}${continueOption}\n\nМогу предложить доступные категории выше.`;
+  }
+  if (locale === 'en') {
+    return `It looks like this service is not available in the active catalog right now.\n\n${options.join('\n')}${continueOption}\n\nI can offer available categories above.`;
+  }
+  return `Diese Leistung ist aktuell nicht im aktiven Katalog verfügbar.\n\n${options.join('\n')}${continueOption}\n\nIch kann Ihnen verfügbare Kategorien oben anbieten.`;
 }
 
 function buildNoMasterForServiceText(
@@ -2227,8 +2458,6 @@ function isBookingStartIntent(
   if (restartPhrases.some((p) => value.includes(p))) return true;
   if (locale === 'ru' && /нов(ый|ую)\s+(термин|запис)/u.test(value)) return true;
 
-  if (hasActiveBookingFlow) return false;
-
   const startPhrases =
     locale === 'ru'
       ? [
@@ -2256,7 +2485,25 @@ function isBookingStartIntent(
             'zeit finden und buchen',
           ];
 
-  return startPhrases.some((p) => value.includes(p));
+  if (!hasActiveBookingFlow) {
+    return startPhrases.some((p) => value.includes(p));
+  }
+
+  // In active flow, restart only on explicit re-entry asks; avoid accidental resets
+  // on vague CTA clicks like "подобрать время".
+  const reentryPhrases =
+    locale === 'ru'
+      ? [
+          'записаться на приём',
+          'записаться на прием',
+          'записаться',
+          'хочу записаться',
+        ]
+      : locale === 'en'
+        ? ['book appointment', 'i want to book', 'book now']
+        : ['termin buchen', 'ich möchte buchen', 'jetzt buchen'];
+
+  return reentryPhrases.some((p) => value.includes(p));
 }
 
 function isChangeServiceIntent(
@@ -2361,13 +2608,21 @@ function isResetToMainMenuIntent(
 
   if (locale === 'ru') {
     const phrases = [
+      'верни на самое начало',
+      'верни на начало',
+      'верни на главную',
       'вернись в самое начало',
       'вернуться в самое начало',
       'вернись в начало',
       'вернуться в начало',
+      'перейди на главную',
+      'перейди в главное меню',
       'назад в главное меню',
       'вернуться в главное меню',
+      'на главную',
       'в главное меню',
+      'главная страница',
+      'главная',
       'в самое начало',
       'в начало',
       'главное меню',
@@ -2744,6 +2999,95 @@ async function tryHandleCatalogSelectionFastPath(
     }
   }
 
+  const matchedService = chooseBestMatch(
+    flatServices,
+    (s) => normalizeChoiceText(s.title),
+    input,
+  );
+
+  const matchedGroup = chooseBestMatch(
+    groups,
+    (g) => normalizeChoiceText(g.title),
+    input,
+  );
+
+  if (isServiceAvailabilityInquiry(message, session.locale)) {
+    const matchedGroupScore = matchedGroup
+      ? choiceScore(normalizeChoiceText(matchedGroup.title), input)
+      : 0;
+    const matchedServiceScore = matchedService
+      ? choiceScore(normalizeChoiceText(matchedService.title), input)
+      : 0;
+
+    if (
+      matchedGroup &&
+      matchedGroup.services.length > 0 &&
+      matchedGroupScore >= 500 &&
+      matchedGroupScore >= matchedServiceScore
+    ) {
+      const serviceOptions = matchedGroup.services
+        .slice(0, 8)
+        .map((s) => formatServiceOption(session.locale, s, matchedGroup.title));
+      const text = buildServiceAvailabilityGroupText(
+        session.locale,
+        matchedGroup.title,
+        serviceOptions,
+        hasActiveServiceSelection,
+      );
+      appendSessionMessage(sessionId, 'assistant', text);
+
+      console.log(
+        `[AI Chat] session=${sessionId.slice(0, 8)}... fastpath=service-availability-group group="${matchedGroup.title}"`,
+      );
+
+      return {
+        text,
+        sessionId,
+        toolCalls: [{ name: 'list_services', durationMs: listDurationMs }],
+      };
+    }
+
+    if (matchedService && matchedServiceScore >= 500) {
+      const text = buildServiceAvailabilitySingleText(
+        session.locale,
+        matchedService.title,
+        matchedService.groupTitle,
+        hasActiveServiceSelection,
+      );
+      appendSessionMessage(sessionId, 'assistant', text);
+
+      console.log(
+        `[AI Chat] session=${sessionId.slice(0, 8)}... fastpath=service-availability-service service="${matchedService.title}"`,
+      );
+
+      return {
+        text,
+        sessionId,
+        toolCalls: [{ name: 'list_services', durationMs: listDurationMs }],
+      };
+    }
+
+    const groupOptions = groups
+      .slice(0, 6)
+      .map((group) => `[option] ${categoryEmoji(group.title)} ${group.title} [/option]`);
+    const text = buildServiceAvailabilityNotFoundText(
+      session.locale,
+      groupOptions,
+      hasActiveServiceSelection,
+    );
+    appendSessionMessage(sessionId, 'assistant', text);
+
+    console.log(
+      `[AI Chat] session=${sessionId.slice(0, 8)}... fastpath=service-availability-not-found`,
+    );
+
+    return {
+      text,
+      sessionId,
+      toolCalls: [{ name: 'list_services', durationMs: listDurationMs }],
+    };
+  }
+
   // In active booking flow, do not switch service/category from free-form text.
   // Allow only explicit catalog choices (exact group/service title or service option payload).
   if (hasActiveServiceSelection && !looksLikeServiceOptionPayload(message)) {
@@ -2757,18 +3101,6 @@ async function tryHandleCatalogSelectionFastPath(
       return null;
     }
   }
-
-  const matchedService = chooseBestMatch(
-    flatServices,
-    (s) => normalizeChoiceText(s.title),
-    input,
-  );
-
-  const matchedGroup = chooseBestMatch(
-    groups,
-    (g) => normalizeChoiceText(g.title),
-    input,
-  );
 
   if (matchedGroup) {
     const groupNorm = normalizeChoiceText(matchedGroup.title);
@@ -2795,7 +3127,7 @@ async function tryHandleCatalogSelectionFastPath(
     } else {
       const serviceOptions = matchedGroup.services
         .slice(0, 12)
-        .map((s) => formatServiceOption(session.locale, s));
+        .map((s) => formatServiceOption(session.locale, s, matchedGroup.title));
       const text = buildCategoryToServiceText(
         session.locale,
         matchedGroup.title,
@@ -2876,7 +3208,7 @@ async function tryHandleCatalogSelectionFastPath(
           s.id !== matchedService.id,
       )
       .slice(0, 10)
-      .map((s) => formatServiceOption(session.locale, s));
+      .map((s) => formatServiceOption(session.locale, s, matchedService.groupTitle));
 
     const text = buildNoMasterForServiceText(
       session.locale,
@@ -3031,10 +3363,28 @@ export async function POST(
     );
   }
 
+  const existingSession = getSession(sessionId);
+
   // Get or create session
   const session = upsertSession(sessionId, {
     locale: (locale as 'de' | 'ru' | 'en') ?? 'de',
   });
+
+  const shouldInitAnalytics =
+    !existingSession || !(existingSession.context.chatHistory?.length);
+  if (shouldInitAnalytics) {
+    initSessionAnalytics({
+      sessionId,
+      locale: session.locale,
+      userAgent: req.headers.get('user-agent') || undefined,
+      ip,
+      referrer:
+        req.headers.get('referer') ||
+        req.headers.get('referrer') ||
+        undefined,
+    });
+  }
+
   appendSessionMessage(sessionId, 'user', message);
   const selectedMasterId = session.context.selectedMasterId;
   const selectedServiceIds = session.context.selectedServiceIds ?? [];
@@ -3046,6 +3396,28 @@ export async function POST(
       session.context.draftId,
   );
 
+  let analyticsTracked = false;
+  const trackMetrics = (metrics: Partial<RequestMetrics>): void => {
+    if (analyticsTracked) return;
+    analyticsTracked = true;
+    try {
+      const latestContext = getSession(sessionId)?.context ?? session.context;
+      trackRequestMetrics(sessionId, {
+        isVoice: isVoiceTurn,
+        funnelStage: detectFunnelStage(latestContext),
+        consultationUsed: Boolean(latestContext.consultationMode),
+        consultationTopic: latestContext.consultationTopic,
+        ...metrics,
+      });
+    } catch (analyticsError) {
+      console.error(
+        `[AI Analytics] session=${sessionId.slice(0, 8)}... tracking failed`,
+        analyticsError,
+      );
+    }
+  };
+
+  try {
   if (!forceGpt) {
   if (
     !hasActiveBookingFlow &&
@@ -3082,6 +3454,24 @@ export async function POST(
 
       console.log(
         `[AI Chat] session=${sessionId.slice(0, 8)}... fastpath=consultation-technique-details-awaiting-confirm technique=${technique}`,
+      );
+
+      return NextResponse.json({
+        text,
+        sessionId,
+      });
+    }
+    if (isKnowledgePmuContraindicationsIntent(message, session.locale)) {
+      const text = buildKnowledgePmuTechniqueContraindicationsText(session.locale, technique);
+      appendSessionMessage(sessionId, 'assistant', text);
+      upsertSession(sessionId, {
+        context: {
+          awaitingConsultationBookingConfirmation: false,
+        },
+      });
+
+      console.log(
+        `[AI Chat] session=${sessionId.slice(0, 8)}... fastpath=consultation-technique-contraindications-awaiting-confirm technique=${technique}`,
       );
 
       return NextResponse.json({
@@ -3703,6 +4093,40 @@ export async function POST(
 
     if (
       (activeConsultationTopic === 'pmu' || !activeConsultationTopic) &&
+      isKnowledgePmuContraindicationsIntent(message, session.locale)
+    ) {
+      const contraindicationsTechnique =
+        session.context.consultationTechnique ??
+        detectKnowledgePmuTechnique(message, session.locale);
+      const text = contraindicationsTechnique
+        ? buildKnowledgePmuTechniqueContraindicationsText(
+            session.locale,
+            contraindicationsTechnique,
+          )
+        : buildKnowledgePmuContraindicationsText(session.locale);
+      appendSessionMessage(sessionId, 'assistant', text);
+      upsertSession(sessionId, {
+        context: {
+          consultationTopic: 'pmu',
+          consultationTechnique: contraindicationsTechnique ?? undefined,
+          awaitingConsultationBookingConfirmation: false,
+        },
+      });
+
+      console.log(
+        contraindicationsTechnique
+          ? `[AI Chat] session=${sessionId.slice(0, 8)}... fastpath=consultation-technique-contraindications technique=${contraindicationsTechnique}`
+          : `[AI Chat] session=${sessionId.slice(0, 8)}... fastpath=consultation-contraindications`,
+      );
+
+      return NextResponse.json({
+        text,
+        sessionId,
+      });
+    }
+
+    if (
+      (activeConsultationTopic === 'pmu' || !activeConsultationTopic) &&
       isKnowledgePmuHealingIntent(message, session.locale)
     ) {
       const healingTechnique =
@@ -4088,6 +4512,7 @@ export async function POST(
       services: Array<{
         id: string;
         title: string;
+        durationMin: number;
       }>;
     }>;
     const selectedService = groups
@@ -4096,6 +4521,7 @@ export async function POST(
           id: service.id,
           title: service.title,
           groupTitle: group.title,
+          durationMin: service.durationMin,
         })),
       )
       .find((service) => selectedServiceIds.includes(service.id));
@@ -4111,6 +4537,7 @@ export async function POST(
             session.locale,
             selectedService.title,
             selectedService.groupTitle,
+            selectedService.durationMin,
           );
       appendSessionMessage(sessionId, 'assistant', text);
 
@@ -4130,7 +4557,11 @@ export async function POST(
   // category click -> concrete services, service click -> masters/date step.
   // Important: run before scope-guard, otherwise service option clicks can be blocked.
   let selectionFastPath: ChatResponse | null = null;
-  if (!session.context.consultationMode || hasActiveBookingFlow) {
+  const shouldRunSelectionFastPath =
+    isServiceAvailabilityInquiry(message, session.locale) ||
+    !session.context.consultationMode ||
+    hasActiveBookingFlow;
+  if (shouldRunSelectionFastPath) {
     selectionFastPath = await tryHandleCatalogSelectionFastPath(
       session,
       sessionId,
@@ -5048,6 +5479,7 @@ export async function POST(
     let iterations = 0;
     let otpSentDuringSession = false;
     let bookingCompletedDuringSession = false;
+    let completedAppointmentId: string | undefined;
 
     while (iterations < MAX_TOOL_ITERATIONS) {
       const choice = response?.choices[0];
@@ -5506,11 +5938,16 @@ export async function POST(
               const payload = JSON.parse(result.result) as {
                 ok?: boolean;
                 error?: string;
+                appointmentId?: string;
               };
 
               if (payload.ok) {
                 bookingCompletedInBatch = true;
                 bookingCompletedDuringSession = true;
+                completedAppointmentId =
+                  typeof payload.appointmentId === 'string'
+                    ? payload.appointmentId
+                    : completedAppointmentId;
                 otpSentDuringSession = false;
                 contextPatch.selectedServiceIds = undefined;
                 contextPatch.selectedMasterId = undefined;
@@ -5969,6 +6406,16 @@ export async function POST(
         ? 'otp'
         : undefined;
 
+    trackMetrics({
+      isGptCall: true,
+      isStreaming: useSSE,
+      toolCalls: toolCallLog,
+      bookingCompleted: bookingCompletedDuringSession,
+      appointmentId: bookingCompletedDuringSession
+        ? (completedAppointmentId ?? getSession(sessionId)?.context.draftId ?? session.context.draftId)
+        : undefined,
+    });
+
     if (useSSE && sse) {
       sse.sendMeta({
         inputMode: finalInputMode,
@@ -5994,6 +6441,14 @@ export async function POST(
       `[AI Chat] session=${sessionId.slice(0, 8)}... GPT error category=${classified.category} retryable=${classified.retryable}`,
       error instanceof Error ? error.message : error,
     );
+
+    trackMetrics({
+      isGptCall: true,
+      isStreaming: useSSE,
+      toolCalls: toolCallLog,
+      error: true,
+      retried: true,
+    });
 
     const fallbackText = buildToolFallbackText(collectedToolResults, session.locale);
     if (fallbackText) {
@@ -6041,5 +6496,12 @@ export async function POST(
     );
   } finally {
     loopTimeout.clear();
+  }
+  } finally {
+    if (!analyticsTracked) {
+      trackMetrics({
+        isFastPath: true,
+      });
+    }
   }
 }
