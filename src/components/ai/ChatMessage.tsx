@@ -3,6 +3,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
+import { RotateCcw } from 'lucide-react';
 
 export interface Message {
   id: string;
@@ -10,15 +11,24 @@ export interface Message {
   content: string;
   timestamp: Date;
   isError?: boolean;
+  retryPayload?: string;
 }
 
 interface ChatMessageProps {
   message: Message;
   onOptionClick?: (text: string) => void;
+  onRetry?: (retryPayload: string, messageId: string) => void;
+  retryLabel?: string;
   isLatest?: boolean;
 }
 
-export function ChatMessage({ message, onOptionClick, isLatest }: ChatMessageProps) {
+export function ChatMessage({
+  message,
+  onOptionClick,
+  onRetry,
+  retryLabel,
+  isLatest,
+}: ChatMessageProps) {
   const isUser = message.role === 'user';
 
   return (
@@ -83,6 +93,23 @@ export function ChatMessage({ message, onOptionClick, isLatest }: ChatMessagePro
             onOptionClick={isLatest && !isUser ? onOptionClick : undefined}
             isError={Boolean(message.isError)}
           />
+
+          {message.isError && message.retryPayload && onRetry && (
+            <button
+              onClick={() => onRetry(message.retryPayload!, message.id)}
+              className="mt-2 flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-all active:scale-[0.97]"
+              style={{
+                color: '#9F1239',
+                background:
+                  'linear-gradient(135deg, rgba(255,255,255,0.9) 0%, rgba(254,226,226,0.8) 100%)',
+                border: '1px solid rgba(244,63,94,0.2)',
+                boxShadow: '0 2px 8px rgba(244,63,94,0.1)',
+              }}
+            >
+              <RotateCcw className="h-3 w-3" />
+              {retryLabel || 'Try again'}
+            </button>
+          )}
         </div>
       </div>
     </motion.div>

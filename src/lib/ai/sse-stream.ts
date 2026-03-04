@@ -10,8 +10,11 @@
 //   : hb\n\n                                      — heartbeat comment
 
 const encoder = new TextEncoder();
-const DELTA_FLUSH_INTERVAL_MS = 60;
-const DELTA_FLUSH_MAX_CHARS = 48;
+const DELTA_FLUSH_INTERVAL_MS = 75;
+const DELTA_FLUSH_MAX_CHARS = 72;
+const DELTA_FLUSH_MIN_CHARS = 24;
+const SAFE_DELTA_BOUNDARY_RE = /[\s.,!?;:\n)]$/;
+const PARAGRAPH_BOUNDARY_RE = /\n{2,}$/;
 const HEARTBEAT_INTERVAL_MS = 20_000;
 
 export interface SSEWriter {
@@ -134,10 +137,15 @@ export function createSSEWriter(): SSEWriter {
 
       const now = Date.now();
       const hitLengthLimit = deltaBuffer.length >= DELTA_FLUSH_MAX_CHARS;
-      const hitTimeLimit = now - lastDeltaFlushAt >= DELTA_FLUSH_INTERVAL_MS;
-      const hitSafeBoundary = /[\s.,!?;:\n)]$/.test(content);
+      const hitParagraphBoundary = PARAGRAPH_BOUNDARY_RE.test(deltaBuffer);
+      const hitTimeLimit =
+        now - lastDeltaFlushAt >= DELTA_FLUSH_INTERVAL_MS &&
+        deltaBuffer.length >= DELTA_FLUSH_MIN_CHARS;
+      const hitSafeBoundary =
+        SAFE_DELTA_BOUNDARY_RE.test(deltaBuffer) &&
+        deltaBuffer.length >= DELTA_FLUSH_MIN_CHARS;
 
-      if (hitLengthLimit || hitTimeLimit || hitSafeBoundary) {
+      if (hitLengthLimit || hitParagraphBoundary || hitTimeLimit || hitSafeBoundary) {
         flushDeltaBuffer();
         return;
       }

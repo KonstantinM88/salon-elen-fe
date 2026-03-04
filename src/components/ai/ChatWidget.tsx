@@ -36,6 +36,9 @@ const UI_TEXT = {
     teaserBooking: '🌸 Soll ich Ihnen bei der Terminwahl helfen?',
     error: 'Entschuldigung, etwas ist schiefgelaufen. Bitte versuchen Sie es erneut.',
     rateLimit: 'Bitte warten Sie einen Moment, bevor Sie eine neue Nachricht senden.',
+    retry: 'Erneut versuchen',
+    offline: 'Keine Internetverbindung',
+    reconnecting: 'Verbindung wird wiederhergestellt...',
     title: 'Salon Elen',
     subtitle: 'Buchungsassistent',
     newChat: 'Neuer Chat',
@@ -50,6 +53,9 @@ const UI_TEXT = {
     teaserBooking: '🌸 Помочь выбрать дату и время?',
     error: 'Извините, произошла ошибка. Попробуйте ещё раз.',
     rateLimit: 'Пожалуйста, подождите немного перед отправкой нового сообщения.',
+    retry: 'Попробовать снова',
+    offline: 'Нет подключения к интернету',
+    reconnecting: 'Восстанавливаю соединение...',
     title: 'Salon Elen',
     subtitle: 'Ассистент записи',
     newChat: 'Новый чат',
@@ -64,6 +70,9 @@ const UI_TEXT = {
     teaserBooking: '🌸 Would you like help choosing a time?',
     error: 'Sorry, something went wrong. Please try again.',
     rateLimit: 'Please wait a moment before sending a new message.',
+    retry: 'Try again',
+    offline: 'No internet connection',
+    reconnecting: 'Reconnecting...',
     title: 'Salon Elen',
     subtitle: 'Booking Assistant',
     newChat: 'New Chat',
@@ -200,6 +209,7 @@ export default function ChatWidget({ locale: propLocale }: ChatWidgetProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isOffline, setIsOffline] = useState(false);
   const [streamProgress, setStreamProgress] = useState<string | null>(null);
   const [sessionId, setSessionId] = useState(() => generateSessionId());
   const [inputMode, setInputMode] = useState<InputMode>('text');
@@ -221,6 +231,7 @@ export default function ChatWidget({ locale: propLocale }: ChatWidgetProps) {
   const progressTimerRef = useRef<number | null>(null);
   const pendingProgressRef = useRef<string | null>(null);
   const lastProgressAtRef = useRef(0);
+  const lastUserMessageRef = useRef('');
 
   // Scroll to bottom on new messages
   useEffect(() => {
@@ -382,6 +393,23 @@ export default function ChatWidget({ locale: propLocale }: ChatWidgetProps) {
     setShowVoiceDebug(debugByPath || debugByQuery || debugByStorage);
   }, []);
 
+  useEffect(() => {
+    const handleOnline = () => setIsOffline(false);
+    const handleOffline = () => setIsOffline(true);
+
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      setIsOffline(true);
+    }
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
+
   const clearProgressTimer = useCallback(() => {
     if (progressTimerRef.current !== null) {
       window.clearTimeout(progressTimerRef.current);
@@ -471,6 +499,19 @@ export default function ChatWidget({ locale: propLocale }: ChatWidgetProps) {
       let pendingDelta = '';
       let rafId: number | null = null;
       let sawMetaDone = false;
+      const SSE_TIMEOUT_MS = 35000;
+      let sseTimeoutTimer: number | null = null;
+      let timedOut = false;
+
+      const resetSseTimeout = () => {
+        if (sseTimeoutTimer !== null) {
+          window.clearTimeout(sseTimeoutTimer);
+        }
+        sseTimeoutTimer = window.setTimeout(() => {
+          timedOut = true;
+          reader.cancel().catch(() => {});
+        }, SSE_TIMEOUT_MS);
+      };
 
       const flushPendingDelta = () => {
         if (!pendingDelta) return;
@@ -512,11 +553,13 @@ export default function ChatWidget({ locale: propLocale }: ChatWidgetProps) {
 
       setIsLoading(false);
       setStreamProgressSmooth(null, { immediate: true });
+      resetSseTimeout();
 
       try {
         while (true) {
           const { done, value } = await reader.read();
           if (done) break;
+          resetSseTimeout();
 
           streamBuffer += decoder.decode(value, { stream: true });
 
@@ -524,7 +567,12 @@ export default function ChatWidget({ locale: propLocale }: ChatWidgetProps) {
           streamBuffer = lines.pop() || '';
 
           for (const line of lines) {
+            if (line.startsWith(':')) {
+              resetSseTimeout();
+              continue;
+            }
             if (!line.startsWith('data: ')) continue;
+            resetSseTimeout();
             const jsonStr = line.slice(6).trim();
             if (!jsonStr) continue;
 
@@ -596,9 +644,28 @@ export default function ChatWidget({ locale: propLocale }: ChatWidgetProps) {
           }
         }
       } finally {
+        if (sseTimeoutTimer !== null) {
+          window.clearTimeout(sseTimeoutTimer);
+        }
         flushPendingDeltaNow();
         setStreamProgressSmooth(null, { immediate: true });
         reader.releaseLock();
+      }
+
+      if (timedOut && !accumulated) {
+        setMessages((prev) =>
+          prev.map((msg) =>
+            msg.id === msgId
+              ? {
+                  ...msg,
+                  content: t.error,
+                  isError: true,
+                  retryPayload: lastUserMessageRef.current || undefined,
+                }
+              : msg,
+          ),
+        );
+        return;
       }
 
       if (!accumulated && !sawMetaDone) {
@@ -616,6 +683,23 @@ export default function ChatWidget({ locale: propLocale }: ChatWidgetProps) {
 
   const sendMessage = useCallback(
     async (text: string) => {
+      lastUserMessageRef.current = text;
+
+      if (isOffline) {
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: `error-${Date.now()}`,
+            role: 'assistant',
+            content: t.offline,
+            timestamp: new Date(),
+            isError: true,
+            retryPayload: text,
+          },
+        ]);
+        return;
+      }
+
       setIsLoading(true);
       setStreamProgressSmooth(null, { immediate: true });
 
@@ -639,12 +723,40 @@ export default function ChatWidget({ locale: propLocale }: ChatWidgetProps) {
               role: 'assistant',
               content: t.rateLimit,
               timestamp: new Date(),
+              isError: true,
+              retryPayload: text,
             },
           ]);
           return;
         }
 
         if (!res.ok) {
+          try {
+            const errData = (await res.json()) as {
+              error?: string;
+              retryable?: boolean;
+            };
+            const errText =
+              typeof errData.error === 'string' && errData.error.trim()
+                ? errData.error
+                : t.error;
+            const retryable = errData.retryable !== false;
+
+            setMessages((prev) => [
+              ...prev,
+              {
+                id: `error-${Date.now()}`,
+                role: 'assistant',
+                content: errText,
+                timestamp: new Date(),
+                isError: true,
+                retryPayload: retryable ? text : undefined,
+              },
+            ]);
+            return;
+          } catch {
+            // ignore parse errors and fall through
+          }
           throw new Error(`HTTP ${res.status}`);
         }
 
@@ -684,6 +796,7 @@ export default function ChatWidget({ locale: propLocale }: ChatWidgetProps) {
             content: t.error,
             timestamp: new Date(),
             isError: true,
+            retryPayload: text,
           },
         ]);
       } finally {
@@ -692,7 +805,32 @@ export default function ChatWidget({ locale: propLocale }: ChatWidgetProps) {
         streamingMsgIdRef.current = null;
       }
     },
-    [sessionId, locale, t, inputMode, handleSSEResponse, setStreamProgressSmooth],
+    [
+      sessionId,
+      locale,
+      t,
+      inputMode,
+      handleSSEResponse,
+      setStreamProgressSmooth,
+      isOffline,
+    ],
+  );
+
+  const handleRetry = useCallback(
+    (retryPayload: string, errorMsgId: string) => {
+      if (isLoading || isOffline) return;
+
+      const userMsg: Message = {
+        id: `user-retry-${Date.now()}`,
+        role: 'user',
+        content: retryPayload,
+        timestamp: new Date(),
+      };
+
+      setMessages((prev) => [...prev.filter((msg) => msg.id !== errorMsgId), userMsg]);
+      sendMessage(retryPayload);
+    },
+    [isLoading, isOffline, sendMessage],
   );
 
   // ─── Text input handlers ──────────────────────────────────────
@@ -741,7 +879,7 @@ export default function ChatWidget({ locale: propLocale }: ChatWidgetProps) {
 
   const handleSend = useCallback(async () => {
     const text = input.trim();
-    if (!text || isLoading) return;
+    if (!text || isLoading || isOffline) return;
 
     const userMsg: Message = {
       id: `user-${Date.now()}`,
@@ -753,7 +891,7 @@ export default function ChatWidget({ locale: propLocale }: ChatWidgetProps) {
     setMessages((prev) => [...prev, userMsg]);
     setInput('');
     sendMessage(text);
-  }, [input, isLoading, sendMessage]);
+  }, [input, isLoading, isOffline, sendMessage]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -766,7 +904,7 @@ export default function ChatWidget({ locale: propLocale }: ChatWidgetProps) {
 
   const handleOtpSubmit = useCallback(
     (code: string) => {
-      if (isLoading) return;
+      if (isLoading || isOffline) return;
       const userMsg: Message = {
         id: `user-${Date.now()}`,
         role: 'user',
@@ -776,11 +914,11 @@ export default function ChatWidget({ locale: propLocale }: ChatWidgetProps) {
       setMessages((prev) => [...prev, userMsg]);
       sendMessage(code);
     },
-    [isLoading, sendMessage],
+    [isLoading, isOffline, sendMessage],
   );
 
   const handleOtpResend = useCallback(() => {
-    if (isLoading) return;
+    if (isLoading || isOffline) return;
     const resendText =
       locale === 'ru'
         ? 'отправь код ещё раз'
@@ -796,7 +934,7 @@ export default function ChatWidget({ locale: propLocale }: ChatWidgetProps) {
     };
     setMessages((prev) => [...prev, userMsg]);
     sendMessage(resendText);
-  }, [isLoading, locale, sendMessage]);
+  }, [isLoading, isOffline, locale, sendMessage]);
 
   // ─── Voice handlers ───────────────────────────────────────────
 
@@ -1055,6 +1193,8 @@ export default function ChatWidget({ locale: propLocale }: ChatWidgetProps) {
                     key={msg.id}
                     message={msg}
                     onOptionClick={isLatestAssistant ? handleOptionClick : undefined}
+                    onRetry={handleRetry}
+                    retryLabel={t.retry}
                     isLatest={isLatestAssistant}
                   />
                 );
@@ -1083,6 +1223,20 @@ export default function ChatWidget({ locale: propLocale }: ChatWidgetProps) {
               {!isLoading && streamProgress && (
                 <div className="mb-3 rounded-lg border border-pink-100 bg-white/70 px-3 py-2 text-[11px] text-slate-600 shadow-sm">
                   {streamProgress}
+                </div>
+              )}
+
+              {isOffline && (
+                <div
+                  className="mb-3 rounded-xl px-3 py-2 text-center text-xs font-medium"
+                  style={{
+                    background:
+                      'linear-gradient(135deg, rgba(254,243,199,0.95) 0%, rgba(253,230,138,0.9) 100%)',
+                    border: '1px solid rgba(234,179,8,0.3)',
+                    color: '#92400E',
+                  }}
+                >
+                  {t.offline}
                 </div>
               )}
 
@@ -1120,7 +1274,7 @@ export default function ChatWidget({ locale: propLocale }: ChatWidgetProps) {
                       onKeyDown={handleKeyDown}
                       placeholder={t.placeholder}
                       rows={1}
-                      disabled={isLoading}
+                      disabled={isLoading || isOffline}
                       className="flex-1 resize-none rounded-xl border border-pink-200/80 bg-white px-3 py-2.5 text-sm text-slate-900 placeholder-slate-400 outline-none transition-colors focus:border-pink-400 focus:ring-2 focus:ring-pink-200 disabled:opacity-50"
                       style={{ maxHeight: '100px' }}
                       onInput={(e) => {
@@ -1140,7 +1294,7 @@ export default function ChatWidget({ locale: propLocale }: ChatWidgetProps) {
                           onDebug={handleVoiceDebug}
                           sessionId={sessionId}
                           locale={locale}
-                          disabled={isLoading}
+                          disabled={isLoading || isOffline}
                         />
                         {showVoiceDebug && voiceDebugInfo && (
                           <div className="max-w-[250px] rounded-md border border-amber-400/30 bg-amber-400/10 px-2 py-1 text-[10px] leading-4 text-amber-200">
@@ -1156,11 +1310,11 @@ export default function ChatWidget({ locale: propLocale }: ChatWidgetProps) {
                     {/* Send button — shown when there's text */}
                     <button
                       onClick={handleSend}
-                      disabled={!input.trim() || isLoading}
+                      disabled={!input.trim() || isLoading || isOffline}
                       className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition-all disabled:opacity-30"
                       style={{
                         background:
-                          input.trim() && !isLoading
+                          input.trim() && !isLoading && !isOffline
                             ? 'linear-gradient(135deg, #F472B6, #FB7185)'
                             : 'rgba(236, 72, 153, 0.12)',
                         // Hide send button when voice is shown (no text)

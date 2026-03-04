@@ -68,12 +68,107 @@ function scoreMatch(itemText: string, queryNorm: string, queryTokens: string[]):
   return score;
 }
 
-function getLocalizedName(row: RawServiceRow): string {
-  return row.translations[0]?.name || row.name;
+function getHeuristicLocalizedName(
+  row: RawServiceRow,
+  locale: string,
+): string | null {
+  const slug = normalizeText(row.slug);
+  const name = normalizeText(row.name);
+
+  if (locale === 'ru') {
+    if (
+      slug.includes('wimpernkranz') ||
+      name.includes('wimpernkranz')
+    ) {
+      if (
+        slug.includes('oben') ||
+        slug.includes('unten') ||
+        slug.includes('upper') ||
+        slug.includes('lower') ||
+        slug.includes('plus') ||
+        slug.includes('верх') ||
+        slug.includes('низ') ||
+        name.includes('oben') ||
+        name.includes('unten') ||
+        name.includes('+')
+      ) {
+        return 'Межресничка верх+низ';
+      }
+      return 'Межресничка';
+    }
+    if (slug.includes('powder') && slug.includes('brow')) {
+      return 'Пудровые брови (Powder Brows)';
+    }
+    if (slug.includes('hairstroke') && slug.includes('brow')) {
+      return 'Волосковая техника (Hairstroke Brows)';
+    }
+    if (slug.includes('aquarell') && slug.includes('lip')) {
+      return 'Акварельные губы (Aquarell Lips)';
+    }
+    if (slug.includes('3d') && slug.includes('lip')) {
+      return '3D губы';
+    }
+    if (slug.includes('signature') && slug.includes('hydra')) {
+      return 'Signature Hydrafacial';
+    }
+    if (slug.includes('deluxe') && slug.includes('hydra')) {
+      return 'Deluxe Hydrafacial';
+    }
+    if (slug.includes('platinum') && slug.includes('hydra')) {
+      return 'Platinum Hydrafacial';
+    }
+    if (slug.includes('lash') && slug.includes('lift')) {
+      return 'Лифтинг ресниц';
+    }
+    if (slug.includes('brow') && slug.includes('lift')) {
+      return 'Подтяжка бровей';
+    }
+    if (slug.includes('hybrid') && slug.includes('brow')) {
+      return 'Гибридные брови';
+    }
+  }
+
+  if (locale === 'en') {
+    if (
+      slug.includes('wimpernkranz') ||
+      name.includes('wimpernkranz')
+    ) {
+      if (
+        slug.includes('oben') ||
+        slug.includes('unten') ||
+        slug.includes('upper') ||
+        slug.includes('lower') ||
+        name.includes('oben') ||
+        name.includes('unten') ||
+        name.includes('+')
+      ) {
+        return 'Upper + lower lash line';
+      }
+      return 'Lash line';
+    }
+  }
+
+  return null;
 }
 
-function getLocalizedDescription(row: RawServiceRow): string | null {
-  return row.translations[0]?.description ?? row.description ?? null;
+function getLocalizedName(row: RawServiceRow, locale: string): string {
+  const translated = row.translations[0]?.name?.trim();
+  if (translated) return translated;
+
+  const heuristic = getHeuristicLocalizedName(row, locale);
+  if (heuristic) return heuristic;
+
+  return row.name;
+}
+
+function getLocalizedDescription(row: RawServiceRow, locale: string): string | null {
+  const translated = row.translations[0]?.description;
+  if (translated != null) return translated;
+
+  // Avoid leaking default-language descriptions into RU/EN responses.
+  if (locale !== 'de') return null;
+
+  return row.description ?? null;
 }
 
 function findRootServiceId(
@@ -126,7 +221,7 @@ export async function listServices(args: Args) {
     const rootId = findRootServiceId(row.id, byId);
     if (!rootTitles.has(rootId)) {
       const root = byId.get(rootId) ?? row;
-      rootTitles.set(rootId, getLocalizedName(root));
+      rootTitles.set(rootId, getLocalizedName(root, locale));
     }
   }
 
@@ -135,8 +230,8 @@ export async function listServices(args: Args) {
     .map((row) => {
       const rootId = findRootServiceId(row.id, byId);
       const groupTitle = rootTitles.get(rootId) || 'Other services';
-      const title = getLocalizedName(row);
-      const description = getLocalizedDescription(row);
+      const title = getLocalizedName(row, locale);
+      const description = getLocalizedDescription(row, locale);
       const searchText = normalizeText(
         [
           title,

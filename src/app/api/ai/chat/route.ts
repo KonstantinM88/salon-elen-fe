@@ -18,6 +18,13 @@ import {
   checkRateLimit,
   appendSessionMessage,
 } from '@/lib/ai/session-store';
+import {
+  withRetry,
+  createLoopTimeout,
+  classifyError,
+  buildErrorText,
+  buildToolFallbackText,
+} from '@/lib/ai/resilience';
 import { reportMissingServiceInquiry } from '@/lib/ai/missing-service-report';
 import { searchAvailabilityMonth } from '@/lib/ai/tools/search-month';
 import { searchAvailability } from '@/lib/ai/tools/search-availability';
@@ -46,6 +53,7 @@ import {
   buildKnowledgeConsultationStyleText,
   buildKnowledgeConsultationTopicText,
   buildKnowledgePmuTechniqueDetailsText,
+  buildKnowledgePmuTechniqueSafetyText,
   buildKnowledgeSystemMessage,
   detectKnowledgeOccasion,
   detectKnowledgeConsultationStyle,
@@ -90,6 +98,7 @@ interface ChatRequest {
   locale?: string;
   inputMode?: 'text' | 'voice' | 'otp';
   stream?: boolean;
+  forceGpt?: boolean;
 }
 
 interface ChatResponse {
@@ -556,9 +565,6 @@ function isConsultationOperationalBookingInput(text: string): boolean {
   if (isAffirmativeFollowUp(text)) return true;
 
   const hints = [
-    'подходит',
-    'подойдет',
-    'подойдёт',
     'выбрать дату',
     'выбери дату',
     'время',
@@ -816,6 +822,22 @@ function buildConsultationBookingConfirmText(
   return `Bitte bestätigen: Soll ich Sie für "${display}" eintragen?\n\n[option] ✅ Ja, ${display} buchen [/option]\n[option] 🔁 Andere Leistung wählen [/option]`;
 }
 
+function buildConsultationTechniqueSuitabilityText(
+  locale: 'de' | 'ru' | 'en',
+  technique: ConsultationTechnique,
+): string {
+  const serviceTitle = getConsultationTechniqueBookingLabels(locale, technique)[0];
+  return buildSelectedServiceSuitabilityText(
+    locale,
+    serviceTitle,
+    locale === 'ru'
+      ? 'ПЕРМАНЕНТНЫЙ МАКИЯЖ'
+      : locale === 'en'
+        ? 'PERMANENT MAKEUP'
+        : 'PERMANENT MAKE-UP',
+  );
+}
+
 function buildConsultationPmuTechniqueChoiceText(
   locale: 'de' | 'ru' | 'en',
 ): string {
@@ -907,6 +929,249 @@ ${bookingCta}`;
   }
 
   return null;
+}
+
+function buildHydrafacialSelectedServiceSuitabilityText(
+  locale: 'de' | 'ru' | 'en',
+  serviceTitle: string,
+): string | null {
+  const titleNorm = normalizeChoiceText(serviceTitle);
+  const bookingCta =
+    locale === 'ru'
+      ? '[option] 📅 Подобрать время и записаться [/option]'
+      : locale === 'en'
+        ? '[option] 📅 Pick time and book [/option]'
+        : '[option] 📅 Zeit finden und buchen [/option]';
+
+  if (titleNorm.includes('signature')) {
+    if (locale === 'ru') {
+      return `Signature Hydrafacial 🌿 Кому подходит:
+• как регулярный базовый уход раз в 4–6 недель;
+• если хочется глубокого очищения и свежего тона без агрессивного воздействия;
+• как первый Hydrafacial для знакомства с процедурой.
+
+${bookingCta}`;
+    }
+    if (locale === 'en') {
+      return `Signature Hydrafacial 🌿 Best for:
+• regular baseline care every 4-6 weeks;
+• deep cleansing + hydration with a gentle feel;
+• first-time Hydrafacial clients.
+
+${bookingCta}`;
+    }
+    return `Signature Hydrafacial 🌿 Geeignet für:
+• regelmäßige Basispflege alle 4-6 Wochen;
+• Tiefenreinigung + Hydration mit sanftem Verlauf;
+• Hydrafacial-Einstieg beim ersten Termin.
+
+${bookingCta}`;
+  }
+
+  if (titleNorm.includes('deluxe')) {
+    if (locale === 'ru') {
+      return `Deluxe Hydrafacial ✨ Кому подходит:
+• если кожа выглядит уставшей/тусклой;
+• при неровном тоне, когда нужен заметный glow;
+• перед важным событием, когда нужен более выраженный эффект.
+
+${bookingCta}`;
+    }
+    if (locale === 'en') {
+      return `Deluxe Hydrafacial ✨ Best for:
+• tired or dull-looking skin;
+• uneven tone when you want more visible glow;
+• pre-event skin prep with a stronger result.
+
+${bookingCta}`;
+    }
+    return `Deluxe Hydrafacial ✨ Geeignet für:
+• müde oder fahle Haut;
+• ungleichmäßigen Teint mit Wunsch nach mehr Glow;
+• Event-Vorbereitung mit sichtbarerem Effekt.
+
+${bookingCta}`;
+  }
+
+  if (titleNorm.includes('platinum')) {
+    if (locale === 'ru') {
+      return `Platinum Hydrafacial 👑 Кому подходит:
+• если нужен максимально выраженный glow-эффект;
+• при сухой/обезвоженной коже для интенсивного насыщения;
+• перед мероприятиями (фото, свадьба, важная встреча).
+
+${bookingCta}`;
+    }
+    if (locale === 'en') {
+      return `Platinum Hydrafacial 👑 Best for:
+• maximum glow and premium-level skin prep;
+• dry or dehydrated skin needing intensive hydration;
+• major events (photos, wedding, important meetings).
+
+${bookingCta}`;
+    }
+    return `Platinum Hydrafacial 👑 Geeignet für:
+• maximalen Glow und intensives Premium-Treatment;
+• trockene/dehydrierte Haut mit hohem Pflegebedarf;
+• große Anlässe (Fotos, Hochzeit, wichtige Termine).
+
+${bookingCta}`;
+  }
+
+  return null;
+}
+
+function isSelectedServiceSuitabilityIntent(
+  text: string,
+  locale: 'de' | 'ru' | 'en',
+): boolean {
+  const value = normalizeInput(text).replace(/ё/g, 'е');
+  if (!value) return false;
+
+  if (locale === 'ru') {
+    return (
+      value.includes('кому подходит') ||
+      value.includes('для кого') ||
+      value.includes('подойдет') ||
+      value.includes('подойдёт') ||
+      value.includes('подходит ли') ||
+      value.includes('мне подойдет') ||
+      value.includes('сухая кожа') ||
+      value.includes('жирная кожа') ||
+      value.includes('чувствительная кожа')
+    );
+  }
+
+  if (locale === 'en') {
+    return (
+      value.includes('who is it for') ||
+      value.includes('who does it suit') ||
+      value.includes('is it suitable') ||
+      value.includes('am i suitable') ||
+      value.includes('dry skin') ||
+      value.includes('sensitive skin')
+    );
+  }
+
+  return (
+    value.includes('fur wen') ||
+    value.includes('für wen') ||
+    value.includes('geeignet') ||
+    value.includes('passt das') ||
+    value.includes('trockene haut') ||
+    value.includes('empfindliche haut')
+  );
+}
+
+function buildSelectedServiceSuitabilityText(
+  locale: 'de' | 'ru' | 'en',
+  serviceTitle: string,
+  groupTitle?: string,
+): string {
+  const bookingCta =
+    locale === 'ru'
+      ? '[option] 📅 Подобрать время и записаться [/option]'
+      : locale === 'en'
+        ? '[option] 📅 Pick time and book [/option]'
+        : '[option] 📅 Zeit finden und buchen [/option]';
+
+  const technique = detectKnowledgePmuTechnique(serviceTitle, locale);
+  if (technique === 'powder_brows') {
+    return locale === 'ru'
+      ? `Powder Brows 🌸 Подходит, если хотите максимально мягкий и натуральный эффект без резких границ.
+
+${bookingCta}`
+      : locale === 'en'
+        ? `Powder Brows 🌸 Great if you want the softest, most natural brow result without sharp edges.
+
+${bookingCta}`
+        : `Powder Brows 🌸 Ideal, wenn Sie einen besonders weichen, natürlichen Effekt ohne harte Konturen möchten.
+
+${bookingCta}`;
+  }
+  if (technique === 'hairstroke_brows') {
+    return locale === 'ru'
+      ? `Hairstroke Brows 🌸 Подходит, если хотите более структурный и выразительный «волосковый» результат.
+
+${bookingCta}`
+      : locale === 'en'
+        ? `Hairstroke Brows 🌸 Best if you want a more defined, textured hair-stroke look.
+
+${bookingCta}`
+        : `Hairstroke Brows 🌸 Geeignet, wenn Sie ein deutlicheres, strukturiertes Härchen-Ergebnis möchten.
+
+${bookingCta}`;
+  }
+  if (technique === 'aquarell_lips') {
+    return locale === 'ru'
+      ? `Aquarell Lips 🌸 Подходит, если нужен деликатный натуральный оттенок губ на каждый день.
+
+${bookingCta}`
+      : locale === 'en'
+        ? `Aquarell Lips 🌸 Great for a soft, natural everyday lip tint.
+
+${bookingCta}`
+        : `Aquarell Lips 🌸 Ideal für einen sanften, natürlichen Farbton im Alltag.
+
+${bookingCta}`;
+  }
+  if (technique === 'lips_3d') {
+    return locale === 'ru'
+      ? `3D Lips 🌸 Подходит, если хотите более насыщенный оттенок и визуально более объёмный эффект.
+
+${bookingCta}`
+      : locale === 'en'
+        ? `3D Lips 🌸 Best if you prefer a richer color and a visually fuller lip effect.
+
+${bookingCta}`
+        : `3D Lips 🌸 Geeignet, wenn Sie einen intensiveren Ton und mehr optisches Volumen wünschen.
+
+${bookingCta}`;
+  }
+
+  const combined = `${normalizeChoiceText(groupTitle ?? '')} ${normalizeChoiceText(serviceTitle)}`;
+  const isHydrafacial =
+    combined.includes('hydra') ||
+    combined.includes('hydrafacial') ||
+    combined.includes('гидра');
+  if (isHydrafacial) {
+    return (
+      buildHydrafacialSelectedServiceSuitabilityText(locale, serviceTitle) ??
+      buildKnowledgeHydrafacialDetailsText(locale)
+    );
+  }
+
+  const browsLashesRe = /(бров|ресниц|lash|brow|wimper|augenbrau)/u;
+  if (browsLashesRe.test(combined)) {
+    return locale === 'ru'
+      ? `Эта процедура подходит, если хотите улучшить форму бровей/ресниц и получить аккуратный результат без длительного восстановления 🌸
+
+${bookingCta}`
+      : locale === 'en'
+        ? `This treatment is suitable if you want cleaner brow/lash shape and a polished look with minimal downtime 🌸
+
+${bookingCta}`
+        : `Diese Behandlung passt, wenn Sie Brauen/Wimpern sauber formen und ein gepflegtes Ergebnis ohne lange Ausfallzeit möchten 🌸
+
+${bookingCta}`;
+  }
+
+  if (locale === 'ru') {
+    return `${serviceTitle} 🌸
+Подходит, если хотите аккуратный, стойкий результат и минимум времени на ежедневный макияж/уход.
+
+${bookingCta}`;
+  }
+  if (locale === 'en') {
+    return `${serviceTitle} 🌸
+Suitable if you want a polished long-lasting result and less daily makeup/styling effort.
+
+${bookingCta}`;
+  }
+  return `${serviceTitle} 🌸
+Geeignet, wenn Sie ein gepflegtes, langanhaltendes Ergebnis und weniger täglichen Styling-Aufwand möchten.
+
+${bookingCta}`;
 }
 
 function buildSelectedServiceDetailsText(
@@ -1234,9 +1499,16 @@ function normalizeSuggestedDateInput(value: string): string {
 }
 
 function parseDayMonth(value: string): string | null {
-  const m = value.match(/(\d{1,2})[./-](\d{1,2})/);
+  const m = value.match(
+    /(?:^|[^\p{L}\p{N}])(\d{1,2})[./-](\d{1,2})(?:$|[^\p{L}\p{N}])/u,
+  );
   if (!m) return null;
-  return `${m[1].padStart(2, '0')}.${m[2].padStart(2, '0')}`;
+  const day = Number.parseInt(m[1], 10);
+  const month = Number.parseInt(m[2], 10);
+  if (Number.isNaN(day) || Number.isNaN(month)) return null;
+  if (day < 1 || day > 31) return null;
+  if (month < 1 || month > 12) return null;
+  return `${String(day).padStart(2, '0')}.${String(month).padStart(2, '0')}`;
 }
 
 function dateIsoToDayMonth(dateISO: string): string {
@@ -2101,7 +2373,6 @@ function isResetToMainMenuIntent(
       'главное меню',
       'начать сначала',
       'начни сначала',
-      'сначала',
       'сбрось диалог',
       'сбрось чат',
     ];
@@ -2181,6 +2452,34 @@ function isConsultationSpecificBookingIntent(
 
 function isConsultationIntent(text: string, locale: 'de' | 'ru' | 'en'): boolean {
   return isConsultationIntentByKnowledge(text, locale);
+}
+
+function isConsultationTopicAutoStartIntent(
+  text: string,
+  locale: 'de' | 'ru' | 'en',
+): boolean {
+  const value = normalizeInput(text).replace(/ё/g, 'е');
+  if (!value) return false;
+  if (looksLikeServiceOptionPayload(text) || looksLikePricedOptionPayload(text)) return false;
+  if (isConsultationSpecificBookingIntent(text, locale)) return false;
+  if (isBookingStartIntent(text, locale, false)) return false;
+
+  const hasSelectionVerb = /\b(запис|выб|book|buchen|choose|select|auswahl)\b/u.test(value);
+  if (hasSelectionVerb) return false;
+
+  if (isKnowledgeDetailsIntent(text, locale)) return true;
+  if (/[?？]/u.test(text)) return true;
+
+  if (locale === 'ru') {
+    const cues = ['расскажи', 'подскажи', 'объясни', 'что', 'какие', 'какой', 'как', 'для кого', 'кому подходит'];
+    return cues.some((cue) => value.includes(cue));
+  }
+  if (locale === 'en') {
+    const cues = ['tell me', 'explain', 'what', 'which', 'how', 'who is it for', 'for whom'];
+    return cues.some((cue) => value.includes(cue));
+  }
+  const cues = ['erzahl', 'erzähl', 'erklar', 'erklär', 'was', 'welche', 'wie', 'fur wen', 'für wen'];
+  return cues.some((cue) => value.includes(cue));
 }
 
 function buildConsultationStartText(locale: 'de' | 'ru' | 'en'): string {
@@ -2539,11 +2838,30 @@ async function tryHandleCatalogSelectionFastPath(
   const hasStrongServiceMatch =
     input === matchedServiceNorm ||
     input.includes(matchedServiceNorm) ||
-    matchedServiceNorm.includes(input) ||
     overlapCount >= Math.max(2, Math.ceil(matchedServiceTokens.length / 2));
 
-  if (!explicitCatalogPayload && !hasStrongServiceMatch && inputTokens.length > 4) {
+  const hasGenericCategoryIntent =
+    /\b(перманент|макияж|pmu|hydrafacial|брови|ресницы|губы|service|services|leistung|behandlung|augenbrauen|wimpern|lippen)\b/u.test(
+      normalizedMessage,
+    );
+  const asksGenericInfoBeforeBooking =
+    isKnowledgeDetailsIntent(message, session.locale) &&
+    !explicitCatalogPayload &&
+    !hasSelectionVerb &&
+    hasGenericCategoryIntent;
+
+  if (asksGenericInfoBeforeBooking) {
     return null;
+  }
+
+  if (!explicitCatalogPayload && !hasStrongServiceMatch) {
+    // Do not turn broad informational prompts into concrete booking selections.
+    if (!hasSelectionVerb && hasGenericCategoryIntent) {
+      return null;
+    }
+    if (inputTokens.length > 4) {
+      return null;
+    }
   }
 
   const startedMasters = Date.now();
@@ -2703,6 +3021,8 @@ export async function POST(
 
   const { sessionId, message, locale, inputMode, stream: wantStream } = body;
   const isVoiceTurn = inputMode === 'voice';
+  const forceGpt =
+    body.forceGpt === true || req.headers.get('x-ai-force-gpt') === '1';
 
   if (!sessionId || !message?.trim()) {
     return NextResponse.json(
@@ -2726,12 +3046,67 @@ export async function POST(
       session.context.draftId,
   );
 
+  if (!forceGpt) {
   if (
     !hasActiveBookingFlow &&
     session.context.awaitingConsultationBookingConfirmation &&
     session.context.consultationTechnique
   ) {
     const technique = session.context.consultationTechnique;
+    if (isSelectedServiceSuitabilityIntent(message, session.locale)) {
+      const text = buildConsultationTechniqueSuitabilityText(session.locale, technique);
+      appendSessionMessage(sessionId, 'assistant', text);
+      upsertSession(sessionId, {
+        context: {
+          awaitingConsultationBookingConfirmation: false,
+        },
+      });
+
+      console.log(
+        `[AI Chat] session=${sessionId.slice(0, 8)}... fastpath=consultation-technique-suitability-followup technique=${technique}`,
+      );
+
+      return NextResponse.json({
+        text,
+        sessionId,
+      });
+    }
+    if (isKnowledgeDetailsIntent(message, session.locale)) {
+      const text = buildKnowledgePmuTechniqueDetailsText(session.locale, technique);
+      appendSessionMessage(sessionId, 'assistant', text);
+      upsertSession(sessionId, {
+        context: {
+          awaitingConsultationBookingConfirmation: false,
+        },
+      });
+
+      console.log(
+        `[AI Chat] session=${sessionId.slice(0, 8)}... fastpath=consultation-technique-details-awaiting-confirm technique=${technique}`,
+      );
+
+      return NextResponse.json({
+        text,
+        sessionId,
+      });
+    }
+    if (isKnowledgePmuHealingIntent(message, session.locale)) {
+      const text = buildKnowledgePmuTechniqueSafetyText(session.locale, technique);
+      appendSessionMessage(sessionId, 'assistant', text);
+      upsertSession(sessionId, {
+        context: {
+          awaitingConsultationBookingConfirmation: false,
+        },
+      });
+
+      console.log(
+        `[AI Chat] session=${sessionId.slice(0, 8)}... fastpath=consultation-technique-safety-awaiting-confirm technique=${technique}`,
+      );
+
+      return NextResponse.json({
+        text,
+        sessionId,
+      });
+    }
 
     if (isConsultationBookingConfirmIntent(message, session.locale)) {
       const fallbackStartedAt = Date.now();
@@ -3124,6 +3499,48 @@ export async function POST(
     });
   }
 
+  if (!hasActiveBookingFlow && !session.context.consultationMode) {
+    const consultationTopic = detectKnowledgeConsultationTopic(message, session.locale);
+    if (
+      consultationTopic &&
+      isConsultationTopicAutoStartIntent(message, session.locale)
+    ) {
+      const text = buildKnowledgeConsultationTopicText(
+        session.locale,
+        consultationTopic,
+      );
+      appendSessionMessage(sessionId, 'assistant', text);
+      upsertSession(sessionId, {
+        context: {
+          consultationMode: true,
+          consultationTopic,
+          consultationTechnique: undefined,
+          awaitingConsultationBookingConfirmation: false,
+          selectedServiceIds: undefined,
+          selectedMasterId: undefined,
+          reservedSlot: undefined,
+          draftId: undefined,
+          lastDateISO: undefined,
+          lastPreferredTime: undefined,
+          lastNoSlots: false,
+          lastSuggestedDateOptions: undefined,
+          awaitingRegistrationMethod: false,
+          pendingVerificationMethod: undefined,
+          awaitingVerificationMethod: false,
+        },
+      });
+
+      console.log(
+        `[AI Chat] session=${sessionId.slice(0, 8)}... fastpath=consultation-topic-autostart topic=${consultationTopic}`,
+      );
+
+      return NextResponse.json({
+        text,
+        sessionId,
+      });
+    }
+  }
+
   // Deterministic consultation entrypoint for the new menu option.
   if (
     !hasActiveBookingFlow &&
@@ -3288,18 +3705,25 @@ export async function POST(
       (activeConsultationTopic === 'pmu' || !activeConsultationTopic) &&
       isKnowledgePmuHealingIntent(message, session.locale)
     ) {
-      const text = buildKnowledgePmuHealingText(session.locale);
+      const healingTechnique =
+        session.context.consultationTechnique ??
+        detectKnowledgePmuTechnique(message, session.locale);
+      const text = healingTechnique
+        ? buildKnowledgePmuTechniqueSafetyText(session.locale, healingTechnique)
+        : buildKnowledgePmuHealingText(session.locale);
       appendSessionMessage(sessionId, 'assistant', text);
       upsertSession(sessionId, {
         context: {
           consultationTopic: 'pmu',
-          consultationTechnique: undefined,
+          consultationTechnique: healingTechnique ?? undefined,
           awaitingConsultationBookingConfirmation: false,
         },
       });
 
       console.log(
-        `[AI Chat] session=${sessionId.slice(0, 8)}... fastpath=consultation-healing`,
+        healingTechnique
+          ? `[AI Chat] session=${sessionId.slice(0, 8)}... fastpath=consultation-technique-safety technique=${healingTechnique}`
+          : `[AI Chat] session=${sessionId.slice(0, 8)}... fastpath=consultation-healing`,
       );
 
       return NextResponse.json({
@@ -3388,6 +3812,25 @@ export async function POST(
 
       console.log(
         `[AI Chat] session=${sessionId.slice(0, 8)}... fastpath=consultation-technique-details-followup technique=${session.context.consultationTechnique}`,
+      );
+
+      return NextResponse.json({
+        text,
+        sessionId,
+      });
+    }
+    if (
+      session.context.consultationTechnique &&
+      isSelectedServiceSuitabilityIntent(message, session.locale)
+    ) {
+      const text = buildConsultationTechniqueSuitabilityText(
+        session.locale,
+        session.context.consultationTechnique,
+      );
+      appendSessionMessage(sessionId, 'assistant', text);
+
+      console.log(
+        `[AI Chat] session=${sessionId.slice(0, 8)}... fastpath=consultation-technique-suitability technique=${session.context.consultationTechnique}`,
       );
 
       return NextResponse.json({
@@ -3626,10 +4069,15 @@ export async function POST(
 
   // Deterministic details response for the currently selected service in booking flow.
   // Prevents random-language fallbacks from the LLM when user asks "подробнее".
+  const asksSelectedServiceDetails = isKnowledgeDetailsIntent(message, session.locale);
+  const asksSelectedServiceSuitability = isSelectedServiceSuitabilityIntent(
+    message,
+    session.locale,
+  );
   if (
     hasActiveBookingFlow &&
     selectedServiceIds.length > 0 &&
-    isKnowledgeDetailsIntent(message, session.locale)
+    (asksSelectedServiceDetails || asksSelectedServiceSuitability)
   ) {
     const startedAt = Date.now();
     const catalog = await listServices({ locale: session.locale });
@@ -3653,15 +4101,21 @@ export async function POST(
       .find((service) => selectedServiceIds.includes(service.id));
 
     if (selectedService) {
-      const text = buildSelectedServiceDetailsText(
-        session.locale,
-        selectedService.title,
-        selectedService.groupTitle,
-      );
+      const text = asksSelectedServiceSuitability
+        ? buildSelectedServiceSuitabilityText(
+            session.locale,
+            selectedService.title,
+            selectedService.groupTitle,
+          )
+        : buildSelectedServiceDetailsText(
+            session.locale,
+            selectedService.title,
+            selectedService.groupTitle,
+          );
       appendSessionMessage(sessionId, 'assistant', text);
 
       console.log(
-        `[AI Chat] session=${sessionId.slice(0, 8)}... fastpath=booking-selected-service-details service="${selectedService.title}"`,
+        `[AI Chat] session=${sessionId.slice(0, 8)}... fastpath=${asksSelectedServiceSuitability ? 'booking-selected-service-suitability' : 'booking-selected-service-details'} service="${selectedService.title}"`,
       );
 
       return NextResponse.json({
@@ -4454,6 +4908,8 @@ export async function POST(
     }
   }
 
+  }
+
   // Build messages
   const systemPrompt = buildSystemPrompt(session.locale);
   const knowledgePrompt = buildKnowledgeSystemMessage(session.locale);
@@ -4533,37 +4989,60 @@ export async function POST(
 
   const useSSE = wantStream === true && !isVoiceTurn;
   const sse = useSSE ? createSSEWriter() : undefined;
+  const toolCallLog: { name: string; durationMs: number }[] = [];
+  const missingServiceSignals: MissingServiceSignal[] = [];
+  const loopTimeout = createLoopTimeout();
+  const collectedToolResults: Array<{ name: string; result: string }> = [];
 
   try {
-    const toolCallLog: { name: string; durationMs: number }[] = [];
-    const missingServiceSignals: MissingServiceSignal[] = [];
-
     // Tool-calling loop
     let response: OpenAI.Chat.ChatCompletion | null = null;
     let streamResult: Awaited<ReturnType<typeof streamingGptCall>> | null = null;
 
     if (useSSE && sse) {
-      streamResult = await streamingGptCall(
-        client,
+      streamResult = await withRetry(
+        () =>
+          streamingGptCall(
+            client,
+            {
+              model: MODEL,
+              messages,
+              tools,
+              tool_choice: 'auto',
+              temperature: TEMPERATURE,
+              max_tokens: 1024,
+            },
+            sse,
+          ),
         {
-          model: MODEL,
-          messages,
-          tools,
-          tool_choice: 'auto',
-          temperature: TEMPERATURE,
-          max_tokens: 1024,
+          onRetry: (attempt, classified) => {
+            console.warn(
+              `[AI Chat SSE] session=${sessionId.slice(0, 8)}... GPT retry #${attempt} reason=${classified.category}`,
+            );
+          },
+          signal: loopTimeout.signal,
         },
-        sse,
       );
     } else {
-      response = await client.chat.completions.create({
-        model: MODEL,
-        messages,
-        tools,
-        tool_choice: 'auto',
-        temperature: TEMPERATURE,
-        max_tokens: 1024,
-      });
+      response = await withRetry(
+        () =>
+          client.chat.completions.create({
+            model: MODEL,
+            messages,
+            tools,
+            tool_choice: 'auto',
+            temperature: TEMPERATURE,
+            max_tokens: 1024,
+          }),
+        {
+          onRetry: (attempt, classified) => {
+            console.warn(
+              `[AI Chat] session=${sessionId.slice(0, 8)}... GPT retry #${attempt} reason=${classified.category}`,
+            );
+          },
+          signal: loopTimeout.signal,
+        },
+      );
     }
 
     let iterations = 0;
@@ -5079,6 +5558,7 @@ export async function POST(
             content: result.result,
           });
           toolCallLog.push({ name: result.name, durationMs: result.durationMs });
+          collectedToolResults.push({ name: result.name, result: result.result });
         }
 
         if (Object.keys(contextPatch).length > 0) {
@@ -5299,29 +5779,58 @@ export async function POST(
         }
 
         // Call model again with tool results
+        if (loopTimeout.isExpired()) {
+          console.warn(
+            `[AI Chat] session=${sessionId.slice(0, 8)}... loop timeout after ${iterations} iterations`,
+          );
+          break;
+        }
+
         if (useSSE && sse) {
-          streamResult = await streamingGptCall(
-            client,
+          streamResult = await withRetry(
+            () =>
+              streamingGptCall(
+                client,
+                {
+                  model: MODEL,
+                  messages,
+                  tools,
+                  tool_choice: 'auto',
+                  temperature: TEMPERATURE,
+                  max_tokens: 1024,
+                },
+                sse,
+              ),
             {
-              model: MODEL,
-              messages,
-              tools,
-              tool_choice: 'auto',
-              temperature: TEMPERATURE,
-              max_tokens: 1024,
+              onRetry: (attempt, classified) => {
+                console.warn(
+                  `[AI Chat SSE] session=${sessionId.slice(0, 8)}... GPT retry #${attempt} (iter=${iterations}) reason=${classified.category}`,
+                );
+              },
+              signal: loopTimeout.signal,
             },
-            sse,
           );
           response = null;
         } else {
-          response = await client.chat.completions.create({
-            model: MODEL,
-            messages,
-            tools,
-            tool_choice: 'auto',
-            temperature: TEMPERATURE,
-            max_tokens: 1024,
-          });
+          response = await withRetry(
+            () =>
+              client.chat.completions.create({
+                model: MODEL,
+                messages,
+                tools,
+                tool_choice: 'auto',
+                temperature: TEMPERATURE,
+                max_tokens: 1024,
+              }),
+            {
+              onRetry: (attempt, classified) => {
+                console.warn(
+                  `[AI Chat] session=${sessionId.slice(0, 8)}... GPT retry #${attempt} (iter=${iterations}) reason=${classified.category}`,
+                );
+              },
+              signal: loopTimeout.signal,
+            },
+          );
         }
 
         iterations++;
@@ -5349,30 +5858,54 @@ export async function POST(
     if (!text) {
       try {
         if (useSSE && sse) {
-          const forced = await streamingGptCall(
-            client,
+          const forced = await withRetry(
+            () =>
+              streamingGptCall(
+                client,
+                {
+                  model: MODEL,
+                  messages,
+                  tools,
+                  tool_choice: 'none',
+                  temperature: TEMPERATURE,
+                  max_tokens: 512,
+                },
+                sse,
+              ),
             {
-              model: MODEL,
-              messages,
-              tools,
-              tool_choice: 'none',
-              temperature: TEMPERATURE,
-              max_tokens: 512,
+              maxRetries: 1,
+              onRetry: (attempt, classified) => {
+                console.warn(
+                  `[AI Chat SSE] session=${sessionId.slice(0, 8)}... forced-reply retry #${attempt} reason=${classified.category}`,
+                );
+              },
+              signal: loopTimeout.signal,
             },
-            sse,
           );
           streamResult = forced;
           text =
             typeof forced.content === 'string' ? forced.content.trim() : '';
         } else {
-          const forced = await client.chat.completions.create({
-            model: MODEL,
-            messages,
-            tools,
-            tool_choice: 'none',
-            temperature: TEMPERATURE,
-            max_tokens: 512,
-          });
+          const forced = await withRetry(
+            () =>
+              client.chat.completions.create({
+                model: MODEL,
+                messages,
+                tools,
+                tool_choice: 'none',
+                temperature: TEMPERATURE,
+                max_tokens: 512,
+              }),
+            {
+              maxRetries: 1,
+              onRetry: (attempt, classified) => {
+                console.warn(
+                  `[AI Chat] session=${sessionId.slice(0, 8)}... forced-reply retry #${attempt} reason=${classified.category}`,
+                );
+              },
+              signal: loopTimeout.signal,
+            },
+          );
           const finalMessage = forced.choices[0]?.message;
           text =
             typeof finalMessage?.content === 'string'
@@ -5455,20 +5988,58 @@ export async function POST(
       inputMode: finalInputMode,
     });
   } catch (error) {
-    console.error('[AI Chat] OpenAI error:', error);
+    const classified = classifyError(error);
 
-    const errorMsg =
-      error instanceof OpenAI.APIError
-        ? `OpenAI API error: ${error.status}`
-        : 'Internal AI error';
+    console.error(
+      `[AI Chat] session=${sessionId.slice(0, 8)}... GPT error category=${classified.category} retryable=${classified.retryable}`,
+      error instanceof Error ? error.message : error,
+    );
+
+    const fallbackText = buildToolFallbackText(collectedToolResults, session.locale);
+    if (fallbackText) {
+      console.log(
+        `[AI Chat] session=${sessionId.slice(0, 8)}... using tool-based fallback response`,
+      );
+      appendSessionMessage(sessionId, 'assistant', fallbackText);
+
+      if (useSSE && sse) {
+        sse.sendDelta(fallbackText);
+        sse.sendMeta({
+          sessionId,
+          degraded: true,
+          toolCalls: toolCallLog.length > 0 ? toolCallLog : undefined,
+        });
+        return new NextResponse(sse.stream, {
+          headers: SSE_HEADERS,
+        }) as unknown as NextResponse<ChatResponse | { error: string }>;
+      }
+
+      return NextResponse.json({
+        text: fallbackText,
+        sessionId,
+        toolCalls: toolCallLog.length > 0 ? toolCallLog : undefined,
+      });
+    }
+
+    const userErrorText = buildErrorText(classified, session.locale);
+    const httpStatus = classified.category === 'rate_limit' ? 429 : 500;
 
     if (useSSE && sse) {
-      sse.sendError(errorMsg);
+      sse.sendError(userErrorText);
       return new NextResponse(sse.stream, {
         headers: SSE_HEADERS,
       }) as unknown as NextResponse<ChatResponse | { error: string }>;
     }
 
-    return NextResponse.json({ error: errorMsg }, { status: 500 });
+    return NextResponse.json(
+      {
+        error: userErrorText,
+        category: classified.category,
+        retryable: classified.retryable,
+      },
+      { status: httpStatus },
+    );
+  } finally {
+    loopTimeout.clear();
   }
 }

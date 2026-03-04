@@ -1306,7 +1306,13 @@ export function isKnowledgePmuHealingIntent(
       value.includes('короткая консультация по заживлению') ||
       value.includes('консультация по заживлению') ||
       value.includes('заживление') ||
-      value.includes('заживлен')
+      value.includes('заживлен') ||
+      value.includes('побочн') ||
+      value.includes('осложнен') ||
+      value.includes('противопоказ') ||
+      value.includes('реакци') ||
+      value.includes('безопасно') ||
+      value.includes('опасно')
     );
   }
 
@@ -1315,14 +1321,24 @@ export function isKnowledgePmuHealingIntent(
       value.includes('quick healing') ||
       value.includes('aftercare consultation') ||
       (value.includes('healing') && value.includes('consultation')) ||
-      (value.includes('pmu') && value.includes('aftercare'))
+      (value.includes('pmu') && value.includes('aftercare')) ||
+      value.includes('side effect') ||
+      value.includes('side-effects') ||
+      value.includes('adverse effect') ||
+      value.includes('contraindication') ||
+      value.includes('risk') ||
+      value.includes('is it safe')
     );
   }
 
   return (
     value.includes('kurze beratung zu heilung') ||
     value.includes('heilung und pflege') ||
-    (value.includes('heilung') && value.includes('beratung'))
+    (value.includes('heilung') && value.includes('beratung')) ||
+    value.includes('nebenwirkung') ||
+    value.includes('kontraindikation') ||
+    value.includes('risiko') ||
+    value.includes('ist es sicher')
   );
 }
 
@@ -1332,16 +1348,22 @@ export function buildKnowledgePmuHealingText(
   const lang = localeToLang(locale);
   const healing = PERMANENT_HALLE.pmu.healing_1_30[lang];
   const rules = healing.rules.map((rule) => `• ${rule}`).join('\n');
+  const sideEffects =
+    lang === 'RU'
+      ? 'Нормальные временные реакции после PMU: лёгкое покраснение/чувствительность и небольшая отёчность в первые дни. Если реакция выраженная или усиливается, лучше сразу написать мастеру.'
+      : lang === 'EN'
+        ? 'Common temporary PMU reactions: mild redness/sensitivity and slight swelling in the first days. If symptoms are strong or getting worse, contact your master right away.'
+        : 'Normale, vorübergehende Reaktionen nach PMU: leichte Rötung/Empfindlichkeit und geringe Schwellung in den ersten Tagen. Wenn die Reaktion stark ist oder zunimmt, bitte sofort der Meisterin schreiben.';
 
   if (lang === 'RU') {
-    return `Коротко по заживлению после PMU 🌸\n\n${healing.d1_3}\n${healing.d4_7}\n${healing.d7_14}\n${healing.d14_30}\n\n${rules}\n\n${healing.reassurance}\n\n[option] Брови — форма и мягкий эффект [/option]\n[option] Губы — свежий оттенок [/option]\n[option] Межресничка — выразительный взгляд [/option]\n[option] 📅 Подобрать время и записаться [/option]`;
+    return `Коротко по заживлению после PMU 🌸\n\n${healing.d1_3}\n${healing.d4_7}\n${healing.d7_14}\n${healing.d14_30}\n\n${rules}\n\n${sideEffects}\n\n${healing.reassurance}\n\n[option] Брови — форма и мягкий эффект [/option]\n[option] Губы — свежий оттенок [/option]\n[option] Межресничка — выразительный взгляд [/option]\n[option] 📅 Подобрать время и записаться [/option]`;
   }
 
   if (lang === 'EN') {
-    return `Quick PMU healing guide 🌸\n\n${healing.d1_3}\n${healing.d4_7}\n${healing.d7_14}\n${healing.d14_30}\n\n${rules}\n\n${healing.reassurance}\n\n[option] Brows — shape and soft definition [/option]\n[option] Lips — fresh color [/option]\n[option] Lash line — expressive look [/option]\n[option] 📅 Pick time and book [/option]`;
+    return `Quick PMU healing guide 🌸\n\n${healing.d1_3}\n${healing.d4_7}\n${healing.d7_14}\n${healing.d14_30}\n\n${rules}\n\n${sideEffects}\n\n${healing.reassurance}\n\n[option] Brows — shape and soft definition [/option]\n[option] Lips — fresh color [/option]\n[option] Lash line — expressive look [/option]\n[option] 📅 Pick time and book [/option]`;
   }
 
-  return `Kurzer PMU-Heilungsverlauf 🌸\n\n${healing.d1_3}\n${healing.d4_7}\n${healing.d7_14}\n${healing.d14_30}\n\n${rules}\n\n${healing.reassurance}\n\n[option] Augenbrauen — Form und weicher Effekt [/option]\n[option] Lippen — frischer Farbton [/option]\n[option] Wimpernkranz — ausdrucksvoller Blick [/option]\n[option] 📅 Zeit finden und buchen [/option]`;
+  return `Kurzer PMU-Heilungsverlauf 🌸\n\n${healing.d1_3}\n${healing.d4_7}\n${healing.d7_14}\n${healing.d14_30}\n\n${rules}\n\n${sideEffects}\n\n${healing.reassurance}\n\n[option] Augenbrauen — Form und weicher Effekt [/option]\n[option] Lippen — frischer Farbton [/option]\n[option] Wimpernkranz — ausdrucksvoller Blick [/option]\n[option] 📅 Zeit finden und buchen [/option]`;
 }
 
 export function detectKnowledgeConsultationStyle(
@@ -1711,6 +1733,62 @@ export function buildKnowledgePmuTechniqueDetailsText(
       'Wimpernkranz 🌸 Dezente Auffüllung zwischen den Wimpern für mehr Ausdruck ohne harte Linie.\nPreis: **130 €**.\n\n[option] 👁 Oben + unten (150 €) [/option]\n[option] 📅 Zeit finden und buchen [/option]',
     upper_lower:
       'Wimpernkranz oben + unten 🌸 Deutlicheres Ergebnis durch Betonung beider Linien.\nIdeal für mehr Ausdruck ohne tägliches Eyeliner-Make-up.\nPreis: **150 €**.\n\n[option] 👁 Nur Wimpernkranz (130 €) [/option]\n[option] 📅 Zeit finden und buchen [/option]',
+  };
+
+  if (normalized === 'ru') return ru[technique];
+  if (normalized === 'en') return en[technique];
+  return de[technique];
+}
+
+export function buildKnowledgePmuTechniqueSafetyText(
+  locale: AssistantLocale | undefined,
+  technique: KnowledgePmuTechnique,
+): string {
+  const normalized = normalizeLocale(locale);
+
+  const ru: Record<KnowledgePmuTechnique, string> = {
+    powder_brows:
+      'Powder Brows 🌸 Что важно по реакции кожи:\n• в первые 1-3 дня возможны лёгкое покраснение и чувствительность;\n• цвет в начале выглядит ярче, затем становится мягче после заживления;\n• небольшое шелушение в первую неделю — нормально.\n\nЕсли реакция сильная или нарастает, лучше сразу написать мастеру.\n\n[option] ❓ Подробнее о заживлении PMU [/option]\n[option] 📅 Подобрать время и записаться [/option]',
+    hairstroke_brows:
+      'Hairstroke Brows 🌸 Что важно по реакции кожи:\n• в первые 1-3 дня возможны лёгкое покраснение и чувствительность;\n• оттенок поначалу насыщеннее, затем стабилизируется;\n• небольшое шелушение в первую неделю — ожидаемо.\n\nЕсли реакция выраженная или усиливается, лучше сразу связаться с мастером.\n\n[option] ❓ Подробнее о заживлении PMU [/option]\n[option] 📅 Подобрать время и записаться [/option]',
+    aquarell_lips:
+      'Акварельные губы 🌸 Что важно по реакции кожи:\n• в первые дни возможны отёчность и повышенная сухость губ;\n• оттенок сначала ярче, затем становится мягче после заживления;\n• важно аккуратное увлажнение и соблюдение рекомендаций мастера.\n\nЕсли отёк/дискомфорт выраженные или усиливаются, лучше сразу написать мастеру.\n\n[option] ❓ Подробнее о заживлении PMU [/option]\n[option] 📅 Подобрать время и записаться [/option]',
+    lips_3d:
+      '3D губы 🌸 Что важно по реакции кожи:\n• в первые дни возможны отёчность и сухость губ;\n• цвет сначала кажется ярче, затем приходит к финальному тону;\n• в период заживления нужен щадящий режим и уход по рекомендациям мастера.\n\nЕсли реакция сильная или нарастает, лучше сразу связаться с мастером.\n\n[option] ❓ Подробнее о заживлении PMU [/option]\n[option] 📅 Подобрать время и записаться [/option]',
+    lashline:
+      'Межресничка 🌸 Что важно по реакции:\n• в первые 1-2 дня возможны лёгкая чувствительность век и небольшая отёчность;\n• может быть кратковременное ощущение сухости/слезоточивости;\n• оттенок сначала чуть интенсивнее, затем смягчается.\n\nЕсли появляется выраженный дискомфорт или реакция усиливается, лучше сразу написать мастеру.\n\n[option] ❓ Подробнее о заживлении PMU [/option]\n[option] 📅 Подобрать время и записаться [/option]',
+    upper_lower:
+      'Межресничка верх+низ 🌸 Что важно по реакции:\n• в первые 1-2 дня возможны чувствительность век и небольшая отёчность;\n• кратковременная сухость/слезоточивость допустимы;\n• оттенок в начале выглядит интенсивнее, затем становится мягче.\n\nЕсли реакция выраженная или усиливается, лучше сразу написать мастеру.\n\n[option] ❓ Подробнее о заживлении PMU [/option]\n[option] 📅 Подобрать время и записаться [/option]',
+  };
+
+  const en: Record<KnowledgePmuTechnique, string> = {
+    powder_brows:
+      'Powder Brows 🌸 Typical temporary reactions:\n• mild redness/sensitivity in the first 1-3 days;\n• color looks stronger at first, then softens during healing;\n• light flaking in the first week can happen.\n\nIf symptoms are strong or getting worse, contact your master right away.\n\n[option] ❓ More about PMU healing [/option]\n[option] 📅 Pick time and book [/option]',
+    hairstroke_brows:
+      'Hairstroke Brows 🌸 Typical temporary reactions:\n• mild redness/sensitivity in the first 1-3 days;\n• color appears stronger first, then settles;\n• light flaking in the first week is expected.\n\nIf symptoms become pronounced or worsen, contact your master right away.\n\n[option] ❓ More about PMU healing [/option]\n[option] 📅 Pick time and book [/option]',
+    aquarell_lips:
+      'Aquarelle Lips 🌸 Typical temporary reactions:\n• possible swelling and dryness in the first days;\n• color looks brighter first, then softens as it heals;\n• gentle aftercare and hydration are important.\n\nIf swelling/discomfort is strong or getting worse, contact your master right away.\n\n[option] ❓ More about PMU healing [/option]\n[option] 📅 Pick time and book [/option]',
+    lips_3d:
+      '3D Lips 🌸 Typical temporary reactions:\n• possible swelling and dryness in the first days;\n• color may look very intense first, then settle to final tone;\n• follow a gentle aftercare routine.\n\nIf symptoms are strong or getting worse, contact your master right away.\n\n[option] ❓ More about PMU healing [/option]\n[option] 📅 Pick time and book [/option]',
+    lashline:
+      'Lash line 🌸 Typical temporary reactions:\n• mild eyelid sensitivity and slight swelling for 1-2 days;\n• short-term dryness/watery eyes can happen;\n• pigment may look stronger first, then soften.\n\nIf discomfort is strong or increasing, contact your master right away.\n\n[option] ❓ More about PMU healing [/option]\n[option] 📅 Pick time and book [/option]',
+    upper_lower:
+      'Upper + lower lash line 🌸 Typical temporary reactions:\n• mild eyelid sensitivity and slight swelling for 1-2 days;\n• short-term dryness/watery eyes can happen;\n• pigment may look stronger first, then soften.\n\nIf symptoms are strong or getting worse, contact your master right away.\n\n[option] ❓ More about PMU healing [/option]\n[option] 📅 Pick time and book [/option]',
+  };
+
+  const de: Record<KnowledgePmuTechnique, string> = {
+    powder_brows:
+      'Powder Brows 🌸 Typische vorübergehende Reaktionen:\n• leichte Rötung/Empfindlichkeit in den ersten 1-3 Tagen;\n• Farbe wirkt anfangs kräftiger und wird beim Abheilen weicher;\n• leichte Schuppung in der ersten Woche ist möglich.\n\nWenn die Reaktion stark ist oder zunimmt, bitte sofort der Meisterin schreiben.\n\n[option] ❓ Mehr zur PMU-Heilung [/option]\n[option] 📅 Zeit finden und buchen [/option]',
+    hairstroke_brows:
+      'Hairstroke Brows 🌸 Typische vorübergehende Reaktionen:\n• leichte Rötung/Empfindlichkeit in den ersten 1-3 Tagen;\n• Farbe wirkt anfangs kräftiger und stabilisiert sich dann;\n• leichte Schuppung in der ersten Woche ist normal.\n\nWenn die Reaktion deutlich ist oder zunimmt, bitte sofort der Meisterin schreiben.\n\n[option] ❓ Mehr zur PMU-Heilung [/option]\n[option] 📅 Zeit finden und buchen [/option]',
+    aquarell_lips:
+      'Aquarell Lips 🌸 Typische vorübergehende Reaktionen:\n• in den ersten Tagen sind Schwellung und Trockenheit möglich;\n• die Farbe wirkt zunächst kräftiger und wird beim Abheilen weicher;\n• sanfte Pflege und Feuchtigkeit sind wichtig.\n\nWenn Schwellung/Beschwerden stark sind oder zunehmen, bitte sofort der Meisterin schreiben.\n\n[option] ❓ Mehr zur PMU-Heilung [/option]\n[option] 📅 Zeit finden und buchen [/option]',
+    lips_3d:
+      '3D Lips 🌸 Typische vorübergehende Reaktionen:\n• in den ersten Tagen sind Schwellung und Trockenheit möglich;\n• die Farbe wirkt zunächst intensiver und pendelt sich dann ein;\n• bitte die Pflegehinweise konsequent beachten.\n\nWenn die Reaktion stark ist oder zunimmt, bitte sofort der Meisterin schreiben.\n\n[option] ❓ Mehr zur PMU-Heilung [/option]\n[option] 📅 Zeit finden und buchen [/option]',
+    lashline:
+      'Wimpernkranz 🌸 Typische vorübergehende Reaktionen:\n• leichte Lid-Empfindlichkeit und geringe Schwellung für 1-2 Tage;\n• kurzfristig sind Trockenheit/tränende Augen möglich;\n• die Pigmentierung wirkt anfangs etwas stärker.\n\nWenn Beschwerden deutlich sind oder zunehmen, bitte sofort der Meisterin schreiben.\n\n[option] ❓ Mehr zur PMU-Heilung [/option]\n[option] 📅 Zeit finden und buchen [/option]',
+    upper_lower:
+      'Wimpernkranz oben + unten 🌸 Typische vorübergehende Reaktionen:\n• leichte Lid-Empfindlichkeit und geringe Schwellung für 1-2 Tage;\n• kurzfristig sind Trockenheit/tränende Augen möglich;\n• die Pigmentierung wirkt anfangs etwas stärker.\n\nWenn die Reaktion stark ist oder zunimmt, bitte sofort der Meisterin schreiben.\n\n[option] ❓ Mehr zur PMU-Heilung [/option]\n[option] 📅 Zeit finden und buchen [/option]',
   };
 
   if (normalized === 'ru') return ru[technique];
