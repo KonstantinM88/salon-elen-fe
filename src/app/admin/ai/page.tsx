@@ -7,6 +7,7 @@ import {
 } from '@/lib/seo-locale';
 import { resolveContentLocale } from '@/lib/seo-locale-server';
 import AiDashboardClient from './_components/AiDashboardClient';
+import AiHealthWidget from './_components/AiHealthWidget';
 
 export const dynamic = 'force-dynamic';
 
@@ -192,6 +193,10 @@ export default async function AiDashboardPage({ searchParams }: PageProps) {
       <div className="mb-6">
         <h1 className="text-2xl font-bold sm:text-3xl">{t.title}</h1>
         <p className="mt-1 opacity-60">{t.subtitle}</p>
+      </div>
+
+      <div className="mb-6 max-w-md">
+        <AiHealthWidget locale={locale} />
       </div>
 
       <Suspense

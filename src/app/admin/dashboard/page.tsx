@@ -2,6 +2,7 @@
 import { Suspense } from 'react';
 import { ZadarmaBalanceCard } from '@/components/admin/ZadarmaBalanceCard';
 import { RegistrationStats } from '@/components/admin/RegistrationStats';
+import AiHealthWidget from '../ai/_components/AiHealthWidget';
 import {
   type SearchParamsPromise,
   type SeoLocale,
@@ -70,6 +71,16 @@ export default async function AdminDashboardPage({ searchParams }: PageProps) {
         >
           <RegistrationStats locale={locale} />
         </Suspense>
+
+        <div className="max-w-md">
+          <Suspense
+            fallback={
+              <div className="h-48 animate-pulse rounded-2xl bg-white/50 backdrop-blur-sm" />
+            }
+          >
+            <AiHealthWidget locale={locale} />
+          </Suspense>
+        </div>
       </div>
     </div>
   );
