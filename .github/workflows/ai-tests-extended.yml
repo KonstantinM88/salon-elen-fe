@@ -1,0 +1,88 @@
+name: AI Tests Extended
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'Which extended suite to run'
+        required: true
+        default: both
+        type: choice
+        options:
+          - both
+          - sse
+          - json
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ai-tests-extended-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  extended-sse:
+    name: Extended SSE
+    if: github.event.inputs.mode == 'both' || github.event.inputs.mode == 'sse'
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      AI_API_URL: ${{ secrets.AI_API_URL != '' && secrets.AI_API_URL || 'https://permanent-halle.de/api/ai/chat' }}
+    defaults:
+      run:
+        working-directory: ai-tests
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Run extended SSE suite
+        run: AI_TEST_SUITE=extended AI_TEST_TAG=sse AI_TEST_DELAY_MS=1500 AI_TEST_MAX_RETRIES=5 npm run test:ai
+
+      - name: Upload SSE reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ai-tests-extended-sse-reports
+          path: ai-tests/reports/**
+          if-no-files-found: ignore
+
+  extended-json:
+    name: Extended JSON
+    if: github.event.inputs.mode == 'both' || github.event.inputs.mode == 'json'
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      AI_API_URL: ${{ secrets.AI_API_URL != '' && secrets.AI_API_URL || 'https://permanent-halle.de/api/ai/chat' }}
+    defaults:
+      run:
+        working-directory: ai-tests
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Run extended JSON suite
+        run: AI_TEST_SUITE=extended AI_TEST_TAG=json AI_TEST_DELAY_MS=1200 AI_TEST_MAX_RETRIES=4 npm run test:ai
+
+      - name: Upload JSON reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ai-tests-extended-json-reports
+          path: ai-tests/reports/**
+          if-no-files-found: ignore

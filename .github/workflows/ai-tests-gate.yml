@@ -1,0 +1,44 @@
+name: AI Tests Gate
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ai-tests-gate-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  gate:
+    name: Gate Suite
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      AI_API_URL: ${{ secrets.AI_API_URL != '' && secrets.AI_API_URL || 'https://permanent-halle.de/api/ai/chat' }}
+    defaults:
+      run:
+        working-directory: ai-tests
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Run gate suite
+        run: AI_TEST_SUITE=gate AI_TEST_DELAY_MS=1200 AI_TEST_MAX_RETRIES=4 npm run test:ai
+
+      - name: Upload reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ai-tests-gate-reports
+          path: ai-tests/reports/**
+          if-no-files-found: ignore

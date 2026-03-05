@@ -40,6 +40,9 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
+/ai-tests/node_modules/
+/ai-tests/reports/
+
 /src/generated/prisma
 NUL
 prisma/*.bak
