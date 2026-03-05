@@ -24,6 +24,7 @@ import {
   detectFunnelStage,
   type RequestMetrics,
 } from '@/lib/ai/ai-analytics';
+import { TurnBuilder } from '@/lib/ai/turn-tracker';
 import {
   withRetry,
   createLoopTimeout,
@@ -3521,6 +3522,15 @@ export async function POST(
   }
 
   appendSessionMessage(sessionId, 'user', message);
+  const turn = new TurnBuilder(sessionId, message, inputMode);
+  let turnUsedGpt = false;
+  let turnResponseMode: 'json' | 'sse' = 'json';
+  let turnIterations = 0;
+  let turnRetried = false;
+  let turnOutcome: 'ok' | 'error' | 'timeout' | 'aborted' | 'degraded' = 'ok';
+  let turnErrorCategory: string | undefined;
+  let turnErrorCode: string | undefined;
+  let turnErrorMessageSafe: string | undefined;
   const selectedMasterId = session.context.selectedMasterId;
   const selectedServiceIds = session.context.selectedServiceIds ?? [];
   const suggestedDateOptions = session.context.lastSuggestedDateOptions ?? [];
@@ -5585,6 +5595,8 @@ export async function POST(
 
   const useSSE = wantStream === true && !isVoiceTurn;
   const sse = useSSE ? createSSEWriter() : undefined;
+  turnUsedGpt = true;
+  turnResponseMode = useSSE ? 'sse' : 'json';
   const toolCallLog: { name: string; durationMs: number }[] = [];
   const missingServiceSignals: MissingServiceSignal[] = [];
   const loopTimeout = createLoopTimeout();
@@ -6159,6 +6171,38 @@ export async function POST(
             tool_call_id: result.id,
             content: result.result,
           });
+          let toolOk = true;
+          let toolErrorCode: string | undefined;
+          let toolErrorMessageSafe: string | undefined;
+          try {
+            const parsedToolResult = JSON.parse(result.result) as {
+              error?: string;
+              code?: string;
+              message?: string;
+            };
+            if (parsedToolResult?.error) {
+              toolOk = false;
+              toolErrorCode =
+                parsedToolResult.code ||
+                parsedToolResult.error.slice(0, 64);
+              toolErrorMessageSafe =
+                parsedToolResult.message ||
+                parsedToolResult.error.slice(0, 512);
+            }
+          } catch {
+            // Keep defaults when tool result is not JSON.
+          }
+
+          turn.addToolRun({
+            toolName: result.name,
+            step: mapToolNameToProgressStep(result.name),
+            durationMs: result.durationMs,
+            ok: toolOk,
+            errorCode: toolErrorCode,
+            errorMessageSafe: toolErrorMessageSafe,
+            startedAt: new Date(Date.now() - result.durationMs),
+          });
+
           toolCallLog.push({ name: result.name, durationMs: result.durationMs });
           collectedToolResults.push({ name: result.name, result: result.result });
         }
@@ -6442,6 +6486,7 @@ export async function POST(
       // Model returned a text response — we're done
       break;
     }
+    turnIterations = iterations;
 
     // Extract final text
     let text = '';
@@ -6614,9 +6659,11 @@ export async function POST(
       error: true,
       retried: true,
     });
+    turnRetried = true;
 
     const fallbackText = buildToolFallbackText(collectedToolResults, session.locale);
     if (fallbackText) {
+      turnOutcome = 'degraded';
       console.log(
         `[AI Chat] session=${sessionId.slice(0, 8)}... using tool-based fallback response`,
       );
@@ -6643,6 +6690,13 @@ export async function POST(
 
     const userErrorText = buildErrorText(classified, session.locale);
     const httpStatus = classified.category === 'rate_limit' ? 429 : 500;
+    turnOutcome = classified.category === 'timeout' ? 'timeout' : 'error';
+    turnErrorCategory = classified.category;
+    turnErrorCode = classified.category;
+    turnErrorMessageSafe =
+      classified.original instanceof Error
+        ? classified.original.message
+        : userErrorText;
 
     if (useSSE && sse) {
       sse.sendError(userErrorText);
@@ -6667,6 +6721,43 @@ export async function POST(
       trackMetrics({
         isFastPath: true,
       });
+    }
+    try {
+      const latestSession = getSession(sessionId);
+      const latestContext = latestSession?.context ?? session.context;
+      const chatHistory = latestContext.chatHistory ?? [];
+      const lastAssistantMessage = [...chatHistory]
+        .reverse()
+        .find((entry) => entry.role === 'assistant')?.content;
+
+      if (turnUsedGpt) {
+        turn.setGptCall(turnIterations).setResponseMode(turnResponseMode);
+      } else {
+        turn.setFastPath('fast-path');
+      }
+
+      if (turnRetried) {
+        turn.setRetried();
+      }
+
+      if (turnOutcome === 'degraded') {
+        turn.setDegraded();
+      } else if (turnOutcome === 'timeout') {
+        turn.setTimeout();
+      } else if (turnOutcome === 'error') {
+        turn.setError(turnErrorCategory, turnErrorCode, turnErrorMessageSafe);
+      }
+
+      if (lastAssistantMessage) {
+        turn.setAssistantMessage(lastAssistantMessage);
+      }
+
+      turn.setFunnelStage(detectFunnelStage(latestContext)).save();
+    } catch (turnSaveError) {
+      console.error(
+        `[AI Turn] session=${sessionId.slice(0, 8)}... save failed`,
+        turnSaveError,
+      );
     }
   }
 }

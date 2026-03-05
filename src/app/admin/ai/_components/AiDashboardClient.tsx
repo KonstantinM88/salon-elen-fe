@@ -514,6 +514,7 @@ function SessionsTab({
       ? sortDir === 'asc' ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />
       : <ChevronDown className="h-3 w-3 opacity-30" />
   );
+  const router = useRouter();
 
   return (
     <div className="space-y-4">
@@ -576,7 +577,11 @@ function SessionsTab({
             {sessions.length === 0 ? (
               <tr><td colSpan={8} className="px-3 py-8 text-center text-slate-500">{t.noData}</td></tr>
             ) : sessions.map((s) => (
-              <tr key={s.id} className="border-b border-white/5 transition-colors hover:bg-white/5">
+              <tr
+                key={s.id}
+                onClick={() => router.push(`/admin/ai/session/${s.sessionId}`)}
+                className="cursor-pointer border-b border-white/5 transition-colors hover:bg-white/5"
+              >
                 <td className="px-3 py-2">
                   <span className="inline-flex items-center gap-1"><Globe className="h-3 w-3 text-slate-500" />{s.locale.toUpperCase()}</span>
                 </td>

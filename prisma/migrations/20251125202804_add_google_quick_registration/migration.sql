@@ -1,5 +1,5 @@
 -- CreateTable
-CREATE TABLE "GoogleQuickRegistration" (
+CREATE TABLE IF NOT EXISTS "GoogleQuickRegistration" (
     "id" TEXT NOT NULL,
     "state" TEXT NOT NULL,
     "serviceId" TEXT NOT NULL,
@@ -16,13 +16,13 @@ CREATE TABLE "GoogleQuickRegistration" (
 );
 
 -- CreateIndex
-CREATE UNIQUE INDEX "GoogleQuickRegistration_state_key" ON "GoogleQuickRegistration"("state");
+CREATE UNIQUE INDEX IF NOT EXISTS "GoogleQuickRegistration_state_key" ON "GoogleQuickRegistration"("state");
 
 -- CreateIndex
-CREATE INDEX "GoogleQuickRegistration_state_idx" ON "GoogleQuickRegistration"("state");
+CREATE INDEX IF NOT EXISTS "GoogleQuickRegistration_state_idx" ON "GoogleQuickRegistration"("state");
 
 -- CreateIndex
-CREATE INDEX "GoogleQuickRegistration_verified_idx" ON "GoogleQuickRegistration"("verified");
+CREATE INDEX IF NOT EXISTS "GoogleQuickRegistration_verified_idx" ON "GoogleQuickRegistration"("verified");
 
 -- CreateIndex
-CREATE INDEX "GoogleQuickRegistration_expiresAt_idx" ON "GoogleQuickRegistration"("expiresAt");
+CREATE INDEX IF NOT EXISTS "GoogleQuickRegistration_expiresAt_idx" ON "GoogleQuickRegistration"("expiresAt");

@@ -4,6 +4,7 @@
 
 import type { Locale } from '@/i18n/locales';
 import { finalizeSessionAnalytics } from '@/lib/ai/ai-analytics';
+import { resetTurnCounter } from '@/lib/ai/turn-tracker';
 
 // ─── Types ──────────────────────────────────────────────────────
 
@@ -108,6 +109,7 @@ export function getSession(sessionId: string): AiSession | null {
   // Check expiry
   if (Date.now() - session.lastActiveAt.getTime() > SESSION_TTL_MS) {
     finalizeSessionAnalytics(sessionId);
+    resetTurnCounter(sessionId);
     sessions.delete(sessionId);
     return null;
   }
@@ -222,6 +224,7 @@ function cleanup() {
   for (const [id, session] of sessions.entries()) {
     if (now - session.lastActiveAt.getTime() > SESSION_TTL_MS) {
       finalizeSessionAnalytics(id);
+      resetTurnCounter(id);
       sessions.delete(id);
     }
   }
