@@ -791,3 +791,49 @@ model AiToolRun {
   @@index([toolName])
   @@map("ai_tool_run")
 }
+
+model AiContentBlock {
+  id            String   @id @default(cuid())
+  key           String   @unique @db.VarChar(128)
+  title         String   @db.VarChar(256)
+  contentDe     String   @db.Text
+  contentRu     String   @db.Text
+  contentEn     String   @db.Text
+  /// "faq"|"objection"|"aftercare"|"consultation"|"comparison"|"safety"|"upsell"|"occasion"
+  context       String   @db.VarChar(32)
+  triggerIntent String?  @db.VarChar(64)
+  priority      Int      @default(0)
+  enabled       Boolean  @default(true)
+  serviceSlug   String?  @db.VarChar(128)
+  version       Int      @default(1)
+  publishedAt   DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([context])
+  @@index([triggerIntent])
+  @@index([enabled])
+  @@map("ai_content_block")
+}
+
+model AiServiceConfig {
+  id                  String   @id @default(cuid())
+  serviceId           String   @unique
+  showInConsultation  Boolean  @default(true)
+  showInAssistantMenu Boolean  @default(true)
+  showInBooking       Boolean  @default(true)
+  aiOrder             Int      @default(100)
+  aiTags              String?  @db.VarChar(256)
+  aiDescriptionDe     String?  @db.Text
+  aiDescriptionRu     String?  @db.Text
+  aiDescriptionEn     String?  @db.Text
+  idealForDe          String?  @db.Text
+  idealForRu          String?  @db.Text
+  idealForEn          String?  @db.Text
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@index([showInConsultation])
+  @@index([aiOrder])
+  @@map("ai_service_config")
+}

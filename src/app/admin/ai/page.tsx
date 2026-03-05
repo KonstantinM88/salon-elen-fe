@@ -1,5 +1,7 @@
 // src/app/admin/ai/page.tsx
+import Link from 'next/link';
 import { Suspense } from 'react';
+import { FileText } from 'lucide-react';
 import { prisma } from '@/lib/db';
 import {
   type SearchParamsPromise,
@@ -190,9 +192,18 @@ export default async function AiDashboardPage({ searchParams }: PageProps) {
 
   return (
     <div className="min-h-screen p-4 sm:p-6">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold sm:text-3xl">{t.title}</h1>
-        <p className="mt-1 opacity-60">{t.subtitle}</p>
+      <div className="mb-6 flex items-center gap-3">
+        <div className="flex-1">
+          <h1 className="text-2xl font-bold sm:text-3xl">{t.title}</h1>
+          <p className="mt-1 opacity-60">{t.subtitle}</p>
+        </div>
+        <Link
+          href="/admin/ai/content"
+          className="flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-xs font-medium text-slate-300 transition-all hover:bg-white/10 hover:text-white"
+        >
+          <FileText className="h-4 w-4" />
+          AI Контент
+        </Link>
       </div>
 
       <div className="mb-6 max-w-md">
