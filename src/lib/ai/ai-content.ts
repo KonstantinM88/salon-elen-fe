@@ -202,9 +202,10 @@ export async function listSvcConfigs() {
 
 export async function upsertSvcConfig(serviceId: string, data: Partial<SvcConf>) {
   global.__aiSvcCache = undefined;
+  const createData = { serviceId, ...data };
   return prisma.aiServiceConfig.upsert({
     where: { serviceId },
-    create: { serviceId, ...data } as any,
+    create: createData,
     update: data,
   });
 }

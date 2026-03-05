@@ -71,7 +71,7 @@ export default function AiContentClient({ locale, initialBlocks, services, initi
         <div className="flex gap-1 rounded-xl border border-white/10 bg-white/5 p-1">
           {(['content','services'] as const).map(tb=>(
             <button key={tb} onClick={()=>setTab(tb)} className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-all ${tab===tb?'bg-violet-500/30 text-violet-300':'text-slate-400 hover:text-white'}`}>
-              {tb==='content'?<FileText className="h-3.5 w-3.5"/>:<Settings2 className="h-3.5 w-3.5"/>}{(t as any)[tb]}
+              {tb==='content'?<FileText className="h-3.5 w-3.5"/>:<Settings2 className="h-3.5 w-3.5"/>}{t[tb]}
             </button>
           ))}
         </div>
