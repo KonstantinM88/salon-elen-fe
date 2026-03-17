@@ -61,6 +61,8 @@ type AdminCopy = {
   sectionQuickLinks: string;
   masters: string;
   mastersDescription: string;
+  prices: string;
+  pricesDescription: string;
   calendar: string;
   calendarDescription: string;
   statistics: string;
@@ -113,6 +115,8 @@ const ADMIN_COPY: Record<SeoLocale, AdminCopy> = {
     sectionQuickLinks: "Schnellzugriffe",
     masters: "Mitarbeiter",
     mastersDescription: "Mitarbeiter, Leistungen, Fotos und Arbeitspläne.",
+    prices: "Preise",
+    pricesDescription: "Preisliste und Leistungen bearbeiten, inkl. Dauer und Kosten.",
     calendar: "Kalender",
     calendarDescription: "Salonplan, freie Slots und Ausnahmen nach Datum.",
     statistics: "Statistik",
@@ -182,6 +186,8 @@ const ADMIN_COPY: Record<SeoLocale, AdminCopy> = {
     sectionQuickLinks: "Быстрые ссылки",
     masters: "Мастера",
     mastersDescription: "Мастера, их услуги, фото и рабочие графики.",
+    prices: "Цены",
+    pricesDescription: "Редактирование страницы /prices: услуги, длительность и стоимость.",
     calendar: "Календарь",
     calendarDescription: "График салона, окна и исключения по датам.",
     statistics: "Статистика",
@@ -251,6 +257,8 @@ const ADMIN_COPY: Record<SeoLocale, AdminCopy> = {
     sectionQuickLinks: "Quick links",
     masters: "Masters",
     mastersDescription: "Masters, their services, photos and work schedules.",
+    prices: "Prices",
+    pricesDescription: "Edit /prices content: services, durations and pricing.",
     calendar: "Calendar",
     calendarDescription: "Salon schedule, slots and date exceptions.",
     statistics: "Statistics",
@@ -887,7 +895,7 @@ export default async function AdminDashboard({
       ═══════════════════════════════════════════════════════════════════ */}
       <section>
         <h2 className="text-lg sm:text-xl font-semibold mb-4">{t.sectionQuickLinks}</h2>
-        <div className="grid gap-3 sm:gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-3 sm:gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
           <LinkCard
             title={t.masters}
             description={t.mastersDescription}
@@ -895,6 +903,14 @@ export default async function AdminDashboard({
             icon={<UserSquare2 className="h-5 w-5" />}
             color="violet"
             cta={t.openCta}
+          />
+          <LinkCard
+            title={t.prices}
+            description={t.pricesDescription}
+            href="/admin/services"
+            icon={<Edit3 className="h-5 w-5" />}
+            color="violet"
+            cta={t.edit}
           />
           <LinkCard
             title={t.calendar}
