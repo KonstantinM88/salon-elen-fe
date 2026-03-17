@@ -280,17 +280,9 @@ function PageBackground() {
         preserveAspectRatio="none"
         viewBox="0 0 1440 120"
       >
-        <motion.path
+        <path
           fill="url(#wave-fill)"
           d="M0,60 C360,100 720,20 1080,60 C1260,80 1380,40 1440,60 L1440,120 L0,120 Z"
-          animate={{
-            d: [
-              "M0,60 C360,100 720,20 1080,60 C1260,80 1380,40 1440,60 L1440,120 L0,120 Z",
-              "M0,40 C360,80 720,40 1080,80 C1260,60 1380,80 1440,40 L1440,120 L0,120 Z",
-              "M0,60 C360,100 720,20 1080,60 C1260,80 1380,40 1440,60 L1440,120 L0,120 Z",
-            ],
-          }}
-          transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
         />
         <defs>
           <linearGradient id="wave-fill" x1="0%" y1="0%" x2="100%" y2="0%">
