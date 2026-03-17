@@ -282,6 +282,7 @@ function PageBackground() {
       >
         <motion.path
           fill="url(#wave-fill)"
+          d="M0,60 C360,100 720,20 1080,60 C1260,80 1380,40 1440,60 L1440,120 L0,120 Z"
           animate={{
             d: [
               "M0,60 C360,100 720,20 1080,60 C1260,80 1380,40 1440,60 L1440,120 L0,120 Z",

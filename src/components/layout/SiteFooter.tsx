@@ -40,7 +40,7 @@ export default function SiteFooter() {
             </div>
             <div className="flex flex-wrap items-center gap-2">
               <SocialIcon
-                href="https://instagram.com"
+                href="https://www.instagram.com/salon_elen_halle/"
                 label="Instagram"
                 icon={<Instagram className="h-4 w-4" />}
               />

@@ -152,7 +152,7 @@ const clientNav: ClientNavItem[] = [
 
 const socials: SocialItem[] = [
   {
-    href: "https://instagram.com",
+    href: "https://www.instagram.com/salon_elen_halle/",
     label: "Instagram",
     icon: Instagram,
     bgClass: "from-[#F58529] via-[#DD2A7B] to-[#8134AF]",
