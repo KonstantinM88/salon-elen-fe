@@ -70,6 +70,7 @@ export default function ServiceDetailModal({
 
   const hasImage = service.cover || service.gallery.length > 0;
   const imageUrl = service.cover || service.gallery[0]?.image;
+  const isUploadImage = imageUrl?.startsWith("/uploads/") ?? false;
 
   // ✅ Прогрев галереи: как только модалка открылась — подкачиваем первые кадры и чанк лайтбокса
   useEffect(() => {
@@ -156,6 +157,7 @@ export default function ServiceDetailModal({
                 fill
                 className="object-cover"
                 sizes="(max-width: 1024px) 100vw, 50vw"
+                unoptimized={isUploadImage}
                 priority
                 loading="eager"
                 fetchPriority="high"
@@ -240,6 +242,7 @@ export default function ServiceDetailModal({
                           fill
                           className="object-cover transition-transform duration-300 group-hover:scale-110"
                           sizes="80px"
+                          unoptimized={item.image.startsWith("/uploads/")}
                           loading="lazy"
                           decoding="async"
                         />

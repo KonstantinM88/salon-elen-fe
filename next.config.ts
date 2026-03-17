@@ -11,8 +11,8 @@ const nextConfig: NextConfig = {
     deviceSizes: [320, 360, 420, 480, 640, 750, 828, 1080, 1200, 1920, 2048],
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
     
-    // Кеширование на 30 дней
-    minimumCacheTTL: 60 * 60 * 24 * 30,
+    // Для динамически загружаемых изображений держим TTL коротким.
+    minimumCacheTTL: 60,
     
     // Если изображения на внешнем домене, раскомментируйте:
     remotePatterns: [
@@ -53,7 +53,7 @@ const nextConfig: NextConfig = {
         headers: [
           {
             key: 'Cache-Control',
-            value: 'public, max-age=31536000, immutable',
+            value: 'public, max-age=60, stale-while-revalidate=86400',
           },
         ],
       },

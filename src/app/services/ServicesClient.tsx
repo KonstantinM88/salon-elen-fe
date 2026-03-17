@@ -333,6 +333,7 @@ function ServiceCard({
 }) {
   const hasImage = service.cover || service.gallery.length > 0;
   const imageUrl = service.cover || service.gallery[0]?.image;
+  const isUploadImage = imageUrl?.startsWith("/uploads/") ?? false;
 
   return (
     <motion.div initial={false} className="group">
@@ -359,6 +360,7 @@ function ServiceCard({
               className="object-cover transition-transform duration-700 group-hover:scale-105"
               sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
               quality={60}
+              unoptimized={isUploadImage}
               priority={isPriority}
               loading={isPriority ? "eager" : "lazy"}
               fetchPriority={isPriority ? "high" : "auto"}

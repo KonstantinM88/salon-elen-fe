@@ -153,6 +153,7 @@ export default function GalleryLightbox({
 
   const currentImage = images[currentIndex];
   const swipeDirection = dragOffset > 0 ? 1 : -1;
+  const isUploadImage = currentImage?.image?.startsWith("/uploads/") ?? false;
 
   const lightbox = (
     <motion.div
@@ -252,6 +253,7 @@ export default function GalleryLightbox({
             sizes="(max-width: 640px) 95vw, 80vw"
             className="max-w-full max-h-[75vh] w-auto h-auto object-contain"
             draggable={false}
+            unoptimized={isUploadImage}
             // ✅ приоритет именно текущему кадру
             priority
             loading="eager"
