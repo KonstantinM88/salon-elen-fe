@@ -3,35 +3,25 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
-import { writeFile, mkdir, unlink } from "fs/promises";
+import { unlink } from "fs/promises";
 import { join } from "path";
-import { randomBytes } from "crypto";
+import { saveImageFile } from "@/lib/uploads";
 
-// Путь для сохранения файлов
-const UPLOAD_DIR = process.env.UPLOAD_DIR || join(process.cwd(), "public", "uploads");
+function resolveUploadsDir(): string {
+  const rawUploadDir = process.env.UPLOAD_DIR?.replace(/[\\/]+$/, "");
+  if (rawUploadDir) return rawUploadDir;
 
-// Генерация уникального имени файла
-function generateFileName(originalName: string): string {
-  const ext = originalName.split(".").pop()?.toLowerCase() || "jpg";
-  const hash = randomBytes(8).toString("hex");
-  return `${hash}.${ext}`;
+  const rawUploadsBase = process.env.UPLOADS_DIR?.replace(/[\\/]+$/, "");
+  if (!rawUploadsBase) return join(process.cwd(), "public", "uploads");
+
+  const lowered = rawUploadsBase.replace(/\\/g, "/").toLowerCase();
+  return lowered.endsWith("/uploads")
+    ? rawUploadsBase
+    : join(rawUploadsBase, "uploads");
 }
 
-// Сохранение файла
-async function saveFile(file: File): Promise<string> {
-  const bytes = await file.arrayBuffer();
-  const buffer = Buffer.from(bytes);
-  
-  const fileName = generateFileName(file.name);
-  const filePath = join(UPLOAD_DIR, fileName);
-  
-  // Создаём директорию если не существует
-  await mkdir(UPLOAD_DIR, { recursive: true });
-  
-  await writeFile(filePath, buffer);
-  
-  return `/uploads/${fileName}`;
-}
+// Путь для удаления файлов
+const UPLOAD_DIR = resolveUploadsDir();
 
 // Удаление файла
 async function deleteFile(url: string): Promise<void> {
@@ -68,8 +58,10 @@ export async function uploadGalleryImage(formData: FormData) {
       return { success: false, error: "Максимальный размер файла 10MB" };
     }
 
-    // Сохраняем файл
-    const imageUrl = await saveFile(file);
+    // Сохраняем файл (оптимизация в webp + ограничение ширины)
+    const imageUrl = (
+      await saveImageFile(file, { dir: "uploads", maxWidth: 1600 })
+    ).src;
 
     // Создаём запись в БД
     const galleryItem = await prisma.serviceGallery.create({
@@ -82,6 +74,7 @@ export async function uploadGalleryImage(formData: FormData) {
 
     revalidatePath("/admin/services");
     revalidatePath("/services");
+    revalidatePath("/gallerie");
 
     return { 
       success: true, 
@@ -119,6 +112,7 @@ export async function deleteGalleryImage(imageId: string) {
 
     revalidatePath("/admin/services");
     revalidatePath("/services");
+    revalidatePath("/gallerie");
 
     return { success: true };
   } catch (error) {
@@ -141,6 +135,7 @@ export async function updateGalleryOrder(items: { id: string; sortOrder: number 
 
     revalidatePath("/admin/services");
     revalidatePath("/services");
+    revalidatePath("/gallerie");
 
     return { success: true };
   } catch (error) {
@@ -175,8 +170,10 @@ export async function updateServiceCover(formData: FormData) {
       await deleteFile(service.cover);
     }
 
-    // Сохраняем новый файл
-    const imageUrl = await saveFile(file);
+    // Сохраняем новый файл (оптимизация в webp + ограничение ширины)
+    const imageUrl = (
+      await saveImageFile(file, { dir: "uploads", maxWidth: 1600 })
+    ).src;
 
     // Обновляем запись в БД
     await prisma.service.update({
@@ -186,6 +183,7 @@ export async function updateServiceCover(formData: FormData) {
 
     revalidatePath("/admin/services");
     revalidatePath("/services");
+    revalidatePath("/gallerie");
 
     return { success: true, cover: imageUrl };
   } catch (error) {
@@ -213,6 +211,7 @@ export async function deleteServiceCover(serviceId: string) {
 
     revalidatePath("/admin/services");
     revalidatePath("/services");
+    revalidatePath("/gallerie");
 
     return { success: true };
   } catch (error) {

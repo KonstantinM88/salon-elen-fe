@@ -21,11 +21,24 @@ function safeDir(d: string): string {
 
 /**
  * Путь к папке uploads
- * Для VPS: можно переопределить через UPLOADS_DIR в .env
+ * Для VPS: можно переопределить через UPLOADS_DIR (предпочтительно)
+ * или через совместимый UPLOAD_DIR.
  * По умолчанию: ./public/uploads
  */
 function getUploadsBasePath(): string {
-  return process.env.UPLOADS_DIR || path.join(process.cwd(), "public");
+  const rawEnv = process.env.UPLOADS_DIR || process.env.UPLOAD_DIR;
+  if (!rawEnv) return path.join(process.cwd(), "public");
+
+  const cleaned = rawEnv.replace(/[\\/]+$/, "");
+  const lowered = cleaned.replace(/\\/g, "/").toLowerCase();
+
+  // Если в env уже передали путь до .../uploads, используем его родителя
+  // чтобы ниже path.join(base, dir) не дал .../uploads/uploads.
+  if (lowered.endsWith("/uploads")) {
+    return path.dirname(cleaned);
+  }
+
+  return cleaned;
 }
 
 export async function saveImageFile(

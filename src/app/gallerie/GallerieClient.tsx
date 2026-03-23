@@ -117,6 +117,27 @@ function localeHref(path: string, locale: Locale) {
   return `${path}${path.includes("?") ? "&" : "?"}lang=${locale}`;
 }
 
+const MAX_DOME_UNIQUE_IMAGES = 32;
+const DOME_SEGMENTS = 16;
+
+function normalizeGallerySrc(src: string): string {
+  const trimmed = src?.trim() ?? "";
+  if (!trimmed) return "";
+  if (
+    trimmed.startsWith("http://") ||
+    trimmed.startsWith("https://") ||
+    trimmed.startsWith("data:") ||
+    trimmed.startsWith("blob:")
+  ) {
+    return trimmed;
+  }
+  return trimmed.startsWith("/") ? trimmed : `/${trimmed.replace(/^\/+/, "")}`;
+}
+
+function isUploadImageSrc(src: string): boolean {
+  return src.startsWith("/uploads/");
+}
+
 /* ═══════════════════════ LIGHTBOX ═══════════════════════ */
 
 function Lightbox({
@@ -135,6 +156,7 @@ function Lightbox({
   const t = t_map[locale];
   const img = images[currentIndex];
   if (!img) return null;
+  const lightboxSrc = normalizeGallerySrc(img.src);
 
   return (
     <motion.div
@@ -182,13 +204,14 @@ function Lightbox({
           onClick={(e) => e.stopPropagation()}
         >
           <Image
-            src={img.src}
+            src={lightboxSrc}
             alt={img.caption || img.serviceName}
             width={1200}
             height={900}
             className="max-w-[90vw] max-h-[85vh] object-contain rounded-xl"
             sizes="90vw"
             priority
+            unoptimized={isUploadImageSrc(lightboxSrc)}
           />
         </motion.div>
       </AnimatePresence>
@@ -219,34 +242,42 @@ function MasonryGrid({
       ref={ref}
       className={`columns-2 sm:columns-3 lg:columns-4 gap-3 space-y-3 transition-opacity duration-500 ${isInView ? "opacity-100" : "opacity-0"}`}
     >
-      {images.map((img, i) => (
-        <button
-          key={img.id}
-          onClick={() => onImageClick(i)}
-          className="group relative w-full break-inside-avoid rounded-xl overflow-hidden border border-pink-200/25 shadow-md shadow-pink-100/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-pink-500 dark:border-white/[0.06] dark:shadow-none dark:focus-visible:ring-amber-400 transition-transform duration-300 hover:scale-[1.02] hover:-translate-y-1"
-        >
-          <Image
-            src={img.src}
-            alt={img.caption || img.serviceName}
-            width={400}
-            height={500}
-            loading="lazy"
-            sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
-            className="w-full h-auto object-cover transition-transform duration-500 group-hover:scale-105"
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-3">
-            <p className="text-white text-xs font-semibold drop-shadow-lg">
-              {img.serviceName}
-            </p>
-            {img.caption && (
-              <p className="text-white/60 text-[10px] mt-0.5">
-                {img.caption}
+      {images.map((img, i) => {
+        const src = normalizeGallerySrc(img.src);
+        if (!src) return null;
+        const isUploadImage = isUploadImageSrc(src);
+
+        return (
+          <button
+            key={img.id}
+            onClick={() => onImageClick(i)}
+            className="group relative w-full break-inside-avoid rounded-xl overflow-hidden border border-pink-200/25 shadow-md shadow-pink-100/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-pink-500 dark:border-white/[0.06] dark:shadow-none dark:focus-visible:ring-amber-400 transition-transform duration-300 hover:scale-[1.02] hover:-translate-y-1"
+          >
+            <Image
+              src={src}
+              alt={img.caption || img.serviceName}
+              width={400}
+              height={500}
+              loading="lazy"
+              quality={70}
+              unoptimized={isUploadImage}
+              sizes="(max-width: 768px) 50vw, (max-width: 1280px) 33vw, 22vw"
+              className="w-full h-auto object-cover transition-transform duration-500 group-hover:scale-105"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-3">
+              <p className="text-white text-xs font-semibold drop-shadow-lg">
+                {img.serviceName}
               </p>
-            )}
-            <ZoomIn className="absolute top-2 right-2 w-4 h-4 text-white/70" />
-          </div>
-        </button>
-      ))}
+              {img.caption && (
+                <p className="text-white/60 text-[10px] mt-0.5">
+                  {img.caption}
+                </p>
+              )}
+              <ZoomIn className="absolute top-2 right-2 w-4 h-4 text-white/70" />
+            </div>
+          </button>
+        );
+      })}
     </div>
   );
 }
@@ -261,16 +292,29 @@ export default function GallerieClient({ locale, categories }: Props) {
     index: number;
   } | null>(null);
 
-  const allImages = useMemo(
-    () => categories.flatMap((c) => c.images),
+  const normalizedCategories = useMemo(
+    () =>
+      categories
+        .map((category) => ({
+          ...category,
+          images: category.images
+            .map((img) => ({ ...img, src: normalizeGallerySrc(img.src) }))
+            .filter((img) => Boolean(img.src)),
+        }))
+        .filter((category) => category.images.length > 0),
     [categories],
+  );
+
+  const allImages = useMemo(
+    () => normalizedCategories.flatMap((c) => c.images),
+    [normalizedCategories],
   );
   const filteredImages = useMemo(
     () =>
       activeCategory
-        ? categories.find((c) => c.id === activeCategory)?.images ?? []
+        ? normalizedCategories.find((c) => c.id === activeCategory)?.images ?? []
         : allImages,
-    [activeCategory, categories, allImages],
+    [activeCategory, normalizedCategories, allImages],
   );
 
   const totalImages = allImages.length;
@@ -278,7 +322,7 @@ export default function GallerieClient({ locale, categories }: Props) {
   // DomeGallery images (limit unique to reduce DOM nodes)
   const domeImages = useMemo(
     () =>
-      filteredImages.map((img) => ({
+      filteredImages.slice(0, MAX_DOME_UNIQUE_IMAGES).map((img) => ({
         src: img.src,
         alt: img.caption || img.serviceName,
       })),
@@ -357,7 +401,7 @@ export default function GallerieClient({ locale, categories }: Props) {
             </span>
           </button>
 
-          {categories.map((cat) => {
+          {normalizedCategories.map((cat) => {
             const isActive = activeCategory === cat.id;
             return (
               <button
@@ -398,10 +442,10 @@ export default function GallerieClient({ locale, categories }: Props) {
           >
             <DomeGallery
               images={domeImages}
-              fit={0.8}
+              fit={0.76}
               minRadius={500}
               maxVerticalRotationDeg={0}
-              segments={24}
+              segments={DOME_SEGMENTS}
               dragDampening={2}
               grayscale={false}
               imageBorderRadius="16px"

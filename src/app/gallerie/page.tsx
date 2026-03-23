@@ -25,6 +25,21 @@ const metaDescriptions: Record<SeoLocale, string> = {
   en: "Discover our works: permanent make-up, nail design, eyelash extensions, microneedling and more.",
 };
 
+function normalizeGallerySrc(src: string | null | undefined): string | null {
+  if (!src) return null;
+  const trimmed = src.trim();
+  if (!trimmed) return null;
+  if (
+    trimmed.startsWith("http://") ||
+    trimmed.startsWith("https://") ||
+    trimmed.startsWith("data:") ||
+    trimmed.startsWith("blob:")
+  ) {
+    return trimmed;
+  }
+  return trimmed.startsWith("/") ? trimmed : `/${trimmed.replace(/^\/+/, "")}`;
+}
+
 export async function generateMetadata({ searchParams }: { searchParams?: SearchParamsPromise }): Promise<Metadata> {
   const locale = await resolveUrlLocale(searchParams);
   const alts = buildAlternates("/gallerie", locale);
@@ -70,18 +85,24 @@ async function getGalleryData(locale: SeoLocale) {
       const images: { id: string; src: string; caption: string | null; serviceName: string }[] = [];
 
       for (const g of cat.gallery) {
-        images.push({ id: g.id, src: g.image, caption: g.caption, serviceName: categoryName });
+        const src = normalizeGallerySrc(g.image);
+        if (!src) continue;
+        images.push({ id: g.id, src, caption: g.caption, serviceName: categoryName });
       }
-      if (cat.cover) {
-        images.push({ id: `cover-${cat.id}`, src: cat.cover, caption: null, serviceName: categoryName });
+      const categoryCover = normalizeGallerySrc(cat.cover);
+      if (categoryCover) {
+        images.push({ id: `cover-${cat.id}`, src: categoryCover, caption: null, serviceName: categoryName });
       }
       for (const child of cat.children) {
         const childName = child.translations[0]?.name ?? child.name ?? categoryName;
-        if (child.cover) {
-          images.push({ id: `cover-${child.id}`, src: child.cover, caption: null, serviceName: childName });
+        const childCover = normalizeGallerySrc(child.cover);
+        if (childCover) {
+          images.push({ id: `cover-${child.id}`, src: childCover, caption: null, serviceName: childName });
         }
         for (const g of child.gallery) {
-          images.push({ id: g.id, src: g.image, caption: g.caption, serviceName: childName });
+          const src = normalizeGallerySrc(g.image);
+          if (!src) continue;
+          images.push({ id: g.id, src, caption: g.caption, serviceName: childName });
         }
       }
 
