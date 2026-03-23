@@ -1,7 +1,7 @@
 // src/app/gallerie/GallerieClient.tsx
 "use client";
 
-import { useState, useRef, useCallback, useMemo } from "react";
+import { useState, useRef, useCallback, useMemo, useEffect } from "react";
 import Image from "next/image";
 import dynamic from "next/dynamic";
 import { AnimatePresence, motion, useInView } from "framer-motion";
@@ -117,8 +117,14 @@ function localeHref(path: string, locale: Locale) {
   return `${path}${path.includes("?") ? "&" : "?"}lang=${locale}`;
 }
 
-const MAX_DOME_UNIQUE_IMAGES = 32;
-const DOME_SEGMENTS = 16;
+const DOME_DESKTOP_UNIQUE_IMAGES = 40;
+const DOME_MOBILE_UNIQUE_IMAGES = 30;
+const DOME_DESKTOP_SEGMENTS = 16;
+const DOME_MOBILE_SEGMENTS = 14;
+const DOME_DESKTOP_FIT = 0.76;
+const DOME_MOBILE_FIT = 0.68;
+const DOME_DESKTOP_MIN_RADIUS = 500;
+const DOME_MOBILE_MIN_RADIUS = 260;
 
 function normalizeGallerySrc(src: string): string {
   const trimmed = src?.trim() ?? "";
@@ -287,10 +293,25 @@ function MasonryGrid({
 export default function GallerieClient({ locale, categories }: Props) {
   const t = t_map[locale];
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
+  const [isMobileViewport, setIsMobileViewport] = useState(true);
   const [lightbox, setLightbox] = useState<{
     images: GalleryImage[];
     index: number;
   } | null>(null);
+
+  useEffect(() => {
+    const media = window.matchMedia("(max-width: 767px)");
+    const updateViewport = () => setIsMobileViewport(media.matches);
+    updateViewport();
+
+    if (typeof media.addEventListener === "function") {
+      media.addEventListener("change", updateViewport);
+      return () => media.removeEventListener("change", updateViewport);
+    }
+
+    media.addListener(updateViewport);
+    return () => media.removeListener(updateViewport);
+  }, []);
 
   const normalizedCategories = useMemo(
     () =>
@@ -319,14 +340,28 @@ export default function GallerieClient({ locale, categories }: Props) {
 
   const totalImages = allImages.length;
 
+  const domeConfig = useMemo(
+    () => ({
+      maxUniqueImages: isMobileViewport
+        ? DOME_MOBILE_UNIQUE_IMAGES
+        : DOME_DESKTOP_UNIQUE_IMAGES,
+      segments: isMobileViewport ? DOME_MOBILE_SEGMENTS : DOME_DESKTOP_SEGMENTS,
+      fit: isMobileViewport ? DOME_MOBILE_FIT : DOME_DESKTOP_FIT,
+      minRadius: isMobileViewport ? DOME_MOBILE_MIN_RADIUS : DOME_DESKTOP_MIN_RADIUS,
+      height: isMobileViewport ? "56vh" : "70vh",
+      minHeight: isMobileViewport ? "320px" : "400px",
+    }),
+    [isMobileViewport],
+  );
+
   // DomeGallery images (limit unique to reduce DOM nodes)
   const domeImages = useMemo(
     () =>
-      filteredImages.slice(0, MAX_DOME_UNIQUE_IMAGES).map((img) => ({
+      filteredImages.slice(0, domeConfig.maxUniqueImages).map((img) => ({
         src: img.src,
         alt: img.caption || img.serviceName,
       })),
-    [filteredImages]
+    [filteredImages, domeConfig.maxUniqueImages]
   );
 
   const openLightbox = useCallback(
@@ -438,14 +473,18 @@ export default function GallerieClient({ locale, categories }: Props) {
         <section className="relative z-10">
           <div
             key={activeCategory ?? "all-dome"}
-            style={{ width: "100%", height: "70vh", minHeight: "400px" }}
+            style={{
+              width: "100%",
+              height: domeConfig.height,
+              minHeight: domeConfig.minHeight,
+            }}
           >
             <DomeGallery
               images={domeImages}
-              fit={0.76}
-              minRadius={500}
+              fit={domeConfig.fit}
+              minRadius={domeConfig.minRadius}
               maxVerticalRotationDeg={0}
-              segments={DOME_SEGMENTS}
+              segments={domeConfig.segments}
               dragDampening={2}
               grayscale={false}
               imageBorderRadius="16px"

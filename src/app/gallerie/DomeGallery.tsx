@@ -824,7 +824,6 @@ export default function DomeGallery({
                     alt={it.alt}
                     loading="lazy"
                     decoding="async"
-                    fetchPriority="low"
                   />
                 </div>
               </div>
