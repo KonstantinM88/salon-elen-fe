@@ -118,7 +118,7 @@ function localeHref(path: string, locale: Locale) {
 }
 
 const DOME_DESKTOP_UNIQUE_IMAGES = 40;
-const DOME_MOBILE_UNIQUE_IMAGES = 30;
+const DOME_MOBILE_UNIQUE_IMAGES = 24;
 const DOME_DESKTOP_SEGMENTS = 16;
 const DOME_MOBILE_SEGMENTS = 14;
 const DOME_DESKTOP_FIT = 0.76;

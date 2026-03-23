@@ -113,6 +113,35 @@ function computeItemBaseRotation(
   return { rotateX, rotateY };
 }
 
+function getTileImagePriority(item: ItemDef, segments: number): {
+  loading: "eager" | "lazy";
+  decoding: "sync" | "async";
+  fetchPriority?: "high";
+} {
+  const { rotateX, rotateY } = computeItemBaseRotation(
+    item.x,
+    item.y,
+    item.sizeX,
+    item.sizeY,
+    segments
+  );
+
+  const normalizedY = normalizeAngle(rotateY);
+  const frontDistanceY = Math.min(normalizedY, 360 - normalizedY);
+  const frontDistanceX = Math.abs(rotateX);
+
+  // Give the first visible front tiles priority so mobile LCP is not lazy-loaded.
+  if (frontDistanceY <= 12 && frontDistanceX <= 12) {
+    return { loading: "eager", decoding: "sync", fetchPriority: "high" };
+  }
+
+  if (frontDistanceY <= 28 && frontDistanceX <= 28) {
+    return { loading: "eager", decoding: "async" };
+  }
+
+  return { loading: "lazy", decoding: "async" };
+}
+
 export default function DomeGallery({
   images = [],
   fit = 0.8,
@@ -792,42 +821,47 @@ export default function DomeGallery({
       <main ref={mainRef} className="sphere-main">
         <div className="stage">
           <div ref={sphereRef} className="sphere">
-            {items.map((it, i) => (
-              <div
-                key={`${it.x},${it.y},${i}`}
-                className="item"
-                data-src={it.src}
-                data-offset-x={it.x}
-                data-offset-y={it.y}
-                data-size-x={it.sizeX}
-                data-size-y={it.sizeY}
-                style={
-                  {
-                    "--offset-x": it.x,
-                    "--offset-y": it.y,
-                    "--item-size-x": it.sizeX,
-                    "--item-size-y": it.sizeY,
-                  } as React.CSSProperties
-                }
-              >
+            {items.map((it, i) => {
+              const imagePriority = getTileImagePriority(it, segments);
+
+              return (
                 <div
-                  className="item__image"
-                  role="button"
-                  tabIndex={0}
-                  aria-label={it.alt || "Open image"}
-                  onClick={onTileClick}
-                  onPointerUp={onTilePointerUp}
+                  key={`${it.x},${it.y},${i}`}
+                  className="item"
+                  data-src={it.src}
+                  data-offset-x={it.x}
+                  data-offset-y={it.y}
+                  data-size-x={it.sizeX}
+                  data-size-y={it.sizeY}
+                  style={
+                    {
+                      "--offset-x": it.x,
+                      "--offset-y": it.y,
+                      "--item-size-x": it.sizeX,
+                      "--item-size-y": it.sizeY,
+                    } as React.CSSProperties
+                  }
                 >
-                  <img
-                    src={it.src}
-                    draggable={false}
-                    alt={it.alt}
-                    loading="lazy"
-                    decoding="async"
-                  />
+                  <div
+                    className="item__image"
+                    role="button"
+                    tabIndex={0}
+                    aria-label={it.alt || "Open image"}
+                    onClick={onTileClick}
+                    onPointerUp={onTilePointerUp}
+                  >
+                    <img
+                      src={it.src}
+                      draggable={false}
+                      alt={it.alt}
+                      loading={imagePriority.loading}
+                      decoding={imagePriority.decoding}
+                      fetchPriority={imagePriority.fetchPriority}
+                    />
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
 
