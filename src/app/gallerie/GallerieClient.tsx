@@ -125,6 +125,9 @@ const DOME_DESKTOP_FIT = 0.76;
 const DOME_MOBILE_FIT = 0.68;
 const DOME_DESKTOP_MIN_RADIUS = 500;
 const DOME_MOBILE_MIN_RADIUS = 260;
+const DOME_UPLOAD_IMAGE_WIDTHS = [256, 384, 512] as const;
+const DOME_UPLOAD_IMAGE_QUALITY = 60;
+const DOME_UPLOAD_IMAGE_SIZES = "(max-width: 767px) 30vw, 16vw";
 
 function normalizeGallerySrc(src: string): string {
   const trimmed = src?.trim() ?? "";
@@ -142,6 +145,29 @@ function normalizeGallerySrc(src: string): string {
 
 function isUploadImageSrc(src: string): boolean {
   return src.startsWith("/uploads/");
+}
+
+function buildNextImageUrl(src: string, width: number, quality: number): string {
+  return `/_next/image?url=${encodeURIComponent(src)}&w=${width}&q=${quality}`;
+}
+
+function getDomeDisplayImageProps(src: string): {
+  displaySrc?: string;
+  displaySrcSet?: string;
+  sizes?: string;
+} {
+  if (!isUploadImageSrc(src)) {
+    return {};
+  }
+
+  return {
+    displaySrc: buildNextImageUrl(src, 384, DOME_UPLOAD_IMAGE_QUALITY),
+    displaySrcSet: DOME_UPLOAD_IMAGE_WIDTHS.map(
+      (width) =>
+        `${buildNextImageUrl(src, width, DOME_UPLOAD_IMAGE_QUALITY)} ${width}w`,
+    ).join(", "),
+    sizes: DOME_UPLOAD_IMAGE_SIZES,
+  };
 }
 
 /* ═══════════════════════ LIGHTBOX ═══════════════════════ */
@@ -360,6 +386,7 @@ export default function GallerieClient({ locale, categories }: Props) {
       filteredImages.slice(0, domeConfig.maxUniqueImages).map((img) => ({
         src: img.src,
         alt: img.caption || img.serviceName,
+        ...getDomeDisplayImageProps(img.src),
       })),
     [filteredImages, domeConfig.maxUniqueImages]
   );

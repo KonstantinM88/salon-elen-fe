@@ -5,7 +5,15 @@ import { useEffect, useMemo, useRef, useCallback, useState } from "react";
 import { useGesture } from "@use-gesture/react";
 import "./DomeGallery.css";
 
-type ImageItem = string | { src: string; alt?: string };
+type ImageItem =
+  | string
+  | {
+      src: string;
+      alt?: string;
+      displaySrc?: string;
+      displaySrcSet?: string;
+      sizes?: string;
+    };
 
 type DomeGalleryProps = {
   images?: ImageItem[];
@@ -29,6 +37,9 @@ type DomeGalleryProps = {
 type ItemDef = {
   src: string;
   alt: string;
+  displaySrc?: string;
+  displaySrcSet?: string;
+  sizes?: string;
   x: number;
   y: number;
   sizeX: number;
@@ -72,7 +83,13 @@ function buildItems(pool: ImageItem[], seg: number): ItemDef[] {
 
   const normalizedImages = pool.map((image) => {
     if (typeof image === "string") return { src: image, alt: "" };
-    return { src: image.src || "", alt: image.alt || "" };
+    return {
+      src: image.src || "",
+      alt: image.alt || "",
+      displaySrc: image.displaySrc || "",
+      displaySrcSet: image.displaySrcSet || "",
+      sizes: image.sizes || "",
+    };
   });
 
   const usedImages = Array.from(
@@ -97,6 +114,9 @@ function buildItems(pool: ImageItem[], seg: number): ItemDef[] {
     ...c,
     src: usedImages[i].src,
     alt: usedImages[i].alt,
+    displaySrc: usedImages[i].displaySrc,
+    displaySrcSet: usedImages[i].displaySrcSet,
+    sizes: usedImages[i].sizes,
   }));
 }
 
@@ -851,7 +871,9 @@ export default function DomeGallery({
                     onPointerUp={onTilePointerUp}
                   >
                     <img
-                      src={it.src}
+                      src={it.displaySrc || it.src}
+                      srcSet={it.displaySrcSet || undefined}
+                      sizes={it.sizes || undefined}
                       draggable={false}
                       alt={it.alt}
                       loading={imagePriority.loading}
