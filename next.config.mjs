@@ -6,7 +6,9 @@ const nextConfig = {
     images: {
       remotePatterns: [{ protocol: "https", hostname: "lbar.com.ua" }],
       formats: ["image/avif", "image/webp"],
-      deviceSizes: [360, 640, 768, 1024, 1280, 1536, 1920, 2400],
+      qualities: [60, 70, 75],
+      deviceSizes: [320, 360, 420, 480, 640, 750, 828, 1080, 1200, 1920, 2048, 2400],
+      imageSizes: [16, 32, 48, 64, 96, 128, 256, 384, 480],
       // Минимальный кэш для динамических изображений
       minimumCacheTTL: 0,
     },

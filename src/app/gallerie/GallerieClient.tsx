@@ -110,7 +110,7 @@ const DOME_DESKTOP_FIT = 0.76;
 const DOME_MOBILE_FIT = 0.78;
 const DOME_DESKTOP_MIN_RADIUS = 500;
 const DOME_MOBILE_MIN_RADIUS = 420;
-const DOME_UPLOAD_IMAGE_WIDTHS = [256, 384, 512] as const;
+const DOME_UPLOAD_IMAGE_WIDTHS = [256, 384, 480] as const;
 const DOME_UPLOAD_IMAGE_QUALITY = 60;
 const DOME_UPLOAD_IMAGE_SIZES = "(max-width: 767px) 30vw, 16vw";
 
@@ -146,7 +146,7 @@ function getDomeDisplayImageProps(src: string): {
   }
 
   return {
-    displaySrc: buildNextImageUrl(src, 384, DOME_UPLOAD_IMAGE_QUALITY),
+    displaySrc: buildNextImageUrl(src, 480, DOME_UPLOAD_IMAGE_QUALITY),
     displaySrcSet: DOME_UPLOAD_IMAGE_WIDTHS.map(
       (width) =>
         `${buildNextImageUrl(src, width, DOME_UPLOAD_IMAGE_QUALITY)} ${width}w`,
@@ -276,7 +276,7 @@ function MasonryGrid({
               width={400}
               height={500}
               loading="lazy"
-              quality={70}
+              quality={isUploadImage ? undefined : 70}
               unoptimized={isUploadImage}
               sizes="(max-width: 768px) 50vw, (max-width: 1280px) 33vw, 22vw"
               className="w-full h-auto object-cover transition-transform duration-500 group-hover:scale-105"
@@ -500,9 +500,7 @@ export default function GallerieClient({ locale, categories }: Props) {
               dragDampening={2}
               grayscale={false}
               imageBorderRadius="16px"
-              openedImageBorderRadius="16px"
-              openedImageWidth="min(600px, 85vw)"
-              openedImageHeight="min(600px, 85vw)"
+              openedImageBorderRadius="28px"
             />
           </div>
         </section>

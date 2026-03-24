@@ -6,6 +6,7 @@ const nextConfig: NextConfig = {
   images: {
     // Форматы: сначала AVIF (лучшее сжатие), потом WebP
     formats: ['image/avif', 'image/webp'],
+    qualities: [60, 70, 75],
     
     // Размеры для srcset
     deviceSizes: [320, 360, 420, 480, 640, 750, 828, 1080, 1200, 1920, 2048],
