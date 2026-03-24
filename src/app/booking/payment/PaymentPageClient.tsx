@@ -3,7 +3,6 @@
 "use client";
 
 import * as React from "react";
-import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import dynamic from 'next/dynamic';
@@ -90,6 +89,11 @@ function FloatingParticles() {
 interface PageShellProps {
   children: React.ReactNode;
   bookingSteps: Array<{ id: string; label: string; icon: string }>;
+}
+
+interface PaymentPageClientProps {
+  appointmentId: string;
+  initialPaymentAmount?: number;
 }
 
 function PageShell({ children, bookingSteps }: PageShellProps): React.JSX.Element {
@@ -205,9 +209,10 @@ function VideoSection(): React.JSX.Element {
   );
 }
 
-export default function PaymentPageClient(): React.JSX.Element {
-  const searchParams = useSearchParams();
-  const router = useRouter();
+export default function PaymentPageClient({
+  appointmentId,
+  initialPaymentAmount = 5000,
+}: PaymentPageClientProps): React.JSX.Element {
   const t = useTranslations();
   const { locale } = useLocale();
 
@@ -220,33 +225,13 @@ export default function PaymentPageClient(): React.JSX.Element {
     { id: "payment", label: t("booking_step_payment"), icon: "💳" },
   ], [t]);
 
-  const appointmentId = searchParams.get("appointment") ?? "";
-
   const [selectedMethod, setSelectedMethod] = React.useState<PaymentMethod>("onsite");
   const [error, setError] = React.useState<string | null>(null);
   const [showModal, setShowModal] = React.useState(false);
   const [clientSecret, setClientSecret] = React.useState<string | null>(null);
-  const [paymentAmount, setPaymentAmount] = React.useState<number>(5000);
+  const paymentAmount = initialPaymentAmount;
   const [isCreatingPayment, setIsCreatingPayment] = React.useState(false);
-
-  React.useEffect(() => {
-    if (appointmentId) {
-      loadAppointmentData();
-    }
-  }, [appointmentId]);
-
-  const loadAppointmentData = async () => {
-    try {
-      const response = await fetch(`/api/appointments/${appointmentId}`);
-      if (!response.ok) throw new Error('Failed to load appointment');
-      
-      const appointment = await response.json();
-      setPaymentAmount(appointment.totalPrice || 5000);
-    } catch (error) {
-      console.error('Error loading appointment:', error);
-      setPaymentAmount(5000);
-    }
-  };
+  const confirmInFlightRef = React.useRef(false);
 
   const createStripePayment = async () => {
     if (!appointmentId) return;
@@ -389,41 +374,47 @@ export default function PaymentPageClient(): React.JSX.Element {
     }
   };
 
- const handleConfirm = async (): Promise<void> => {
-  if (!appointmentId) {
-    setError(t("booking_payment_error_missing"));
-    return;
-  }
-
-  setError(null);
-  setIsCreatingPayment(true);
-
-  try {
-    const response = await fetch('/api/booking/confirm-onsite-payment', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ appointmentId }),
-    });
-
-    const data = await response.json();
-
-    if (!response.ok || !data.success) {
-      throw new Error(data.error || 'Failed to confirm payment');
+  const handleConfirm = async (): Promise<void> => {
+    if (!appointmentId) {
+      setError(t("booking_payment_error_missing"));
+      return;
     }
 
-    console.log('✅ [Onsite Payment] Confirmed successfully');
-    setShowModal(true);
-  } catch (error) {
-    console.error('❌ [Onsite Payment] Error:', error);
-    setError(
-      error instanceof Error 
-        ? error.message 
-        : 'Failed to confirm payment. Please try again.'
-    );
-  } finally {
-    setIsCreatingPayment(false);
-  }
-};
+    if (confirmInFlightRef.current) {
+      return;
+    }
+
+    setError(null);
+    confirmInFlightRef.current = true;
+    setIsCreatingPayment(true);
+
+    try {
+      const response = await fetch('/api/booking/confirm-onsite-payment', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ appointmentId }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || 'Failed to confirm payment');
+      }
+
+      console.log('✅ [Onsite Payment] Confirmed successfully');
+      setShowModal(true);
+    } catch (error) {
+      console.error('❌ [Onsite Payment] Error:', error);
+      setError(
+        error instanceof Error
+          ? error.message
+          : 'Failed to confirm payment. Please try again.'
+      );
+    } finally {
+      confirmInFlightRef.current = false;
+      setIsCreatingPayment(false);
+    }
+  };
 
   if (!appointmentId) {
     return (
@@ -751,9 +742,10 @@ export default function PaymentPageClient(): React.JSX.Element {
                         <motion.button
                           type="button"
                           onClick={handleConfirm}
+                          disabled={isCreatingPayment || showModal}
                           whileHover={{ scale: 1.02 }}
                           whileTap={{ scale: 0.98 }}
-                          className="inline-flex w-full items-center justify-center gap-2 rounded-xl md:rounded-2xl bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-500 px-5 py-3.5 md:px-6 md:py-4 text-sm md:text-base font-bold text-black shadow-[0_0_30px_rgba(251,191,36,0.7)] transition-all hover:shadow-[0_0_40px_rgba(251,191,36,0.9)]"
+                          className="inline-flex w-full items-center justify-center gap-2 rounded-xl md:rounded-2xl bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-500 px-5 py-3.5 md:px-6 md:py-4 text-sm md:text-base font-bold text-black shadow-[0_0_30px_rgba(251,191,36,0.7)] transition-all hover:shadow-[0_0_40px_rgba(251,191,36,0.9)] disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:shadow-[0_0_30px_rgba(251,191,36,0.7)]"
                         >
                           <CheckCircle2 className="h-4 w-4 md:h-5 md:w-5" />
                           {t("booking_payment_confirm_button")}

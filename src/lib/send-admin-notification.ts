@@ -47,6 +47,10 @@ async function sendTelegramAdminMarkdownMessage(message: string): Promise<void> 
     return;
   }
 
+  console.log(
+    `[Admin Notification] Sending Telegram notification to ${adminChatIds.length} admin(s): ${adminChatIds.join(', ')}`
+  );
+
   const webhookUrl = `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/telegram/webhook`;
   const results = await Promise.allSettled(
     adminChatIds.map(async (chatId) => {

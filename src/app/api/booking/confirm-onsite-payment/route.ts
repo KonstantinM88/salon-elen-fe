@@ -15,11 +15,14 @@ type ConfirmOnsiteResponse =
   | {
       success: true;
       message: string;
+      alreadyConfirmed?: boolean;
     }
   | {
       success: false;
       error: string;
     };
+
+const ONSITE_PAYMENT_NOTE = 'Клиент выбрал оплату в салоне';
 
 export async function POST(
   request: NextRequest
@@ -38,75 +41,117 @@ export async function POST(
       );
     }
 
-    // Получаем appointment с include для уведомления
-    const appointment = await prisma.appointment.findUnique({
-      where: { id: appointmentId },
-      include: {
-        service: {
-          select: {
-            name: true,
-            parent: {
-              select: {
-                name: true,
+    const confirmationResult = await prisma.$transaction(async (tx) => {
+      await tx.$queryRaw`
+        SELECT 1
+        FROM "Appointment"
+        WHERE "id" = ${appointmentId}
+        FOR UPDATE
+      `;
+
+      const appointment = await tx.appointment.findUnique({
+        where: { id: appointmentId },
+        select: {
+          id: true,
+          notes: true,
+          customerName: true,
+          phone: true,
+          email: true,
+          masterId: true,
+          startAt: true,
+          endAt: true,
+          paymentStatus: true,
+          locale: true,
+          service: {
+            select: {
+              name: true,
+              parent: {
+                select: {
+                  name: true,
+                },
               },
             },
           },
-        },
-        master: {
-          select: {
-            name: true,
+          master: {
+            select: {
+              name: true,
+            },
           },
         },
-      },
+      });
+
+      if (!appointment) {
+        return { type: 'not_found' as const };
+      }
+
+      if ((appointment.notes || '').includes(ONSITE_PAYMENT_NOTE)) {
+        return {
+          type: 'already_confirmed' as const,
+          appointment,
+        };
+      }
+
+      const newNotes = appointment.notes
+        ? `${ONSITE_PAYMENT_NOTE}\n${appointment.notes}`
+        : ONSITE_PAYMENT_NOTE;
+
+      const updated = await tx.appointment.update({
+        where: { id: appointmentId },
+        data: {
+          notes: newNotes,
+          // paymentStatus остаётся PENDING - клиент оплатит при визите
+        },
+        select: {
+          id: true,
+          customerName: true,
+          phone: true,
+          email: true,
+          masterId: true,
+          startAt: true,
+          endAt: true,
+          paymentStatus: true,
+          locale: true, // ✅ Явно выбираем locale
+          service: {
+            select: {
+              name: true,
+              parent: {
+                select: {
+                  name: true,
+                },
+              },
+            },
+          },
+          master: {
+            select: {
+              name: true,
+            },
+          },
+        },
+      });
+
+      return {
+        type: 'updated' as const,
+        appointment: updated,
+      };
     });
 
-    if (!appointment) {
+    if (confirmationResult.type === 'not_found') {
       return NextResponse.json(
         { success: false, error: 'Appointment not found' },
         { status: 404 }
       );
     }
 
-    // Обновляем appointment - добавляем note о выборе оплаты в салоне
-    const existingNotes = appointment.notes || '';
-    const onsiteNote = 'Клиент выбрал оплату в салоне';
-    const newNotes = existingNotes
-      ? `${onsiteNote}\n${existingNotes}`
-      : onsiteNote;
+    if (confirmationResult.type === 'already_confirmed') {
+      console.log('ℹ️ [Onsite Payment] Already confirmed, skipping notifications:', appointmentId);
+      return NextResponse.json({
+        success: true,
+        message: 'Onsite payment already confirmed',
+        alreadyConfirmed: true,
+      });
+    }
 
-    const updated = await prisma.appointment.update({
-      where: { id: appointmentId },
-      data: {
-        notes: newNotes,
-        // paymentStatus остаётся PENDING - клиент оплатит при визите
-      },
-      select: {
-        id: true,
-        customerName: true,
-        phone: true,
-        email: true,
-        masterId: true,
-        startAt: true,
-        endAt: true,
-        paymentStatus: true,
-        locale: true, // ✅ Явно выбираем locale
-        service: {
-          select: {
-            name: true,
-            parent: {
-              select: {
-                name: true,
-              },
-            },
-          },
-        },
-        master: {
-          select: {
-            name: true,
-          },
-        },
-      },
-    });
+    const updated = confirmationResult.appointment;
 
     console.log('✅ [Onsite Payment] Appointment updated:', appointmentId);
 

@@ -308,6 +308,10 @@ export async function notifyAdminNewAppointment(
       return false;
     }
 
+    console.log(
+      `[Telegram Bot] Sending admin notification to ${adminChatIds.length} admin(s): ${adminChatIds.join(", ")}`
+    );
+
     // Форматируем дату и время
     const dateStr = formatDate(appointment.startAt, resolvedLocale);
     const timeStr = formatTime(appointment.startAt, resolvedLocale);
