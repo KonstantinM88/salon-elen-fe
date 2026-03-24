@@ -3,6 +3,7 @@
 
 import { AppointmentStatus } from "@prisma/client";
 import { ORG_TZ } from "@/lib/orgTime";
+import { parseTelegramAdminChatIds } from "@/lib/telegram-admin-chat-ids";
 import { isPhoneDigitsValid, normalizePhoneDigits } from "@/lib/phone";
 import { DEFAULT_LOCALE, LOCALES, type Locale } from "@/i18n/locales";
 import { translate, type MessageKey } from "@/i18n/messages";
@@ -295,14 +296,14 @@ export async function notifyAdminNewAppointment(
     const resolvedLocale = resolveLocale(locale);
     const t = (key: MessageKey) => translate(resolvedLocale, key);
     const token = process.env.TELEGRAM_BOT_TOKEN;
-    const adminChatId = process.env.TELEGRAM_ADMIN_CHAT_ID;
+    const adminChatIds = parseTelegramAdminChatIds();
 
     if (!token) {
       console.error("[Telegram Bot] TELEGRAM_BOT_TOKEN не установлен");
       return false;
     }
 
-    if (!adminChatId) {
+    if (adminChatIds.length === 0) {
       console.error("[Telegram Bot] TELEGRAM_ADMIN_CHAT_ID не установлен");
       return false;
     }
@@ -349,37 +350,51 @@ export async function notifyAdminNewAppointment(
       },
     };
 
-    // Отправляем сообщение
-    const response = await fetch(
-      `${TELEGRAM_API_URL}/bot${token}/sendMessage`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          chat_id: adminChatId,
-          text: message,
-          ...options,
-        }),
-      }
+    const results = await Promise.allSettled(
+      adminChatIds.map(async (chatId) => {
+        const response = await fetch(
+          `${TELEGRAM_API_URL}/bot${token}/sendMessage`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              chat_id: chatId,
+              text: message,
+              ...options,
+            }),
+          }
+        );
+
+        const data =
+          (await response.json()) as TelegramApiResponse<TelegramMessage>;
+
+        if (!data.ok) {
+          throw new Error(
+            `[Telegram Bot] Ошибка отправки уведомления админу ${chatId}: ${data.description}`
+          );
+        }
+      })
     );
 
-    const data =
-      (await response.json()) as TelegramApiResponse<TelegramMessage>;
+    const failedResults = results.filter(
+      (result): result is PromiseRejectedResult => result.status === "rejected"
+    );
 
-    if (!data.ok) {
-      console.error(
-        "[Telegram Bot] Ошибка отправки уведомления админу:",
-        data.description
-      );
+    failedResults.forEach((result) => {
+      console.error(result.reason);
+    });
+
+    const successCount = results.length - failedResults.length;
+    if (successCount === 0) {
       return false;
     }
 
     console.log(
-      `[Telegram Bot] ✅ Уведомление о записи ${appointment.id} отправлено админу`
+      `[Telegram Bot] ✅ Уведомление о записи ${appointment.id} отправлено ${successCount}/${adminChatIds.length} администраторам`
     );
-    return true;
+    return successCount > 0;
   } catch (error) {
     console.error("[Telegram Bot] Ошибка отправки уведомления админу:", error);
     return false;

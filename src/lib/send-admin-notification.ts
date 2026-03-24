@@ -2,6 +2,7 @@
 // Универсальная функция для отправки уведомлений администратору
 
 import { ORG_TZ } from "@/lib/orgTime";
+import { parseTelegramAdminChatIds } from "@/lib/telegram-admin-chat-ids";
 
 interface AppointmentData {
   id: string;
@@ -39,27 +40,43 @@ function escapeMarkdown(value: string): string {
 }
 
 async function sendTelegramAdminMarkdownMessage(message: string): Promise<void> {
-  const adminChatId = process.env.TELEGRAM_ADMIN_CHAT_ID;
+  const adminChatIds = parseTelegramAdminChatIds();
 
-  if (!adminChatId) {
+  if (adminChatIds.length === 0) {
     console.warn('[Admin Notification] TELEGRAM_ADMIN_CHAT_ID not configured - skipping notification');
     return;
   }
 
   const webhookUrl = `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/telegram/webhook`;
+  const results = await Promise.allSettled(
+    adminChatIds.map(async (chatId) => {
+      const response = await fetch(
+        `${webhookUrl}?action=notify&chatId=${encodeURIComponent(chatId)}`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ message }),
+        },
+      );
 
-  const response = await fetch(`${webhookUrl}?action=notify&chatId=${adminChatId}`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ message }),
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(
+          `[Admin Notification] Failed for ${chatId}: ${JSON.stringify(errorData)}`,
+        );
+      }
+    }),
+  );
+
+  const failedResults = results.filter(
+    (result): result is PromiseRejectedResult => result.status === 'rejected',
+  );
+
+  failedResults.forEach((result) => {
+    console.error('[Admin Notification] Failed to send:', result.reason);
   });
-
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    console.error('[Admin Notification] Failed to send:', errorData);
-  }
 }
 
 /**

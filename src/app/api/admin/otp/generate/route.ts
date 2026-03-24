@@ -2,6 +2,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
+import {
+  getSingleTelegramAdminChatId,
+  parseTelegramAdminChatIds,
+} from "@/lib/telegram-admin-chat-ids";
 
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '';
 const TELEGRAM_API_URL = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}`;
@@ -128,9 +132,18 @@ ${resourceName ? `👤 <b>Имя:</b> ${resourceName}\n` : ''}
 
     // Попытка 2: Использовать ENV переменную
     if (!chatId && process.env.TELEGRAM_ADMIN_CHAT_ID) {
-      chatId = process.env.TELEGRAM_ADMIN_CHAT_ID;
-      foundMethod = 'env';
-      console.log(`[Admin OTP] Using TELEGRAM_ADMIN_CHAT_ID from ENV: ${chatId}`);
+      const singleEnvChatId = getSingleTelegramAdminChatId();
+
+      if (singleEnvChatId) {
+        chatId = singleEnvChatId;
+        foundMethod = 'env';
+        console.log(`[Admin OTP] Using TELEGRAM_ADMIN_CHAT_ID from ENV: ${chatId}`);
+      } else {
+        const envAdminChatIds = parseTelegramAdminChatIds();
+        console.warn(
+          `[Admin OTP] Multiple TELEGRAM_ADMIN_CHAT_ID values configured (${envAdminChatIds.join(", ")}). Email-linked Telegram account required for secure OTP delivery.`,
+        );
+      }
     }
 
     // Если chat_id найден - отправить код
@@ -175,7 +188,7 @@ ${resourceName ? `👤 <b>Имя:</b> ${resourceName}\n` : ''}
       warning: 'Admin Telegram account not linked. Check server logs for code.',
       // ⚠️ ВРЕМЕННО для отладки - удали в продакшене!
       code: code,
-      hint: 'Link your Telegram account or set TELEGRAM_ADMIN_CHAT_ID in .env.local',
+      hint: 'Link your Telegram account by email or set a single TELEGRAM_ADMIN_CHAT_ID in .env.local',
     });
 
   } catch (error) {

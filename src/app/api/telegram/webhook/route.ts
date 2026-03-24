@@ -3,6 +3,7 @@
   import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { isPhoneDigitsValid, normalizePhoneDigits } from '@/lib/phone';
+import { parseTelegramAdminChatIds } from '@/lib/telegram-admin-chat-ids';
 
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '';
 const TELEGRAM_API_URL = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}`;
@@ -93,29 +94,47 @@ const formatDeepLinkPhone = (value: string): string | null => {
       
       // ✅ НОВОЕ: Если это запрос на отправку уведомления администратору
       if (action === 'notify') {
-        const chatId = url.searchParams.get('chatId');
+        const chatIdParam = url.searchParams.get('chatId');
         const body = await request.json();
         const message = body.message;
+        const adminChatIds = parseTelegramAdminChatIds(chatIdParam);
         
-        if (!chatId || !message) {
+        if (adminChatIds.length === 0 || !message) {
           return NextResponse.json(
             { error: 'Missing chatId or message' },
             { status: 400 }
           );
         }
         
-        console.log('[Telegram Webhook] Sending notification to:', chatId);
-        
-        const result = await sendTelegramMessageMarkdown(chatId, message);
-        
-        if (!result.success) {
+        console.log('[Telegram Webhook] Sending notification to:', adminChatIds.join(', '));
+
+        const results = await Promise.allSettled(
+          adminChatIds.map((chatId) => sendTelegramMessageMarkdown(chatId, message))
+        );
+
+        const failedDetails = results.flatMap((result) => {
+          if (result.status === 'rejected') {
+            return [result.reason];
+          }
+
+          if (!result.value.success) {
+            return [result.value.error];
+          }
+
+          return [];
+        });
+
+        if (failedDetails.length > 0) {
           return NextResponse.json(
-            { error: 'Failed to send message', details: result.error },
+            {
+              error: 'Failed to send message',
+              details: failedDetails,
+            },
             { status: 500 }
           );
         }
         
-        return NextResponse.json({ success: true });
+        return NextResponse.json({ success: true, sentTo: adminChatIds.length });
       }
       
       // ✅ Иначе это обычный webhook от Telegram
