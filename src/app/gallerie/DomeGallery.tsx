@@ -150,13 +150,9 @@ function getTileImagePriority(item: ItemDef, segments: number): {
   const frontDistanceY = Math.min(normalizedY, 360 - normalizedY);
   const frontDistanceX = Math.abs(rotateX);
 
-  // Give the first visible front tiles priority so mobile LCP is not lazy-loaded.
-  if (frontDistanceY <= 12 && frontDistanceX <= 12) {
+  // Only the very front tile should compete for mobile LCP.
+  if (frontDistanceY <= 10 && frontDistanceX <= 10) {
     return { loading: "eager", decoding: "sync", fetchPriority: "high" };
-  }
-
-  if (frontDistanceY <= 28 && frontDistanceX <= 28) {
-    return { loading: "eager", decoding: "async" };
   }
 
   return { loading: "lazy", decoding: "async" };

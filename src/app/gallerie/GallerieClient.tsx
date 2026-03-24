@@ -3,8 +3,8 @@
 
 import { useState, useRef, useCallback, useMemo, useEffect } from "react";
 import Image from "next/image";
-import dynamic from "next/dynamic";
 import { AnimatePresence, motion, useInView } from "framer-motion";
+import DomeGallery from "./DomeGallery";
 import {
   Sparkles,
   ZoomIn,
@@ -15,21 +15,6 @@ import {
   ChevronLeft,
 } from "lucide-react";
 import type { Locale } from "@/i18n/locales";
-
-/* ═══════ Lazy-load DomeGallery (biggest perf win) ═══════ */
-const DomeGallery = dynamic(() => import("./DomeGallery"), {
-  ssr: false,
-  loading: () => (
-    <div className="w-full h-full flex items-center justify-center">
-      <div className="flex flex-col items-center gap-3">
-        <div className="w-10 h-10 rounded-full border-2 border-pink-300/40 border-t-pink-500 dark:border-amber-500/30 dark:border-t-amber-400 animate-spin" />
-        <span className="text-sm text-pink-400/60 dark:text-amber-400/50 font-cormorant tracking-wide">
-          Loading gallery...
-        </span>
-      </div>
-    </div>
-  ),
-});
 
 /* ═══════════════════════ TYPES ═══════════════════════ */
 
@@ -118,13 +103,13 @@ function localeHref(path: string, locale: Locale) {
 }
 
 const DOME_DESKTOP_UNIQUE_IMAGES = 40;
-const DOME_MOBILE_UNIQUE_IMAGES = 24;
+const DOME_MOBILE_UNIQUE_IMAGES = 30;
 const DOME_DESKTOP_SEGMENTS = 16;
-const DOME_MOBILE_SEGMENTS = 14;
+const DOME_MOBILE_SEGMENTS = 20;
 const DOME_DESKTOP_FIT = 0.76;
-const DOME_MOBILE_FIT = 0.68;
+const DOME_MOBILE_FIT = 0.78;
 const DOME_DESKTOP_MIN_RADIUS = 500;
-const DOME_MOBILE_MIN_RADIUS = 260;
+const DOME_MOBILE_MIN_RADIUS = 420;
 const DOME_UPLOAD_IMAGE_WIDTHS = [256, 384, 512] as const;
 const DOME_UPLOAD_IMAGE_QUALITY = 60;
 const DOME_UPLOAD_IMAGE_SIZES = "(max-width: 767px) 30vw, 16vw";
@@ -374,8 +359,8 @@ export default function GallerieClient({ locale, categories }: Props) {
       segments: isMobileViewport ? DOME_MOBILE_SEGMENTS : DOME_DESKTOP_SEGMENTS,
       fit: isMobileViewport ? DOME_MOBILE_FIT : DOME_DESKTOP_FIT,
       minRadius: isMobileViewport ? DOME_MOBILE_MIN_RADIUS : DOME_DESKTOP_MIN_RADIUS,
-      height: isMobileViewport ? "56vh" : "70vh",
-      minHeight: isMobileViewport ? "320px" : "400px",
+      height: isMobileViewport ? "64vh" : "70vh",
+      minHeight: isMobileViewport ? "360px" : "400px",
     }),
     [isMobileViewport],
   );
