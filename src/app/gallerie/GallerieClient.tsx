@@ -499,8 +499,6 @@ export default function GallerieClient({ locale, categories }: Props) {
               segments={domeConfig.segments}
               dragDampening={2}
               grayscale={false}
-              interactive={!isMobileViewport}
-              autoRotate={!isMobileViewport}
               imageBorderRadius="16px"
               openedImageBorderRadius="16px"
               openedImageWidth="min(600px, 85vw)"

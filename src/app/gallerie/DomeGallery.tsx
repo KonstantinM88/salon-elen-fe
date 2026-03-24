@@ -32,8 +32,6 @@ type DomeGalleryProps = {
   imageBorderRadius?: string;
   openedImageBorderRadius?: string;
   grayscale?: boolean;
-  interactive?: boolean;
-  autoRotate?: boolean;
 };
 
 type ItemDef = {
@@ -177,8 +175,6 @@ export default function DomeGallery({
   imageBorderRadius = "20px",
   openedImageBorderRadius = "20px",
   grayscale = false,
-  interactive = true,
-  autoRotate = true,
 }: DomeGalleryProps) {
   const rootRef = useRef<HTMLDivElement>(null);
   const mainRef = useRef<HTMLDivElement>(null);
@@ -343,8 +339,6 @@ export default function DomeGallery({
   // ── Auto-rotation: slow continuous spin when idle ──
   const AUTO_ROTATE_SPEED = 0.015; // degrees per frame (~0.9°/sec at 60fps)
   useEffect(() => {
-    if (!autoRotate) return;
-
     let running = true;
 
     const tick = () => {
@@ -373,7 +367,7 @@ export default function DomeGallery({
         autoRotateRAF.current = null;
       }
     };
-  }, [autoRotate]);
+  }, []);
 
   const stopInertia = useCallback(() => {
     if (inertiaRAF.current) {
@@ -646,19 +640,17 @@ export default function DomeGallery({
 
   const onTileClick = useCallback(
     (e: React.MouseEvent<HTMLDivElement>) => {
-      if (!interactive) return;
       if (draggingRef.current) return;
       if (movedRef.current) return;
       if (performance.now() - lastDragEndAt.current < 80) return;
       if (openingRef.current) return;
       openItemFromElement(e.currentTarget);
     },
-    [interactive, openItemFromElement]
+    [openItemFromElement]
   );
 
   const onTilePointerUp = useCallback(
     (e: React.PointerEvent<HTMLDivElement>) => {
-      if (!interactive) return;
       if (e.pointerType !== "touch") return;
       if (draggingRef.current) return;
       if (movedRef.current) return;
@@ -666,7 +658,7 @@ export default function DomeGallery({
       if (openingRef.current) return;
       openItemFromElement(e.currentTarget);
     },
-    [interactive, openItemFromElement]
+    [openItemFromElement]
   );
 
   useEffect(() => {
@@ -868,11 +860,11 @@ export default function DomeGallery({
                 >
                   <div
                     className="item__image"
-                    role={interactive ? "button" : undefined}
-                    tabIndex={interactive ? 0 : undefined}
-                    aria-label={interactive ? it.alt || "Open image" : undefined}
-                    onClick={interactive ? onTileClick : undefined}
-                    onPointerUp={interactive ? onTilePointerUp : undefined}
+                    role="button"
+                    tabIndex={0}
+                    aria-label={it.alt || "Open image"}
+                    onClick={onTileClick}
+                    onPointerUp={onTilePointerUp}
                   >
                     <img
                       src={it.displaySrc || it.src}
@@ -896,12 +888,10 @@ export default function DomeGallery({
         <div className="edge-fade edge-fade--top" />
         <div className="edge-fade edge-fade--bottom" />
 
-        {interactive && (
-          <div className="viewer" ref={viewerRef}>
-            <div ref={scrimRef} className="scrim" />
-            <div ref={frameRef} className="frame" />
-          </div>
-        )}
+        <div className="viewer" ref={viewerRef}>
+          <div ref={scrimRef} className="scrim" />
+          <div ref={frameRef} className="frame" />
+        </div>
       </main>
     </div>
   );
