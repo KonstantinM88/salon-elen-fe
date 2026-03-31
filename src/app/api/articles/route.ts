@@ -2,6 +2,8 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { withAdminRoute } from "@/lib/route-guards";
+import { revalidateTag } from "next/cache";
+import { HOME_LATEST_ARTICLES_TAG } from "@/lib/cache-tags";
 
 // ===== READ-ONLY (публично) =====
 export async function GET() {
@@ -26,6 +28,7 @@ export async function GET() {
 async function postHandler(req: Request) {
   const data = await req.json();
   const created = await prisma.article.create({ data });
+  revalidateTag(HOME_LATEST_ARTICLES_TAG);
   return NextResponse.json(created);
 }
 export const POST = withAdminRoute(postHandler);

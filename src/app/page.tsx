@@ -2,6 +2,7 @@
 import { prisma } from "@/lib/db";
 import HomePage from "@/components/home-page";
 import type { Metadata } from "next";
+import { unstable_cache } from "next/cache";
 import {
   resolveUrlLocale,
   buildAlternates,
@@ -9,8 +10,9 @@ import {
   type SeoLocale,
   type SearchParamsPromise,
 } from "@/lib/seo-locale";
+import { HOME_LATEST_ARTICLES_TAG } from "@/lib/cache-tags";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 3600;
 
 type KnownType = "ARTICLE" | "NEWS" | "PROMO";
 
@@ -73,22 +75,26 @@ export async function generateMetadata({
   };
 }
 
-async function getLatestArticles(): Promise<ArticleItem[]> {
-  const rows = await prisma.article.findMany({
-    where: { publishedAt: { not: null } },
-    orderBy: [{ createdAt: "desc" }],
-    take: 3,
-  });
+const getLatestArticles = unstable_cache(
+  async (): Promise<ArticleItem[]> => {
+    const rows = await prisma.article.findMany({
+      where: { publishedAt: { not: null } },
+      orderBy: [{ createdAt: "desc" }],
+      take: 3,
+    });
 
-  return rows.map((r) => ({
-    id: r.id,
-    slug: r.slug,
-    title: r.title,
-    excerpt: r.excerpt,
-    cover: r.cover,
-    type: (r.type ?? "NEWS") as KnownType,
-  }));
-}
+    return rows.map((r) => ({
+      id: r.id,
+      slug: r.slug,
+      title: r.title,
+      excerpt: r.excerpt,
+      cover: r.cover,
+      type: (r.type ?? "NEWS") as KnownType,
+    }));
+  },
+  [HOME_LATEST_ARTICLES_TAG],
+  { revalidate, tags: [HOME_LATEST_ARTICLES_TAG] },
+);
 
 export default async function Page() {
   const latest = await getLatestArticles();
