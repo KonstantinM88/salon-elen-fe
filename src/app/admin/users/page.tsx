@@ -43,6 +43,56 @@ function roleBadgeClass(r: Role): string {
   return 'bg-gray-100 dark:bg-white/10 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-white/15';
 }
 
+type UsersNoticeStatus = 'success' | 'error';
+
+type UsersNoticeCode =
+  | 'user-created'
+  | 'role-updated'
+  | 'master-linked'
+  | 'master-unlinked'
+  | 'user-deleted'
+  | 'validation'
+  | 'user-exists'
+  | 'select-master'
+  | 'master-already-linked'
+  | 'last-admin'
+  | 'cannot-delete-self'
+  | 'unauthorized'
+  | 'forbidden'
+  | 'not-found'
+  | 'unknown';
+
+function getSearchParamValue(
+  searchParams: Awaited<SearchParamsPromise> | undefined,
+  key: string,
+): string | undefined {
+  const raw = searchParams?.[key];
+  if (Array.isArray(raw)) return raw[0];
+  return raw;
+}
+
+function isUsersNoticeStatus(value: string | undefined): value is UsersNoticeStatus {
+  return value === 'success' || value === 'error';
+}
+
+function isUsersNoticeCode(value: string | undefined): value is UsersNoticeCode {
+  return value === 'user-created'
+    || value === 'role-updated'
+    || value === 'master-linked'
+    || value === 'master-unlinked'
+    || value === 'user-deleted'
+    || value === 'validation'
+    || value === 'user-exists'
+    || value === 'select-master'
+    || value === 'master-already-linked'
+    || value === 'last-admin'
+    || value === 'cannot-delete-self'
+    || value === 'unauthorized'
+    || value === 'forbidden'
+    || value === 'not-found'
+    || value === 'unknown';
+}
+
 type UsersPageCopy = {
   title: string;
   total: string;
@@ -81,6 +131,60 @@ type UsersPageCopy = {
   selectMaster: string;
   unlink: string;
   deleteUser: string;
+};
+
+const USERS_NOTICE_COPY: Record<SeoLocale, Record<UsersNoticeCode, string>> = {
+  de: {
+    'user-created': 'Benutzer wurde erstellt.',
+    'role-updated': 'Rolle wurde aktualisiert.',
+    'master-linked': 'Mitarbeiter wurde verknuepft.',
+    'master-unlinked': 'Mitarbeiter wurde getrennt.',
+    'user-deleted': 'Benutzer wurde geloescht.',
+    validation: 'Bitte pruefen Sie die Eingabedaten.',
+    'user-exists': 'Ein Benutzer mit dieser E-Mail existiert bereits.',
+    'select-master': 'Bitte waehlen Sie einen Mitarbeiter aus.',
+    'master-already-linked': 'Dieser Mitarbeiter ist bereits mit einem anderen Benutzer verknuepft.',
+    'last-admin': 'Mindestens ein Administrator muss erhalten bleiben.',
+    'cannot-delete-self': 'Sie koennen sich nicht selbst loeschen.',
+    unauthorized: 'Autorisierung erforderlich.',
+    forbidden: 'Diese Aktion ist nicht erlaubt.',
+    'not-found': 'Eintrag wurde nicht gefunden.',
+    unknown: 'Aktion fehlgeschlagen. Bitte versuchen Sie es erneut.',
+  },
+  ru: {
+    'user-created': 'Пользователь создан.',
+    'role-updated': 'Роль обновлена.',
+    'master-linked': 'Мастер привязан.',
+    'master-unlinked': 'Мастер отвязан.',
+    'user-deleted': 'Пользователь удален.',
+    validation: 'Проверьте корректность заполнения формы.',
+    'user-exists': 'Пользователь с таким email уже существует.',
+    'select-master': 'Выберите мастера.',
+    'master-already-linked': 'Этот мастер уже привязан к другому пользователю.',
+    'last-admin': 'Должен остаться хотя бы один администратор.',
+    'cannot-delete-self': 'Нельзя удалить себя.',
+    unauthorized: 'Требуется авторизация.',
+    forbidden: 'Это действие недоступно.',
+    'not-found': 'Запись не найдена.',
+    unknown: 'Не удалось выполнить действие. Попробуйте еще раз.',
+  },
+  en: {
+    'user-created': 'User created.',
+    'role-updated': 'Role updated.',
+    'master-linked': 'Staff member linked.',
+    'master-unlinked': 'Staff member unlinked.',
+    'user-deleted': 'User deleted.',
+    validation: 'Please check the submitted form data.',
+    'user-exists': 'A user with this email already exists.',
+    'select-master': 'Please select a staff member.',
+    'master-already-linked': 'This staff member is already linked to another user.',
+    'last-admin': 'At least one administrator must remain.',
+    'cannot-delete-self': 'You cannot delete yourself.',
+    unauthorized: 'Authorization required.',
+    forbidden: 'This action is not allowed.',
+    'not-found': 'Record not found.',
+    unknown: 'Action failed. Please try again.',
+  },
 };
 
 const USERS_PAGE_COPY: Record<SeoLocale, UsersPageCopy> = {
@@ -213,8 +317,18 @@ type PageProps = {
 };
 
 export default async function AdminUsersPage({ searchParams }: PageProps) {
+  const resolvedSearchParams = searchParams ? await searchParams : undefined;
   const locale = await resolveContentLocale(searchParams);
   const t = USERS_PAGE_COPY[locale];
+  const noticeStatus = getSearchParamValue(resolvedSearchParams, 'usersStatus');
+  const noticeCode = getSearchParamValue(resolvedSearchParams, 'usersCode');
+  const notice =
+    isUsersNoticeStatus(noticeStatus) && isUsersNoticeCode(noticeCode)
+      ? {
+          status: noticeStatus,
+          message: USERS_NOTICE_COPY[locale][noticeCode],
+        }
+      : null;
 
   const session = await getServerSession(authOptions);
   const selfId = session?.user?.id ?? '';
@@ -259,6 +373,19 @@ export default async function AdminUsersPage({ searchParams }: PageProps) {
           <span className="hidden sm:inline">{t.back}</span>
         </Link>
       </div>
+
+      {notice ? (
+        <section
+          className={[
+            'rounded-2xl border px-4 py-3 text-sm sm:text-[15px]',
+            notice.status === 'success'
+              ? 'border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-200'
+              : 'border-rose-200 bg-rose-50 text-rose-800 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-200',
+          ].join(' ')}
+        >
+          {notice.message}
+        </section>
+      ) : null}
 
       {/* ── Создать нового ── */}
       <section className="rounded-2xl border border-gray-200 dark:border-white/10
