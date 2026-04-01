@@ -568,13 +568,19 @@ export default function SiteFooter(): React.JSX.Element {
           </p>
           <div className="flex flex-wrap items-center gap-3">
             <Link
-              href="/privacy"
+              href="/impressum"
+              className="transition hover:text-slate-200 hover:underline hover:underline-offset-4"
+            >
+              Impressum
+            </Link>
+            <Link
+              href="/datenschutz"
               className="transition hover:text-slate-200 hover:underline hover:underline-offset-4"
             >
               {t("footer_privacy")}
             </Link>
             <Link
-              href="/terms"
+              href="/nutzungsbedingungen"
               className="transition hover:text-slate-200 hover:underline hover:underline-offset-4"
             >
               {t("footer_terms")}

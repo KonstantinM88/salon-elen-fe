@@ -38,6 +38,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { path: "/news", priority: 0.7 },
     { path: "/contacts", priority: 0.6 },
     { path: "/gallerie", priority: 0.6 },
+    { path: "/impressum", priority: 0.3 },
+    { path: "/datenschutz", priority: 0.3 },
+    { path: "/nutzungsbedingungen", priority: 0.3 },
   ];
 
   const lastModified = new Date();
