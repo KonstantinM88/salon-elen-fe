@@ -33,6 +33,19 @@ pm2 logs salon-elen-fe --lines 150
 pm2 show salon-elen-fe
 ```
 
+Если в логах есть строка:
+
+`Invalid project directory provided, no such directory: .../3000`
+
+это значит, что процесс был запущен со старыми/лишними аргументами (например `next start -p 3000 3000`).
+Быстрое исправление:
+
+```bash
+pm2 delete salon-elen-fe
+pm2 start ecosystem.config.cjs --only salon-elen-fe --update-env
+pm2 save
+```
+
 Если процесс иногда завершается через SIGKILL:
 
 - проверьте, что используется `kill_timeout` (в `ecosystem.config.cjs` уже задан);
@@ -83,4 +96,3 @@ pm2 logs salon-elen-fe --lines 80 --nostream
 
 1. вернуться на предыдущий commit;
 2. снова `./scripts/deploy-pm2.sh`.
-
