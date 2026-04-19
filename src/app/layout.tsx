@@ -1,6 +1,6 @@
 // src/app/layout.tsx
 import type { Metadata } from "next";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { Playfair_Display, Cormorant_Garamond } from "next/font/google";
 import "./globals.css";
 
@@ -63,10 +63,25 @@ export default async function RootLayout({
   children: React.ReactNode;
 }) {
   const cookieStore = await cookies();
+  const headerStore = await headers();
   const cookieLocale = cookieStore.get("locale")?.value as Locale | undefined;
+  const requestUrl = headerStore.get("x-url");
+
+  let urlLocale: Locale | undefined;
+  if (requestUrl) {
+    try {
+      const lang = new URL(requestUrl).searchParams.get("lang");
+      if (lang && LOCALES.includes(lang as Locale)) {
+        urlLocale = lang as Locale;
+      }
+    } catch {
+      // Ignore malformed URLs from non-browser requests.
+    }
+  }
 
   const initialLocale: Locale =
-    cookieLocale && LOCALES.includes(cookieLocale) ? cookieLocale : DEFAULT_LOCALE;
+    urlLocale ??
+    (cookieLocale && LOCALES.includes(cookieLocale) ? cookieLocale : DEFAULT_LOCALE);
 
   return (
     <html lang={initialLocale} suppressHydrationWarning>

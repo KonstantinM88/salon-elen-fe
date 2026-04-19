@@ -26,16 +26,76 @@ type ArticleItem = {
 };
 
 const metaTitles: Record<SeoLocale, string> = {
-  de: "Salon Elen — Kosmetiksalon in Halle (Saale) | Permanent Make-up & Nails",
+  de: "Permanent Make-up in Halle (Saale) — Salon Elen | PMU, Nägel & Kosmetik",
   ru: "Salon Elen — салон красоты в Halle (Saale) | Перманентный макияж и ногти",
-  en: "Salon Elen — Beauty Salon in Halle (Saale) | Permanent Make-up & Nails",
+  en: "Permanent Make-up in Halle (Saale) — Salon Elen | Beauty Salon",
 };
 
 const metaDescriptions: Record<SeoLocale, string> = {
-  de: "Professioneller Kosmetiksalon in Halle (Saale): Permanent Make-up, Wimpernverlängerung, Nageldesign, Microneedling. Jetzt online buchen!",
+  de: "Permanent Make-up in Halle (Saale): Powder Brows, Lippenpigmentierung, Wimpernkranzverdichtung, Nageldesign und Microneedling bei Salon Elen, Lessingstraße 37. Jetzt Termin online buchen!",
   ru: "Салон красоты в Halle (Saale): перманентный макияж, наращивание ресниц, маникюр, микронидлинг. Запись онлайн!",
-  en: "Professional beauty salon in Halle (Saale): permanent make-up, lash extensions, nail design, microneedling. Book online now!",
+  en: "Permanent make-up in Halle (Saale): powder brows, lip pigmentation, lashline enhancement, nails and microneedling at Salon Elen, Lessingstrasse 37. Book online now!",
 };
+
+function buildHomeJsonLd(locale: SeoLocale) {
+  const alts = buildAlternates("/", locale);
+
+  return JSON.stringify({
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": ["BeautySalon", "LocalBusiness"],
+        "@id": `${BASE_URL}/#salon`,
+        name: "Salon Elen",
+        url: alts.canonical,
+        image: [`${BASE_URL}/images/hero.webp`],
+        telephone: "+49 177 899 51 06",
+        email: "elen69@web.de",
+        priceRange: "€€",
+        address: {
+          "@type": "PostalAddress",
+          streetAddress: "Lessingstraße 37",
+          postalCode: "06114",
+          addressLocality: "Halle (Saale)",
+          addressCountry: "DE",
+        },
+        openingHoursSpecification: [
+          {
+            "@type": "OpeningHoursSpecification",
+            dayOfWeek: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
+            opens: "10:00",
+            closes: "19:00",
+          },
+          {
+            "@type": "OpeningHoursSpecification",
+            dayOfWeek: "Saturday",
+            opens: "10:00",
+            closes: "16:00",
+          },
+        ],
+        areaServed: {
+          "@type": "City",
+          name: "Halle (Saale)",
+        },
+        knowsAbout: [
+          "Permanent Make-up",
+          "Powder Brows",
+          "Lippenpigmentierung",
+          "Wimpernkranzverdichtung",
+          "Nageldesign",
+          "Microneedling",
+        ],
+      },
+      {
+        "@type": "WebSite",
+        "@id": `${BASE_URL}/#website`,
+        url: alts.canonical,
+        name: "Salon Elen",
+        inLanguage: locale,
+      },
+    ],
+  });
+}
 
 export async function generateMetadata({
   searchParams,
@@ -96,9 +156,24 @@ const getLatestArticles = unstable_cache(
   { revalidate, tags: [HOME_LATEST_ARTICLES_TAG] },
 );
 
-export default async function Page() {
+export default async function Page({
+  searchParams,
+}: {
+  searchParams?: SearchParamsPromise;
+}) {
   const latest = await getLatestArticles();
-  return <HomePage latest={latest} />;
+  const locale = await resolveUrlLocale(searchParams);
+  const jsonLd = buildHomeJsonLd(locale);
+
+  return (
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: jsonLd }}
+      />
+      <HomePage latest={latest} />
+    </>
+  );
 }
 
 

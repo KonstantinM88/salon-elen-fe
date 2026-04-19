@@ -6,6 +6,7 @@ import ServicesClient from "./ServicesClient";
 import {
   resolveUrlLocale,
   buildAlternates,
+  BASE_URL,
   type SeoLocale,
   type SearchParamsPromise,
 } from "@/lib/seo-locale";
@@ -14,15 +15,15 @@ import { resolveContentLocale } from "@/lib/seo-locale-server";
 export const dynamic = "force-dynamic";
 
 const metaTitles: Record<SeoLocale, string> = {
-  de: "Unsere Leistungen — Salon Elen",
-  ru: "Наши услуги — Salon Elen",
-  en: "Our Services — Salon Elen",
+  de: "Permanent Make-up, Wimpern, Nägel & Microneedling in Halle — Salon Elen",
+  ru: "Перманентный макияж, ресницы, ногти и микронидлинг — Salon Elen",
+  en: "Permanent Make-up, lashes, nails & microneedling in Halle — Salon Elen",
 };
 
 const metaDescriptions: Record<SeoLocale, string> = {
-  de: "Entdecken Sie unser komplettes Angebot an Schönheitsdienstleistungen: Haarpflege, Maniküre, Make-up und vieles mehr.",
-  ru: "Откройте для себя полный спектр услуг красоты: уход за волосами, маникюр, макияж и многое другое.",
-  en: "Discover our complete range of beauty services: hair care, manicure, makeup and much more.",
+  de: "Alle Leistungen von Salon Elen in Halle (Saale): Permanent Make-up, Powder Brows, Lippenpigmentierung, Wimpernverlängerung, Nageldesign und Microneedling.",
+  ru: "Все услуги Salon Elen в Галле: перманентный макияж, Powder Brows, пигментация губ, наращивание ресниц, ногти и микронидлинг.",
+  en: "All services at Salon Elen in Halle (Saale): permanent make-up, powder brows, lip pigmentation, eyelash extensions, nails and microneedling.",
 };
 
 export async function generateMetadata({
@@ -31,11 +32,21 @@ export async function generateMetadata({
   searchParams?: SearchParamsPromise;
 }): Promise<Metadata> {
   const locale = await resolveUrlLocale(searchParams);
+  const alts = buildAlternates("/services", locale);
 
   return {
     title: metaTitles[locale],
     description: metaDescriptions[locale],
-    alternates: buildAlternates("/services", locale),
+    alternates: alts,
+    openGraph: {
+      title: metaTitles[locale],
+      description: metaDescriptions[locale],
+      url: alts.canonical,
+      images: [`${BASE_URL}/images/hero.webp`],
+      siteName: "Salon Elen",
+      locale: locale === "de" ? "de_DE" : locale === "en" ? "en_US" : "ru_RU",
+      type: "website",
+    },
   };
 }
 

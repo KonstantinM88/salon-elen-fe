@@ -32,6 +32,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // ❗ booking убран из sitemap (они noindex/Disallow и не должны попадать в sitemap)
   const staticPages = [
     { path: "/", priority: 1.0 },
+    { path: "/permanent-make-up-in-der-naehe", priority: 0.95 },
     { path: "/services", priority: 0.9 },
     { path: "/prices", priority: 0.8 },
     { path: "/about", priority: 0.8 },

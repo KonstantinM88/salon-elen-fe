@@ -577,10 +577,14 @@ export default function HomePage({ latest }: Props) {
             {SERVICES_CFG.map((cfg, i) => {
               const n = i + 1;
               const IconComp = cfg.icon;
+              const href =
+                n === 1
+                  ? localeHref("/permanent-make-up-in-der-naehe", locale)
+                  : localeHref("/services", locale);
               return (
                 <Link
                   key={n}
-                  href={localeHref("/services", locale)}
+                  href={href}
                   className="group relative rounded-2xl border border-rose-200/40 bg-white/80 backdrop-blur-md p-6 shadow-lg shadow-rose-100/20 hover:shadow-xl hover:shadow-rose-200/30 transition-all duration-500 hover:-translate-y-3 dark:border-white/8 dark:bg-white/[0.05] dark:shadow-none dark:hover:bg-white/[0.08] dark:hover:border-white/12 overflow-hidden"
                 >
                   {/* Card inner glow on hover */}
