@@ -86,6 +86,12 @@ function localeFromFormData(formData: FormData): SeoLocale {
   return isSeoLocale(raw) ? raw : "de";
 }
 
+function formDataHasTruthyValue(formData: FormData, key: string): boolean {
+  return formData
+    .getAll(key)
+    .some((value) => ["1", "true", "on"].includes(value.toString().trim().toLowerCase()));
+}
+
 /* ───────────────── helpers ───────────────── */
 
 function toSlug(input: string): string {
@@ -139,7 +145,7 @@ export async function createService(formData: FormData): Promise<ActionResult> {
     const name = String(formData.get("name") ?? "").trim();
     const description =
       (formData.get("description")?.toString().trim() ?? "") || null;
-    const isActive = formData.get("isActive") ? true : false;
+    const isActive = formDataHasTruthyValue(formData, "isActive");
 
     if (!name) return { ok: false, message: t.enterName };
 
@@ -204,7 +210,7 @@ export async function updateCategory(formData: FormData): Promise<ActionResult> 
     const name = String(formData.get("name") ?? "").trim();
     const description =
       (formData.get("description")?.toString().trim() ?? "") || null;
-    const isActive = formData.get("isActive") ? true : false;
+    const isActive = formDataHasTruthyValue(formData, "isActive");
 
     if (!id) return { ok: false, message: t.idNotFound };
     if (!name) return { ok: false, message: t.enterName };
@@ -239,7 +245,7 @@ export async function updateSubservice(
     const name = String(formData.get("name") ?? "").trim();
     const description =
       (formData.get("description")?.toString().trim() ?? "") || null;
-    const isActive = formData.get("isActive") ? true : false;
+    const isActive = formDataHasTruthyValue(formData, "isActive");
     const parentId = (formData.get("parentId")?.toString().trim() || "") || null;
 
     const durationMin = Number(formData.get("durationMin") ?? 0);
