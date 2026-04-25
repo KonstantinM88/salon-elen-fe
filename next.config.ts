@@ -5,6 +5,7 @@ const devUploadsFallbackOrigin =
   "https://permanent-halle.de";
 
 const nextConfig: NextConfig = {
+  deploymentId: process.env.DEPLOYMENT_VERSION,
   experimental: {
     optimizePackageImports: ["lucide-react", "framer-motion"],
     serverActions: { bodySizeLimit: "10mb" },
