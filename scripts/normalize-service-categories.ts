@@ -1,6 +1,5 @@
 // scripts/normalize-service-categories.ts
-import { PrismaClient } from '@prisma/client';
-const prisma = new PrismaClient();
+import { prisma } from '../src/lib/prisma';
 
 async function main(): Promise<void> {
   // Считаем верхним уровнем всё с parentId = null.

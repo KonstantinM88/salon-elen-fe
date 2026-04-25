@@ -1,6 +1,6 @@
 // src/app/admin/bookings/page.tsx - PREMIUM VERSION 💎
 import { prisma } from '@/lib/prisma';
-import { AppointmentStatus, Prisma } from '@prisma/client';
+import { AppointmentStatus, Prisma } from '@/lib/prisma-client';
 import Link from 'next/link';
 import { setStatus } from './actions';
 import { addDays, startOfDay, startOfMonth, startOfYear } from 'date-fns';

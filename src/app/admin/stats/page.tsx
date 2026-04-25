@@ -2,7 +2,7 @@
 import type { ReactElement, ComponentPropsWithoutRef } from "react";
 import Link from "next/link";
 import { prisma } from "@/lib/db";
-import { AppointmentStatus } from "@prisma/client";
+import { AppointmentStatus } from "@/lib/prisma-client";
 import {
   addDays,
   startOfDay,

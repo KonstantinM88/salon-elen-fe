@@ -19,7 +19,7 @@ import {
   MessageCircle,
   Send
 } from 'lucide-react';
-import { AppointmentStatus } from '@prisma/client';
+import { AppointmentStatus } from '@/lib/prisma-browser';
 
 // ✅ Правильные типы без any
 type ServiceData = {
@@ -598,7 +598,6 @@ export default function ClientViewClient({
     </main>
   );
 }
-
 
 
 

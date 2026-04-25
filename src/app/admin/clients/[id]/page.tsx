@@ -1,7 +1,7 @@
 // src/app/admin/clients/[id]/page.tsx
 import { notFound, redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { AppointmentStatus } from "@prisma/client";
+import { AppointmentStatus } from "@/lib/prisma-client";
 import { updateClient as _updateClient } from "./actions";
 import ClientViewClient from "./ClientViewClient";
 
@@ -108,4 +108,3 @@ export default async function AdminClientPage(props: PageProps) {
     />
   );
 }
-

@@ -4,7 +4,7 @@
 import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { revalidatePath } from "next/cache";
-import { Prisma, Role } from "@prisma/client";
+import { Prisma, Role } from "@/lib/prisma-client";
 import { hashPassword } from "@/lib/password";
 import { assertAdminAction } from "@/lib/rbac";
 import { redirect } from "next/navigation";

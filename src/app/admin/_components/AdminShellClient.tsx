@@ -4,7 +4,7 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Menu, X } from "lucide-react";
-import type { Role } from "@prisma/client";
+import type { Role } from "@/lib/prisma-client";
 import { useTheme } from "next-themes";
 
 import AdminNav from "@/components/admin/AdminNav";

@@ -18,7 +18,7 @@ import {
   UserSquare2,
   User,
 } from "lucide-react";
-import type { Role } from "@prisma/client";
+import type { Role } from "@/lib/prisma-client";
 import { IconGlow, type GlowTone } from "./IconGlow";
 import type { SeoLocale } from "@/lib/seo-locale";
 

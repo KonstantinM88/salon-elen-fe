@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { hashPassword } from "@/lib/password";
-import { Role } from "@prisma/client";
+import { Role } from "@/lib/prisma-client";
 
 const registerSchema = z.object({
   name: z.string().trim().min(1).max(120).optional(),

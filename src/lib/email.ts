@@ -1,6 +1,6 @@
 // src/lib/email.ts
 import { Resend } from 'resend';
-import { AppointmentStatus } from '@prisma/client';
+import { AppointmentStatus } from '@/lib/prisma-client';
 import { DEFAULT_LOCALE, LOCALES, type Locale } from '@/i18n/locales';
 import { translate, type MessageKey } from '@/i18n/messages';
 

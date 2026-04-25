@@ -1,77 +1,69 @@
-// next.config.ts
 import type { NextConfig } from "next";
 
+const devUploadsFallbackOrigin =
+  process.env.DEV_UPLOADS_FALLBACK_ORIGIN?.replace(/\/+$/, "") ||
+  "https://permanent-halle.de";
+
 const nextConfig: NextConfig = {
-  // ====== ОПТИМИЗАЦИЯ ИЗОБРАЖЕНИЙ ======
+  experimental: {
+    optimizePackageImports: ["lucide-react", "framer-motion"],
+    serverActions: { bodySizeLimit: "10mb" },
+  },
+
   images: {
-    // Форматы: сначала AVIF (лучшее сжатие), потом WebP
-    formats: ['image/avif', 'image/webp'],
+    formats: ["image/avif", "image/webp"],
     qualities: [60, 70, 75],
-    
-    // Размеры для srcset
-    deviceSizes: [320, 360, 420, 480, 640, 750, 828, 1080, 1200, 1920, 2048],
-    imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
-    
-    // Для динамически загружаемых изображений держим TTL коротким.
-    minimumCacheTTL: 60,
-    
-    // Если изображения на внешнем домене, раскомментируйте:
+    deviceSizes: [320, 360, 420, 480, 640, 750, 828, 1080, 1200, 1920, 2048, 2400],
+    imageSizes: [16, 32, 48, 64, 96, 128, 256, 384, 480],
+    minimumCacheTTL: 0,
     remotePatterns: [
       {
-        protocol: 'https',
-        hostname: 'permanent-halle.de',
-        pathname: '/uploads/**',
+        protocol: "https",
+        hostname: "permanent-halle.de",
+        pathname: "/uploads/**",
+      },
+      {
+        protocol: "https",
+        hostname: "lbar.com.ua",
       },
     ],
   },
-
-  // ====== ОПТИМИЗАЦИЯ СБОРКИ ======
-  
-  // Оптимизация импортов (tree-shaking для больших библиотек)
-  experimental: {
-    optimizePackageImports: [
-      'lucide-react',
-      'framer-motion',
-    ],
-  },
-
-  // ====== ЗАГОЛОВКИ ДЛЯ КЕШИРОВАНИЯ ======
   async headers() {
     return [
       {
-        // Allow microphone in this document (required for getUserMedia in production)
-        source: '/(.*)',
+        source: "/(.*)",
         headers: [
           {
-            key: 'Permissions-Policy',
-            value: 'microphone=(self)',
+            key: "Permissions-Policy",
+            value: "microphone=(self)",
           },
         ],
       },
       {
-        // Кеширование загруженных изображений
-        source: '/uploads/:path*',
+        source: "/uploads/:path*",
         headers: [
           {
-            key: 'Cache-Control',
-            value: 'public, max-age=60, stale-while-revalidate=86400',
+            key: "Cache-Control",
+            value: "public, max-age=60, stale-while-revalidate=86400",
           },
         ],
       },
     ];
   },
+  async rewrites() {
+    if (process.env.NODE_ENV !== "development") {
+      return [];
+    }
+
+    return {
+      fallback: [
+        {
+          source: "/uploads/:path*",
+          destination: `${devUploadsFallbackOrigin}/uploads/:path*`,
+        },
+      ],
+    };
+  },
 };
 
 export default nextConfig;
-
-
-
-
-
-// import type { NextConfig } from "next";
-
-// const nextConfig: NextConfig = {
-//   /* config options here */
-// };
-
-// export default nextConfig;

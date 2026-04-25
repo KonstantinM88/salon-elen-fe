@@ -1,6 +1,6 @@
 // src/lib/validators.ts
 import { z } from "zod";
-import { ArticleType } from "@prisma/client";
+import { ArticleType } from "@/lib/prisma-client";
 
 /**
  * Единый валидатор входных данных статьи/новости.

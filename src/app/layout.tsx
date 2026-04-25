@@ -84,7 +84,7 @@ export default async function RootLayout({
     (cookieLocale && LOCALES.includes(cookieLocale) ? cookieLocale : DEFAULT_LOCALE);
 
   return (
-    <html lang={initialLocale} suppressHydrationWarning>
+    <html lang={initialLocale} suppressHydrationWarning data-scroll-behavior="smooth">
       <body
         className={`
           ${playfair.variable}

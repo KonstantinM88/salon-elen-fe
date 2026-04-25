@@ -1,6 +1,6 @@
 // src/app/admin/users/page.tsx
 import { prisma } from '@/lib/db';
-import { Role } from '@prisma/client';
+import { Role } from '@/lib/prisma-client';
 import {
   createUser,
   updateUserRole,

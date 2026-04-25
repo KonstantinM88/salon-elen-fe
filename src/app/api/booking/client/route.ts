@@ -1,7 +1,7 @@
 // src/app/api/booking/client/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { AppointmentStatus } from '@prisma/client';
+import { AppointmentStatus } from '@/lib/prisma-client';
 
 type SubmitBody = {
   customerName: string;

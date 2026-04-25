@@ -3,7 +3,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { History, Clock, User2, ChevronDown, ChevronUp } from 'lucide-react';
-import { AppointmentStatus } from '@prisma/client';
+import { AppointmentStatus } from '@/lib/prisma-browser';
 import { getStatusHistory } from '../actions';
 import type { SeoLocale } from '@/lib/seo-locale';
 

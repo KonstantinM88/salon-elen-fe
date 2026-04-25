@@ -4,8 +4,8 @@ import { prisma } from "@/lib/db";
 import { articleInput } from "@/lib/validators";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import type { ArticleType } from "@prisma/client";
-import { Prisma } from "@prisma/client";
+import type { ArticleType } from "@/lib/prisma-client";
+import { Prisma } from "@/lib/prisma-client";
 import { revalidateTag } from "next/cache";
 import { HOME_LATEST_ARTICLES_TAG } from "@/lib/cache-tags";
 
@@ -84,7 +84,7 @@ export async function PATCH(req: Request, { params }: RouteParams) {
       data,
       select: { id: true },
     });
-    revalidateTag(HOME_LATEST_ARTICLES_TAG);
+    revalidateTag(HOME_LATEST_ARTICLES_TAG, "max");
     return NextResponse.json({ id: updated.id });
   } catch (err) {
     if (err instanceof Prisma.PrismaClientKnownRequestError) {
@@ -118,7 +118,7 @@ export async function DELETE(_req: Request, { params }: RouteParams) {
 
   try {
     await prisma.article.delete({ where: { id } });
-    revalidateTag(HOME_LATEST_ARTICLES_TAG);
+    revalidateTag(HOME_LATEST_ARTICLES_TAG, "max");
     return NextResponse.json({ ok: true });
   } catch (err) {
     if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2025") {

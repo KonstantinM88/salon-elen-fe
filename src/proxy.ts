@@ -1,4 +1,4 @@
-// src/middleware.ts
+// src/proxy.ts
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
@@ -9,19 +9,6 @@ const SUPPORTED: Set<string> = new Set(["de", "ru", "en"]);
 
 function isLocale(value: string): value is Locale {
   return SUPPORTED.has(value);
-}
-
-/**
- * pickLocale — for CONTENT rendering (uses cookie fallback).
- */
-function pickLocale(req: NextRequest): Locale {
-  const q = req.nextUrl.searchParams.get("lang");
-  if (q && isLocale(q)) return q;
-
-  const cookieLocale = req.cookies.get("locale")?.value;
-  if (cookieLocale && isLocale(cookieLocale)) return cookieLocale;
-
-  return "de";
 }
 
 /**
@@ -36,10 +23,9 @@ function pickUrlLocale(req: NextRequest): Locale {
   return "de"; // No cookie fallback!
 }
 
-export async function middleware(req: NextRequest) {
+export async function proxy(req: NextRequest) {
   const { pathname, search } = req.nextUrl;
   const url = req.nextUrl.clone();
-  const locale = pickLocale(req);
   const seoLocale = pickUrlLocale(req);
 
   // ✅ SEO headers for layout.tsx

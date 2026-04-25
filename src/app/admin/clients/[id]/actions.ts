@@ -3,7 +3,7 @@
 
 import { prisma } from "@/lib/db";
 import { revalidatePath } from "next/cache";
-import { Prisma } from "@prisma/client";
+import { Prisma } from "@/lib/prisma-client";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 

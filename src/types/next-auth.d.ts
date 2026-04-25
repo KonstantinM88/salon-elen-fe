@@ -1,6 +1,6 @@
 // src/types/next-auth.d.ts
 import type { DefaultSession } from "next-auth";
-import type { Role } from "@prisma/client"; // держим роли в синхроне с БД
+import type { Role } from "@/lib/prisma-client"; // держим роли в синхроне с БД
 
 declare module "next-auth" {
   interface Session {

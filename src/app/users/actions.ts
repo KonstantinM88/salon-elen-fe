@@ -5,7 +5,7 @@ import { prisma } from '@/lib/db';
 import { revalidatePath } from 'next/cache';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { Role } from '@prisma/client';
+import { Role } from '@/lib/prisma-client';
 import { hashPassword } from '@/lib/password';
 
 /** Проверка, что вызвал админ */

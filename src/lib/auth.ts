@@ -6,7 +6,7 @@ import type { AdapterUser } from "next-auth/adapters";
 import { prisma } from "@/lib/db";
 import { verifyPassword } from "@/lib/password";
 import { z } from "zod";
-import type { Role } from "@prisma/client";
+import type { Role } from "@/lib/prisma-client";
 
 /* ───────── helpers ───────── */
 
@@ -38,8 +38,11 @@ function hasMasterId(u: MaybeUser): u is MaybeUser & { masterId: string | null }
 
 /* ───────── NextAuth options ───────── */
 
+type NextAuthPrismaClient = Parameters<typeof PrismaAdapter>[0];
+
 export const authOptions: NextAuthOptions = {
-  adapter: PrismaAdapter(prisma),
+  // Official next-auth typings are still anchored to @prisma/client.
+  adapter: PrismaAdapter(prisma as unknown as NextAuthPrismaClient),
   session: { strategy: "jwt" },
   providers: [
     Credentials({

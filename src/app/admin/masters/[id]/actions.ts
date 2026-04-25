@@ -6,7 +6,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import path from "node:path";
 import { unlink, mkdir, writeFile } from "node:fs/promises";
-import { Prisma } from "@prisma/client";
+import { Prisma } from "@/lib/prisma-client";
 import bcrypt from "bcryptjs";
 
 /* ───────── helpers ───────── */
@@ -247,7 +247,7 @@ export async function uploadAvatar(formData: FormData): Promise<void> {
   if (prev?.avatarUrl) {
     try {
       const rel = prev.avatarUrl.replace(/^\/+/, "");
-      const oldPath = path.join(process.cwd(), "public", rel);
+      const oldPath = path.join(/* turbopackIgnore: true */ process.cwd(), "public", rel);
       await unlink(oldPath);
     } catch {
       /* ignore */
@@ -255,7 +255,13 @@ export async function uploadAvatar(formData: FormData): Promise<void> {
   }
 
   const ext = type.split("/")[1] || "jpg";
-  const dir = path.join(process.cwd(), "public", "uploads", "masters", id);
+  const dir = path.join(
+    /* turbopackIgnore: true */ process.cwd(),
+    "public",
+    "uploads",
+    "masters",
+    id
+  );
   await mkdir(dir, { recursive: true });
 
   const filename = `${Date.now()}.${ext}`;
@@ -280,7 +286,7 @@ export async function removeAvatar(formData: FormData): Promise<void> {
   if (prev?.avatarUrl) {
     try {
       const rel = prev.avatarUrl.replace(/^\/+/, "");
-      const oldPath = path.join(process.cwd(), "public", rel);
+      const oldPath = path.join(/* turbopackIgnore: true */ process.cwd(), "public", rel);
       await unlink(oldPath);
     } catch {
       /* ignore */

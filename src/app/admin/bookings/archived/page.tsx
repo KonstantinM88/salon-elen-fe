@@ -1,6 +1,6 @@
 // src/app/admin/bookings/archived/page.tsx
 import { prisma } from '@/lib/prisma';
-import { AppointmentStatus, Prisma } from '@prisma/client';
+import { AppointmentStatus, Prisma } from '@/lib/prisma-client';
 import Link from 'next/link';
 import { Archive, Calendar, Clock, Mail, Phone, Scissors, User2, MessageSquareText, Sparkles } from 'lucide-react';
 import { formatInOrgTzDateTime, formatWallRangeWithDate } from '@/lib/orgTime';

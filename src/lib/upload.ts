@@ -48,7 +48,7 @@ export async function saveImageFile(
 
   const buf = Buffer.from(await file.arrayBuffer());
 
-  const publicDir = path.join(process.cwd(), "public", dir);
+  const publicDir = path.join(/* turbopackIgnore: true */ process.cwd(), "public", dir);
   if (!existsSync(publicDir)) {
     await mkdir(publicDir, { recursive: true });
   }
@@ -193,7 +193,7 @@ export async function saveVideoFile(
 
   const buf = Buffer.from(await file.arrayBuffer());
 
-  const publicDir = path.join(process.cwd(), "public", dir);
+  const publicDir = path.join(/* turbopackIgnore: true */ process.cwd(), "public", dir);
   if (!existsSync(publicDir)) {
     await mkdir(publicDir, { recursive: true });
   }

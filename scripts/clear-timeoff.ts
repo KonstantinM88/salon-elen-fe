@@ -1,6 +1,6 @@
 #!/usr/bin/env tsx
 import "dotenv/config";
-import { PrismaClient } from "@prisma/client";
+import { prisma } from "../src/lib/prisma";
 
 /** Europe/Berlin helpers (локальные сутки → UTC-диапазон) */
 function tzOffsetMs(tz: string, at: Date): number {
@@ -27,8 +27,6 @@ function orgDayRange(dateISO: string, tz = "Europe/Berlin"): { start: Date; end:
   const end = new Date(start.getTime() + 24 * 60 * 60 * 1000);
   return { start, end };
 }
-
-const prisma = new PrismaClient();
 
 async function main(): Promise<void> {
   const [, , dateISO, masterId] = process.argv;

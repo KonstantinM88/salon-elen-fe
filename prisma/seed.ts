@@ -1,9 +1,8 @@
 // prisma/seed.ts
-import { PrismaClient, ArticleType, AppointmentStatus, Role } from "@prisma/client";
+import { prisma } from "../src/lib/prisma";
+import { ArticleType, AppointmentStatus, Role } from "../src/lib/prisma-client";
 import bcrypt from "bcryptjs";
 import { ensureServices as ensureServiceHierarchy } from "./seed-services";
-
-const prisma = new PrismaClient();
 
 /* ───────── утилиты ошибок (без any) ───────── */
 type ErrorWithProps = { code?: unknown; message?: unknown };

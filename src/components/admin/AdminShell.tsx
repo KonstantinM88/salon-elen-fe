@@ -2,7 +2,7 @@
 import AdminNav from "@/components/admin/AdminNav";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import type { Role } from "@prisma/client";
+import type { Role } from "@/lib/prisma-client";
 
 type Props = {
   children: React.ReactNode;

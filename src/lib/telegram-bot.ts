@@ -1,7 +1,7 @@
 // src/lib/telegram-bot.ts
 // ИСПРАВЛЕНО: Убраны все `any`, добавлены правильные типы
 
-import { AppointmentStatus } from "@prisma/client";
+import { AppointmentStatus } from "@/lib/prisma-client";
 import { ORG_TZ } from "@/lib/orgTime";
 import { parseTelegramAdminChatIds } from "@/lib/telegram-admin-chat-ids";
 import { isPhoneDigitsValid, normalizePhoneDigits } from "@/lib/phone";

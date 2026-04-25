@@ -1,7 +1,7 @@
 // src/app/admin/bookings/export/route.ts
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { AppointmentStatus, Prisma } from "@prisma/client";
+import { AppointmentStatus, Prisma } from "@/lib/prisma-client";
 import { addDays, startOfDay, startOfMonth, startOfYear } from "date-fns";
 import { fmtDT, fmtVisitDate, fmtVisitTime } from "@/lib/time";
 

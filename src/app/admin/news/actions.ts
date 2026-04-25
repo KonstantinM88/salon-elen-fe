@@ -3,7 +3,7 @@
 
 import { prisma } from "@/lib/db";
 import { saveImageFile, saveVideoFile } from "@/lib/upload";
-import { ArticleType, Prisma, VideoType } from "@prisma/client";
+import { ArticleType, Prisma, VideoType } from "@/lib/prisma-client";
 import { z } from "zod";
 import { revalidatePath, revalidateTag } from "next/cache";
 import { redirect } from "next/navigation";
@@ -317,7 +317,7 @@ export async function createArticle(fd: FormData): Promise<ActionResult> {
       select: { id: true },
     });
 
-    revalidateTag(HOME_LATEST_ARTICLES_TAG);
+    revalidateTag(HOME_LATEST_ARTICLES_TAG, "max");
     return { ok: true, id: created.id };
   } catch (e: unknown) {
     if (isKnownPrismaError(e, "P2002")) {
@@ -392,7 +392,7 @@ export async function updateArticle(
       select: { id: true },
     });
 
-    revalidateTag(HOME_LATEST_ARTICLES_TAG);
+    revalidateTag(HOME_LATEST_ARTICLES_TAG, "max");
     return { ok: true, id };
   } catch (e: unknown) {
     if (isKnownPrismaError(e, "P2002")) {
@@ -431,7 +431,7 @@ export async function deleteArticle(fd: FormData): Promise<ActionResult> {
 
   try {
     await prisma.article.delete({ where: { id } });
-    revalidateTag(HOME_LATEST_ARTICLES_TAG);
+    revalidateTag(HOME_LATEST_ARTICLES_TAG, "max");
     return { ok: true, id };
   } catch (e: unknown) {
     console.error("Delete article error:", e);
@@ -463,7 +463,7 @@ export async function togglePinArticle(id: string): Promise<ActionResult> {
       data: { isPinned: !article.isPinned },
     });
 
-    revalidateTag(HOME_LATEST_ARTICLES_TAG);
+    revalidateTag(HOME_LATEST_ARTICLES_TAG, "max");
     revalidatePath("/admin/news");
     return { ok: true, id };
   } catch (e) {

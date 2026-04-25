@@ -1,7 +1,7 @@
 // src/app/admin/page.tsx
 import Link from "next/link";
 import { prisma } from "@/lib/db";
-import { AppointmentStatus } from "@prisma/client";
+import { AppointmentStatus } from "@/lib/prisma-client";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
@@ -579,16 +579,7 @@ export default async function AdminDashboard({
     confirmedCount,
     clientCount,
     latestArticles,
-    clients,
-    apptsToday,
-    apptsTomorrow,
-    doneLast30,
-    masters,
-    whToday,
-    offsToday,
-    apptsWholeDay,
     drafts,
-    services,
   ] = await Promise.all([
     prisma.article.count(),
     prisma.appointment.count({ where: { status: AppointmentStatus.PENDING } }),
@@ -599,8 +590,23 @@ export default async function AdminDashboard({
       take: 6,
       select: { id: true, title: true, createdAt: true, publishedAt: true },
     }),
-    prisma.client.findMany({ select: { id: true, name: true, birthDate: true } }),
+    prisma.article.findMany({
+      where: { publishedAt: null },
+      orderBy: { createdAt: "desc" },
+      take: 5,
+      select: { id: true, title: true, createdAt: true },
+    }),
+  ]);
 
+  const [
+    apptsToday,
+    apptsTomorrow,
+    doneLast30,
+    masters,
+    whToday,
+    offsToday,
+    apptsWholeDay,
+  ] = await Promise.all([
     prisma.appointment.findMany({
       where: {
         startAt: { gte: today, lt: tomorrow },
@@ -635,7 +641,6 @@ export default async function AdminDashboard({
         service: { select: { name: true } },
       },
     }),
-
     prisma.appointment.findMany({
       where: {
         startAt: { gte: last30, lt: dayAfterTomorrow },
@@ -646,7 +651,6 @@ export default async function AdminDashboard({
         master: { select: { id: true, name: true } },
       },
     }),
-
     prisma.master.findMany({ select: { id: true, name: true } }),
     prisma.masterWorkingHours.findMany({
       where: { weekday },
@@ -673,14 +677,12 @@ export default async function AdminDashboard({
       },
       select: { masterId: true, startAt: true, endAt: true },
     }),
+  ]);
 
-    prisma.article.findMany({
-      where: { publishedAt: null },
-      orderBy: { createdAt: "desc" },
-      take: 5,
-      select: { id: true, title: true, createdAt: true },
+  const [clients, services] = await Promise.all([
+    prisma.client.findMany({
+      select: { id: true, name: true, birthDate: true },
     }),
-
     prisma.service.findMany({
       where: { isActive: true },
       orderBy: [{ parentId: "asc" }, { name: "asc" }],

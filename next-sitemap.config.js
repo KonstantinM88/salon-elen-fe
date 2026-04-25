@@ -1,5 +1,7 @@
 /** @type {import('next-sitemap').IConfig} */
-module.exports = {
-  siteUrl: 'https://permanent-halle.de',
+const config = {
+  siteUrl: "https://permanent-halle.de",
   generateRobotsTxt: true,
 };
+
+export default config;

@@ -5,14 +5,16 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
 import { unlink } from "fs/promises";
 import { join } from "path";
-import { saveImageFile } from "@/lib/uploads";
+import { saveImageFile } from "@/lib/upload";
 
 function resolveUploadsDir(): string {
   const rawUploadDir = process.env.UPLOAD_DIR?.replace(/[\\/]+$/, "");
   if (rawUploadDir) return rawUploadDir;
 
   const rawUploadsBase = process.env.UPLOADS_DIR?.replace(/[\\/]+$/, "");
-  if (!rawUploadsBase) return join(process.cwd(), "public", "uploads");
+  if (!rawUploadsBase) {
+    return join(/* turbopackIgnore: true */ process.cwd(), "public", "uploads");
+  }
 
   const lowered = rawUploadsBase.replace(/\\/g, "/").toLowerCase();
   return lowered.endsWith("/uploads")
@@ -28,7 +30,7 @@ async function deleteFile(url: string): Promise<void> {
   if (!url.startsWith("/uploads/")) return;
   
   const fileName = url.replace("/uploads/", "");
-  const filePath = join(UPLOAD_DIR, fileName);
+  const filePath = join(/* turbopackIgnore: true */ UPLOAD_DIR, fileName);
   
   try {
     await unlink(filePath);

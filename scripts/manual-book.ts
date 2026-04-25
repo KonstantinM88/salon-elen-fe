@@ -1,6 +1,7 @@
 #!/usr/bin/env tsx
 import "dotenv/config";
-import { PrismaClient, AppointmentStatus } from "@prisma/client";
+import { prisma } from "../src/lib/prisma";
+import { AppointmentStatus } from "../src/lib/prisma-client";
 
 /** Europe/Berlin helpers */
 function tzOffsetMs(tz: string, at: Date): number {
@@ -30,8 +31,6 @@ function localMinsToUtc(dateISO: string, minutes: number, tz = "Europe/Berlin"):
   const { start } = orgDayRange(dateISO, tz);
   return new Date(start.getTime() + minutes * 60_000);
 }
-
-const prisma = new PrismaClient();
 
 async function main(): Promise<void> {
   // Настрой под себя:

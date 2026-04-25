@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { AppointmentStatus, Role } from "@prisma/client";
+import { AppointmentStatus, Role } from "@/lib/prisma-client";
 import AdminShellClient from "./_components/AdminShellClient";
 import { resolveContentLocale } from "@/lib/seo-locale-server";
 

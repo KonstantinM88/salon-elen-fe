@@ -1,7 +1,7 @@
 // src/app/api/appointments/route.ts
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import type { Prisma } from "@prisma/client";
+import type { Prisma } from "@/lib/prisma-client";
 
 type CreatePayload = {
   serviceId?: string; // primary для совместимости

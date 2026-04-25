@@ -28,7 +28,7 @@ export async function GET() {
 async function postHandler(req: Request) {
   const data = await req.json();
   const created = await prisma.article.create({ data });
-  revalidateTag(HOME_LATEST_ARTICLES_TAG);
+  revalidateTag(HOME_LATEST_ARTICLES_TAG, "max");
   return NextResponse.json(created);
 }
 export const POST = withAdminRoute(postHandler);

@@ -2,7 +2,7 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
-import { AppointmentStatus } from "@prisma/client";
+import { AppointmentStatus } from "@/lib/prisma-client";
 import { revalidatePath } from "next/cache";
 
 /** Результат серверного действия */

@@ -372,7 +372,7 @@ export default function HomePage({ latest }: Props) {
             alt="Salon Elen"
             fill
             priority
-            sizes="100vw"
+            sizes="(max-width: 767px) 0px, 100vw"
             className="object-cover object-[65%_40%] scale-110"
           />
         </motion.div>
@@ -385,7 +385,7 @@ export default function HomePage({ latest }: Props) {
             alt="Salon Elen"
             fill
             priority
-            sizes="100vw"
+            sizes="(max-width: 767px) 100vw, 0px"
             className="object-cover object-[50%_30%]"
           />
           {/* Video fades in on top once loaded */}

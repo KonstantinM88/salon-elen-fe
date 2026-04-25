@@ -4,7 +4,7 @@
 import { getServerSession } from "next-auth";
 import { NextResponse } from "next/server";
 import { authOptions } from "@/lib/auth";
-import type { Role } from "@prisma/client/index";
+import type { Role } from "@/lib/prisma-client";
 
 // Реэкспортируем готовые строгие гарды и типы из rbac-guards,
 // чтобы импортом "@/lib/rbac" были доступны requireRole и др.

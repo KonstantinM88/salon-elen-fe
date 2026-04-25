@@ -5,7 +5,6 @@ import { prisma } from '@/lib/db';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { z } from 'zod';
-import { Prisma } from '@prisma/client';
 
 const masterSchema = z.object({
   name: z.string().min(2, 'Минимум 2 символа').max(100),
@@ -22,6 +21,15 @@ const masterSchema = z.object({
 function toDateOnly(dateISO: string): Date {
   const [y, m, d] = dateISO.split('-').map((x) => Number(x));
   return new Date(Date.UTC(y, m - 1, d));
+}
+
+function getErrorCode(error: unknown): string | null {
+  if (typeof error !== 'object' || error === null || !('code' in error)) {
+    return null;
+  }
+
+  const code = (error as { code?: unknown }).code;
+  return typeof code === 'string' ? code : null;
 }
 
 export async function createMaster(formData: FormData): Promise<void> {
@@ -50,7 +58,7 @@ export async function createMaster(formData: FormData): Promise<void> {
       },
     });
   } catch (e: unknown) {
-    if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') {
+    if (getErrorCode(e) === 'P2002') {
       redirect('/admin/masters/new?error=unique');
     }
     redirect('/admin/masters/new?error=save');

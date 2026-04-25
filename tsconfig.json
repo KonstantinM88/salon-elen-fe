@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "target": "ES2022",
+    "target": "ES2023",
     "lib": [
       "dom",
       "dom.iterable",
@@ -15,7 +15,7 @@
     "moduleResolution": "bundler",
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "jsx": "preserve", // было "preserve"
+    "jsx": "react-jsx", // было "preserve"
     "types": [
       "react",
       "react-dom",
@@ -40,9 +40,11 @@
     "**/*.tsx",
     "**/*.d.ts",
     ".next/types/**/*.ts",
-    "prisma.config.js",
-    "prisma.config.ts.bak"
-, "src/app/booking/(steps)/client/page.tsx.backup"  ],
+    "prisma.config.ts",
+    "prisma.config.ts.bak",
+    "src/app/booking/(steps)/client/page.tsx.backup",
+    ".next/dev/types/**/*.ts"
+  ],
   "exclude": [
     "node_modules",
     ".next",

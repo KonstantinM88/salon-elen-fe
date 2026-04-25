@@ -1,7 +1,7 @@
 // src/app/admin/clients/page.tsx - FULL FEATURED VERSION 💎
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
-import { Prisma, AppointmentStatus } from "@prisma/client";
+import { Prisma, AppointmentStatus } from "@/lib/prisma-client";
 import {
   UserPlus,
   Users,

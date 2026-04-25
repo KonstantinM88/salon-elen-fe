@@ -1,8 +1,6 @@
 #!/usr/bin/env tsx
 import "dotenv/config";
-import { PrismaClient } from "@prisma/client";
-
-const prisma = new PrismaClient();
+import { prisma } from "../src/lib/prisma";
 
 function hhmmToMin(hhmm: string): number {
   const [hhStr, mmStr] = hhmm.split(":");

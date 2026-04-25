@@ -1,11 +1,9 @@
 import path from "path";
 import { readdir, stat, unlink } from "fs/promises";
 import sharp from "sharp";
-import { PrismaClient } from "@prisma/client";
+import { prisma } from "../src/lib/prisma";
 
 type Mapping = { from: string; to: string; file: string };
-
-const prisma = new PrismaClient();
 
 const uploadsRoot =
   process.env.UPLOADS_DIR || path.join(process.cwd(), "public", "uploads");

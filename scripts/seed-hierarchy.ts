@@ -1,8 +1,6 @@
 // scripts/seed-hierarchy.ts
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../src/lib/prisma';
 import { ensureServices as ensureServiceHierarchy } from '../prisma/seed-services';
-
-const prisma = new PrismaClient();
 
 async function main(): Promise<void> {
   await ensureServiceHierarchy();

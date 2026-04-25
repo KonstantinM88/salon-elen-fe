@@ -1,6 +1,6 @@
 // src/app/admin/stats/export/route.ts
 import { prisma } from '@/lib/db';
-import { AppointmentStatus } from '@prisma/client';
+import { AppointmentStatus } from '@/lib/prisma-client';
 import { NextResponse } from 'next/server';
 import {
   addDays,

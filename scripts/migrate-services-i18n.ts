@@ -18,9 +18,7 @@
  * tsx scripts/migrate-services-i18n.ts
  */
 
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import { prisma } from '../src/lib/prisma';
 
 // Дефолтный язык для существующих данных
 const DEFAULT_LOCALE = 'de'; // Немецкий
