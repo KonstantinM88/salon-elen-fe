@@ -7,7 +7,9 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 cd "$ROOT_DIR"
 
-DEPLOYMENT_VERSION="${DEPLOYMENT_VERSION:-$(git rev-parse HEAD)}"
+COMMIT_SHA="$(git rev-parse --short HEAD)"
+DEPLOYMENT_STAMP="$(date -u +%Y%m%d%H%M%S)"
+DEPLOYMENT_VERSION="${DEPLOYMENT_VERSION:-${DEPLOYMENT_STAMP}-${COMMIT_SHA}}"
 export DEPLOYMENT_VERSION
 
 echo "[deploy] app=$APP_NAME port=$APP_PORT dir=$ROOT_DIR deployment=$DEPLOYMENT_VERSION"
