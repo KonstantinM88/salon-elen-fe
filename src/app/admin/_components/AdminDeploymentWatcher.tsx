@@ -16,6 +16,11 @@ type DeploymentWatcherCopy = {
   checked: string;
   reload: string;
   blocked: string;
+  watcher: string;
+  current: string;
+  latest: string;
+  lastCheck: string;
+  pendingCheck: string;
 };
 
 const COPY: Record<SeoLocale, DeploymentWatcherCopy> = {
@@ -26,6 +31,11 @@ const COPY: Record<SeoLocale, DeploymentWatcherCopy> = {
     checked: "Deployment erkannt",
     reload: "Neu laden",
     blocked: "Speichern wurde blockiert, bis die Seite neu geladen wird.",
+    watcher: "Deployment Watcher",
+    current: "Tab",
+    latest: "Server",
+    lastCheck: "Letzte Pruefung",
+    pendingCheck: "warte auf erste Pruefung",
   },
   ru: {
     title: "Доступна новая версия",
@@ -34,6 +44,11 @@ const COPY: Record<SeoLocale, DeploymentWatcherCopy> = {
     checked: "Обнаружен новый деплой",
     reload: "Обновить страницу",
     blocked: "Отправка формы заблокирована, пока страница не будет обновлена.",
+    watcher: "Watcher деплоя",
+    current: "Вкладка",
+    latest: "Сервер",
+    lastCheck: "Последняя проверка",
+    pendingCheck: "ожидается первая проверка",
   },
   en: {
     title: "New version available",
@@ -42,11 +57,22 @@ const COPY: Record<SeoLocale, DeploymentWatcherCopy> = {
     checked: "New deployment detected",
     reload: "Reload page",
     blocked: "Form submission was blocked until the page is reloaded.",
+    watcher: "Deployment watcher",
+    current: "Tab",
+    latest: "Server",
+    lastCheck: "Last check",
+    pendingCheck: "waiting for first check",
   },
 };
 
 function shortVersion(value: string) {
   return value.length > 10 ? value.slice(0, 7) : value;
+}
+
+function localeTag(locale: SeoLocale) {
+  if (locale === "ru") return "ru-RU";
+  if (locale === "de") return "de-DE";
+  return "en-US";
 }
 
 export default function AdminDeploymentWatcher({
@@ -58,6 +84,7 @@ export default function AdminDeploymentWatcher({
     initialDeploymentVersion,
   );
   const [blockMessageVisible, setBlockMessageVisible] = useState(false);
+  const [lastCheckedAt, setLastCheckedAt] = useState<number | null>(null);
   const currentDeploymentVersionRef = useRef(initialDeploymentVersion);
   const inFlightRef = useRef(false);
   const staleRef = useRef(false);
@@ -90,6 +117,7 @@ export default function AdminDeploymentWatcher({
 
       const payload = (await response.json()) as { deploymentVersion?: string };
       const nextDeploymentVersion = payload.deploymentVersion?.trim() ?? "";
+      setLastCheckedAt(Date.now());
 
       if (
         nextDeploymentVersion &&
@@ -149,41 +177,65 @@ export default function AdminDeploymentWatcher({
     };
   }, [blockStaleSubmit, checkDeploymentVersion, initialDeploymentVersion]);
 
-  if (!initialDeploymentVersion || (!isStale && !blockMessageVisible)) {
+  if (!initialDeploymentVersion) {
     return null;
   }
 
   return (
     <div className="mb-4 sm:mb-5">
-      <div className="overflow-hidden rounded-2xl border border-amber-400/30 bg-gradient-to-r from-amber-500/12 via-orange-500/10 to-rose-500/12 shadow-[0_20px_60px_-25px_rgba(251,191,36,0.45)]">
-        <div className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
-          <div className="min-w-0">
-            <div className="flex items-center gap-2 text-sm font-semibold text-amber-100">
-              <ShieldAlert className="h-4 w-4 shrink-0 text-amber-300" />
-              <span>{t.title}</span>
-            </div>
-            <p className="mt-2 max-w-3xl text-sm leading-6 text-amber-50/90">
-              {t.description}
-            </p>
-            <div className="mt-2 text-xs text-amber-200/80">
-              {t.checked}: {shortVersion(initialDeploymentVersion)} -&gt;{" "}
-              {shortVersion(latestDeploymentVersion)}
-            </div>
-            {blockMessageVisible ? (
-              <div className="mt-2 text-xs font-medium text-rose-200">{t.blocked}</div>
-            ) : null}
+      <div className="mb-3 flex justify-end">
+        <div className="rounded-xl border border-cyan-400/20 bg-slate-950/70 px-3 py-2 text-[11px] text-cyan-100 shadow-[0_12px_30px_-20px_rgba(34,211,238,0.75)] backdrop-blur">
+          <div className="font-semibold uppercase tracking-[0.18em] text-cyan-300/90">
+            {t.watcher}
           </div>
-
-          <button
-            type="button"
-            onClick={() => window.location.reload()}
-            className="inline-flex items-center justify-center gap-2 rounded-xl border border-amber-300/30 bg-amber-300/12 px-4 py-2.5 text-sm font-medium text-amber-50 transition hover:bg-amber-300/20"
-          >
-            <RefreshCcw className="h-4 w-4" />
-            {t.reload}
-          </button>
+          <div className="mt-1">
+            {t.current}:{" "}
+            <span className="font-medium">{shortVersion(initialDeploymentVersion)}</span>
+          </div>
+          <div>
+            {t.latest}:{" "}
+            <span className="font-medium">{shortVersion(latestDeploymentVersion)}</span>
+          </div>
+          <div className="text-cyan-200/70">
+            {t.lastCheck}:{" "}
+            {lastCheckedAt
+              ? new Date(lastCheckedAt).toLocaleTimeString(localeTag(locale))
+              : t.pendingCheck}
+          </div>
         </div>
       </div>
+
+      {isStale || blockMessageVisible ? (
+        <div className="overflow-hidden rounded-2xl border border-amber-400/30 bg-gradient-to-r from-amber-500/12 via-orange-500/10 to-rose-500/12 shadow-[0_20px_60px_-25px_rgba(251,191,36,0.45)]">
+          <div className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 text-sm font-semibold text-amber-100">
+                <ShieldAlert className="h-4 w-4 shrink-0 text-amber-300" />
+                <span>{t.title}</span>
+              </div>
+              <p className="mt-2 max-w-3xl text-sm leading-6 text-amber-50/90">
+                {t.description}
+              </p>
+              <div className="mt-2 text-xs text-amber-200/80">
+                {t.checked}: {shortVersion(initialDeploymentVersion)} -&gt;{" "}
+                {shortVersion(latestDeploymentVersion)}
+              </div>
+              {blockMessageVisible ? (
+                <div className="mt-2 text-xs font-medium text-rose-200">{t.blocked}</div>
+              ) : null}
+            </div>
+
+            <button
+              type="button"
+              onClick={() => window.location.reload()}
+              className="inline-flex items-center justify-center gap-2 rounded-xl border border-amber-300/30 bg-amber-300/12 px-4 py-2.5 text-sm font-medium text-amber-50 transition hover:bg-amber-300/20"
+            >
+              <RefreshCcw className="h-4 w-4" />
+              {t.reload}
+            </button>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
