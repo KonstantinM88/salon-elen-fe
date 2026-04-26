@@ -9,6 +9,7 @@ import { useTheme } from "next-themes";
 
 import AdminNav from "@/components/admin/AdminNav";
 import AdminFooter from "../_components/AdminFooter";
+import AdminDeploymentWatcher from "./AdminDeploymentWatcher";
 import type { SeoLocale } from "@/lib/seo-locale";
 
 type AdminShellClientProps = {
@@ -16,6 +17,7 @@ type AdminShellClientProps = {
   bookingsBadge: number;
   role: Role;
   locale: SeoLocale;
+  deploymentVersion: string;
 };
 
 type AdminShellCopy = {
@@ -55,6 +57,7 @@ export default function AdminShellClient({
   bookingsBadge,
   role,
   locale,
+  deploymentVersion,
 }: AdminShellClientProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState<boolean>(false);
   const { setTheme } = useTheme();
@@ -163,6 +166,10 @@ export default function AdminShellClient({
 
           {/* 📄 КОНТЕНТ */}
           <section className="card-glass card-glass-accent card-glow p-4 sm:p-5 lg:p-6 overflow-x-auto overflow-y-visible">
+            <AdminDeploymentWatcher
+              initialDeploymentVersion={deploymentVersion}
+              locale={locale}
+            />
             {children}
             <AdminFooter locale={locale} />
           </section>

@@ -38,7 +38,12 @@ export default async function AdminLayout({
   const locale = await resolveContentLocale();
 
   return (
-    <AdminShellClient role={role} bookingsBadge={pendingBookings} locale={locale}>
+    <AdminShellClient
+      role={role}
+      bookingsBadge={pendingBookings}
+      locale={locale}
+      deploymentVersion={process.env.DEPLOYMENT_VERSION ?? process.env.NEXT_DEPLOYMENT_ID ?? ""}
+    >
       {children}
     </AdminShellClient>
   );
