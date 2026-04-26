@@ -166,7 +166,7 @@ export default function AdminDeploymentWatcher({
               {t.description}
             </p>
             <div className="mt-2 text-xs text-amber-200/80">
-              {t.checked}: {shortVersion(currentDeploymentVersionRef.current)} -&gt;{" "}
+              {t.checked}: {shortVersion(initialDeploymentVersion)} -&gt;{" "}
               {shortVersion(latestDeploymentVersion)}
             </div>
             {blockMessageVisible ? (
