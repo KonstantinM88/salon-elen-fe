@@ -3,6 +3,7 @@ import { Suspense } from "react";
 import { prisma } from "@/lib/db";
 import type { Metadata } from "next";
 import ServicesClient from "./ServicesClient";
+import SeoLandingLinks from "@/components/seo/SeoLandingLinks";
 import {
   resolveUrlLocale,
   buildAlternates,
@@ -127,9 +128,12 @@ export default async function ServicesPage({
   });
 
   return (
-    <Suspense>
-      <ServicesClient categories={categoriesWithTranslations} locale={locale} />
-    </Suspense>
+    <>
+      <Suspense>
+        <ServicesClient categories={categoriesWithTranslations} locale={locale} />
+      </Suspense>
+      <SeoLandingLinks locale={locale} />
+    </>
   );
 }
 

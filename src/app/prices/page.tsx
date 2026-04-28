@@ -2,6 +2,7 @@
 import type { Metadata } from "next";
 import { prisma } from "@/lib/db";
 import PricesClient from "./PricesClient";
+import SeoLandingLinks from "@/components/seo/SeoLandingLinks";
 import {
   resolveUrlLocale,
   buildAlternates,
@@ -176,6 +177,7 @@ export default async function PricesPage({
   return (
     <>
       <PricesClient locale={locale} categories={categories} />
+      <SeoLandingLinks locale={locale} />
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: buildJsonLd(locale, allServices) }}

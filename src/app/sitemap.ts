@@ -1,6 +1,7 @@
 //--------с /
 // src/app/sitemap.ts
 import { prisma } from "@/lib/db";
+import { seoLandingPages } from "@/lib/seo-landing-pages";
 import type { MetadataRoute } from "next";
 
 export const dynamic = "force-dynamic";
@@ -22,6 +23,7 @@ function createAlternates(path: string): Record<string, string> {
     de: `${BASE_URL}${normalizedPath}`,
     en: joinWithLang("en"),
     ru: joinWithLang("ru"),
+    "x-default": `${BASE_URL}${normalizedPath}`,
   };
 }
 
@@ -33,6 +35,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const staticPages = [
     { path: "/", priority: 1.0 },
     { path: "/permanent-make-up-in-der-naehe", priority: 0.95 },
+    ...seoLandingPages.map((page) => ({
+      path: `/${page.slug}`,
+      priority: 0.86,
+    })),
     { path: "/services", priority: 0.9 },
     { path: "/prices", priority: 0.8 },
     { path: "/about", priority: 0.8 },
