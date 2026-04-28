@@ -27,18 +27,33 @@ const metaDescriptions: Record<SeoLocale, string> = {
   en: "All services at Salon Elen in Halle (Saale): permanent make-up, powder brows, lip pigmentation, eyelash extensions, nails and microneedling.",
 };
 
+async function hasServiceDeepLink(searchParams?: SearchParamsPromise): Promise<boolean> {
+  const sp = searchParams ? await searchParams : undefined;
+  const raw = sp?.service;
+  if (Array.isArray(raw)) return raw.some(Boolean);
+  return Boolean(raw);
+}
+
 export async function generateMetadata({
   searchParams,
 }: {
   searchParams?: SearchParamsPromise;
 }): Promise<Metadata> {
   const locale = await resolveUrlLocale(searchParams);
+  const isServiceDeepLink = await hasServiceDeepLink(searchParams);
   const alts = buildAlternates("/services", locale);
 
   return {
     title: metaTitles[locale],
     description: metaDescriptions[locale],
     alternates: alts,
+    robots: {
+      index: !isServiceDeepLink,
+      follow: true,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+      "max-video-preview": -1,
+    },
     openGraph: {
       title: metaTitles[locale],
       description: metaDescriptions[locale],

@@ -336,6 +336,7 @@ function ServiceCard({
         {/* Details link */}
         <Link
           href={localeHref(`/services?service=${service.id}`, locale)}
+          rel="nofollow"
           className="inline-flex items-center gap-1 text-xs font-semibold text-pink-600 hover:text-pink-700 dark:text-amber-400 dark:hover:text-amber-300 transition-colors group/detail mb-3"
         >
           {t.details}
