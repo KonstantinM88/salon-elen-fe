@@ -33,7 +33,13 @@ export type SeoLandingPageData = {
     afterImage: string;
     note: string;
   };
-  gallery: Array<{ src: string; alt: string; label: string }>;
+  gallery: Array<{
+    src: string;
+    alt: string;
+    label: string;
+    mediaType?: "image" | "video";
+    poster?: string;
+  }>;
   feedback: string[];
   faq: Array<{ question: string; answer: string }>;
   relatedSlugs: string[];
@@ -176,9 +182,19 @@ export const seoLandingPages = [
       note: "Weitere freigegebene Vorher/Nachher-Beispiele zeigen wir gern in der Beratung.",
     },
     gallery: [
-      { src: "/images/gallery/brow_1.webp", alt: "Powder Brows Formplanung in Halle", label: "Form" },
-      { src: "/images/gallery/brow_2.webp", alt: "Powder Brows Schattierung in Halle", label: "Schattierung" },
-      { src: "/images/gallery/pmu_1.webp", alt: "PMU Augenbrauen bei Salon Elen", label: "PMU" },
+      { src: "/images/seo-pages/Powder_Brows_1.webp", alt: "Powder Brows Formplanung in Halle", label: "Form" },
+      {
+        src: "/images/seo-pages/Powder_Brows_2.webp",
+        alt: "Powder Brows Schattierung in Halle",
+        label: "Schattierung",
+      },
+      {
+        src: "/images/seo-pages/Powder_Brows_video_1.webm",
+        alt: "PMU Augenbrauen bei Salon Elen",
+        label: "PMU",
+        mediaType: "video",
+        poster: "/images/seo-pages/Powder_Brows_1.webp",
+      },
     ],
     feedback: browFeedback,
     faq: [
@@ -326,13 +342,19 @@ export const seoLandingPages = [
       beforeLabel: "Farb- und Konturcheck",
       afterLabel: "frischer Lippenlook",
       beforeImage: "/images/gallery/pmu_2.webp",
-      afterImage: "/images/gallery/pmu_3.webp",
+      afterImage: "/images/seo-pages/Lip_Pigmentation_2.webp",
       note: "Bei Neigung zu Lippenherpes sprechen Sie uns bitte vorab an.",
     },
     gallery: [
-      { src: "/images/gallery/pmu_2.webp", alt: "Aquarell Lips in Halle", label: "Aquarell" },
-      { src: "/images/gallery/pmu_3.webp", alt: "Lippen PMU in Halle", label: "Farbe" },
-      { src: "/images/gallery/beauty_2.webp", alt: "Permanent Make-up Lippen Salon Elen", label: "Look" },
+      { src: "/images/seo-pages/Lippenpigmentierung_1.webp", alt: "Aquarell Lips in Halle", label: "Aquarell" },
+      { src: "/images/seo-pages/Lippenpigmentierung_2.webp", alt: "Lippen PMU in Halle", label: "Farbe" },
+      {
+        src: "/images/seo-pages/Lip_Pigmentation_3.webm",
+        alt: "Permanent Make-up Lippen Salon Elen",
+        label: "Look",
+        mediaType: "video",
+        poster: "/images/seo-pages/Lippenpigmentierung_2.webp",
+      },
     ],
     feedback: lipFeedback,
     faq: [
@@ -403,13 +425,19 @@ export const seoLandingPages = [
       beforeLabel: "natuerliche Wimpernlinie",
       afterLabel: "verdichteter Ansatz",
       beforeImage: "/images/gallery/beauty_1.webp",
-      afterImage: "/images/gallery/pmu_1.webp",
+      afterImage: "/images/seo-pages/Lashline_Enhancement_1.webp",
       note: "Die genaue Intensitaet wird an Augenform, Wimpernfarbe und Wunschbild angepasst.",
     },
     gallery: [
-      { src: "/images/gallery/pmu_1.webp", alt: "Wimpernkranz PMU Halle", label: "Wimpernkranz" },
-      { src: "/images/gallery/beauty_1.webp", alt: "dezente Augenbetonung Halle", label: "Augen" },
-      { src: "/images/gallery/beauty_4.webp", alt: "Permanent Make-up Augen Halle", label: "PMU" },
+      { src: "/images/seo-pages/Lashline_Enhancement_0.webp", alt: "Wimpernkranz PMU Halle", label: "Wimpernkranz" },
+      { src: "/images/seo-pages/Lashline_Enhancement_2.webp", alt: "dezente Augenbetonung Halle", label: "Augen" },
+      {
+        src: "/images/seo-pages/Lashline_Enhancement_3.webm",
+        alt: "Permanent Make-up Augen Halle",
+        label: "PMU",
+        mediaType: "video",
+        poster: "/images/seo-pages/Lashline_Enhancement_2.webp",
+      },
     ],
     feedback: eyeFeedback,
     faq: [
@@ -479,13 +507,23 @@ export const seoLandingPages = [
       beforeLabel: "Ausgangsbraue",
       afterLabel: "geplante Definition",
       beforeImage: "/images/gallery/brow_1.webp",
-      afterImage: "/images/gallery/brow_2.webp",
+      afterImage: "/images/seo-pages/Permanent_Make-up_2.webp",
       note: "Powder Brows wirken weicher, Hairstroke Brows strukturierter. Wir beraten zur passenden Variante.",
     },
     gallery: [
-      { src: "/images/gallery/brow_1.webp", alt: "PMU Augenbrauen Halle Powder", label: "Powder" },
-      { src: "/images/gallery/brow_2.webp", alt: "PMU Augenbrauen Halle Hairstroke", label: "Hairstroke" },
-      { src: "/images/gallery/pmu_1.webp", alt: "Permanent Make-up Brauen Halle", label: "PMU" },
+      { src: "/images/seo-pages/Permanent_Make-up_Brows_0.webp", alt: "PMU Augenbrauen Halle Powder", label: "Powder" },
+      {
+        src: "/images/seo-pages/Permanent_Make-up_Brows_1.webp",
+        alt: "PMU Augenbrauen Halle Hairstroke",
+        label: "Hairstroke",
+      },
+      {
+        src: "/images/seo-pages/Permanent_Make-up_Brows_3.webm",
+        alt: "Permanent Make-up Brauen Halle",
+        label: "PMU",
+        mediaType: "video",
+        poster: "/images/seo-pages/Permanent_Make-up_Brows_1.webp",
+      },
     ],
     feedback: browFeedback,
     faq: [
@@ -556,13 +594,19 @@ export const seoLandingPages = [
       beforeLabel: "natuerliche Lippenfarbe",
       afterLabel: "frischer PMU-Effekt",
       beforeImage: "/images/gallery/pmu_2.webp",
-      afterImage: "/images/gallery/pmu_3.webp",
+      afterImage: "/images/seo-pages/Permanent_Make-up_Lips_3.webp",
       note: "Die endgueltige Wirkung zeigt sich nach der Heilung. Direkt danach ist die Farbe intensiver.",
     },
     gallery: [
-      { src: "/images/gallery/pmu_3.webp", alt: "Permanent Make-up Lippen Halle Ergebnis", label: "3D Lips" },
-      { src: "/images/gallery/pmu_2.webp", alt: "Aquarell Lips Halle", label: "Aquarell" },
-      { src: "/images/gallery/beauty_5.webp", alt: "Lippenpigmentierung Salon Elen", label: "Farbe" },
+      { src: "/images/seo-pages/Permanent_Make-up_Lips_v0.webp", alt: "Permanent Make-up Lippen Halle Ergebnis", label: "3D Lips" },
+      { src: "/images/seo-pages/Permanent_Make-up_Lips_v1.webp", alt: "Aquarell Lips Halle", label: "Aquarell" },
+      {
+        src: "/images/seo-pages/Permanent_Make-up_Lips_v3.webm",
+        alt: "Lippenpigmentierung Salon Elen",
+        label: "Farbe",
+        mediaType: "video",
+        poster: "/images/seo-pages/Permanent_Make-up_Lips_v1.webp",
+      },
     ],
     feedback: lipFeedback,
     faq: [
@@ -633,13 +677,19 @@ export const seoLandingPages = [
       beforeLabel: "Augenform und Ansatz",
       afterLabel: "definiertere Linie",
       beforeImage: "/images/gallery/beauty_1.webp",
-      afterImage: "/images/gallery/pmu_1.webp",
+      afterImage: "/images/seo-pages/Permanent_Eyeliner_0.webp",
       note: "Bei empfindlichen oder aktuell gereizten Augen sollte die Behandlung verschoben werden.",
     },
     gallery: [
-      { src: "/images/gallery/beauty_1.webp", alt: "Lidstrich PMU Halle Beratung", label: "Augenform" },
-      { src: "/images/gallery/pmu_1.webp", alt: "Permanent Lidstrich Halle", label: "Linie" },
-      { src: "/images/gallery/beauty_4.webp", alt: "PMU Augen Salon Elen", label: "Definition" },
+      { src: "/images/seo-pages/Permanent_Eyeliner_2.webp", alt: "Lidstrich PMU Halle Beratung", label: "Augenform" },
+      { src: "/images/seo-pages/Permanent_Eyeliner_1.webp", alt: "Permanent Lidstrich Halle", label: "Linie" },
+      {
+        src: "/images/seo-pages/Permanent_Eyeliner_3.webm",
+        alt: "PMU Augen Salon Elen",
+        label: "Definition",
+        mediaType: "video",
+        poster: "/images/seo-pages/Permanent_Eyeliner_1.webp",
+      },
     ],
     feedback: eyeFeedback,
     faq: [
@@ -734,7 +784,13 @@ export const seoLandingPages = [
     gallery: [
       { src: "/images/gallery/injection_1.webp", alt: "Microneedling Hautanalyse Halle", label: "Analyse" },
       { src: "/images/gallery/injection_2.webp", alt: "Microneedling Ergebnis Halle", label: "Glow" },
-      { src: "/images/gallery/beauty_8.webp", alt: "Kosmetik Hautbehandlung Halle", label: "Pflege" },
+      {
+        src: "/images/seo-pages/Microneedling_3.webm",
+        alt: "Kosmetik Hautbehandlung Halle",
+        label: "Pflege",
+        mediaType: "video",
+        poster: "/images/gallery/injection_2.webp",
+      },
     ],
     feedback: [
       "Viele Kundinnen schaetzen den frischeren Glow nach der Regeneration.",

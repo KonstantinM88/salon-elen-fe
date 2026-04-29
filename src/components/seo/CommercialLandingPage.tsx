@@ -30,6 +30,13 @@ import {
   type SeoLandingCategory,
   type SeoLandingPageData,
 } from "@/lib/seo-landing-pages";
+import {
+  SeoHeroVisual,
+  SeoReveal,
+  SeoScrollProgress,
+  SeoStagger,
+  SeoStaggerItem,
+} from "@/components/seo/SeoScrollEffects";
 
 type MetadataArgs = {
   searchParams?: SearchParamsPromise;
@@ -378,7 +385,7 @@ function SectionHeader({
   text?: string;
 }) {
   return (
-    <div className="mx-auto mb-8 max-w-3xl text-center sm:mb-10">
+    <SeoReveal className="mx-auto mb-8 max-w-3xl text-center sm:mb-10">
       <p className="text-xs font-semibold uppercase tracking-[0.26em] text-rose-600 dark:text-amber-300">
         {eyebrow}
       </p>
@@ -390,7 +397,7 @@ function SectionHeader({
           {text}
         </p>
       ) : null}
-    </div>
+    </SeoReveal>
   );
 }
 
@@ -425,21 +432,24 @@ export default function CommercialLandingPage({
   );
 
   return (
-    <main className="bg-white text-gray-950 dark:bg-[#09090d] dark:text-white">
+    <main className="overflow-hidden bg-white text-gray-950 dark:bg-[#09090d] dark:text-white">
+      <SeoScrollProgress />
       <section className="relative isolate min-h-[76svh] overflow-hidden">
-        <Image
-          src={page.heroImage}
-          alt={page.heroImageAlt}
-          fill
-          priority
-          sizes="100vw"
-          className="object-cover"
-        />
+        <SeoHeroVisual>
+          <Image
+            src={page.heroImage}
+            alt={page.heroImageAlt}
+            fill
+            priority
+            sizes="100vw"
+            className="object-cover"
+          />
+        </SeoHeroVisual>
         <div className="absolute inset-0 bg-black/55" />
         <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/35 to-black/30" />
 
         <div className="relative z-10 mx-auto flex min-h-[76svh] max-w-6xl flex-col justify-end px-4 pb-10 pt-24 sm:px-6 sm:pb-14 lg:px-8">
-          <div className="max-w-3xl">
+          <SeoReveal className="max-w-3xl" amount={0.4}>
             <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/12 px-4 py-2 text-xs font-semibold uppercase tracking-[0.22em] text-white backdrop-blur">
               <CategoryIcon className="h-4 w-4" />
               {page.eyebrow}
@@ -484,13 +494,13 @@ export default function CommercialLandingPage({
                 {t.viewPrices}
               </Link>
             </div>
-          </div>
+          </SeoReveal>
         </div>
       </section>
 
       <section className="border-b border-gray-200/70 bg-white py-12 dark:border-white/10 dark:bg-[#09090d] sm:py-16">
         <div className="mx-auto grid max-w-6xl gap-8 px-4 sm:px-6 lg:grid-cols-[0.9fr_1.1fr] lg:px-8">
-          <div>
+          <SeoReveal direction="left">
             <p className="text-xs font-semibold uppercase tracking-[0.26em] text-rose-600 dark:text-amber-300">
               {t.whyEyebrow}
             </p>
@@ -500,25 +510,26 @@ export default function CommercialLandingPage({
             <p className="mt-4 text-sm leading-7 text-gray-600 dark:text-gray-300 sm:text-base">
               {t.whyText}
             </p>
-          </div>
+          </SeoReveal>
 
-          <div className="grid gap-4 sm:grid-cols-2">
+          <SeoStagger className="grid gap-4 sm:grid-cols-2">
             {page.outcomes.map((item, index) => (
-              <article
-                key={item}
-                className={`rounded-2xl border ${accent.border} ${accent.bg} p-5`}
-              >
-                <div className="flex items-start gap-3">
-                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white text-sm font-semibold text-gray-900 shadow-sm dark:bg-white/10 dark:text-white">
-                    {index + 1}
-                  </span>
-                  <p className="text-sm leading-6 text-gray-700 dark:text-gray-200">
-                    {item}
-                  </p>
-                </div>
-              </article>
+              <SeoStaggerItem key={item} className="h-full">
+                <article
+                  className={`h-full rounded-2xl border ${accent.border} ${accent.bg} p-5 transition duration-500 hover:-translate-y-1 hover:shadow-xl hover:shadow-rose-200/30 dark:hover:shadow-black/30`}
+                >
+                  <div className="flex items-start gap-3">
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white text-sm font-semibold text-gray-900 shadow-sm dark:bg-white/10 dark:text-white">
+                      {index + 1}
+                    </span>
+                    <p className="text-sm leading-6 text-gray-700 dark:text-gray-200">
+                      {item}
+                    </p>
+                  </div>
+                </article>
+              </SeoStaggerItem>
             ))}
-          </div>
+          </SeoStagger>
         </div>
       </section>
 
@@ -529,19 +540,18 @@ export default function CommercialLandingPage({
             title={t.suitableTitle}
             text={t.suitableText}
           />
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <SeoStagger className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             {page.suitableFor.map((item) => (
-              <article
-                key={item}
-                className="rounded-2xl border border-white/70 bg-white/85 p-5 shadow-sm dark:border-white/10 dark:bg-white/[0.04]"
-              >
-                <CheckCircle2 className={`mb-4 h-5 w-5 ${accent.text}`} />
-                <p className="text-sm leading-6 text-gray-700 dark:text-gray-300">
-                  {item}
-                </p>
-              </article>
+              <SeoStaggerItem key={item} className="h-full">
+                <article className="h-full rounded-2xl border border-white/70 bg-white/85 p-5 shadow-sm transition duration-500 hover:-translate-y-1 hover:shadow-xl hover:shadow-rose-200/30 dark:border-white/10 dark:bg-white/[0.04] dark:hover:shadow-black/30">
+                  <CheckCircle2 className={`mb-4 h-5 w-5 ${accent.text}`} />
+                  <p className="text-sm leading-6 text-gray-700 dark:text-gray-300">
+                    {item}
+                  </p>
+                </article>
+              </SeoStaggerItem>
             ))}
-          </div>
+          </SeoStagger>
         </div>
       </section>
 
@@ -552,32 +562,31 @@ export default function CommercialLandingPage({
             title={t.processTitle}
             text={t.processText}
           />
-          <div className="grid gap-4 lg:grid-cols-4">
+          <SeoStagger className="grid gap-4 lg:grid-cols-4">
             {page.process.map((step, index) => (
-              <article
-                key={step.title}
-                className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-white/[0.04]"
-              >
-                <div
-                  className={`mb-5 flex h-11 w-11 items-center justify-center rounded-2xl ${accent.bg} ${accent.text}`}
-                >
-                  {index + 1}
-                </div>
-                <h3 className="text-base font-semibold text-gray-950 dark:text-white">
-                  {step.title}
-                </h3>
-                <p className="mt-3 text-sm leading-6 text-gray-600 dark:text-gray-300">
-                  {step.text}
-                </p>
-              </article>
+              <SeoStaggerItem key={step.title} className="h-full">
+                <article className="h-full rounded-2xl border border-gray-200 bg-white p-5 shadow-sm transition duration-500 hover:-translate-y-1 hover:shadow-xl hover:shadow-gray-200/70 dark:border-white/10 dark:bg-white/[0.04] dark:hover:shadow-black/30">
+                  <div
+                    className={`mb-5 flex h-11 w-11 items-center justify-center rounded-2xl ${accent.bg} ${accent.text}`}
+                  >
+                    {index + 1}
+                  </div>
+                  <h3 className="text-base font-semibold text-gray-950 dark:text-white">
+                    {step.title}
+                  </h3>
+                  <p className="mt-3 text-sm leading-6 text-gray-600 dark:text-gray-300">
+                    {step.text}
+                  </p>
+                </article>
+              </SeoStaggerItem>
             ))}
-          </div>
+          </SeoStagger>
         </div>
       </section>
 
       <section className="border-y border-gray-200/70 bg-gray-950 py-14 text-white dark:border-white/10 sm:py-20">
         <div className="mx-auto grid max-w-6xl gap-8 px-4 sm:px-6 lg:grid-cols-[0.85fr_1.15fr] lg:px-8">
-          <div>
+          <SeoReveal direction="left">
             <p className="text-xs font-semibold uppercase tracking-[0.26em] text-amber-300">
               {t.priceEyebrow}
             </p>
@@ -594,19 +603,18 @@ export default function CommercialLandingPage({
               {t.priceCta}
               <CalendarDays className="h-4 w-4" />
             </Link>
-          </div>
+          </SeoReveal>
 
-          <div className="grid gap-4 sm:grid-cols-3">
+          <SeoStagger className="grid gap-4 sm:grid-cols-3">
             {page.priceDetails.map((item) => (
-              <article
-                key={item}
-                className="rounded-2xl border border-white/10 bg-white/[0.06] p-5"
-              >
-                <BadgeEuro className="mb-4 h-5 w-5 text-amber-300" />
-                <p className="text-sm leading-6 text-white/82">{item}</p>
-              </article>
+              <SeoStaggerItem key={item} className="h-full">
+                <article className="h-full rounded-2xl border border-white/10 bg-white/[0.06] p-5 transition duration-500 hover:-translate-y-1 hover:bg-white/[0.09]">
+                  <BadgeEuro className="mb-4 h-5 w-5 text-amber-300" />
+                  <p className="text-sm leading-6 text-white/82">{item}</p>
+                </article>
+              </SeoStaggerItem>
             ))}
-          </div>
+          </SeoStagger>
         </div>
       </section>
 
@@ -618,7 +626,7 @@ export default function CommercialLandingPage({
             text={page.proof.intro}
           />
 
-          <div className="grid gap-5 lg:grid-cols-2">
+          <SeoStagger className="grid gap-5 lg:grid-cols-2">
             {[
               {
                 label: page.proof.beforeLabel,
@@ -629,59 +637,72 @@ export default function CommercialLandingPage({
                 image: page.proof.afterImage,
               },
             ].map((item) => (
-              <article
-                key={item.label}
-                className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-white/10 dark:bg-white/[0.04]"
-              >
-                <div className="relative aspect-[4/3]">
-                  <Image
-                    src={item.image}
-                    alt={`${page.title}: ${item.label}`}
-                    fill
-                    sizes="(max-width: 1024px) 100vw, 50vw"
-                    className="object-cover"
-                  />
-                </div>
-                <div className="p-5">
-                  <p className={`text-sm font-semibold ${accent.text}`}>{item.label}</p>
-                </div>
-              </article>
+              <SeoStaggerItem key={item.label} className="h-full" direction="scale">
+                <article className="group h-full overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm transition duration-500 hover:-translate-y-1 hover:shadow-xl hover:shadow-gray-200/70 dark:border-white/10 dark:bg-white/[0.04] dark:hover:shadow-black/30">
+                  <div className="relative aspect-[4/3]">
+                    <Image
+                      src={item.image}
+                      alt={`${page.title}: ${item.label}`}
+                      fill
+                      sizes="(max-width: 1024px) 100vw, 50vw"
+                      className="object-cover transition duration-700 group-hover:scale-[1.04]"
+                    />
+                  </div>
+                  <div className="p-5">
+                    <p className={`text-sm font-semibold ${accent.text}`}>{item.label}</p>
+                  </div>
+                </article>
+              </SeoStaggerItem>
             ))}
-          </div>
+          </SeoStagger>
 
-          <p className="mx-auto mt-5 max-w-3xl text-center text-sm leading-6 text-gray-600 dark:text-gray-300">
+          <SeoReveal className="mx-auto mt-5 max-w-3xl text-center text-sm leading-6 text-gray-600 dark:text-gray-300" delay={0.08}>
             {page.proof.note}
-          </p>
+          </SeoReveal>
 
-          <div className="mt-8 grid gap-4 md:grid-cols-3">
-            {page.gallery.map((item) => (
-              <article
-                key={item.src}
-                className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-white/10 dark:bg-white/[0.04]"
-              >
-                <div className="relative aspect-[5/4]">
-                  <Image
-                    src={item.src}
-                    alt={item.alt}
-                    fill
-                    sizes="(max-width: 768px) 100vw, 33vw"
-                    className="object-cover transition duration-500 hover:scale-[1.03]"
-                  />
-                </div>
-                <div className="p-4">
-                  <p className="text-sm font-semibold text-gray-900 dark:text-white">
-                    {item.label}
-                  </p>
-                </div>
-              </article>
+          <SeoStagger className="mt-8 grid gap-4 md:grid-cols-3" delay={0.08}>
+            {page.gallery.map((item, index) => (
+              <SeoStaggerItem key={`${item.src}-${item.label}-${index}`} className="h-full" direction="scale">
+                <article className="group h-full overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm transition duration-500 hover:-translate-y-1 hover:shadow-xl hover:shadow-gray-200/70 dark:border-white/10 dark:bg-white/[0.04] dark:hover:shadow-black/30">
+                  <div className="relative aspect-[5/4]">
+                    {item.mediaType === "video" ? (
+                      <video
+                        aria-label={item.alt}
+                        autoPlay
+                        loop
+                        muted
+                        playsInline
+                        preload="metadata"
+                        poster={item.poster}
+                        className="h-full w-full object-cover transition duration-700 group-hover:scale-[1.04]"
+                      >
+                        <source src={item.src} type="video/webm" />
+                      </video>
+                    ) : (
+                      <Image
+                        src={item.src}
+                        alt={item.alt}
+                        fill
+                        sizes="(max-width: 768px) 100vw, 33vw"
+                        className="object-cover transition duration-700 group-hover:scale-[1.04]"
+                      />
+                    )}
+                  </div>
+                  <div className="p-4">
+                    <p className="text-sm font-semibold text-gray-900 dark:text-white">
+                      {item.label}
+                    </p>
+                  </div>
+                </article>
+              </SeoStaggerItem>
             ))}
-          </div>
+          </SeoStagger>
         </div>
       </section>
 
       <section className={`${accent.band} py-14 sm:py-20`}>
         <div className="mx-auto grid max-w-6xl gap-8 px-4 sm:px-6 lg:grid-cols-[0.85fr_1.15fr] lg:px-8">
-          <div>
+          <SeoReveal direction="left">
             <p className="text-xs font-semibold uppercase tracking-[0.26em] text-rose-600 dark:text-amber-300">
               {t.contraindicationEyebrow}
             </p>
@@ -691,19 +712,18 @@ export default function CommercialLandingPage({
             <p className="mt-4 text-sm leading-7 text-gray-600 dark:text-gray-300 sm:text-base">
               {t.contraindicationText}
             </p>
-          </div>
+          </SeoReveal>
 
-          <div className="grid gap-3 sm:grid-cols-2">
+          <SeoStagger className="grid gap-3 sm:grid-cols-2">
             {page.contraindications.map((item) => (
-              <div
-                key={item}
-                className="flex items-start gap-3 rounded-2xl border border-white/70 bg-white/85 p-4 text-sm leading-6 text-gray-700 dark:border-white/10 dark:bg-white/[0.04] dark:text-gray-300"
-              >
-                <ShieldCheck className={`mt-0.5 h-4 w-4 shrink-0 ${accent.text}`} />
-                <span>{item}</span>
-              </div>
+              <SeoStaggerItem key={item}>
+                <div className="flex items-start gap-3 rounded-2xl border border-white/70 bg-white/85 p-4 text-sm leading-6 text-gray-700 shadow-sm transition duration-500 hover:-translate-y-0.5 hover:shadow-md dark:border-white/10 dark:bg-white/[0.04] dark:text-gray-300">
+                  <ShieldCheck className={`mt-0.5 h-4 w-4 shrink-0 ${accent.text}`} />
+                  <span>{item}</span>
+                </div>
+              </SeoStaggerItem>
             ))}
-          </div>
+          </SeoStagger>
         </div>
       </section>
 
@@ -714,47 +734,45 @@ export default function CommercialLandingPage({
             title={t.feedbackTitle}
             text={t.feedbackText}
           />
-          <div className="grid gap-4 md:grid-cols-3">
+          <SeoStagger className="grid gap-4 md:grid-cols-3">
             {page.feedback.map((item) => (
-              <article
-                key={item}
-                className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm dark:border-white/10 dark:bg-white/[0.04]"
-              >
-                <MessageCircle className={`mb-4 h-5 w-5 ${accent.text}`} />
-                <p className="text-sm leading-7 text-gray-700 dark:text-gray-300">
-                  {item}
-                </p>
-              </article>
+              <SeoStaggerItem key={item} className="h-full">
+                <article className="h-full rounded-2xl border border-gray-200 bg-white p-6 shadow-sm transition duration-500 hover:-translate-y-1 hover:shadow-xl hover:shadow-gray-200/70 dark:border-white/10 dark:bg-white/[0.04] dark:hover:shadow-black/30">
+                  <MessageCircle className={`mb-4 h-5 w-5 ${accent.text}`} />
+                  <p className="text-sm leading-7 text-gray-700 dark:text-gray-300">
+                    {item}
+                  </p>
+                </article>
+              </SeoStaggerItem>
             ))}
-          </div>
+          </SeoStagger>
         </div>
       </section>
 
       <section className={`${accent.band} py-14 sm:py-20`}>
         <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
           <SectionHeader eyebrow="FAQ" title={t.faqTitle} />
-          <div className="grid gap-4 md:grid-cols-2">
+          <SeoStagger className="grid gap-4 md:grid-cols-2">
             {page.faq.map((item) => (
-              <article
-                key={item.question}
-                className="rounded-2xl border border-white/70 bg-white/88 p-6 shadow-sm dark:border-white/10 dark:bg-white/[0.04]"
-              >
-                <HelpCircle className={`mb-4 h-5 w-5 ${accent.text}`} />
-                <h3 className="text-base font-semibold text-gray-950 dark:text-white">
-                  {item.question}
-                </h3>
-                <p className="mt-3 text-sm leading-7 text-gray-600 dark:text-gray-300">
-                  {item.answer}
-                </p>
-              </article>
+              <SeoStaggerItem key={item.question} className="h-full">
+                <article className="h-full rounded-2xl border border-white/70 bg-white/88 p-6 shadow-sm transition duration-500 hover:-translate-y-1 hover:shadow-xl hover:shadow-rose-200/30 dark:border-white/10 dark:bg-white/[0.04] dark:hover:shadow-black/30">
+                  <HelpCircle className={`mb-4 h-5 w-5 ${accent.text}`} />
+                  <h3 className="text-base font-semibold text-gray-950 dark:text-white">
+                    {item.question}
+                  </h3>
+                  <p className="mt-3 text-sm leading-7 text-gray-600 dark:text-gray-300">
+                    {item.answer}
+                  </p>
+                </article>
+              </SeoStaggerItem>
             ))}
-          </div>
+          </SeoStagger>
         </div>
       </section>
 
       <section className="bg-gray-950 py-14 text-white sm:py-20">
         <div className="mx-auto grid max-w-6xl gap-8 px-4 sm:px-6 lg:grid-cols-[1fr_0.8fr] lg:items-center lg:px-8">
-          <div>
+          <SeoReveal direction="left">
             <p className="text-xs font-semibold uppercase tracking-[0.26em] text-amber-300">
               {t.nextEyebrow}
             </p>
@@ -779,45 +797,48 @@ export default function CommercialLandingPage({
                 {t.contact}
               </Link>
             </div>
-          </div>
+          </SeoReveal>
 
-          <div className="grid gap-3">
+          <SeoStagger className="grid gap-3">
             {related.map((item) => (
+              <SeoStaggerItem key={item.slug}>
+                <Link
+                  href={localeHref(`/${item.slug}`, locale)}
+                  className="group block rounded-2xl border border-white/10 bg-white/[0.06] p-5 transition duration-500 hover:-translate-y-0.5 hover:bg-white/[0.1]"
+                >
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-white/45">
+                        {t.relatedEyebrow}
+                      </p>
+                      <p className="mt-2 text-sm font-semibold leading-6 text-white">
+                        {item.title}
+                      </p>
+                    </div>
+                    <ArrowRight className="mt-1 h-4 w-4 shrink-0 text-amber-300 transition group-hover:translate-x-1" />
+                  </div>
+                </Link>
+              </SeoStaggerItem>
+            ))}
+            <SeoStaggerItem>
               <Link
-                key={item.slug}
-                href={localeHref(`/${item.slug}`, locale)}
-                className="group rounded-2xl border border-white/10 bg-white/[0.06] p-5 transition hover:bg-white/[0.1]"
+                href={localeHref("/services", locale)}
+                className="group block rounded-2xl border border-white/10 bg-white/[0.06] p-5 transition duration-500 hover:-translate-y-0.5 hover:bg-white/[0.1]"
               >
                 <div className="flex items-start justify-between gap-4">
                   <div>
                     <p className="text-xs font-semibold uppercase tracking-[0.18em] text-white/45">
-                      {t.relatedEyebrow}
+                      {t.overviewEyebrow}
                     </p>
                     <p className="mt-2 text-sm font-semibold leading-6 text-white">
-                      {item.title}
+                      {t.servicesOverview}
                     </p>
                   </div>
                   <ArrowRight className="mt-1 h-4 w-4 shrink-0 text-amber-300 transition group-hover:translate-x-1" />
                 </div>
               </Link>
-            ))}
-            <Link
-              href={localeHref("/services", locale)}
-              className="group rounded-2xl border border-white/10 bg-white/[0.06] p-5 transition hover:bg-white/[0.1]"
-            >
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-white/45">
-                    {t.overviewEyebrow}
-                  </p>
-                  <p className="mt-2 text-sm font-semibold leading-6 text-white">
-                    {t.servicesOverview}
-                  </p>
-                </div>
-                <ArrowRight className="mt-1 h-4 w-4 shrink-0 text-amber-300 transition group-hover:translate-x-1" />
-              </div>
-            </Link>
-          </div>
+            </SeoStaggerItem>
+          </SeoStagger>
         </div>
       </section>
 
