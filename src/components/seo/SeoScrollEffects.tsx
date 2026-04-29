@@ -1,71 +1,149 @@
 "use client";
 
-import type { ReactNode } from "react";
 import {
-  motion,
-  useReducedMotion,
-  useScroll,
-  useSpring,
-  useTransform,
-  type Variants,
-} from "framer-motion";
+  type CSSProperties,
+  type ReactNode,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 
 type RevealDirection = "up" | "down" | "left" | "right" | "scale" | "none";
 
-const easeOut = [0.22, 1, 0.36, 1] as const;
+function usePrefersReducedMotion() {
+  const [reduced, setReduced] = useState(false);
 
-function hiddenState(direction: RevealDirection) {
-  switch (direction) {
-    case "down":
-      return { opacity: 0, y: -34, filter: "blur(8px)" };
-    case "left":
-      return { opacity: 0, x: -42, filter: "blur(8px)" };
-    case "right":
-      return { opacity: 0, x: 42, filter: "blur(8px)" };
-    case "scale":
-      return { opacity: 0, scale: 0.96, filter: "blur(8px)" };
-    case "none":
-      return { opacity: 0, filter: "blur(6px)" };
-    case "up":
-    default:
-      return { opacity: 0, y: 34, filter: "blur(8px)" };
-  }
+  useEffect(() => {
+    const media = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const update = () => setReduced(media.matches);
+    update();
+    media.addEventListener("change", update);
+    return () => media.removeEventListener("change", update);
+  }, []);
+
+  return reduced;
+}
+
+function useOnceInView<T extends HTMLElement>({
+  amount,
+  initialVisible = false,
+}: {
+  amount: number;
+  initialVisible?: boolean;
+}) {
+  const ref = useRef<T | null>(null);
+  const reducedMotion = usePrefersReducedMotion();
+  const [mounted, setMounted] = useState(false);
+  const [visible, setVisible] = useState(initialVisible);
+
+  useEffect(() => {
+    setMounted(true);
+
+    if (reducedMotion || initialVisible) {
+      setVisible(true);
+      return;
+    }
+
+    const element = ref.current;
+    if (!element) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (!entry?.isIntersecting) return;
+        setVisible(true);
+        observer.disconnect();
+      },
+      {
+        rootMargin: "0px 0px -12% 0px",
+        threshold: Math.min(Math.max(amount, 0), 1),
+      },
+    );
+
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [amount, initialVisible, reducedMotion]);
+
+  return { ref, mounted, visible: visible || reducedMotion };
 }
 
 export function SeoScrollProgress() {
-  const reduceMotion = useReducedMotion();
-  const { scrollYProgress } = useScroll();
-  const scaleX = useSpring(scrollYProgress, {
-    stiffness: 140,
-    damping: 28,
-    mass: 0.35,
-  });
+  const ref = useRef<HTMLDivElement | null>(null);
 
-  if (reduceMotion) return null;
+  useEffect(() => {
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+    if (reduceMotion.matches) return;
+
+    let frame = 0;
+    const update = () => {
+      frame = 0;
+      const scrollable = document.documentElement.scrollHeight - window.innerHeight;
+      const progress = scrollable > 0 ? window.scrollY / scrollable : 0;
+      if (ref.current) {
+        ref.current.style.transform = `scaleX(${Math.min(Math.max(progress, 0), 1)})`;
+      }
+    };
+    const schedule = () => {
+      if (frame) return;
+      frame = window.requestAnimationFrame(update);
+    };
+
+    update();
+    window.addEventListener("scroll", schedule, { passive: true });
+    window.addEventListener("resize", schedule);
+
+    return () => {
+      if (frame) window.cancelAnimationFrame(frame);
+      window.removeEventListener("scroll", schedule);
+      window.removeEventListener("resize", schedule);
+    };
+  }, []);
 
   return (
-    <motion.div
+    <div
+      ref={ref}
       aria-hidden="true"
       className="fixed left-0 top-0 z-[90] h-0.5 w-full origin-left bg-gradient-to-r from-rose-500 via-fuchsia-500 to-amber-300 shadow-[0_0_18px_rgba(244,114,182,0.45)]"
-      style={{ scaleX }}
+      style={{ transform: "scaleX(0)" }}
     />
   );
 }
 
 export function SeoHeroVisual({ children }: { children: ReactNode }) {
-  const reduceMotion = useReducedMotion();
-  const { scrollY } = useScroll();
-  const y = useTransform(scrollY, [0, 700], [0, 82]);
-  const scale = useTransform(scrollY, [0, 700], [1.02, 1.1]);
-  const opacity = useTransform(scrollY, [0, 620], [1, 0.78]);
+  const ref = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+    if (reduceMotion.matches) return;
+
+    let frame = 0;
+    const update = () => {
+      frame = 0;
+      const raw = Math.min(window.scrollY / 700, 1);
+      const y = raw * 82;
+      const scale = 1.02 + raw * 0.08;
+      const opacity = 1 - raw * 0.22;
+      if (ref.current) {
+        ref.current.style.transform = `translate3d(0, ${y}px, 0) scale(${scale})`;
+        ref.current.style.opacity = String(opacity);
+      }
+    };
+    const schedule = () => {
+      if (frame) return;
+      frame = window.requestAnimationFrame(update);
+    };
+
+    update();
+    window.addEventListener("scroll", schedule, { passive: true });
+    return () => {
+      if (frame) window.cancelAnimationFrame(frame);
+      window.removeEventListener("scroll", schedule);
+    };
+  }, []);
 
   return (
-    <motion.div
-      className="absolute inset-0 will-change-transform"
-      style={reduceMotion ? undefined : { y, scale, opacity }}
-    >
+    <div ref={ref} className="absolute inset-0 will-change-transform">
       {children}
-    </motion.div>
+    </div>
   );
 }
 
@@ -75,41 +153,31 @@ export function SeoReveal({
   delay = 0,
   direction = "up",
   amount = 0.22,
+  initialVisible = false,
 }: {
   children: ReactNode;
   className?: string;
   delay?: number;
   direction?: RevealDirection;
   amount?: number;
+  initialVisible?: boolean;
 }) {
-  const reduceMotion = useReducedMotion();
-
-  if (reduceMotion) {
-    return <div className={className}>{children}</div>;
-  }
-
-  const variants: Variants = {
-    hidden: hiddenState(direction),
-    visible: {
-      opacity: 1,
-      x: 0,
-      y: 0,
-      scale: 1,
-      filter: "blur(0px)",
-      transition: { duration: 0.72, delay, ease: easeOut },
-    },
-  };
+  const { ref, mounted, visible } = useOnceInView<HTMLDivElement>({
+    amount,
+    initialVisible,
+  });
 
   return (
-    <motion.div
-      initial="hidden"
-      whileInView="visible"
-      viewport={{ once: true, amount, margin: "0px 0px -12% 0px" }}
-      variants={variants}
-      className={className}
+    <div
+      ref={ref}
+      data-seo-enabled={mounted ? "true" : "false"}
+      data-seo-visible={visible ? "true" : "false"}
+      data-seo-direction={direction}
+      className={`seo-reveal ${className ?? ""}`}
+      style={{ "--seo-reveal-delay": `${delay}s` } as CSSProperties}
     >
       {children}
-    </motion.div>
+    </div>
   );
 }
 
@@ -124,28 +192,18 @@ export function SeoStagger({
   delay?: number;
   amount?: number;
 }) {
-  const reduceMotion = useReducedMotion();
-
-  if (reduceMotion) {
-    return <div className={className}>{children}</div>;
-  }
+  const { ref, mounted, visible } = useOnceInView<HTMLDivElement>({ amount });
 
   return (
-    <motion.div
-      initial="hidden"
-      whileInView="visible"
-      viewport={{ once: true, amount, margin: "0px 0px -10% 0px" }}
-      variants={{
-        hidden: { opacity: 1 },
-        visible: {
-          opacity: 1,
-          transition: { delayChildren: delay, staggerChildren: 0.08 },
-        },
-      }}
-      className={className}
+    <div
+      ref={ref}
+      data-seo-enabled={mounted ? "true" : "false"}
+      data-seo-visible={visible ? "true" : "false"}
+      className={`seo-stagger ${className ?? ""}`}
+      style={{ "--seo-stagger-base-delay": `${delay}s` } as CSSProperties}
     >
       {children}
-    </motion.div>
+    </div>
   );
 }
 
@@ -158,28 +216,13 @@ export function SeoStaggerItem({
   className?: string;
   direction?: RevealDirection;
 }) {
-  const reduceMotion = useReducedMotion();
-
-  if (reduceMotion) {
-    return <div className={className}>{children}</div>;
-  }
-
   return (
-    <motion.div
-      variants={{
-        hidden: hiddenState(direction),
-        visible: {
-          opacity: 1,
-          x: 0,
-          y: 0,
-          scale: 1,
-          filter: "blur(0px)",
-          transition: { duration: 0.64, ease: easeOut },
-        },
-      }}
-      className={className}
+    <div
+      data-seo-direction={direction}
+      className={`seo-stagger-item ${className ?? ""}`}
     >
       {children}
-    </motion.div>
+    </div>
   );
 }
+

@@ -441,6 +441,7 @@ export default function CommercialLandingPage({
             alt={page.heroImageAlt}
             fill
             priority
+            fetchPriority="high"
             sizes="100vw"
             className="object-cover"
           />
@@ -449,7 +450,7 @@ export default function CommercialLandingPage({
         <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/35 to-black/30" />
 
         <div className="relative z-10 mx-auto flex min-h-[76svh] max-w-6xl flex-col justify-end px-4 pb-10 pt-24 sm:px-6 sm:pb-14 lg:px-8">
-          <SeoReveal className="max-w-3xl" amount={0.4}>
+          <SeoReveal className="max-w-3xl" amount={0.4} initialVisible>
             <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/12 px-4 py-2 text-xs font-semibold uppercase tracking-[0.22em] text-white backdrop-blur">
               <CategoryIcon className="h-4 w-4" />
               {page.eyebrow}
