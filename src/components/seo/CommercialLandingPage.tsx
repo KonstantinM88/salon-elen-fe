@@ -37,6 +37,7 @@ import {
   SeoStagger,
   SeoStaggerItem,
 } from "@/components/seo/SeoScrollEffects";
+import { LazySeoVideo } from "@/components/seo/LazySeoVideo";
 
 type MetadataArgs = {
   searchParams?: SearchParamsPromise;
@@ -442,6 +443,7 @@ export default function CommercialLandingPage({
             fill
             priority
             fetchPriority="high"
+            quality={70}
             sizes="100vw"
             className="object-cover"
           />
@@ -645,6 +647,7 @@ export default function CommercialLandingPage({
                       src={item.image}
                       alt={`${page.title}: ${item.label}`}
                       fill
+                      quality={70}
                       sizes="(max-width: 1024px) 100vw, 50vw"
                       className="object-cover transition duration-700 group-hover:scale-[1.04]"
                     />
@@ -667,23 +670,18 @@ export default function CommercialLandingPage({
                 <article className="group h-full overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm transition duration-500 hover:-translate-y-1 hover:shadow-xl hover:shadow-gray-200/70 dark:border-white/10 dark:bg-white/[0.04] dark:hover:shadow-black/30">
                   <div className="relative aspect-[5/4]">
                     {item.mediaType === "video" ? (
-                      <video
-                        aria-label={item.alt}
-                        autoPlay
-                        loop
-                        muted
-                        playsInline
-                        preload="metadata"
+                      <LazySeoVideo
+                        src={item.src}
                         poster={item.poster}
+                        label={item.alt}
                         className="h-full w-full object-cover transition duration-700 group-hover:scale-[1.04]"
-                      >
-                        <source src={item.src} type="video/webm" />
-                      </video>
+                      />
                     ) : (
                       <Image
                         src={item.src}
                         alt={item.alt}
                         fill
+                        quality={70}
                         sizes="(max-width: 768px) 100vw, 33vw"
                         className="object-cover transition duration-700 group-hover:scale-[1.04]"
                       />

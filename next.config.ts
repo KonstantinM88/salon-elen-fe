@@ -16,7 +16,7 @@ const nextConfig: NextConfig = {
     qualities: [60, 70, 75],
     deviceSizes: [320, 360, 420, 480, 640, 750, 828, 1080, 1200, 1920, 2048, 2400],
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384, 480],
-    minimumCacheTTL: 0,
+    minimumCacheTTL: 2678400,
     remotePatterns: [
       {
         protocol: "https",
@@ -37,6 +37,15 @@ const nextConfig: NextConfig = {
           {
             key: "Permissions-Policy",
             value: "microphone=(self)",
+          },
+        ],
+      },
+      {
+        source: "/images/:path*",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, max-age=2592000, stale-while-revalidate=86400",
           },
         ],
       },

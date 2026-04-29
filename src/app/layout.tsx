@@ -6,7 +6,7 @@ import "./globals.css";
 
 import SiteHeader from "@/components/site-header";
 import SiteFooter from "@/components/site-footer";
-import ChatWidget from "@/components/ai/ChatWidget";
+import ChatWidgetLazy from "@/components/ai/ChatWidgetLazy";
 import Providers from "@/app/providers";
 
 import { I18nProvider } from "@/i18n/I18nProvider";
@@ -98,7 +98,7 @@ export default async function RootLayout({
               <SiteHeader />
               <main>{children}</main>
               <SiteFooter />
-              <ChatWidget locale={initialLocale} />
+              <ChatWidgetLazy locale={initialLocale} />
             </LocaleProvider>
           </I18nProvider>
         </Providers>
