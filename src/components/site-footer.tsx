@@ -24,6 +24,7 @@ import {
   ShieldCheck,
   ChevronUp,
 } from "lucide-react";
+import { motion } from "framer-motion";
 import { useTranslations } from "@/i18n/useTranslations";
 import RainbowCTA from "@/components/RainbowCTA";
 
@@ -193,6 +194,16 @@ const messengers: MessengerItem[] = [
   },
 ];
 
+const fadeInUp = {
+  hidden: { opacity: 0, y: 18 },
+  visible: { opacity: 1, y: 0 },
+};
+
+const fadeIn = {
+  hidden: { opacity: 0 },
+  visible: { opacity: 1 },
+};
+
 type NeonCardProps = {
   children: ReactNode;
   className?: string;
@@ -200,8 +211,10 @@ type NeonCardProps = {
 
 function NeonCard({ children, className }: NeonCardProps): React.JSX.Element {
   return (
-    <div
-      className={`relative h-full rounded-3xl bg-gradient-to-r from-emerald-500/80 via-sky-500/80 to-fuchsia-500/80 p-[1px] shadow-[0_0_32px_rgba(16,185,129,0.55)] transition duration-300 hover:-translate-y-0.5 hover:scale-[1.01] ${
+    <motion.div
+      whileHover={{ y: -2, scale: 1.01 }}
+      transition={{ type: "spring", stiffness: 260, damping: 24 }}
+      className={`relative h-full rounded-3xl bg-gradient-to-r from-emerald-500/80 via-sky-500/80 to-fuchsia-500/80 p-[1px] shadow-[0_0_32px_rgba(16,185,129,0.55)] ${
         className ?? ""
       }`}
     >
@@ -209,7 +222,7 @@ function NeonCard({ children, className }: NeonCardProps): React.JSX.Element {
         <div className="pointer-events-none absolute inset-0 rounded-[1.4rem] bg-gradient-to-br from-emerald-500/12 via-sky-500/10 to-fuchsia-500/12 mix-blend-soft-light" />
         {children}
       </div>
-    </div>
+    </motion.div>
   );
 }
 
@@ -274,7 +287,12 @@ export default function SiteFooter(): React.JSX.Element {
   };
 
   return (
-    <footer className="relative mt-16 overflow-hidden border-t border-white/5 bg-gradient-to-b from-slate-950/40 via-slate-950 to-black/95 text-sm text-slate-200">
+    <motion.footer
+      initial={{ opacity: 0, y: 18 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.55, ease: "easeOut" }}
+      className="relative mt-16 overflow-hidden border-t border-white/5 bg-gradient-to-b from-slate-950/40 via-slate-950 to-black/95 text-sm text-slate-200"
+    >
       {/* фон */}
       <div
         aria-hidden
@@ -287,7 +305,13 @@ export default function SiteFooter(): React.JSX.Element {
 
       <div className="relative mx-auto max-w-6xl px-4 pb-8 pt-10 sm:px-6 sm:pb-10 sm:pt-12 lg:px-8 lg:pb-12 lg:pt-14">
         {/* верхний блок */}
-        <div className="grid gap-5 border-b border-white/5 pb-8 md:grid-cols-[minmax(0,2.2fr)_minmax(0,1.4fr)]">
+        <motion.div
+          variants={fadeInUp}
+          initial="hidden"
+          animate="visible"
+          transition={{ duration: 0.5, ease: "easeOut" }}
+          className="grid gap-5 border-b border-white/5 pb-8 md:grid-cols-[minmax(0,2.2fr)_minmax(0,1.4fr)]"
+        >
           <NeonCard>
             <div className="relative space-y-3">
               <div className="inline-flex items-center gap-2 rounded-full border border-emerald-400/40 bg-emerald-500/10 px-2.5 py-1 text-[11px] font-medium text-emerald-100 shadow-[0_0_16px_rgba(34,197,94,0.5)] backdrop-blur">
@@ -380,10 +404,16 @@ export default function SiteFooter(): React.JSX.Element {
               </div>
             </NeonCard>
           </div>
-        </div>
+        </motion.div>
 
         {/* нижняя сетка */}
-        <div className="mt-8 grid gap-6 md:grid-cols-4">
+        <motion.div
+          variants={fadeInUp}
+          initial="hidden"
+          animate="visible"
+          transition={{ duration: 0.5, ease: "easeOut" }}
+          className="mt-8 grid gap-6 md:grid-cols-4"
+        >
           {/* Салон & локация */}
           <NeonCard>
             <SectionTitle>{t("footer_about_section")}</SectionTitle>
@@ -523,10 +553,16 @@ export default function SiteFooter(): React.JSX.Element {
           <NeonCard>
             <SocialsSection />
           </NeonCard>
-        </div>
+        </motion.div>
 
         {/* нижняя линия */}
-        <div className="mt-10 flex flex-col gap-3 border-t border-white/5 pt-4 text-[11px] text-slate-400 sm:flex-row sm:items-center sm:justify-between">
+        <motion.div
+          variants={fadeInUp}
+          initial="hidden"
+          animate="visible"
+          transition={{ duration: 0.45, delay: 0.3 }}
+          className="mt-10 flex flex-col gap-3 border-t border-white/5 pt-4 text-[11px] text-slate-400 sm:flex-row sm:items-center sm:justify-between"
+        >
           <p>
             © {year} Salon Elen. {t("footer_copyright")}
           </p>
@@ -558,9 +594,9 @@ export default function SiteFooter(): React.JSX.Element {
               {t("footer_back_to_top")}
             </button>
           </div>
-        </div>
+        </motion.div>
       </div>
-    </footer>
+    </motion.footer>
   );
 }
 
@@ -571,16 +607,17 @@ function SocialsSection(): React.JSX.Element {
     <div className="space-y-3">
       <SectionTitle>{t("footer_socials_section")}</SectionTitle>
 
-      <div className="mt-3 flex flex-wrap gap-2">
+      <motion.div variants={fadeIn} className="mt-3 flex flex-wrap gap-2">
         {socials.map((social) => {
           const Icon = social.icon;
           return (
-            <a
+            <motion.a
               key={social.href}
               href={social.href}
               target="_blank"
               rel="noopener noreferrer"
-              className="group inline-flex flex-1 items-center justify-between gap-2 rounded-2xl border border-white/8 bg-slate-950/80 px-3 py-2 text-xs text-slate-200 shadow-[0_0_18px_rgba(15,23,42,0.9)] ring-1 ring-white/10 transition hover:-translate-y-0.5 hover:border-white/20 hover:ring-sky-400/50"
+              whileHover={{ y: -1 }}
+              className="group inline-flex flex-1 items-center justify-between gap-2 rounded-2xl border border-white/8 bg-slate-950/80 px-3 py-2 text-xs text-slate-200 shadow-[0_0_18px_rgba(15,23,42,0.9)] ring-1 ring-white/10 transition hover:border-white/20 hover:ring-sky-400/50"
             >
               <div className="flex items-center gap-2">
                 <span
@@ -593,12 +630,16 @@ function SocialsSection(): React.JSX.Element {
               <span className="text-[10px] text-slate-400">
                 {t(social.tooltipKey)}
               </span>
-            </a>
+            </motion.a>
           );
         })}
-      </div>
+      </motion.div>
 
-      <div className="flex flex-wrap gap-2 text-xs text-slate-300">
+      <motion.div
+        variants={fadeIn}
+        transition={{ duration: 0.35, delay: 0.15 }}
+        className="flex flex-wrap gap-2 text-xs text-slate-300"
+      >
         {messengers.map((item) => {
           const Icon = item.icon;
           return (
@@ -616,7 +657,7 @@ function SocialsSection(): React.JSX.Element {
             </Link>
           );
         })}
-      </div>
+      </motion.div>
     </div>
   );
 }

@@ -195,17 +195,16 @@ type InputMode = 'text' | 'otp';
 
 interface ChatWidgetProps {
   locale?: string;
-  initialOpen?: boolean;
 }
 
-export default function ChatWidget({ locale: propLocale, initialOpen = false }: ChatWidgetProps) {
+export default function ChatWidget({ locale: propLocale }: ChatWidgetProps) {
   const locale: SupportedLocale =
     propLocale && propLocale in UI_TEXT
       ? (propLocale as SupportedLocale)
       : 'de';
   const t = UI_TEXT[locale];
 
-  const [isOpen, setIsOpen] = useState(initialOpen);
+  const [isOpen, setIsOpen] = useState(false);
   const [showTeaser, setShowTeaser] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
