@@ -87,42 +87,42 @@ const mainNav: MainNavItem[] = [
     labelKey: "nav_home",
     icon: Home,
     glowClass: "from-sky-500 via-cyan-400 to-emerald-400",
-    ringClass: "shadow-[0_0_16px_rgba(56,189,248,0.8)]",
+    ringClass: "dark:shadow-[0_0_16px_rgba(56,189,248,0.8)]",
   },
   {
     href: "/services",
     labelKey: "nav_services",
     icon: Scissors,
     glowClass: "from-fuchsia-500 via-pink-500 to-amber-400",
-    ringClass: "shadow-[0_0_16px_rgba(236,72,153,0.85)]",
+    ringClass: "dark:shadow-[0_0_16px_rgba(236,72,153,0.85)]",
   },
   {
     href: "/prices",
     labelKey: "nav_prices",
     icon: Tag,
     glowClass: "from-amber-400 via-yellow-300 to-emerald-300",
-    ringClass: "shadow-[0_0_16px_rgba(251,191,36,0.85)]",
+    ringClass: "dark:shadow-[0_0_16px_rgba(251,191,36,0.85)]",
   },
   {
     href: "/news",
     labelKey: "nav_news",
     icon: Newspaper,
     glowClass: "from-sky-400 via-violet-400 to-fuchsia-500",
-    ringClass: "shadow-[0_0_16px_rgba(129,140,248,0.8)]",
+    ringClass: "dark:shadow-[0_0_16px_rgba(129,140,248,0.8)]",
   },
   {
     href: "/about",
     labelKey: "nav_about",
     icon: Info,
     glowClass: "from-emerald-400 via-teal-400 to-sky-400",
-    ringClass: "shadow-[0_0_16px_rgba(45,212,191,0.8)]",
+    ringClass: "dark:shadow-[0_0_16px_rgba(45,212,191,0.8)]",
   },
   {
     href: "/contacts",
     labelKey: "nav_contacts",
     icon: MapPin,
     glowClass: "from-emerald-400 via-lime-400 to-amber-300",
-    ringClass: "shadow-[0_0_16px_rgba(74,222,128,0.85)]",
+    ringClass: "dark:shadow-[0_0_16px_rgba(74,222,128,0.85)]",
   },
 ];
 
@@ -132,21 +132,21 @@ const clientNav: ClientNavItem[] = [
     labelKey: "footer_client_booking",
     icon: CalendarCheck,
     glowClass: "from-emerald-400 via-sky-400 to-fuchsia-400",
-    ringClass: "shadow-[0_0_16px_rgba(16,185,129,0.9)]",
+    ringClass: "dark:shadow-[0_0_16px_rgba(16,185,129,0.9)]",
   },
   {
     href: "/booking/client",
     labelKey: "footer_client_cabinet",
     icon: User,
     glowClass: "from-sky-400 via-indigo-400 to-emerald-300",
-    ringClass: "shadow-[0_0_16px_rgba(59,130,246,0.85)]",
+    ringClass: "dark:shadow-[0_0_16px_rgba(59,130,246,0.85)]",
   },
   {
     href: "/for-masters",
     labelKey: "footer_client_admin",
     icon: ShieldCheck,
     glowClass: "from-emerald-400 via-teal-400 to-sky-400",
-    ringClass: "shadow-[0_0_16px_rgba(45,212,191,0.9)]",
+    ringClass: "dark:shadow-[0_0_16px_rgba(45,212,191,0.9)]",
   },
 ];
 
@@ -214,12 +214,12 @@ function NeonCard({ children, className }: NeonCardProps): React.JSX.Element {
     <motion.div
       whileHover={{ y: -2, scale: 1.01 }}
       transition={{ type: "spring", stiffness: 260, damping: 24 }}
-      className={`relative h-full rounded-3xl bg-gradient-to-r from-emerald-500/80 via-sky-500/80 to-fuchsia-500/80 p-[1px] shadow-[0_0_32px_rgba(16,185,129,0.55)] ${
+      className={`footer-card-shell relative h-full rounded-3xl bg-gradient-to-r from-rose-200/75 via-white to-amber-200/70 p-[1px] shadow-[0_14px_36px_rgba(190,24,93,0.08)] dark:from-emerald-500/80 dark:via-sky-500/80 dark:to-fuchsia-500/80 dark:shadow-[0_0_32px_rgba(16,185,129,0.55)] ${
         className ?? ""
       }`}
     >
-      <div className="relative h-full rounded-[1.4rem] bg-slate-950/96 px-4 py-4 ring-1 ring-white/10 backdrop-blur-xl sm:px-5 sm:py-5">
-        <div className="pointer-events-none absolute inset-0 rounded-[1.4rem] bg-gradient-to-br from-emerald-500/12 via-sky-500/10 to-fuchsia-500/12 mix-blend-soft-light" />
+      <div className="footer-card relative h-full rounded-[1.4rem] bg-white/90 px-4 py-4 text-rose-950 ring-1 ring-rose-100/80 backdrop-blur-xl dark:bg-slate-950/96 dark:text-slate-200 dark:ring-white/10 sm:px-5 sm:py-5">
+        <div className="footer-card-overlay pointer-events-none absolute inset-0 rounded-[1.4rem] bg-gradient-to-br from-rose-500/5 via-white/0 to-amber-400/5 dark:from-emerald-500/12 dark:via-sky-500/10 dark:to-fuchsia-500/12 dark:mix-blend-soft-light" />
         {children}
       </div>
     </motion.div>
@@ -233,11 +233,11 @@ type SectionTitleProps = {
 
 function SectionTitle({ children }: SectionTitleProps): React.JSX.Element {
   return (
-    <div className="relative inline-flex w-full rounded-full bg-gradient-to-r from-emerald-500/80 via-sky-500/80 to-fuchsia-500/80 p-[1px] shadow-[0_0_18px_rgba(16,185,129,0.65)]">
-      <div className="inline-flex w-full items-center justify-between gap-3 rounded-full bg-slate-950/90 px-3 py-1 text-[11px] font-medium uppercase tracking-[0.16em] text-slate-200">
+    <div className="footer-section-shell relative inline-flex w-full rounded-full bg-gradient-to-r from-rose-200/80 via-white to-amber-200/70 p-[1px] shadow-[0_8px_20px_rgba(190,24,93,0.08)] dark:from-emerald-500/80 dark:via-sky-500/80 dark:to-fuchsia-500/80 dark:shadow-[0_0_18px_rgba(16,185,129,0.65)]">
+      <div className="footer-section-label inline-flex w-full items-center justify-between gap-3 rounded-full bg-white/90 px-3 py-1 text-[11px] font-medium uppercase tracking-[0.16em] text-rose-700 dark:bg-slate-950/90 dark:text-slate-200">
         <span className="truncate">{children}</span>
-        <span className="relative inline-flex h-1.5 w-10 overflow-hidden rounded-full bg-slate-900/80">
-          <span className="absolute inset-0 animate-pulse bg-gradient-to-r from-emerald-400 via-sky-400 to-fuchsia-400" />
+        <span className="footer-section-bar relative inline-flex h-1.5 w-10 overflow-hidden rounded-full bg-rose-100 dark:bg-slate-900/80">
+          <span className="footer-section-bar-fill absolute inset-0 animate-pulse bg-gradient-to-r from-rose-500 via-pink-500 to-amber-400 dark:from-emerald-400 dark:via-sky-400 dark:to-fuchsia-400" />
         </span>
       </div>
     </div>
@@ -258,17 +258,17 @@ function RoundIcon({
   ringShadowClass,
 }: RoundIconProps): React.JSX.Element {
   return (
-    <span className="relative inline-flex h-7 w-7 items-center justify-center">
+    <span className="footer-round-icon relative inline-flex h-7 w-7 items-center justify-center">
       <span
-        className={`pointer-events-none absolute inline-flex h-7 w-7 rounded-full bg-gradient-to-br ${glowClass} opacity-80 blur-md`}
+        className={`footer-round-icon-glow pointer-events-none absolute inline-flex h-7 w-7 rounded-full bg-gradient-to-br ${glowClass} opacity-35 blur-md dark:opacity-80`}
       />
       <span
-        className={`absolute inset-[1px] rounded-full border border-white/10 bg-slate-950/85 ${
+        className={`footer-round-icon-core absolute inset-[1px] rounded-full border border-rose-100/80 bg-white/90 shadow-[0_6px_16px_rgba(190,24,93,0.10)] dark:border-white/10 dark:bg-slate-950/85 ${
           ringShadowClass ?? ""
         }`}
       />
       <Icon
-        className={`relative h-3.5 w-3.5 text-slate-50 ${
+        className={`footer-round-icon-svg relative h-3.5 w-3.5 text-rose-600 dark:text-slate-50 ${
           iconClassName ?? ""
         }`}
       />
@@ -291,16 +291,16 @@ export default function SiteFooter(): React.JSX.Element {
       initial={{ opacity: 0, y: 18 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.55, ease: "easeOut" }}
-      className="relative mt-16 overflow-hidden border-t border-white/5 bg-gradient-to-b from-slate-950/40 via-slate-950 to-black/95 text-sm text-slate-200"
+      className="site-footer relative mt-16 overflow-hidden border-t border-rose-100/80 bg-gradient-to-b from-rose-50/90 via-white to-pink-50 text-sm text-rose-950 dark:border-white/5 dark:bg-gradient-to-b dark:from-slate-950/40 dark:via-slate-950 dark:to-black/95 dark:text-slate-200"
     >
       {/* фон */}
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-0 opacity-50"
+        className="footer-bg pointer-events-none absolute inset-0 opacity-80 dark:opacity-50"
       >
-        <div className="absolute -left-40 top-10 h-80 w-80 rounded-full bg-emerald-500/10 blur-3xl" />
-        <div className="absolute bottom-0 right-0 h-96 w-96 rounded-full bg-sky-500/10 blur-3xl" />
-        <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-white/25 to-transparent" />
+        <div className="footer-bg-blob footer-bg-blob-a absolute -left-40 top-10 h-80 w-80 rounded-full bg-rose-300/20 blur-3xl dark:bg-emerald-500/10" />
+        <div className="footer-bg-blob footer-bg-blob-b absolute bottom-0 right-0 h-96 w-96 rounded-full bg-amber-200/20 blur-3xl dark:bg-sky-500/10" />
+        <div className="footer-bg-line absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-rose-200/70 to-transparent dark:via-white/25" />
       </div>
 
       <div className="relative mx-auto max-w-6xl px-4 pb-8 pt-10 sm:px-6 sm:pb-10 sm:pt-12 lg:px-8 lg:pb-12 lg:pt-14">
@@ -310,32 +310,32 @@ export default function SiteFooter(): React.JSX.Element {
           initial="hidden"
           animate="visible"
           transition={{ duration: 0.5, ease: "easeOut" }}
-          className="grid gap-5 border-b border-white/5 pb-8 md:grid-cols-[minmax(0,2.2fr)_minmax(0,1.4fr)]"
+          className="footer-top-grid grid gap-5 border-b border-rose-100/80 pb-8 dark:border-white/5 md:grid-cols-[minmax(0,2.2fr)_minmax(0,1.4fr)]"
         >
           <NeonCard>
             <div className="relative space-y-3">
-              <div className="inline-flex items-center gap-2 rounded-full border border-emerald-400/40 bg-emerald-500/10 px-2.5 py-1 text-[11px] font-medium text-emerald-100 shadow-[0_0_16px_rgba(34,197,94,0.5)] backdrop-blur">
-                <Sparkles className="h-3.5 w-3.5 text-emerald-300" />
+              <div className="footer-brand-pill inline-flex items-center gap-2 rounded-full border border-rose-200/70 bg-rose-50/80 px-2.5 py-1 text-[11px] font-medium text-rose-700 shadow-sm backdrop-blur dark:border-emerald-400/40 dark:bg-emerald-500/10 dark:text-emerald-100 dark:shadow-[0_0_16px_rgba(34,197,94,0.5)]">
+                <Sparkles className="h-3.5 w-3.5 text-rose-500 dark:text-emerald-300" />
                 <span className="uppercase tracking-[0.18em]">
                   Salon Elen • Halle (Saale) Lessingstrasse 37.
                 </span>
               </div>
 
-              <h2 className="text-lg font-semibold leading-snug text-slate-50 sm:text-xl">
+              <h2 className="text-lg font-semibold leading-snug text-rose-950 dark:text-slate-50 sm:text-xl">
                 {t("footer_top_title")}
               </h2>
 
-              <p className="text-xs leading-relaxed text-slate-300 sm:text-sm">
+              <p className="text-xs leading-relaxed text-rose-900/75 dark:text-slate-300 sm:text-sm">
                 {t("footer_top_text")}
               </p>
 
               <div className="flex flex-wrap items-center gap-2">
-                <div className="inline-flex items-center gap-1.5 rounded-full bg-black/40 px-2 py-1 text-[11px] text-slate-200 ring-1 ring-emerald-400/40">
-                  <CalendarCheck className="h-3.5 w-3.5 text-emerald-300" />
+                <div className="footer-chip inline-flex items-center gap-1.5 rounded-full border border-rose-100/80 bg-white/75 px-2 py-1 text-[11px] text-rose-800 shadow-sm ring-1 ring-rose-100/70 dark:border-0 dark:bg-black/40 dark:text-slate-200 dark:ring-emerald-400/40">
+                  <CalendarCheck className="h-3.5 w-3.5 text-rose-500 dark:text-emerald-300" />
                   <span>{t("footer_top_chip_online")}</span>
                 </div>
-                <div className="inline-flex items-center gap-1.5 rounded-full bg-black/40 px-2 py-1 text-[11px] text-slate-200 ring-1 ring-sky-400/40">
-                  <Sparkles className="h-3.5 w-3.5 text-sky-300" />
+                <div className="footer-chip inline-flex items-center gap-1.5 rounded-full border border-rose-100/80 bg-white/75 px-2 py-1 text-[11px] text-rose-800 shadow-sm ring-1 ring-rose-100/70 dark:border-0 dark:bg-black/40 dark:text-slate-200 dark:ring-sky-400/40">
+                  <Sparkles className="h-3.5 w-3.5 text-pink-500 dark:text-sky-300" />
                   <span>{t("footer_top_chip_premium")}</span>
                 </div>
               </div>
@@ -353,27 +353,27 @@ export default function SiteFooter(): React.JSX.Element {
 
           <div className="flex flex-col gap-3">
             <NeonCard>
-              <div className="space-y-2 text-xs text-slate-200">
-                <p className="font-semibold text-slate-50">
+              <div className="space-y-2 text-xs text-rose-900/75 dark:text-slate-200">
+                <p className="font-semibold text-rose-950 dark:text-slate-50">
                   {t("footer_quick_title")}
                 </p>
-                <p className="text-[11px] text-slate-300">
+                <p className="text-[11px] text-rose-900/65 dark:text-slate-300">
                   {t("footer_quick_text")}
                 </p>
                 <ol className="mt-2 space-y-1">
-                  <li className="inline-flex items-center gap-1.5 rounded-full bg-black/40 px-2 py-1 ring-1 ring-emerald-400/40">
+                  <li className="footer-chip inline-flex items-center gap-1.5 rounded-full border border-rose-100/80 bg-white/75 px-2 py-1 ring-1 ring-rose-100/70 dark:border-0 dark:bg-black/40 dark:ring-emerald-400/40">
                     <span className="flex h-4 w-4 items-center justify-center rounded-full bg-emerald-500 text-[10px] font-semibold text-black">
                       1
                     </span>
                     <span>{t("footer_quick_step1")}</span>
                   </li>
-                  <li className="inline-flex items-center gap-1.5 rounded-full bg-black/40 px-2 py-1 ring-1 ring-sky-400/40">
+                  <li className="footer-chip inline-flex items-center gap-1.5 rounded-full border border-rose-100/80 bg-white/75 px-2 py-1 ring-1 ring-rose-100/70 dark:border-0 dark:bg-black/40 dark:ring-sky-400/40">
                     <span className="flex h-4 w-4 items-center justify-center rounded-full bg-sky-500 text-[10px] font-semibold text-black">
                       2
                     </span>
                     <span>{t("footer_quick_step2")}</span>
                   </li>
-                  <li className="inline-flex items-center gap-1.5 rounded-full bg-black/40 px-2 py-1 ring-1 ring-fuchsia-400/40">
+                  <li className="footer-chip inline-flex items-center gap-1.5 rounded-full border border-rose-100/80 bg-white/75 px-2 py-1 ring-1 ring-rose-100/70 dark:border-0 dark:bg-black/40 dark:ring-fuchsia-400/40">
                     <span className="flex h-4 w-4 items-center justify-center rounded-full bg-fuchsia-500 text-[10px] font-semibold text-black">
                       3
                     </span>
@@ -384,20 +384,20 @@ export default function SiteFooter(): React.JSX.Element {
             </NeonCard>
 
             <NeonCard>
-              <div className="flex flex-col gap-2 text-xs text-slate-200">
-                <div className="inline-flex items-center gap-2 rounded-2xl bg-black/40 px-3 py-2 ring-1 ring-emerald-400/40">
+              <div className="flex flex-col gap-2 text-xs text-rose-900/75 dark:text-slate-200">
+                <div className="footer-chip footer-wide-chip inline-flex items-center gap-2 rounded-2xl border border-rose-100/80 bg-white/75 px-3 py-2 ring-1 ring-rose-100/70 dark:border-0 dark:bg-black/40 dark:ring-emerald-400/40">
                   <RoundIcon
                     icon={CalendarCheck}
                     glowClass="from-emerald-400 via-sky-400 to-fuchsia-400"
-                    ringShadowClass="shadow-[0_0_16px_rgba(16,185,129,0.9)]"
+                    ringShadowClass="dark:shadow-[0_0_16px_rgba(16,185,129,0.9)]"
                   />
                   <span>{t("footer_quick_adv1")}</span>
                 </div>
-                <div className="inline-flex items-center gap-2 rounded-2xl bg-black/40 px-3 py-2 ring-1 ring-sky-400/40">
+                <div className="footer-chip footer-wide-chip inline-flex items-center gap-2 rounded-2xl border border-rose-100/80 bg-white/75 px-3 py-2 ring-1 ring-rose-100/70 dark:border-0 dark:bg-black/40 dark:ring-sky-400/40">
                   <RoundIcon
                     icon={Phone}
                     glowClass="from-sky-400 via-indigo-400 to-emerald-300"
-                    ringShadowClass="shadow-[0_0_16px_rgba(59,130,246,0.85)]"
+                    ringShadowClass="dark:shadow-[0_0_16px_rgba(59,130,246,0.85)]"
                   />
                   <span>{t("footer_quick_adv2")}</span>
                 </div>
@@ -417,29 +417,29 @@ export default function SiteFooter(): React.JSX.Element {
           {/* Салон & локация */}
           <NeonCard>
             <SectionTitle>{t("footer_about_section")}</SectionTitle>
-            <div className="mt-3 space-y-3 text-sm text-slate-300">
+            <div className="footer-muted mt-3 space-y-3 text-sm text-rose-900/70 dark:text-slate-300">
               <div className="flex items-start gap-2">
                 <RoundIcon
                   icon={MapPin}
                   glowClass="from-sky-500 via-cyan-400 to-emerald-400"
-                  ringShadowClass="shadow-[0_0_16px_rgba(56,189,248,0.8)]"
+                  ringShadowClass="dark:shadow-[0_0_16px_rgba(56,189,248,0.8)]"
                 />
                 <div>
                   <p>Halle (Saale) Lessingstrasse 37.</p>
-                  <p className="text-xs text-slate-300">
+                  <p className="text-xs text-rose-900/60 dark:text-slate-300">
                     {t("footer_about_description")}
                   </p>
                 </div>
               </div>
 
-              <div className="flex items-start gap-2 text-xs text-slate-300">
+              <div className="flex items-start gap-2 text-xs text-rose-900/65 dark:text-slate-300">
                 <RoundIcon
                   icon={Clock}
                   glowClass="from-emerald-400 via-lime-400 to-amber-300"
-                  ringShadowClass="shadow-[0_0_16px_rgba(74,222,128,0.85)]"
+                  ringShadowClass="dark:shadow-[0_0_16px_rgba(74,222,128,0.85)]"
                 />
                 <div className="space-y-0.5">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-200">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-rose-800 dark:text-slate-200">
                     {t("footer_hours_label")}
                   </p>
                   <p>{t("footer_hours_weekdays")}</p>
@@ -448,29 +448,29 @@ export default function SiteFooter(): React.JSX.Element {
                 </div>
               </div>
 
-              <div className="space-y-1 text-xs text-slate-300">
-                <p className="font-medium text-slate-100">
+              <div className="space-y-1 text-xs text-rose-900/65 dark:text-slate-300">
+                <p className="font-medium text-rose-950 dark:text-slate-100">
                   {t("footer_contacts_title")}
                 </p>
                 <a
                   href="tel:+491778995106"
-                  className="flex items-center gap-2 text-slate-300 transition hover:text-emerald-300"
+                  className="flex items-center gap-2 text-rose-900/70 transition hover:text-rose-700 dark:text-slate-300 dark:hover:text-emerald-300"
                 >
                   <RoundIcon
                     icon={Phone}
                     glowClass="from-emerald-400 via-teal-400 to-sky-400"
-                    ringShadowClass="shadow-[0_0_16px_rgba(45,212,191,0.9)]"
+                    ringShadowClass="dark:shadow-[0_0_16px_rgba(45,212,191,0.9)]"
                   />
                   +49 177 899 5106
                 </a>
                 <a
                   href="mailto:elen69@web.de"
-                  className="flex items-center gap-2 text-slate-300 transition hover:text-sky-300"
+                  className="flex items-center gap-2 text-rose-900/70 transition hover:text-rose-700 dark:text-slate-300 dark:hover:text-sky-300"
                 >
                   <RoundIcon
                     icon={Mail}
                     glowClass="from-sky-400 via-indigo-400 to-fuchsia-500"
-                    ringShadowClass="shadow-[0_0_16px_rgba(129,140,248,0.8)]"
+                    ringShadowClass="dark:shadow-[0_0_16px_rgba(129,140,248,0.8)]"
                   />
                   elen69@web.de
                 </a>
@@ -481,28 +481,28 @@ export default function SiteFooter(): React.JSX.Element {
           {/* Навигация */}
           <NeonCard>
             <SectionTitle>{t("footer_navigation_section")}</SectionTitle>
-            <ul className="mt-3 space-y-2 text-sm text-slate-300">
+            <ul className="mt-3 space-y-2 text-sm text-rose-900/70 dark:text-slate-300">
               {mainNav.map((item) => {
                 const Icon = item.icon;
                 return (
                   <li key={item.href}>
                     <Link
                       href={item.href}
-                      className="group inline-flex items-center gap-2 rounded-lg px-1 py-0.5 text-slate-300 transition hover:text-sky-100"
+                      className="footer-link group inline-flex items-center gap-2 rounded-lg px-1 py-0.5 text-rose-900/70 transition hover:bg-rose-50/70 hover:text-rose-800 dark:text-slate-300 dark:hover:bg-transparent dark:hover:text-sky-100"
                     >
                       <span className="relative inline-flex h-7 w-7 items-center justify-center">
                         <span
-                          className={`pointer-events-none absolute inline-flex h-7 w-7 rounded-full bg-gradient-to-br ${item.glowClass} opacity-80 blur-md transition group-hover:opacity-100`}
+                          className={`footer-round-icon-glow pointer-events-none absolute inline-flex h-7 w-7 rounded-full bg-gradient-to-br ${item.glowClass} opacity-30 blur-md transition group-hover:opacity-45 dark:opacity-80 dark:group-hover:opacity-100`}
                         />
                         <span
-                          className={`absolute inset-[1px] rounded-full border border-white/10 bg-slate-950/85 ${item.ringClass} transition`}
+                          className={`footer-round-icon-core absolute inset-[1px] rounded-full border border-rose-100/80 bg-white/90 shadow-[0_6px_16px_rgba(190,24,93,0.10)] dark:border-white/10 dark:bg-slate-950/85 ${item.ringClass} transition`}
                         />
-                        <Icon className="relative h-3.5 w-3.5 text-slate-100 transition group-hover:scale-105" />
+                        <Icon className="footer-round-icon-svg relative h-3.5 w-3.5 text-rose-600 transition group-hover:scale-105 dark:text-slate-100" />
                       </span>
                       <span className="underline-offset-4 group-hover:underline">
                         {t(item.labelKey)}
                       </span>
-                      <ArrowRight className="h-3 w-3 text-sky-300 opacity-0 transition group-hover:translate-x-0.5 group-hover:opacity-100" />
+                      <ArrowRight className="h-3 w-3 text-rose-500 opacity-0 transition group-hover:translate-x-0.5 group-hover:opacity-100 dark:text-sky-300" />
                     </Link>
                   </li>
                 );
@@ -513,35 +513,35 @@ export default function SiteFooter(): React.JSX.Element {
           {/* Для клиентов и мастеров */}
           <NeonCard>
             <SectionTitle>{t("footer_clients_section")}</SectionTitle>
-            <ul className="mt-3 space-y-2 text-sm text-slate-300">
+            <ul className="mt-3 space-y-2 text-sm text-rose-900/70 dark:text-slate-300">
               {clientNav.map((item) => {
                 const Icon = item.icon;
                 return (
                   <li key={item.href}>
                     <Link
                       href={item.href}
-                      className="group inline-flex items-center gap-2 rounded-lg px-1 py-0.5 text-slate-300 transition hover:text-emerald-100"
+                      className="footer-link group inline-flex items-center gap-2 rounded-lg px-1 py-0.5 text-rose-900/70 transition hover:bg-rose-50/70 hover:text-rose-800 dark:text-slate-300 dark:hover:bg-transparent dark:hover:text-emerald-100"
                     >
                       <span className="relative inline-flex h-7 w-7 items-center justify-center">
                         <span
-                          className={`pointer-events-none absolute inline-flex h-7 w-7 rounded-full bg-gradient-to-br ${item.glowClass} opacity-80 blur-md transition group-hover:opacity-100`}
+                          className={`footer-round-icon-glow pointer-events-none absolute inline-flex h-7 w-7 rounded-full bg-gradient-to-br ${item.glowClass} opacity-30 blur-md transition group-hover:opacity-45 dark:opacity-80 dark:group-hover:opacity-100`}
                         />
                         <span
-                          className={`absolute inset-[1px] rounded-full border border-white/10 bg-slate-950/85 ${item.ringClass} transition`}
+                          className={`footer-round-icon-core absolute inset-[1px] rounded-full border border-rose-100/80 bg-white/90 shadow-[0_6px_16px_rgba(190,24,93,0.10)] dark:border-white/10 dark:bg-slate-950/85 ${item.ringClass} transition`}
                         />
-                        <Icon className="relative h-3.5 w-3.5 text-slate-100 transition group-hover:scale-105" />
+                        <Icon className="footer-round-icon-svg relative h-3.5 w-3.5 text-rose-600 transition group-hover:scale-105 dark:text-slate-100" />
                       </span>
                       <span className="underline-offset-4 group-hover:underline">
                         {t(item.labelKey)}
                       </span>
-                      <ArrowRight className="h-3 w-3 text-emerald-300 opacity-0 transition group-hover:translate-x-0.5 group-hover:opacity-100" />
+                      <ArrowRight className="h-3 w-3 text-rose-500 opacity-0 transition group-hover:translate-x-0.5 group-hover:opacity-100 dark:text-emerald-300" />
                     </Link>
                   </li>
                 );
               })}
             </ul>
 
-            <div className="mt-3 rounded-2xl border border-emerald-400/30 bg-emerald-500/5 p-2 text-[11px] text-emerald-100 shadow-[0_0_14px_rgba(16,185,129,0.5)]">
+            <div className="footer-note mt-3 rounded-2xl border border-emerald-100 bg-emerald-50/70 p-2 text-[11px] text-emerald-800 shadow-sm dark:border-emerald-400/30 dark:bg-emerald-500/5 dark:text-emerald-100 dark:shadow-[0_0_14px_rgba(16,185,129,0.5)]">
               <p className="mb-0.5 font-semibold">
                 {t("footer_client_partnership_title")}
               </p>
@@ -561,7 +561,7 @@ export default function SiteFooter(): React.JSX.Element {
           initial="hidden"
           animate="visible"
           transition={{ duration: 0.45, delay: 0.3 }}
-          className="mt-10 flex flex-col gap-3 border-t border-white/5 pt-4 text-[11px] text-slate-400 sm:flex-row sm:items-center sm:justify-between"
+          className="footer-bottom mt-10 flex flex-col gap-3 border-t border-rose-100/80 pt-4 text-[11px] text-rose-900/55 dark:border-white/5 dark:text-slate-400 sm:flex-row sm:items-center sm:justify-between"
         >
           <p>
             © {year} Salon Elen. {t("footer_copyright")}
@@ -569,26 +569,26 @@ export default function SiteFooter(): React.JSX.Element {
           <div className="flex flex-wrap items-center gap-3">
             <Link
               href="/impressum"
-              className="transition hover:text-slate-200 hover:underline hover:underline-offset-4"
+              className="footer-legal-link transition hover:text-rose-800 hover:underline hover:underline-offset-4 dark:hover:text-slate-200"
             >
               Impressum
             </Link>
             <Link
               href="/datenschutz"
-              className="transition hover:text-slate-200 hover:underline hover:underline-offset-4"
+              className="footer-legal-link transition hover:text-rose-800 hover:underline hover:underline-offset-4 dark:hover:text-slate-200"
             >
               {t("footer_privacy")}
             </Link>
             <Link
               href="/nutzungsbedingungen"
-              className="transition hover:text-slate-200 hover:underline hover:underline-offset-4"
+              className="footer-legal-link transition hover:text-rose-800 hover:underline hover:underline-offset-4 dark:hover:text-slate-200"
             >
               {t("footer_terms")}
             </Link>
             <button
               type="button"
               onClick={handleScrollTop}
-              className="inline-flex items-center gap-1.5 rounded-full border border-sky-400/60 bg-slate-950/80 px-2.5 py-1.5 text-[11px] font-medium text-slate-200 shadow-[0_0_14px_rgba(15,23,42,0.8)] backdrop-blur-sm hover:border-sky-400/70 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400/70"
+              className="footer-backtop inline-flex items-center gap-1.5 rounded-full border border-rose-200/80 bg-white/80 px-2.5 py-1.5 text-[11px] font-medium text-rose-700 shadow-sm backdrop-blur-sm hover:border-rose-300 hover:text-rose-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-300 dark:border-sky-400/60 dark:bg-slate-950/80 dark:text-slate-200 dark:shadow-[0_0_14px_rgba(15,23,42,0.8)] dark:hover:border-sky-400/70 dark:hover:text-white dark:focus-visible:ring-sky-400/70"
             >
               <ChevronUp className="h-3 w-3" />
               {t("footer_back_to_top")}
@@ -617,17 +617,17 @@ function SocialsSection(): React.JSX.Element {
               target="_blank"
               rel="noopener noreferrer"
               whileHover={{ y: -1 }}
-              className="group inline-flex flex-1 items-center justify-between gap-2 rounded-2xl border border-white/8 bg-slate-950/80 px-3 py-2 text-xs text-slate-200 shadow-[0_0_18px_rgba(15,23,42,0.9)] ring-1 ring-white/10 transition hover:border-white/20 hover:ring-sky-400/50"
+              className="footer-social-link group inline-flex flex-1 items-center justify-between gap-2 rounded-2xl border border-rose-100/80 bg-white/80 px-3 py-2 text-xs text-rose-900 shadow-sm ring-1 ring-rose-100/80 transition hover:border-rose-200 hover:ring-rose-200 dark:border-white/8 dark:bg-slate-950/80 dark:text-slate-200 dark:shadow-[0_0_18px_rgba(15,23,42,0.9)] dark:ring-white/10 dark:hover:border-white/20 dark:hover:ring-sky-400/50"
             >
               <div className="flex items-center gap-2">
                 <span
-                  className={`inline-flex h-8 w-8 items-center justify-center rounded-2xl bg-gradient-to-br ${social.bgClass} ring-2 ${social.ringClass} shadow-[0_0_18px_rgba(56,189,248,0.7)]`}
+                  className={`inline-flex h-8 w-8 items-center justify-center rounded-2xl bg-gradient-to-br ${social.bgClass} ring-2 ${social.ringClass} shadow-sm dark:shadow-[0_0_18px_rgba(56,189,248,0.7)]`}
                 >
                   <Icon className="h-4 w-4 text-white" />
                 </span>
                 <span className="font-medium">{social.label}</span>
               </div>
-              <span className="text-[10px] text-slate-400">
+              <span className="text-[10px] text-rose-900/50 dark:text-slate-400">
                 {t(social.tooltipKey)}
               </span>
             </motion.a>
@@ -638,7 +638,7 @@ function SocialsSection(): React.JSX.Element {
       <motion.div
         variants={fadeIn}
         transition={{ duration: 0.35, delay: 0.15 }}
-        className="flex flex-wrap gap-2 text-xs text-slate-300"
+        className="flex flex-wrap gap-2 text-xs text-rose-900/70 dark:text-slate-300"
       >
         {messengers.map((item) => {
           const Icon = item.icon;
@@ -646,10 +646,10 @@ function SocialsSection(): React.JSX.Element {
             <Link
               key={item.href}
               href={item.href}
-              className="group inline-flex flex-1 items-center gap-2 rounded-xl border border-white/10 bg-slate-950/80 px-3 py-1.5 text-xs text-slate-200 shadow-[0_0_16px_rgba(15,23,42,0.9)] transition hover:border-emerald-400/60 hover:text-emerald-50"
+              className="footer-messenger-link group inline-flex flex-1 items-center gap-2 rounded-xl border border-rose-100/80 bg-white/80 px-3 py-1.5 text-xs text-rose-900 shadow-sm transition hover:border-rose-200 hover:text-rose-800 dark:border-white/10 dark:bg-slate-950/80 dark:text-slate-200 dark:shadow-[0_0_16px_rgba(15,23,42,0.9)] dark:hover:border-emerald-400/60 dark:hover:text-emerald-50"
             >
               <span
-                className={`inline-flex h-7 w-7 items-center justify-center rounded-xl bg-gradient-to-br ${item.bgClass} ring-2 ${item.ringClass} shadow-[0_0_18px_rgba(45,212,191,0.8)]`}
+                className={`inline-flex h-7 w-7 items-center justify-center rounded-xl bg-gradient-to-br ${item.bgClass} ring-2 ${item.ringClass} shadow-sm dark:shadow-[0_0_18px_rgba(45,212,191,0.8)]`}
               >
                 <Icon className="h-3.5 w-3.5 text-white" />
               </span>
