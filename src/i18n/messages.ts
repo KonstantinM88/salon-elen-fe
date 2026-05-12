@@ -63,6 +63,7 @@ export type BaseMessages = {
   footer_socials_section: string;
 
   footer_privacy: string;
+  footer_cookie_settings: string;
   footer_terms: string;
   footer_back_to_top: string;
 
@@ -986,6 +987,7 @@ const ruMessages: BaseMessages = {
   footer_socials_section: "Соцсети & Мессенджеры",
 
   footer_privacy: "Политика конфиденциальности",
+  footer_cookie_settings: "Настройки cookies",
   footer_terms: "Условия использования",
   footer_back_to_top: "Наверх",
 
@@ -1953,6 +1955,7 @@ const deMessages: BaseMessages = {
   footer_socials_section: "Soziale Netzwerke & Messenger",
 
   footer_privacy: "Datenschutz",
+  footer_cookie_settings: "Cookie-Einstellungen",
   footer_terms: "Nutzungsbedingungen",
   footer_back_to_top: "Nach oben",
 
@@ -2916,6 +2919,7 @@ const enMessages: BaseMessages = {
   footer_socials_section: "Social Media & Messengers",
 
   footer_privacy: "Privacy Policy",
+  footer_cookie_settings: "Cookie settings",
   footer_terms: "Terms of Use",
   footer_back_to_top: "Back to top",
 

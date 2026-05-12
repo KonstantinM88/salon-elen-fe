@@ -70,39 +70,52 @@ const docs: Record<SeoLocale, LegalDocument> = {
         title: "5. Cookies und lokale Speicherung",
         paragraphs: [
           "Wir nutzen erforderliche Cookies und lokale Speicherwerte, insbesondere fuer Spracheinstellungen (z. B. locale) und technische Funktionen.",
-          "Soweit keine Einwilligung eingeholt wird, setzen wir keine nicht notwendigen Marketing-Cookies.",
+          "Analyse-Cookies und vergleichbare Technologien werden nur eingesetzt, wenn Sie ueber den Cookie-Hinweis eingewilligt haben. Sie koennen Ihre Auswahl jederzeit ueber Cookie-Einstellungen aendern.",
         ],
       },
       {
-        title: "6. Buchung, Account und Kommunikation",
+        title: "6. Microsoft Clarity (Analyse)",
+        paragraphs: [
+          "Wir verwenden Microsoft Clarity, einen Webanalysedienst von Microsoft, um die Nutzung unserer Website besser zu verstehen und das Angebot zu verbessern. Clarity kann Interaktionen wie Seitenaufrufe, Klicks, Scrollverhalten, technische Browser-/Geraetedaten, Referrer und pseudonyme Nutzungskennungen verarbeiten.",
+          "Die Einbindung erfolgt erst nach Ihrer Einwilligung. Rechtsgrundlage fuer die Speicherung bzw. den Zugriff auf Informationen auf Ihrem Endgeraet ist Ihre Einwilligung nach § 25 Abs. 1 TDDDG; Rechtsgrundlage fuer die anschliessende Verarbeitung personenbezogener Daten ist Art. 6 Abs. 1 lit. a DSGVO.",
+          "Wenn Sie nicht einwilligen, wird Microsoft Clarity auf unserer Website nicht geladen. Wenn Sie eine bereits erteilte Einwilligung widerrufen, werden bekannte first-party Clarity-Cookies (_clck, _clsk) geloescht, soweit dies technisch moeglich ist.",
+        ],
+        items: [
+          "Anbieter: Microsoft Corporation bzw. Microsoft Ireland Operations Limited",
+          "Moegliche Cookies laut Microsoft: _clck, _clsk sowie je nach Konfiguration weitere Microsoft-Cookies wie CLID, ANONCHK, MR, MUID, SM",
+          "Weitere Informationen: https://learn.microsoft.com/clarity/ und https://privacy.microsoft.com/privacystatement",
+        ],
+      },
+      {
+        title: "7. Buchung, Account und Kommunikation",
         paragraphs: [
           "Bei Buchung und Kommunikation verarbeiten wir Kontaktdaten und Buchungsdaten (z. B. Name, Telefon, E-Mail, Termin, gewaehlte Leistung).",
           "Diese Verarbeitung ist fuer Vertragsanbahnung und -durchfuehrung erforderlich (Art. 6 Abs. 1 lit. b DSGVO).",
         ],
       },
       {
-        title: "7. Zahlungen und externe Dienstleister",
+        title: "8. Zahlungen und externe Dienstleister",
         paragraphs: [
           "Bei Online-Zahlungen werden erforderliche Zahlungsdaten an den jeweiligen Zahlungsanbieter uebermittelt (z. B. Stripe, PayPal).",
           "Fuer Benachrichtigungen koennen E-Mail-/SMS-/Messenger-Dienste eingesetzt werden (z. B. Resend, Zadarma, Telegram).",
         ],
       },
       {
-        title: "8. KI-Funktionen",
+        title: "9. KI-Funktionen",
         paragraphs: [
           "Bei Nutzung von KI-Chat- oder Sprachfunktionen koennen Eingaben an externe KI-Dienstleister (z. B. OpenAI) uebermittelt werden.",
           "Bitte geben Sie dort keine unnoetigen sensiblen Daten ein.",
         ],
       },
       {
-        title: "9. Karten und externe Inhalte",
+        title: "10. Karten und externe Inhalte",
         paragraphs: [
           "Auf der Kontaktseite kann Google Maps eingebunden werden. Beim Laden koennen Daten an Google uebermittelt werden (z. B. IP-Adresse, technische Nutzungsdaten).",
           "Soweit moeglich, wird eine Vorschau bereitgestellt und externe Inhalte werden erst unter den jeweils konfigurierten Bedingungen geladen.",
         ],
       },
       {
-        title: "10. Empfaenger, Drittlandtransfer und Speicherdauer",
+        title: "11. Empfaenger, Drittlandtransfer und Speicherdauer",
         paragraphs: [
           "Daten koennen an technische Dienstleister uebermittelt werden, die als Auftragsverarbeiter oder eigenstaendige Verantwortliche taetig sind.",
           "Bei Uebermittlungen in Drittstaaten nutzen wir geeignete Garantien (z. B. Standardvertragsklauseln), soweit erforderlich.",
@@ -110,7 +123,7 @@ const docs: Record<SeoLocale, LegalDocument> = {
         ],
       },
       {
-        title: "11. Ihre Rechte",
+        title: "12. Ihre Rechte",
         items: [
           "Auskunft, Berichtigung, Loeschung, Einschraenkung der Verarbeitung",
           "Datenuebertragbarkeit",
@@ -119,7 +132,7 @@ const docs: Record<SeoLocale, LegalDocument> = {
         ],
       },
       {
-        title: "12. Beschwerderecht und Hinweise",
+        title: "13. Beschwerderecht und Hinweise",
         paragraphs: [
           "Sie koennen sich bei einer Datenschutzaufsichtsbehoerde beschweren, insbesondere am Ort Ihres gewoehnlichen Aufenthalts oder unseres Sitzes.",
           "Aufsichtsbehoerde in Sachsen-Anhalt: Landesbeauftragter fuer den Datenschutz Sachsen-Anhalt (https://datenschutz.sachsen-anhalt.de).",
@@ -127,7 +140,7 @@ const docs: Record<SeoLocale, LegalDocument> = {
         ],
       },
     ],
-    updated: "Stand: 1. April 2026",
+    updated: "Stand: 12. Mai 2026",
   },
   en: {
     title: "Privacy Policy",
@@ -176,11 +189,24 @@ const docs: Record<SeoLocale, LegalDocument> = {
         title: "5. Cookies and local storage",
         paragraphs: [
           "We use necessary cookies and local storage values (for example language settings such as locale and technical preferences).",
-          "Unless separate consent is requested, no non-essential marketing cookies are used.",
+          "Analytics cookies and similar technologies are used only if you consent through the cookie notice. You can change your choice at any time through Cookie settings.",
         ],
       },
       {
-        title: "6. Booking, communication, payment",
+        title: "6. Microsoft Clarity (analytics)",
+        paragraphs: [
+          "We use Microsoft Clarity, a web analytics service by Microsoft, to better understand website usage and improve our offer. Clarity may process interactions such as page views, clicks, scrolling behavior, technical browser/device data, referrers, and pseudonymous user identifiers.",
+          "Clarity is loaded only after your consent. The legal basis for storing or accessing information on your device is your consent under Sec. 25(1) TDDDG; the legal basis for subsequent personal data processing is Art. 6(1)(a) GDPR.",
+          "If you do not consent, Microsoft Clarity is not loaded on our website. If you withdraw consent after granting it, known first-party Clarity cookies (_clck, _clsk) are deleted where technically possible.",
+        ],
+        items: [
+          "Provider: Microsoft Corporation or Microsoft Ireland Operations Limited",
+          "Possible cookies according to Microsoft: _clck, _clsk and, depending on configuration, further Microsoft cookies such as CLID, ANONCHK, MR, MUID, SM",
+          "Further information: https://learn.microsoft.com/clarity/ and https://privacy.microsoft.com/privacystatement",
+        ],
+      },
+      {
+        title: "7. Booking, communication, payment",
         paragraphs: [
           "For booking and communication we process contact and appointment data (e.g., name, phone, e-mail, selected service, appointment time).",
           "For online payments, required data is transferred to payment providers (e.g., Stripe, PayPal).",
@@ -188,7 +214,7 @@ const docs: Record<SeoLocale, LegalDocument> = {
         ],
       },
       {
-        title: "7. AI features and external content",
+        title: "8. AI features and external content",
         paragraphs: [
           "If AI chat/voice features are used, inputs may be transferred to external AI providers (e.g., OpenAI).",
           "Please do not enter unnecessary sensitive information.",
@@ -196,7 +222,7 @@ const docs: Record<SeoLocale, LegalDocument> = {
         ],
       },
       {
-        title: "8. Recipients, transfers, retention",
+        title: "9. Recipients, transfers, retention",
         paragraphs: [
           "Data may be shared with technical providers acting as processors or independent controllers.",
           "If data is transferred to third countries, we rely on lawful safeguards (e.g., standard contractual clauses), where required.",
@@ -204,7 +230,7 @@ const docs: Record<SeoLocale, LegalDocument> = {
         ],
       },
       {
-        title: "9. Your rights",
+        title: "10. Your rights",
         items: [
           "Access, rectification, erasure, restriction of processing",
           "Data portability",
@@ -213,7 +239,7 @@ const docs: Record<SeoLocale, LegalDocument> = {
         ],
       },
       {
-        title: "10. Complaints and final notes",
+        title: "11. Complaints and final notes",
         paragraphs: [
           "You may lodge a complaint with a supervisory authority, especially at your place of residence or our registered office.",
           "Supervisory authority in Saxony-Anhalt: State Commissioner for Data Protection Saxony-Anhalt (https://datenschutz.sachsen-anhalt.de).",
@@ -221,7 +247,7 @@ const docs: Record<SeoLocale, LegalDocument> = {
         ],
       },
     ],
-    updated: "Last updated: April 1, 2026",
+    updated: "Last updated: May 12, 2026",
     languageNote:
       "For legal interpretation, the German-language version of this privacy policy prevails.",
   },
@@ -272,11 +298,24 @@ const docs: Record<SeoLocale, LegalDocument> = {
         title: "5. Cookies и localStorage",
         paragraphs: [
           "Используются необходимые cookies и локальные значения хранения (включая языковые настройки, например locale, и технические параметры).",
-          "Если отдельное согласие не запрашивается, маркетинговые cookies, не являющиеся необходимыми, не используются.",
+          "Аналитические cookies и аналогичные технологии используются только после вашего согласия через cookie-уведомление. Вы можете изменить выбор в любое время через настройки cookies.",
         ],
       },
       {
-        title: "6. Запись, коммуникация и платежи",
+        title: "6. Microsoft Clarity (аналитика)",
+        paragraphs: [
+          "Мы используем Microsoft Clarity, сервис веб-аналитики Microsoft, чтобы лучше понимать использование сайта и улучшать предложение. Clarity может обрабатывать взаимодействия с сайтом, например просмотры страниц, клики, прокрутку, технические данные браузера/устройства, referrer и псевдонимные идентификаторы.",
+          "Clarity загружается только после вашего согласия. Правовое основание для хранения или доступа к информации на вашем устройстве: согласие по § 25(1) TDDDG; правовое основание последующей обработки персональных данных: ст. 6(1)(a) GDPR.",
+          "Если вы не даете согласие, Microsoft Clarity на нашем сайте не загружается. Если вы отзываете ранее данное согласие, известные first-party cookies Clarity (_clck, _clsk) удаляются, насколько это технически возможно.",
+        ],
+        items: [
+          "Провайдер: Microsoft Corporation или Microsoft Ireland Operations Limited",
+          "Возможные cookies по данным Microsoft: _clck, _clsk и, в зависимости от конфигурации, другие cookies Microsoft, например CLID, ANONCHK, MR, MUID, SM",
+          "Дополнительная информация: https://learn.microsoft.com/clarity/ и https://privacy.microsoft.com/privacystatement",
+        ],
+      },
+      {
+        title: "7. Запись, коммуникация и платежи",
         paragraphs: [
           "Для записи и коммуникации обрабатываются контактные и сервисные данные (имя, телефон, e-mail, услуга, время записи).",
           "Для онлайн-оплаты необходимые данные передаются платежным провайдерам (например, Stripe, PayPal).",
@@ -284,7 +323,7 @@ const docs: Record<SeoLocale, LegalDocument> = {
         ],
       },
       {
-        title: "7. ИИ-функции и внешний контент",
+        title: "8. ИИ-функции и внешний контент",
         paragraphs: [
           "При использовании ИИ-чата/голоса введенные данные могут передаваться внешним ИИ-провайдерам (например, OpenAI).",
           "Пожалуйста, не вводите лишние чувствительные данные.",
@@ -292,7 +331,7 @@ const docs: Record<SeoLocale, LegalDocument> = {
         ],
       },
       {
-        title: "8. Получатели, трансграничная передача и хранение",
+        title: "9. Получатели, трансграничная передача и хранение",
         paragraphs: [
           "Данные могут передаваться техническим провайдерам как обработчикам по поручению или самостоятельным операторам.",
           "При передаче в третьи страны применяются допустимые механизмы защиты (например, стандартные договорные условия), если это требуется.",
@@ -300,7 +339,7 @@ const docs: Record<SeoLocale, LegalDocument> = {
         ],
       },
       {
-        title: "9. Ваши права",
+        title: "10. Ваши права",
         items: [
           "Доступ, исправление, удаление, ограничение обработки",
           "Переносимость данных",
@@ -309,7 +348,7 @@ const docs: Record<SeoLocale, LegalDocument> = {
         ],
       },
       {
-        title: "10. Жалобы и заключительные положения",
+        title: "11. Жалобы и заключительные положения",
         paragraphs: [
           "Вы вправе подать жалобу в надзорный орган по месту проживания или по месту регистрации нашей компании.",
           "Надзорный орган в Саксонии-Анхальт: Landesbeauftragter fuer den Datenschutz Sachsen-Anhalt (https://datenschutz.sachsen-anhalt.de).",
@@ -317,7 +356,7 @@ const docs: Record<SeoLocale, LegalDocument> = {
         ],
       },
     ],
-    updated: "Дата обновления: 1 апреля 2026 г.",
+    updated: "Дата обновления: 12 мая 2026 г.",
     languageNote:
       "При юридических расхождениях приоритет имеет немецкая версия этой политики.",
   },
