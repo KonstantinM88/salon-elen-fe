@@ -10,6 +10,7 @@ import {
   type SearchParamsPromise,
 } from "@/lib/seo-locale";
 import { resolveContentLocale } from "@/lib/seo-locale-server";
+import { SALON_SCHEMA_ID } from "@/lib/structured-data";
 
 export const dynamic = "force-dynamic";
 
@@ -72,9 +73,12 @@ export default async function AboutPage({
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "BeautySalon",
+    "@id": SALON_SCHEMA_ID,
     name: "Salon Elen",
     url: BASE_URL,
     image: `${BASE_URL}/images/hero.webp`,
+    telephone: "+49 177 899 51 06",
+    email: "elen69@web.de",
     address: {
       "@type": "PostalAddress",
       streetAddress: "Lessingstraße 37",

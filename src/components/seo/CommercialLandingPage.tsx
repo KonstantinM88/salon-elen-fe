@@ -30,6 +30,7 @@ import {
   type SeoLandingCategory,
   type SeoLandingPageData,
 } from "@/lib/seo-landing-pages";
+import { SALON_SCHEMA_ID, buildSalonJsonLd, salonAddressJsonLd } from "@/lib/structured-data";
 import {
   SeoHeroVisual,
   SeoReveal,
@@ -263,15 +264,10 @@ function buildJsonLd(basePage: SeoLandingPageData, locale: SeoLocale) {
     areaServed: "Halle (Saale)",
     provider: {
       "@type": "BeautySalon",
+      "@id": SALON_SCHEMA_ID,
       name: "Salon Elen",
       telephone: "+49 177 899 51 06",
-      address: {
-        "@type": "PostalAddress",
-        streetAddress: "Lessingstrasse 37",
-        postalCode: "06114",
-        addressLocality: "Halle (Saale)",
-        addressCountry: "DE",
-      },
+      address: salonAddressJsonLd,
     },
   };
 
@@ -288,22 +284,7 @@ function buildJsonLd(basePage: SeoLandingPageData, locale: SeoLocale) {
   return JSON.stringify({
     "@context": "https://schema.org",
     "@graph": [
-      {
-        "@type": ["BeautySalon", "LocalBusiness"],
-        name: "Salon Elen",
-        url: BASE_URL,
-        image: `${BASE_URL}${page.heroImage}`,
-        telephone: "+49 177 899 51 06",
-        email: "elen69@web.de",
-        address: {
-          "@type": "PostalAddress",
-          streetAddress: "Lessingstrasse 37",
-          postalCode: "06114",
-          addressLocality: "Halle (Saale)",
-          addressCountry: "DE",
-        },
-        areaServed: ["Halle (Saale)", "Saalekreis"],
-      },
+      buildSalonJsonLd({ image: [`${BASE_URL}${page.heroImage}`] }),
       service,
       {
         "@type": "FAQPage",

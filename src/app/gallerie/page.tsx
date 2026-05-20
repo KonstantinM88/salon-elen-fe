@@ -10,6 +10,7 @@ import {
   type SearchParamsPromise,
 } from "@/lib/seo-locale";
 import { resolveContentLocale } from "@/lib/seo-locale-server";
+import { SALON_SCHEMA_ID } from "@/lib/structured-data";
 
 export const dynamic = "force-dynamic";
 
@@ -125,7 +126,7 @@ export default async function GalleriePage({ searchParams }: { searchParams?: Se
     url: alts.canonical,
     numberOfItems: totalImages,
     provider: {
-      "@type": "BeautySalon", name: "Salon Elen",
+      "@type": "BeautySalon", "@id": SALON_SCHEMA_ID, name: "Salon Elen",
       address: { "@type": "PostalAddress", streetAddress: "Lessingstraße 37", postalCode: "06114", addressLocality: "Halle (Saale)", addressCountry: "DE" },
     },
   });

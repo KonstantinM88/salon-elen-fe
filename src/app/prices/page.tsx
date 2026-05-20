@@ -11,6 +11,7 @@ import {
   type SearchParamsPromise,
 } from "@/lib/seo-locale";
 import { resolveContentLocale } from "@/lib/seo-locale-server";
+import { SALON_SCHEMA_ID } from "@/lib/structured-data";
 
 export const dynamic = "force-dynamic";
 
@@ -66,6 +67,7 @@ function buildJsonLd(locale: SeoLocale, services: ServiceForLd[]) {
   const data: Record<string, unknown> = {
     "@context": "https://schema.org",
     "@type": ["BeautySalon", "LocalBusiness"],
+    "@id": SALON_SCHEMA_ID,
     name: "Salon Elen",
     url: alts.canonical,
     address: {

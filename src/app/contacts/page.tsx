@@ -14,6 +14,7 @@ import {
   type SearchParamsPromise,
 } from "@/lib/seo-locale";
 import { resolveContentLocale } from "@/lib/seo-locale-server";
+import { buildSalonJsonLd } from "@/lib/structured-data";
 
 import styles from "./contacts.module.css";
 
@@ -74,32 +75,7 @@ function jsonLd(locale: SeoLocale) {
   const alts = buildAlternates("/contacts", locale);
   const data = {
     "@context": "https://schema.org",
-    "@type": ["BeautySalon", "LocalBusiness"],
-    name: SALON.name,
-    telephone: SALON.phone,
-    email: SALON.email,
-    address: {
-      "@type": "PostalAddress",
-      streetAddress: SALON.streetAddress,
-      postalCode: SALON.postalCode,
-      addressLocality: SALON.addressLocality,
-      addressCountry: SALON.addressCountry,
-    },
-    url: alts.canonical,
-    openingHoursSpecification: [
-      {
-        "@type": "OpeningHoursSpecification",
-        dayOfWeek: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
-        opens: "10:00",
-        closes: "19:00",
-      },
-      {
-        "@type": "OpeningHoursSpecification",
-        dayOfWeek: "Saturday",
-        opens: "10:00",
-        closes: "16:00",
-      },
-    ],
+    ...buildSalonJsonLd({ mainEntityOfPage: alts.canonical }),
   };
   return JSON.stringify(data);
 }

@@ -10,6 +10,7 @@ import {
   type SearchParamsPromise,
 } from "@/lib/seo-locale";
 import { resolveContentLocale } from "@/lib/seo-locale-server";
+import { SALON_SCHEMA_ID } from "@/lib/structured-data";
 
 export const dynamic = "force-dynamic";
 
@@ -322,6 +323,7 @@ function buildJsonLd(locale: SeoLocale) {
     "@graph": [
       {
         "@type": ["BeautySalon", "LocalBusiness"],
+        "@id": SALON_SCHEMA_ID,
         name: "Salon Elen",
         url: alts.canonical,
         telephone: "+49 177 899 51 06",

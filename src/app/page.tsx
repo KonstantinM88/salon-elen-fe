@@ -11,6 +11,7 @@ import {
   type SearchParamsPromise,
 } from "@/lib/seo-locale";
 import { HOME_LATEST_ARTICLES_TAG } from "@/lib/cache-tags";
+import { SALON_SCHEMA_ID, WEBSITE_SCHEMA_ID } from "@/lib/structured-data";
 
 export const revalidate = 3600;
 
@@ -45,7 +46,7 @@ function buildHomeJsonLd(locale: SeoLocale) {
     "@graph": [
       {
         "@type": ["BeautySalon", "LocalBusiness"],
-        "@id": `${BASE_URL}/#salon`,
+        "@id": SALON_SCHEMA_ID,
         name: "Salon Elen",
         url: alts.canonical,
         image: [`${BASE_URL}/images/hero.webp`],
@@ -88,8 +89,8 @@ function buildHomeJsonLd(locale: SeoLocale) {
       },
       {
         "@type": "WebSite",
-        "@id": `${BASE_URL}/#website`,
-        url: alts.canonical,
+        "@id": WEBSITE_SCHEMA_ID,
+        url: BASE_URL,
         name: "Salon Elen",
         inLanguage: locale,
       },
