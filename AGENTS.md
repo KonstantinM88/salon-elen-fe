@@ -122,3 +122,5 @@ Useful scripts:
 
 - 2026-05-20: Created this `AGENTS.md` as the initial project memory. Captured
   current structure, stack, booking/auth/i18n/AI conventions, and working rules.
+- 2026-05-20: PM2 production config should bind Next.js to `127.0.0.1:3000`
+  (`next start -H 127.0.0.1 -p 3000`) so public traffic must pass through nginx.
