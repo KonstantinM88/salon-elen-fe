@@ -124,3 +124,6 @@ Useful scripts:
   current structure, stack, booking/auth/i18n/AI conventions, and working rules.
 - 2026-05-20: PM2 production config should bind Next.js to `127.0.0.1:3000`
   (`next start -H 127.0.0.1 -p 3000`) so public traffic must pass through nginx.
+- 2026-05-21: AI Health DB checks retry once on transient PostgreSQL connection
+  termination/timeouts. Prisma PostgreSQL adapter connection timeout defaults to
+  15s and can be tuned with `PG_CONNECTION_TIMEOUT_MS`/`PG_IDLE_TIMEOUT_MS`.

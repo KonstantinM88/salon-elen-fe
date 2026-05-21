@@ -8,6 +8,55 @@
 import { prisma } from '@/lib/prisma';
 import { ORG_TZ } from '@/lib/orgTime';
 
+const AI_HEALTH_DB_RETRY_DELAY_MS = 750;
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function collectErrorMessages(error: unknown): string {
+  const messages: string[] = [];
+  let current: unknown = error;
+
+  for (let depth = 0; depth < 4 && current; depth += 1) {
+    if (current instanceof Error) {
+      messages.push(current.message);
+    } else if (typeof current === 'string') {
+      messages.push(current);
+    }
+
+    if (typeof current !== 'object' || current === null || !('cause' in current)) {
+      break;
+    }
+
+    current = (current as { cause?: unknown }).cause;
+  }
+
+  return messages.join(' ');
+}
+
+function isTransientDbConnectionError(error: unknown): boolean {
+  const message = collectErrorMessages(error);
+  return /connection terminated|connection timeout|terminated unexpectedly|ECONNRESET|ETIMEDOUT|P1001|P1017/i.test(message);
+}
+
+async function withTransientDbRetry<T>(
+  label: string,
+  fn: () => Promise<T>,
+): Promise<T> {
+  try {
+    return await fn();
+  } catch (error) {
+    if (!isTransientDbConnectionError(error)) {
+      throw error;
+    }
+
+    console.warn(`[AI Health] Transient DB error during ${label}; retrying once`);
+    await sleep(AI_HEALTH_DB_RETRY_DELAY_MS);
+    return fn();
+  }
+}
+
 // ─── Health Status (real-time) ──────────────────────────────
 
 export interface AiHealthStatus {
@@ -40,6 +89,10 @@ export interface AiHealthStatus {
  * Designed to be fast (<50ms) for dashboard widget.
  */
 export async function getAiHealthStatus(): Promise<AiHealthStatus> {
+  return withTransientDbRetry('get health status', getAiHealthStatusOnce);
+}
+
+async function getAiHealthStatusOnce(): Promise<AiHealthStatus> {
   const now = new Date();
   const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000);
   const todayStart = new Date(now);
@@ -157,6 +210,10 @@ export interface DailySummaryData {
  * Default: yesterday.
  */
 export async function buildDailySummary(date?: Date): Promise<DailySummaryData> {
+  return withTransientDbRetry('build daily summary', () => buildDailySummaryOnce(date));
+}
+
+async function buildDailySummaryOnce(date?: Date): Promise<DailySummaryData> {
   const targetDate = date || new Date(Date.now() - 24 * 60 * 60 * 1000);
   const dayStart = new Date(targetDate);
   dayStart.setHours(0, 0, 0, 0);
@@ -308,6 +365,15 @@ export async function checkErrorRateAlert(
   windowMinutes: number = 15,
   thresholdPercent: number = 15,
 ): Promise<string | null> {
+  return withTransientDbRetry('check error rate alert', () =>
+    checkErrorRateAlertOnce(windowMinutes, thresholdPercent),
+  );
+}
+
+async function checkErrorRateAlertOnce(
+  windowMinutes: number = 15,
+  thresholdPercent: number = 15,
+): Promise<string | null> {
   const since = new Date(Date.now() - windowMinutes * 60 * 1000);
 
   const agg = await prisma.aiChatSession.aggregate({
@@ -365,7 +431,7 @@ export async function checkAndAlertErrors(): Promise<boolean> {
     console.warn('[AI Health] Error rate alert sent');
     return true;
   } catch (err) {
-    console.error('[AI Health] Failed to send alert:', err);
+    console.error('[AI Health] Failed to check or send alert:', err);
     return false;
   }
 }

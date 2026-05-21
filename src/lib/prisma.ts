@@ -6,19 +6,28 @@ const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
 };
 
+function readMillisEnv(name: string, fallback: number): number {
+  const raw = process.env[name];
+  if (!raw) return fallback;
+
+  const value = Number(raw);
+  return Number.isFinite(value) && value > 0 ? value : fallback;
+}
+
 function createPrismaClient(): PrismaClient {
   const connectionString = process.env.DATABASE_URL;
   const verboseQueryLogging = process.env.PRISMA_LOG_QUERIES === "1";
+  const connectionTimeoutMillis = readMillisEnv("PG_CONNECTION_TIMEOUT_MS", 15_000);
+  const idleTimeoutMillis = readMillisEnv("PG_IDLE_TIMEOUT_MS", 300_000);
 
   if (!connectionString) {
     throw new Error("DATABASE_URL is not set");
   }
 
-  // Match Prisma 6 timeout behavior while moving pooling to node-postgres.
   const adapter = new PrismaPg({
     connectionString,
-    connectionTimeoutMillis: process.env.NODE_ENV === "development" ? 15_000 : 5_000,
-    idleTimeoutMillis: 300_000,
+    connectionTimeoutMillis,
+    idleTimeoutMillis,
   });
 
   return new PrismaClient({
