@@ -81,8 +81,9 @@ Useful scripts:
   `src/lib/rbac.ts`, `src/lib/rbac-guards.ts`, and `src/lib/route-guards.ts`.
   Current roles are `USER`, `MASTER`, and `ADMIN`.
 - Global app layout is `src/app/layout.tsx`. It mounts providers, locale
-  context, `SiteHeader`, `SiteFooter`, analytics, cookie consent, and the AI
-  `ChatWidget`. Changes here affect most public pages.
+  context, `SiteHeader`, `SiteFooter`, and the AI `ChatWidget`. Changes here
+  affect most public pages. Microsoft Clarity and its cookie-consent UI are
+  currently kept in the codebase but not mounted.
 - AI assistant code is under `src/components/ai`, `src/lib/ai`, and
   `src/app/api/ai`. Tool definitions are in `src/lib/ai/tools-schema.ts`.
   The assistant must use real availability/tool results and must not invent
@@ -127,3 +128,10 @@ Useful scripts:
 - 2026-05-21: AI Health DB checks retry once on transient PostgreSQL connection
   termination/timeouts. Prisma PostgreSQL adapter connection timeout defaults to
   15s and can be tuned with `PG_CONNECTION_TIMEOUT_MS`/`PG_IDLE_TIMEOUT_MS`.
+- 2026-05-22: Security dependency baseline is Next.js/`eslint-config-next`
+  16.2.6 with PostCSS 8.5.10. Keep the npm PostCSS override so Next.js uses the
+  patched PostCSS copy instead of its older transitive pin.
+- 2026-05-22: Microsoft Clarity analytics and its cookie-consent UI are paused
+  at the global layout/footer level. Keep the existing components available for
+  a later opt-in reactivation, but do not rely on the project ID alone to load
+  Clarity while it is paused.

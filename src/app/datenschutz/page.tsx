@@ -70,20 +70,13 @@ const docs: Record<SeoLocale, LegalDocument> = {
         title: "5. Cookies und lokale Speicherung",
         paragraphs: [
           "Wir nutzen erforderliche Cookies und lokale Speicherwerte, insbesondere fuer Spracheinstellungen (z. B. locale) und technische Funktionen.",
-          "Analyse-Cookies und vergleichbare Technologien werden nur eingesetzt, wenn Sie ueber den Cookie-Hinweis eingewilligt haben. Sie koennen Ihre Auswahl jederzeit ueber Cookie-Einstellungen aendern.",
+          "Optionale Analyse-Cookies werden derzeit nicht ueber diese Website geladen.",
         ],
       },
       {
-        title: "6. Microsoft Clarity (Analyse)",
+        title: "6. Microsoft Clarity (derzeit pausiert)",
         paragraphs: [
-          "Wir verwenden Microsoft Clarity, einen Webanalysedienst von Microsoft, um die Nutzung unserer Website besser zu verstehen und das Angebot zu verbessern. Clarity kann Interaktionen wie Seitenaufrufe, Klicks, Scrollverhalten, technische Browser-/Geraetedaten, Referrer und pseudonyme Nutzungskennungen verarbeiten.",
-          "Die Einbindung erfolgt erst nach Ihrer Einwilligung. Rechtsgrundlage fuer die Speicherung bzw. den Zugriff auf Informationen auf Ihrem Endgeraet ist Ihre Einwilligung nach § 25 Abs. 1 TDDDG; Rechtsgrundlage fuer die anschliessende Verarbeitung personenbezogener Daten ist Art. 6 Abs. 1 lit. a DSGVO.",
-          "Wenn Sie nicht einwilligen, wird Microsoft Clarity auf unserer Website nicht geladen. Wenn Sie eine bereits erteilte Einwilligung widerrufen, werden bekannte first-party Clarity-Cookies (_clck, _clsk) geloescht, soweit dies technisch moeglich ist.",
-        ],
-        items: [
-          "Anbieter: Microsoft Corporation bzw. Microsoft Ireland Operations Limited",
-          "Moegliche Cookies laut Microsoft: _clck, _clsk sowie je nach Konfiguration weitere Microsoft-Cookies wie CLID, ANONCHK, MR, MUID, SM",
-          "Weitere Informationen: https://learn.microsoft.com/clarity/ und https://privacy.microsoft.com/privacystatement",
+          "Die Microsoft-Clarity-Analyseintegration ist derzeit pausiert. Solange sie pausiert ist, wird Clarity ueber diese Website nicht geladen und setzt ueber diese Website keine Clarity-Cookies.",
         ],
       },
       {
@@ -140,7 +133,7 @@ const docs: Record<SeoLocale, LegalDocument> = {
         ],
       },
     ],
-    updated: "Stand: 12. Mai 2026",
+    updated: "Stand: 22. Mai 2026",
   },
   en: {
     title: "Privacy Policy",
@@ -189,20 +182,13 @@ const docs: Record<SeoLocale, LegalDocument> = {
         title: "5. Cookies and local storage",
         paragraphs: [
           "We use necessary cookies and local storage values (for example language settings such as locale and technical preferences).",
-          "Analytics cookies and similar technologies are used only if you consent through the cookie notice. You can change your choice at any time through Cookie settings.",
+          "Optional analytics cookies are currently not loaded through this website.",
         ],
       },
       {
-        title: "6. Microsoft Clarity (analytics)",
+        title: "6. Microsoft Clarity (currently paused)",
         paragraphs: [
-          "We use Microsoft Clarity, a web analytics service by Microsoft, to better understand website usage and improve our offer. Clarity may process interactions such as page views, clicks, scrolling behavior, technical browser/device data, referrers, and pseudonymous user identifiers.",
-          "Clarity is loaded only after your consent. The legal basis for storing or accessing information on your device is your consent under Sec. 25(1) TDDDG; the legal basis for subsequent personal data processing is Art. 6(1)(a) GDPR.",
-          "If you do not consent, Microsoft Clarity is not loaded on our website. If you withdraw consent after granting it, known first-party Clarity cookies (_clck, _clsk) are deleted where technically possible.",
-        ],
-        items: [
-          "Provider: Microsoft Corporation or Microsoft Ireland Operations Limited",
-          "Possible cookies according to Microsoft: _clck, _clsk and, depending on configuration, further Microsoft cookies such as CLID, ANONCHK, MR, MUID, SM",
-          "Further information: https://learn.microsoft.com/clarity/ and https://privacy.microsoft.com/privacystatement",
+          "The Microsoft Clarity analytics integration is currently paused. While it is paused, Clarity is not loaded through this website and does not set Clarity cookies through this website.",
         ],
       },
       {
@@ -247,7 +233,7 @@ const docs: Record<SeoLocale, LegalDocument> = {
         ],
       },
     ],
-    updated: "Last updated: May 12, 2026",
+    updated: "Last updated: May 22, 2026",
     languageNote:
       "For legal interpretation, the German-language version of this privacy policy prevails.",
   },
@@ -298,20 +284,13 @@ const docs: Record<SeoLocale, LegalDocument> = {
         title: "5. Cookies и localStorage",
         paragraphs: [
           "Используются необходимые cookies и локальные значения хранения (включая языковые настройки, например locale, и технические параметры).",
-          "Аналитические cookies и аналогичные технологии используются только после вашего согласия через cookie-уведомление. Вы можете изменить выбор в любое время через настройки cookies.",
+          "Опциональные аналитические cookies сейчас не загружаются через этот сайт.",
         ],
       },
       {
-        title: "6. Microsoft Clarity (аналитика)",
+        title: "6. Microsoft Clarity (сейчас приостановлен)",
         paragraphs: [
-          "Мы используем Microsoft Clarity, сервис веб-аналитики Microsoft, чтобы лучше понимать использование сайта и улучшать предложение. Clarity может обрабатывать взаимодействия с сайтом, например просмотры страниц, клики, прокрутку, технические данные браузера/устройства, referrer и псевдонимные идентификаторы.",
-          "Clarity загружается только после вашего согласия. Правовое основание для хранения или доступа к информации на вашем устройстве: согласие по § 25(1) TDDDG; правовое основание последующей обработки персональных данных: ст. 6(1)(a) GDPR.",
-          "Если вы не даете согласие, Microsoft Clarity на нашем сайте не загружается. Если вы отзываете ранее данное согласие, известные first-party cookies Clarity (_clck, _clsk) удаляются, насколько это технически возможно.",
-        ],
-        items: [
-          "Провайдер: Microsoft Corporation или Microsoft Ireland Operations Limited",
-          "Возможные cookies по данным Microsoft: _clck, _clsk и, в зависимости от конфигурации, другие cookies Microsoft, например CLID, ANONCHK, MR, MUID, SM",
-          "Дополнительная информация: https://learn.microsoft.com/clarity/ и https://privacy.microsoft.com/privacystatement",
+          "Интеграция аналитики Microsoft Clarity сейчас приостановлена. Пока она приостановлена, Clarity не загружается через этот сайт и не устанавливает через него cookies Clarity.",
         ],
       },
       {
@@ -356,7 +335,7 @@ const docs: Record<SeoLocale, LegalDocument> = {
         ],
       },
     ],
-    updated: "Дата обновления: 12 мая 2026 г.",
+    updated: "Дата обновления: 22 мая 2026 г.",
     languageNote:
       "При юридических расхождениях приоритет имеет немецкая версия этой политики.",
   },

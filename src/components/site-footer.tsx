@@ -27,7 +27,6 @@ import {
 import { motion } from "framer-motion";
 import { useTranslations } from "@/i18n/useTranslations";
 import RainbowCTA from "@/components/RainbowCTA";
-import { openCookieSettings } from "@/components/analytics/clarityConsent";
 
 type MainNavKey =
   | "nav_home"
@@ -280,16 +279,11 @@ function RoundIcon({
 export default function SiteFooter(): React.JSX.Element {
   const t = useTranslations();
   const year = new Date().getFullYear();
-  const canManageCookieConsent = Boolean(process.env.NEXT_PUBLIC_CLARITY_PROJECT_ID?.trim());
 
   const handleScrollTop = (): void => {
     if (typeof window !== "undefined") {
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
-  };
-
-  const handleCookieSettings = (): void => {
-    openCookieSettings();
   };
 
   return (
@@ -585,15 +579,6 @@ export default function SiteFooter(): React.JSX.Element {
             >
               {t("footer_privacy")}
             </Link>
-            {canManageCookieConsent && (
-              <button
-                type="button"
-                onClick={handleCookieSettings}
-                className="footer-legal-link transition hover:text-rose-800 hover:underline hover:underline-offset-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-300 dark:hover:text-slate-200 dark:focus-visible:ring-sky-400/70"
-              >
-                {t("footer_cookie_settings")}
-              </button>
-            )}
             <Link
               href="/nutzungsbedingungen"
               className="footer-legal-link transition hover:text-rose-800 hover:underline hover:underline-offset-4 dark:hover:text-slate-200"
