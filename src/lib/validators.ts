@@ -17,6 +17,7 @@ export const articleInput = z.object({
   body: z.string().min(50).max(5000),
 
   cover: z.string().optional().nullable(),    // путь к файлу (если уже сохранён)
+  galleryImages: z.array(z.string()).max(4).optional().nullable(),
 
   // строки-ISO (или пусто), UI преобразует перед отправкой
   publishedAt: z.string().datetime().optional().nullable(),

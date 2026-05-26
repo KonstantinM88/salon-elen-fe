@@ -3,6 +3,7 @@
 
 import * as React from "react";
 import type { ActionResult } from "@/app/admin/news/actions";
+import MarkdownContent from "@/components/news/MarkdownContent";
 import type { SeoLocale } from "@/lib/seo-locale";
 
 export type Initial = {
@@ -11,6 +12,7 @@ export type Initial = {
   excerpt?: string;
   body?: string;
   cover?: string | null;
+  galleryImages?: string[];
   publishedAt?: string | null;
   expiresAt?: string | null;
   // SEO
@@ -95,11 +97,23 @@ type ArticleFormCopy = {
   shortDescriptionPlaceholder: string;
   bodyLabel: string;
   bodyPlaceholder: string;
+  markdownHint: string;
+  previewTitle: string;
+  previewEmpty: string;
   wordsLabel: string;
   aspectTooNarrow: string;
   aspectTooWide: string;
   coverLabel: string;
   chooseFile: string;
+  galleryLabel: string;
+  chooseGallery: string;
+  galleryHint: string;
+  galleryPreviewTitle: string;
+  galleryRemove: string;
+  galleryMoveLeft: string;
+  galleryMoveRight: string;
+  gallerySelected: (count: number) => string;
+  galleryFull: string;
   publishFromLabel: string;
   coverHint: string;
   hideAfterLabel: string;
@@ -135,6 +149,35 @@ type ArticleFormCopy = {
   save: string;
 };
 
+const ARTICLE_GALLERY_LIMIT = 4;
+
+type ExistingGalleryItem = {
+  id: string;
+  kind: "existing";
+  src: string;
+};
+
+type NewGalleryItem = {
+  id: string;
+  kind: "new";
+  file: File;
+  previewUrl: string;
+};
+
+type GalleryItem = ExistingGalleryItem | NewGalleryItem;
+
+function createGalleryItemId(): string {
+  return globalThis.crypto?.randomUUID?.() ?? Math.random().toString(36).slice(2);
+}
+
+function buildInitialGalleryItems(srcs: string[] | undefined): ExistingGalleryItem[] {
+  return (srcs ?? []).map((src, index) => ({
+    id: `existing-${index}-${src}`,
+    kind: "existing",
+    src,
+  }));
+}
+
 const ARTICLE_FORM_COPY: Record<SeoLocale, ArticleFormCopy> = {
   de: {
     fileNotSelected: "Keine Datei gewaehlt",
@@ -147,7 +190,11 @@ const ARTICLE_FORM_COPY: Record<SeoLocale, ArticleFormCopy> = {
     shortDescriptionLabel: "Kurzbeschreibung",
     shortDescriptionPlaceholder: "Ein bis zwei Saetze als Teaser...",
     bodyLabel: "Text *",
-    bodyPlaceholder: "Haupttext der Veroeffentlichung...",
+    bodyPlaceholder: "Markdown einfuegen: ## Abschnitt, **fett**, Listen, Zitate, Links...",
+    markdownHint:
+      "Markdown wird direkt als fertiger Beitrag gerendert: #, ##, Listen, Zitate, Links, **fett**.",
+    previewTitle: "Vorschau",
+    previewEmpty: "Die Vorschau erscheint, sobald Text eingegeben ist.",
     wordsLabel: "Woerter:",
     aspectTooNarrow:
       "zu schmal/vertikal. Empfohlen 1200x675 (16:9). Ein Teil des Bildes wird beim Anzeigen beschnitten.",
@@ -155,6 +202,16 @@ const ARTICLE_FORM_COPY: Record<SeoLocale, ArticleFormCopy> = {
       "zu breit (Panorama). Empfohlen 1200x675 (16:9).",
     coverLabel: "Titelbild",
     chooseFile: "Datei auswaehlen",
+    galleryLabel: "Galerie im Beitrag",
+    chooseGallery: "Fotos auswaehlen",
+    galleryHint:
+      "Bis zu 4 zusaetzliche Fotos. Sie werden in der Nachricht als Slider angezeigt.",
+    galleryPreviewTitle: "Galerie-Vorschau",
+    galleryRemove: "Entfernen",
+    galleryMoveLeft: "Nach links",
+    galleryMoveRight: "Nach rechts",
+    gallerySelected: (count) => `${count} Foto(s) ausgewaehlt`,
+    galleryFull: "Limit erreicht",
     publishFromLabel: "Veroeffentlichen ab",
     coverHint:
       "📐 Empfohlenes Titelbild: 1200x675 (16:9) oder 1200x630 (1.91:1 fuer soziale Netzwerke). JPG/PNG/GIF/AVIF/BMP/TIFF wird automatisch in WebP konvertiert.",
@@ -203,7 +260,11 @@ const ARTICLE_FORM_COPY: Record<SeoLocale, ArticleFormCopy> = {
     shortDescriptionLabel: "Короткое описание",
     shortDescriptionPlaceholder: "Одно-два предложения анонса…",
     bodyLabel: "Текст *",
-    bodyPlaceholder: "Основной текст публикации…",
+    bodyPlaceholder: "Markdown: ## раздел, **жирный**, списки, цитаты, ссылки...",
+    markdownHint:
+      "Markdown рендерится как готовая страница: #, ##, списки, цитаты, ссылки, **жирный**.",
+    previewTitle: "Предпросмотр",
+    previewEmpty: "Предпросмотр появится после ввода текста.",
     wordsLabel: "слов:",
     aspectTooNarrow:
       "слишком узкое/вертикальное. Рекомендуем 1200×675 (16:9). Часть картинки будет обрезана при отображении.",
@@ -211,6 +272,16 @@ const ARTICLE_FORM_COPY: Record<SeoLocale, ArticleFormCopy> = {
       "слишком широкое (панорама). Рекомендуем 1200×675 (16:9).",
     coverLabel: "Обложка",
     chooseFile: "Выберите файл",
+    galleryLabel: "Галерея в новости",
+    chooseGallery: "Выберите фото",
+    galleryHint:
+      "До 4 дополнительных фото. На странице новости они будут показываться как слайдер.",
+    galleryPreviewTitle: "Предпросмотр галереи",
+    galleryRemove: "Удалить",
+    galleryMoveLeft: "Сдвинуть влево",
+    galleryMoveRight: "Сдвинуть вправо",
+    gallerySelected: (count) => `Выбрано фото: ${count}`,
+    galleryFull: "Лимит заполнен",
     publishFromLabel: "Публиковать с",
     coverHint:
       "📐 Рекомендуемый размер обложки: 1200×675 (16:9) или 1200×630 (1.91:1 для соцсетей). Любой формат (JPG, PNG, GIF, AVIF, BMP, TIFF) автоматически конвертируется в WebP.",
@@ -259,7 +330,11 @@ const ARTICLE_FORM_COPY: Record<SeoLocale, ArticleFormCopy> = {
     shortDescriptionLabel: "Short description",
     shortDescriptionPlaceholder: "One or two teaser sentences...",
     bodyLabel: "Text *",
-    bodyPlaceholder: "Main publication text...",
+    bodyPlaceholder: "Paste Markdown: ## section, **bold**, lists, quotes, links...",
+    markdownHint:
+      "Markdown is rendered as the final post: #, ##, lists, quotes, links, **bold**.",
+    previewTitle: "Preview",
+    previewEmpty: "The preview appears once text is entered.",
     wordsLabel: "words:",
     aspectTooNarrow:
       "too narrow/vertical. Recommended 1200x675 (16:9). Part of the image will be cropped.",
@@ -267,6 +342,16 @@ const ARTICLE_FORM_COPY: Record<SeoLocale, ArticleFormCopy> = {
       "too wide (panorama). Recommended 1200x675 (16:9).",
     coverLabel: "Cover",
     chooseFile: "Choose file",
+    galleryLabel: "Article gallery",
+    chooseGallery: "Choose photos",
+    galleryHint:
+      "Up to 4 additional photos. They will be shown as a slider on the article page.",
+    galleryPreviewTitle: "Gallery preview",
+    galleryRemove: "Remove",
+    galleryMoveLeft: "Move left",
+    galleryMoveRight: "Move right",
+    gallerySelected: (count) => `${count} photo(s) selected`,
+    galleryFull: "Limit reached",
     publishFromLabel: "Publish from",
     coverHint:
       "📐 Recommended cover size: 1200x675 (16:9) or 1200x630 (1.91:1 for social networks). JPG/PNG/GIF/AVIF/BMP/TIFF is automatically converted to WebP.",
@@ -350,6 +435,12 @@ export default function ArticleForm({
   const [fileLabel, setFileLabel] = React.useState(t.fileNotSelected);
   const [aspectWarning, setAspectWarning] = React.useState<string | null>(null);
   const currentCover = initial?.cover ?? null;
+  const [galleryItems, setGalleryItems] = React.useState<GalleryItem[]>(
+    () => buildInitialGalleryItems(initial?.galleryImages),
+  );
+  const [galleryFileLabel, setGalleryFileLabel] = React.useState(t.fileNotSelected);
+  const galleryInputRef = React.useRef<HTMLInputElement | null>(null);
+  const galleryItemsRef = React.useRef<GalleryItem[]>(galleryItems);
 
   const isEditMode = !!articleId;
 
@@ -359,6 +450,38 @@ export default function ArticleForm({
       if (videoPreview) URL.revokeObjectURL(videoPreview);
     };
   }, [newFilePreview, videoPreview]);
+
+  React.useEffect(() => {
+    galleryItemsRef.current = galleryItems;
+  }, [galleryItems]);
+
+  React.useEffect(() => {
+    return () => {
+      galleryItemsRef.current.forEach((item) => {
+        if (item.kind === "new") URL.revokeObjectURL(item.previewUrl);
+      });
+    };
+  }, []);
+
+  React.useEffect(() => {
+    const input = galleryInputRef.current;
+    if (!input || typeof DataTransfer === "undefined") return;
+
+    const newItems = galleryItems.filter(
+      (item): item is NewGalleryItem => item.kind === "new",
+    );
+    const transfer = new DataTransfer();
+    newItems.forEach((item) => transfer.items.add(item.file));
+    input.files = transfer.files;
+
+    if (newItems.length > 0) {
+      setGalleryFileLabel(t.gallerySelected(newItems.length));
+    } else {
+      setGalleryFileLabel(
+        galleryItems.length >= ARTICLE_GALLERY_LIMIT ? t.galleryFull : t.fileNotSelected,
+      );
+    }
+  }, [galleryItems, t]);
 
   React.useEffect(() => {
     if (!isEditMode && title) setSlug(generateSlug(title));
@@ -388,6 +511,25 @@ export default function ArticleForm({
     img.src = url;
   }
 
+  function moveGalleryItem(index: number, direction: -1 | 1) {
+    setGalleryItems((prev) => {
+      const nextIndex = index + direction;
+      if (nextIndex < 0 || nextIndex >= prev.length) return prev;
+
+      const next = [...prev];
+      [next[index], next[nextIndex]] = [next[nextIndex], next[index]];
+      return next;
+    });
+  }
+
+  function removeGalleryItem(index: number) {
+    setGalleryItems((prev) => {
+      const item = prev[index];
+      if (item?.kind === "new") URL.revokeObjectURL(item.previewUrl);
+      return prev.filter((_, i) => i !== index);
+    });
+  }
+
   async function handleSubmit(formData: FormData) {
     setPending(true);
     setServerError(null);
@@ -407,6 +549,8 @@ export default function ArticleForm({
   const inputCls =
     "mt-1 w-full rounded-xl border bg-transparent px-3 py-2 outline-none focus:ring-2 focus:ring-emerald-500/60";
   const labelCls = "text-sm font-medium";
+  const remainingGallerySlots = Math.max(0, ARTICLE_GALLERY_LIMIT - galleryItems.length);
+  const galleryLimitReached = remainingGallerySlots === 0;
 
   return (
     <form action={handleSubmit} className="space-y-8">
@@ -418,6 +562,20 @@ export default function ArticleForm({
       <input type="hidden" name="sortOrder" value={sortOrder} />
       <input type="hidden" name="videoUrl" value={videoUrl} />
       <input type="hidden" name="videoType" value={videoType} />
+      {galleryItems.map((item) => (
+        <React.Fragment key={item.id}>
+          <input
+            type="hidden"
+            name="galleryOrder"
+            value={item.kind === "existing" ? `existing:${item.src}` : `new:${item.id}`}
+          />
+          {item.kind === "existing" ? (
+            <input type="hidden" name="galleryExisting" value={item.src} />
+          ) : (
+            <input type="hidden" name="galleryNewToken" value={item.id} />
+          )}
+        </React.Fragment>
+      ))}
 
       {serverError && (
         <div role="alert" className="rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm">
@@ -485,15 +643,42 @@ export default function ArticleForm({
 
         {/* ═══ Текст ═══ */}
         <div className="md:col-span-2">
-          <label htmlFor="body" className={labelCls}>{t.bodyLabel}</label>
-          <textarea
-            id="body" name="body" required rows={12}
-            value={body} onChange={(e) => setBody(e.target.value)}
-            className={inputCls}
-            placeholder={t.bodyPlaceholder}
-          />
-          {fieldErrors.body && <p className="mt-1 text-xs text-red-500">{fieldErrors.body[0]}</p>}
-          <p className="mt-1 text-right text-xs opacity-70">{t.wordsLabel} {wordCount(body)}</p>
+          <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+            <div className="min-w-0">
+              <label htmlFor="body" className={labelCls}>{t.bodyLabel}</label>
+              <textarea
+                id="body" name="body" required rows={18}
+                value={body} onChange={(e) => setBody(e.target.value)}
+                className={`${inputCls} min-h-[28rem] font-mono text-sm leading-6`}
+                placeholder={t.bodyPlaceholder}
+              />
+              {fieldErrors.body && <p className="mt-1 text-xs text-red-500">{fieldErrors.body[0]}</p>}
+              <div className="mt-1 flex flex-col gap-1 text-xs opacity-70 sm:flex-row sm:items-center sm:justify-between">
+                <span>{t.markdownHint}</span>
+                <span>{t.wordsLabel} {wordCount(body)}</span>
+              </div>
+            </div>
+
+            <section
+              aria-live="polite"
+              className="min-w-0 rounded-xl border border-white/10 bg-white/5 p-4"
+            >
+              <div className="mb-3 flex items-center justify-between gap-3">
+                <h2 className="text-sm font-medium">{t.previewTitle}</h2>
+                <span className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-[11px] font-medium text-emerald-300">
+                  Markdown
+                </span>
+              </div>
+              {body.trim() ? (
+                <MarkdownContent
+                  body={body}
+                  className="max-w-none text-sm [&_h1]:text-2xl [&_h2]:text-xl [&_h3]:text-lg"
+                />
+              ) : (
+                <p className="text-sm opacity-60">{t.previewEmpty}</p>
+              )}
+            </section>
+          </div>
         </div>
 
         {/* ═══ Обложка ═══ */}
@@ -580,6 +765,119 @@ export default function ArticleForm({
                 alt={t.coverPreviewAlt}
                 className="max-h-60 w-auto rounded-lg object-contain"
               />
+            </div>
+          </div>
+        )}
+
+        {/* ═══ Галерея в новости ═══ */}
+        <div className="md:col-span-2">
+          <label htmlFor="galleryFiles" className={labelCls}>{t.galleryLabel}</label>
+          <div className="mt-1 flex items-center rounded-xl border px-2 h-10">
+            <input
+              ref={galleryInputRef}
+              id="galleryFiles"
+              name="galleryFiles"
+              type="file"
+              accept="image/*"
+              multiple
+              disabled={galleryLimitReached}
+              onChange={(e) => {
+                const input = e.currentTarget;
+                const selected = Array.from(input.files ?? []).slice(0, remainingGallerySlots);
+
+                if (selected.length === 0) {
+                  setGalleryFileLabel(galleryLimitReached ? t.galleryFull : t.fileNotSelected);
+                  input.value = "";
+                  return;
+                }
+
+                const newItems: NewGalleryItem[] = selected.map((file) => ({
+                  id: createGalleryItemId(),
+                  kind: "new",
+                  file,
+                  previewUrl: URL.createObjectURL(file),
+                }));
+
+                setGalleryItems((prev) => [...prev, ...newItems]);
+              }}
+              className="sr-only"
+            />
+            <label
+              htmlFor="galleryFiles"
+              className={`shrink-0 inline-flex items-center rounded-full px-4 py-1.5
+                bg-emerald-600 text-white text-sm font-medium
+                hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-400
+                ${galleryLimitReached ? "pointer-events-none opacity-50" : "cursor-pointer"}`}
+            >
+              {galleryLimitReached ? t.galleryFull : t.chooseGallery}
+            </label>
+            <span className="ml-3 truncate text-sm opacity-80">{galleryFileLabel}</span>
+          </div>
+          <p className="mt-1 text-xs opacity-70">{t.galleryHint}</p>
+          {fieldErrors.galleryImages && (
+            <p className="mt-1 text-xs text-red-500">{fieldErrors.galleryImages[0]}</p>
+          )}
+        </div>
+
+        {galleryItems.length > 0 && (
+          <div className="md:col-span-2">
+            <div className="rounded-xl border p-3">
+              <div className="mb-3 flex items-center justify-between gap-3 text-xs opacity-70">
+                <span>{t.galleryPreviewTitle}</span>
+                <span>{galleryItems.length}/{ARTICLE_GALLERY_LIMIT}</span>
+              </div>
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                {galleryItems.map((item, index) => {
+                  const src = item.kind === "existing" ? item.src : item.previewUrl;
+                  return (
+                    <figure
+                      key={item.id}
+                      className={`relative overflow-hidden rounded-lg border ${
+                        item.kind === "new" ? "border-emerald-500/30" : "border-white/10"
+                      }`}
+                    >
+                      <div className="absolute left-2 top-2 z-10 rounded-full bg-black/70 px-2 py-1 text-[11px] font-semibold text-white">
+                        {index + 1}
+                      </div>
+                      <div className="absolute left-2 right-2 top-2 z-10 flex justify-end gap-1">
+                        <button
+                          type="button"
+                          onClick={() => moveGalleryItem(index, -1)}
+                          disabled={index === 0}
+                          aria-label={t.galleryMoveLeft}
+                          title={t.galleryMoveLeft}
+                          className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-black/70 text-white hover:bg-black disabled:cursor-not-allowed disabled:opacity-35"
+                        >
+                          ←
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => moveGalleryItem(index, 1)}
+                          disabled={index === galleryItems.length - 1}
+                          aria-label={t.galleryMoveRight}
+                          title={t.galleryMoveRight}
+                          className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-black/70 text-white hover:bg-black disabled:cursor-not-allowed disabled:opacity-35"
+                        >
+                          →
+                        </button>
+                      </div>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={src}
+                      alt={`${t.galleryPreviewTitle} ${index + 1}`}
+                      className="aspect-[4/3] w-full object-cover"
+                    />
+                      <button
+                        type="button"
+                        onClick={() => removeGalleryItem(index)}
+                        className="absolute bottom-2 right-2 rounded-full bg-black/70 px-2 py-1 text-[11px] font-medium text-white hover:bg-black"
+                      >
+                        {t.galleryRemove}
+                      </button>
+                    </figure>
+                  );
+                })}
+              </div>
             </div>
           </div>
         )}

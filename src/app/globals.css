@@ -68,11 +68,20 @@ img { image-rendering: auto; }
 
   .prose-elen h1 { @apply text-3xl sm:text-4xl font-semibold tracking-tight; }
   .prose-elen h2 { @apply text-2xl font-semibold tracking-tight mt-7; }
+  .prose-elen h3 { @apply text-xl font-semibold tracking-tight mt-6; }
+  .prose-elen h4 { @apply text-lg font-semibold tracking-tight mt-5; }
   .prose-elen p  { @apply leading-7; }
-  .prose-elen a  { @apply no-underline; }
+  .prose-elen a  { @apply text-rose-700 underline underline-offset-4 dark:text-rose-300; }
   .prose-elen blockquote { @apply italic border-l-4 pl-4; }
-  .prose-elen ul { @apply my-4; }
+  .prose-elen ul,
+  .prose-elen ol { @apply my-4 pl-6; }
+  .prose-elen ul { @apply list-disc; }
+  .prose-elen ol { @apply list-decimal; }
   .prose-elen li { @apply pl-1; }
+  .prose-elen code { @apply rounded bg-gray-100 px-1 py-0.5 text-[0.9em] dark:bg-white/10; }
+  .prose-elen pre { @apply overflow-x-auto rounded-xl bg-gray-950 p-4 text-gray-50; }
+  .prose-elen pre code { @apply bg-transparent p-0 text-inherit; }
+  .prose-elen hr { @apply my-8 border-gray-200 dark:border-white/10; }
 }
 
 /* =================================================================== */

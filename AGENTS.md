@@ -135,3 +135,15 @@ Useful scripts:
   at the global layout/footer level. Keep the existing components available for
   a later opt-in reactivation, but do not rely on the project ID alone to load
   Clarity while it is paused.
+- 2026-05-26: News body content remains stored as plain `Article.content` /
+  `ArticleTranslation.content` text, but public news pages and admin previews
+  render it through `src/components/news/MarkdownContent.tsx`. Existing plain
+  text articles must continue to render without migration.
+- 2026-05-27: `Article` has a `views Int @default(0)` counter with migration
+  `20260527090000_add_article_views`. Public news detail pages show estimated
+  reading time, article views, and a share action; views are incremented by
+  `/api/articles/[id]/view` once per browser session.
+- 2026-05-27: `Article` has `galleryImages String[] @default([])` with
+  migration `20260527094500_add_article_gallery_images`. The admin news form
+  can attach and order up to four extra article photos, and public news detail
+  pages render the cover plus gallery images through `NewsImageCarousel`.

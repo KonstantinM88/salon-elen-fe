@@ -59,6 +59,7 @@ export default async function AdminNewsEditPage({
       excerpt: true,
       content: true,
       cover: true,
+      galleryImages: true,
       type: true,
       publishedAt: true,
       expiresAt: true,
@@ -88,6 +89,7 @@ export default async function AdminNewsEditPage({
     excerpt: article.excerpt ?? "",
     body: article.content ?? "",
     cover: article.cover,
+    galleryImages: article.galleryImages,
     publishedAt: article.publishedAt?.toISOString() ?? null,
     expiresAt: article.expiresAt?.toISOString() ?? null,
     // SEO

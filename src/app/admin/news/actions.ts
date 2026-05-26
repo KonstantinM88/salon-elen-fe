@@ -30,6 +30,8 @@ type NewsActionCopy = {
   bodyRequired: string;
   invalidFields: string;
   imageSaveFailed: string;
+  gallerySaveFailed: string;
+  galleryLimitExceeded: string;
   videoSaveFailed: string;
   duplicateSlug: string;
   slugBusy: string;
@@ -48,6 +50,8 @@ const NEWS_ACTION_COPY: Record<SeoLocale, NewsActionCopy> = {
     bodyRequired: "Text ist erforderlich",
     invalidFields: "Ungueltige Formularfelder",
     imageSaveFailed: "Bild konnte nicht gespeichert werden",
+    gallerySaveFailed: "Galeriebild konnte nicht gespeichert werden",
+    galleryLimitExceeded: "Maximal 4 Galeriebilder erlaubt",
     videoSaveFailed: "Video konnte nicht gespeichert werden",
     duplicateSlug: "Ein Beitrag mit diesem Slug existiert bereits",
     slugBusy: "Slug ist bereits belegt",
@@ -64,6 +68,8 @@ const NEWS_ACTION_COPY: Record<SeoLocale, NewsActionCopy> = {
     bodyRequired: "Текст обязателен",
     invalidFields: "Некорректные поля формы",
     imageSaveFailed: "Не удалось сохранить изображение",
+    gallerySaveFailed: "Не удалось сохранить фото галереи",
+    galleryLimitExceeded: "Можно добавить максимум 4 фото в галерею",
     videoSaveFailed: "Не удалось сохранить видео",
     duplicateSlug: "Публикация с таким slug уже существует",
     slugBusy: "Slug уже занят",
@@ -80,6 +86,8 @@ const NEWS_ACTION_COPY: Record<SeoLocale, NewsActionCopy> = {
     bodyRequired: "Text is required",
     invalidFields: "Invalid form fields",
     imageSaveFailed: "Failed to save image",
+    gallerySaveFailed: "Failed to save gallery image",
+    galleryLimitExceeded: "You can add up to 4 gallery photos",
     videoSaveFailed: "Failed to save video",
     duplicateSlug: "A publication with this slug already exists",
     slugBusy: "Slug is already taken",
@@ -90,6 +98,8 @@ const NEWS_ACTION_COPY: Record<SeoLocale, NewsActionCopy> = {
     pinToggleFailed: "Failed to change pin state",
   },
 };
+
+const ARTICLE_GALLERY_LIMIT = 4;
 
 function localeFromFormData(fd: FormData): SeoLocale {
   const raw = fd.get("locale");
@@ -181,6 +191,7 @@ type PreparedData = {
   expiresAt: Date | null;
   coverSrc?: string | null;
   ogImageSrc?: string | null;
+  galleryImages: string[];
   videoSrc?: string | null;
 };
 
@@ -246,6 +257,66 @@ async function prepareData(
     coverSrc = null; // очистить
   }
 
+  // ── Галерея в статье ──
+  const galleryOrder = fd
+    .getAll("galleryOrder")
+    .map((value) => value.toString().trim())
+    .filter(Boolean);
+
+  const existingGallery = Array.from(
+    new Set(
+      fd
+        .getAll("galleryExisting")
+        .map((value) => value.toString().trim())
+        .filter((value) => value.startsWith("/uploads/")),
+    ),
+  );
+
+  const galleryFiles = fd
+    .getAll("galleryFiles")
+    .filter((value): value is File => value instanceof File && value.size > 0);
+  const galleryNewTokens = fd
+    .getAll("galleryNewToken")
+    .map((value) => value.toString().trim())
+    .filter(Boolean);
+
+  if (existingGallery.length + galleryFiles.length > ARTICLE_GALLERY_LIMIT) {
+    return {
+      ok: false,
+      error: t.galleryLimitExceeded,
+      details: { fieldErrors: { galleryImages: [t.galleryLimitExceeded] } },
+    };
+  }
+
+  const savedGalleryImages = new Map<string, string>();
+  for (const [index, file] of galleryFiles.entries()) {
+    try {
+      const saved = await saveImageFile(file, { dir: "uploads", maxWidth: 1600 });
+      savedGalleryImages.set(galleryNewTokens[index] ?? `new-${index}`, saved.src);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : t.gallerySaveFailed;
+      return { ok: false, error: msg };
+    }
+  }
+
+  const existingSet = new Set(existingGallery);
+  const galleryImages: string[] = [];
+  const pushGalleryImage = (src: string | undefined) => {
+    if (src && !galleryImages.includes(src)) galleryImages.push(src);
+  };
+
+  for (const ref of galleryOrder) {
+    if (ref.startsWith("existing:")) {
+      const src = ref.slice("existing:".length);
+      if (existingSet.has(src)) pushGalleryImage(src);
+    } else if (ref.startsWith("new:")) {
+      pushGalleryImage(savedGalleryImages.get(ref.slice("new:".length)));
+    }
+  }
+
+  existingGallery.forEach(pushGalleryImage);
+  savedGalleryImages.forEach(pushGalleryImage);
+
   // ── Видео ──
   let videoSrc: string | null | undefined = undefined;
   const videoCandidate = fd.get("videoFile");
@@ -267,6 +338,7 @@ async function prepareData(
     expiresAt,
     coverSrc,
     ogImageSrc,
+    galleryImages,
     videoSrc,
   };
 }
@@ -299,6 +371,7 @@ export async function createArticle(fd: FormData): Promise<ActionResult> {
         excerpt: d.excerpt || undefined,
         content: d.body,
         cover: prep.coverSrc ?? undefined,
+        galleryImages: prep.galleryImages,
         publishedAt: publishedAtFinal,
         expiresAt: prep.expiresAt ?? undefined,
         // SEO
@@ -371,6 +444,7 @@ export async function updateArticle(
         excerpt: d.excerpt || undefined,
         content: d.body,
         ...(prep.coverSrc === undefined ? {} : { cover: prep.coverSrc ?? null }),
+        galleryImages: prep.galleryImages,
         publishedAt:
           prep.publishedAt === null ? null : prep.publishedAt ?? undefined,
         expiresAt:

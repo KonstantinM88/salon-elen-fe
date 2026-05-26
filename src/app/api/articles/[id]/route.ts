@@ -76,6 +76,9 @@ export async function PATCH(req: Request, { params }: RouteParams) {
     type: p.type as ArticleType, // привести к enum Prisma
     publishedAt: toDateOrNull(p.publishedAt),
     expiresAt: toDateOrNull(p.expiresAt),
+    ...(p.galleryImages === undefined
+      ? {}
+      : { galleryImages: p.galleryImages ?? [] }),
   };
 
   try {
