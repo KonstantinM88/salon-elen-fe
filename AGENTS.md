@@ -152,3 +152,11 @@ Useful scripts:
   `isArchived=false`). Consultation entry points should build service/category
   options from the live catalog and avoid static inactive services such as
   haircut/manicure. Proactive chat help must not appear before 10 seconds.
+- 2026-05-27: AI consultation mode now supports live-catalog category drilling
+  and service-specific consultation cards before booking. `AiSession.context`
+  can store `consultationServiceTitle` for non-PMU service cards, and booking
+  from a card should re-resolve the service through `list_services` rather than
+  trusting stale text. `list_services` hides children whose parent category is
+  inactive/archived. For PMU and other knowledge-backed cards, live catalog
+  title, price, and duration remain the source of truth; static knowledge text
+  may add explanation only and must not override catalog values.
