@@ -74,21 +74,16 @@ export default function NewsArticleMeta({
   const [copied, setCopied] = React.useState(false);
 
   React.useEffect(() => {
-    const storageKey = `salon-elen-article-viewed:${articleId}`;
-    let alreadyTracked = false;
+    const storageKey = `salon-elen-article-viewed-v2:${articleId}`;
+    let canUseStorage = true;
 
     try {
       if (window.sessionStorage.getItem(storageKey)) {
-        alreadyTracked = true;
-      } else {
-        window.sessionStorage.setItem(storageKey, "1");
+        return;
       }
+      window.sessionStorage.setItem(storageKey, "pending");
     } catch {
-      // Continue without sessionStorage if the browser blocks it.
-    }
-
-    if (alreadyTracked) {
-      return;
+      canUseStorage = false;
     }
 
     let cancelled = false;
@@ -99,15 +94,22 @@ export default function NewsArticleMeta({
       keepalive: true,
     })
       .then(async (response) => {
-        if (!response.ok) return null;
+        if (!response.ok) throw new Error("View update failed");
         return (await response.json()) as ViewResponse;
       })
       .then((data) => {
-        if (cancelled || typeof data?.views !== "number") return;
-        setViews(data.views);
+        if (typeof data?.views !== "number") return;
+        if (!cancelled) {
+          setViews(data.views);
+        }
+        if (canUseStorage) {
+          window.sessionStorage.setItem(storageKey, "done");
+        }
       })
       .catch(() => {
-        // View counting is non-critical for reading the article.
+        if (canUseStorage) {
+          window.sessionStorage.removeItem(storageKey);
+        }
       });
 
     return () => {
