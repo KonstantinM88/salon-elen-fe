@@ -20,6 +20,7 @@ import {
   getAiHealthStatus,
   sendDailySummaryToTelegram,
   checkAndAlertErrors,
+  resolveDailySummaryDateParam,
 } from '@/lib/ai/ai-health';
 
 // ─── Auth helper ────────────────────────────────────────────
@@ -80,10 +81,21 @@ export async function POST(req: NextRequest) {
 
   switch (action) {
     case 'daily': {
-      const sent = await sendDailySummaryToTelegram();
+      let dateISO: string | undefined;
+      try {
+        dateISO = resolveDailySummaryDateParam(url.searchParams.get('date'));
+      } catch (err) {
+        return NextResponse.json(
+          { error: err instanceof Error ? err.message : 'Invalid date param' },
+          { status: 400 },
+        );
+      }
+
+      const sent = await sendDailySummaryToTelegram(dateISO);
       return NextResponse.json({
         ok: sent,
         action: 'daily_summary',
+        date: dateISO ?? 'yesterday',
         message: sent ? 'Daily summary sent to Telegram' : 'Failed to send',
       });
     }

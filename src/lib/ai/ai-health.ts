@@ -6,7 +6,8 @@
 // - Alert on high error rate
 
 import { prisma } from '@/lib/prisma';
-import { ORG_TZ } from '@/lib/orgTime';
+import { Temporal } from '@js-temporal/polyfill';
+import { isYmd, ORG_TZ, orgDayRange } from '@/lib/orgTime';
 
 const AI_HEALTH_DB_RETRY_DELAY_MS = 750;
 
@@ -185,6 +186,7 @@ async function getAiHealthStatusOnce(): Promise<AiHealthStatus> {
 // ─── Daily Summary ──────────────────────────────────────────
 
 export interface DailySummaryData {
+  dateISO: string;
   date: string;
   totalSessions: number;
   completedBookings: number;
@@ -209,31 +211,66 @@ export interface DailySummaryData {
  * Build daily summary data for a specific date.
  * Default: yesterday.
  */
-export async function buildDailySummary(date?: Date): Promise<DailySummaryData> {
+function orgTodayISO(date = new Date()): string {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: ORG_TZ,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(date);
+  const byType = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+  return `${byType.year}-${byType.month}-${byType.day}`;
+}
+
+function shiftDateISO(dateISO: string, days: number): string {
+  return Temporal.PlainDate.from(dateISO).add({ days }).toString();
+}
+
+function displayDateISO(dateISO: string): string {
+  const [year, month, day] = dateISO.split('-');
+  return `${day}.${month}.${year}`;
+}
+
+function resolveDailySummaryDateISO(date?: Date | string): string {
+  if (typeof date === 'string') {
+    if (!isYmd(date)) {
+      throw new Error(`Daily summary date must be YYYY-MM-DD, got "${date}"`);
+    }
+    return date;
+  }
+
+  if (date) {
+    return orgTodayISO(date);
+  }
+
+  return shiftDateISO(orgTodayISO(), -1);
+}
+
+export function resolveDailySummaryDateParam(value?: string | null): string | undefined {
+  if (!value) return undefined;
+  if (value === 'today') return orgTodayISO();
+  if (value === 'yesterday') return shiftDateISO(orgTodayISO(), -1);
+  if (isYmd(value)) return value;
+  throw new Error(`Unsupported date param "${value}". Use YYYY-MM-DD, today, or yesterday.`);
+}
+
+export async function buildDailySummary(date?: Date | string): Promise<DailySummaryData> {
   return withTransientDbRetry('build daily summary', () => buildDailySummaryOnce(date));
 }
 
-async function buildDailySummaryOnce(date?: Date): Promise<DailySummaryData> {
-  const targetDate = date || new Date(Date.now() - 24 * 60 * 60 * 1000);
-  const dayStart = new Date(targetDate);
-  dayStart.setHours(0, 0, 0, 0);
-  const dayEnd = new Date(targetDate);
-  dayEnd.setHours(23, 59, 59, 999);
-
-  const dateStr = dayStart.toLocaleDateString('de-DE', {
-    timeZone: ORG_TZ,
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-  });
+async function buildDailySummaryOnce(date?: Date | string): Promise<DailySummaryData> {
+  const dateISO = resolveDailySummaryDateISO(date);
+  const { start: dayStart, end: dayEnd } = orgDayRange(dateISO);
+  const dateStr = displayDateISO(dateISO);
 
   const sessions = await prisma.aiChatSession.findMany({
-    where: { startedAt: { gte: dayStart, lte: dayEnd } },
+    where: { startedAt: { gte: dayStart, lt: dayEnd } },
   });
 
   const total = sessions.length;
   if (total === 0) {
     return {
+      dateISO,
       date: dateStr,
       totalSessions: 0, completedBookings: 0, conversionRate: 0,
       avgDurationSec: 0, avgMessages: 0, totalErrors: 0, totalRetries: 0,
@@ -285,6 +322,7 @@ async function buildDailySummaryOnce(date?: Date): Promise<DailySummaryData> {
   const totalCalls = gpt + fastPath || 1;
 
   return {
+    dateISO,
     date: dateStr,
     totalSessions: total,
     completedBookings: completed,
@@ -405,13 +443,13 @@ async function checkErrorRateAlertOnce(
 /**
  * Send the daily summary to Telegram admin chat.
  */
-export async function sendDailySummaryToTelegram(): Promise<boolean> {
+export async function sendDailySummaryToTelegram(date?: Date | string): Promise<boolean> {
   try {
-    const summary = await buildDailySummary();
+    const summary = await buildDailySummary(date);
     const message = formatDailySummaryTelegram(summary);
     await sendTelegramAdminMessage(message);
 
-    console.log(`[AI Health] Daily summary sent: ${summary.totalSessions} sessions, ${summary.completedBookings} bookings`);
+    console.log(`[AI Health] Daily summary sent for ${summary.dateISO}: ${summary.totalSessions} sessions, ${summary.completedBookings} bookings`);
     return true;
   } catch (err) {
     console.error('[AI Health] Failed to send daily summary:', err);
@@ -441,13 +479,12 @@ export async function checkAndAlertErrors(): Promise<boolean> {
 async function sendTelegramAdminMessage(message: string): Promise<void> {
   const adminChatId = process.env.TELEGRAM_ADMIN_CHAT_ID;
   if (!adminChatId) {
-    console.warn('[AI Health] TELEGRAM_ADMIN_CHAT_ID not configured');
-    return;
+    throw new Error('TELEGRAM_ADMIN_CHAT_ID not configured');
   }
 
   const webhookUrl = `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/telegram/webhook`;
 
-  const res = await fetch(`${webhookUrl}?action=notify&chatId=${adminChatId}`, {
+  const res = await fetch(`${webhookUrl}?action=notify&chatId=${encodeURIComponent(adminChatId)}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ message }),
@@ -455,6 +492,6 @@ async function sendTelegramAdminMessage(message: string): Promise<void> {
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
-    console.error('[AI Health] Telegram send failed:', err);
+    throw new Error(`Telegram send failed: ${JSON.stringify(err)}`);
   }
 }

@@ -160,3 +160,13 @@ Useful scripts:
   inactive/archived. For PMU and other knowledge-backed cards, live catalog
   title, price, and duration remain the source of truth; static knowledge text
   may add explanation only and must not override catalog values.
+- 2026-05-27: AI booking sessions distinguish `pendingVerificationMethod`
+  (method selected before OTP is sent) from `activeVerificationMethod` (OTP
+  method already sent for the current draft). `complete_booking` must be bound
+  to `activeVerificationMethod` so Telegram/SMS/email OTP completion checks the
+  same channel that actually received the code.
+- 2026-05-27: AI Health daily summary can be sent for an explicit salon-local
+  date via `POST /api/admin/ai-health?action=daily&date=YYYY-MM-DD` or
+  `date=today`/`date=yesterday`. The summary uses `orgDayRange` for
+  Europe/Berlin day boundaries; the default remains yesterday for scheduled
+  morning cron jobs.

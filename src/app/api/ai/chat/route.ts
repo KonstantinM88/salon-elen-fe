@@ -13,6 +13,7 @@ import {
 import { streamingGptCall, toolCallsToMessage } from '@/lib/ai/streaming-gpt';
 import {
   type AiSession,
+  type OtpVerificationMethod,
   getSession,
   upsertSession,
   checkRateLimit,
@@ -1825,6 +1826,10 @@ function looksLikeOtpCode(text: string): boolean {
   return /^\d{4,8}$/.test(value);
 }
 
+function isOtpVerificationMethod(value: unknown): value is OtpVerificationMethod {
+  return value === 'email_otp' || value === 'sms_otp' || value === 'telegram_otp';
+}
+
 function looksLikeResendRequest(text: string): boolean {
   const value = normalizeInput(text);
   return RESEND_CODE_HINTS.some((hint) => value.includes(hint));
@@ -1882,6 +1887,7 @@ function shouldApplyScopeGuard(
       session.context.reservedSlot ||
       session.context.draftId ||
       session.context.pendingVerificationMethod ||
+      session.context.activeVerificationMethod ||
       session.context.awaitingRegistrationMethod ||
       session.context.awaitingVerificationMethod ||
       session.context.lastDateISO ||
@@ -4444,7 +4450,8 @@ export async function POST(
       session.context.consultationMode ||
       session.context.awaitingRegistrationMethod ||
       session.context.awaitingVerificationMethod ||
-      session.context.pendingVerificationMethod,
+      session.context.pendingVerificationMethod ||
+      session.context.activeVerificationMethod,
   );
 
   if (hasAnyInteractiveFlow && isCancelBookingIntent(message, session.locale)) {
@@ -4494,6 +4501,7 @@ export async function POST(
         lastSuggestedDateOptions: undefined,
         awaitingRegistrationMethod: false,
         pendingVerificationMethod: undefined,
+        activeVerificationMethod: undefined,
         awaitingVerificationMethod: false,
       },
     });
@@ -4541,6 +4549,7 @@ export async function POST(
         lastSuggestedDateOptions: undefined,
         awaitingRegistrationMethod: false,
         pendingVerificationMethod: undefined,
+        activeVerificationMethod: undefined,
         awaitingVerificationMethod: false,
       },
     });
@@ -4619,6 +4628,7 @@ export async function POST(
         lastSuggestedDateOptions: undefined,
         awaitingRegistrationMethod: false,
         pendingVerificationMethod: undefined,
+        activeVerificationMethod: undefined,
         awaitingVerificationMethod: false,
       },
     });
@@ -4688,6 +4698,7 @@ export async function POST(
         lastSuggestedDateOptions: undefined,
         awaitingRegistrationMethod: false,
         pendingVerificationMethod: undefined,
+        activeVerificationMethod: undefined,
         awaitingVerificationMethod: false,
       },
     });
@@ -4772,6 +4783,7 @@ export async function POST(
           lastSuggestedDateOptions: undefined,
           awaitingRegistrationMethod: false,
           pendingVerificationMethod: undefined,
+          activeVerificationMethod: undefined,
           awaitingVerificationMethod: false,
         },
       });
@@ -4816,6 +4828,7 @@ export async function POST(
         lastSuggestedDateOptions: undefined,
         awaitingRegistrationMethod: false,
         pendingVerificationMethod: undefined,
+        activeVerificationMethod: undefined,
         awaitingVerificationMethod: false,
       },
     });
@@ -5573,6 +5586,7 @@ export async function POST(
           lastSuggestedDateOptions: undefined,
           awaitingRegistrationMethod: false,
           pendingVerificationMethod: undefined,
+          activeVerificationMethod: undefined,
           awaitingVerificationMethod: false,
         },
       });
@@ -5743,6 +5757,7 @@ export async function POST(
           context: {
             awaitingRegistrationMethod: keepMethodStep,
             pendingVerificationMethod: effectiveMethod,
+            activeVerificationMethod: undefined,
             awaitingVerificationMethod: false,
           },
         });
@@ -5765,6 +5780,7 @@ export async function POST(
         context: {
           awaitingRegistrationMethod: false,
           pendingVerificationMethod: selectedMethod,
+          activeVerificationMethod: undefined,
           awaitingVerificationMethod: false,
         },
       });
@@ -6259,6 +6275,7 @@ export async function POST(
               lastSuggestedDateOptions: undefined,
               awaitingRegistrationMethod: true,
               pendingVerificationMethod: undefined,
+              activeVerificationMethod: undefined,
               awaitingVerificationMethod: false,
             },
           });
@@ -6301,6 +6318,7 @@ export async function POST(
               awaitingVerificationMethod: false,
               awaitingRegistrationMethod: false,
               pendingVerificationMethod: undefined,
+              activeVerificationMethod: undefined,
             },
           });
 
@@ -6466,6 +6484,7 @@ export async function POST(
           context: {
             awaitingVerificationMethod: false,
             pendingVerificationMethod: verifyRes?.ok ? undefined : chosenMethod,
+            activeVerificationMethod: verifyRes?.ok ? chosenMethod : undefined,
           },
         });
 
@@ -6535,6 +6554,9 @@ export async function POST(
   }
   if (session.context.pendingVerificationMethod) {
     stateHints.push(`pendingVerificationMethod=${session.context.pendingVerificationMethod}`);
+  }
+  if (session.context.activeVerificationMethod) {
+    stateHints.push(`activeVerificationMethod=${session.context.activeVerificationMethod}`);
   }
   if (session.context.awaitingVerificationMethod) {
     stateHints.push('awaitingVerificationMethod=true');
@@ -6711,6 +6733,17 @@ export async function POST(
                 }
               }
 
+              // Keep complete_booking bound to the OTP channel actually used for this draft.
+              // Without this, Telegram/SMS completion depends on the model remembering the prior method.
+              if (fn.name === 'complete_booking' && session.context.activeVerificationMethod) {
+                const incomingMethod =
+                  typeof parsedArgs.method === 'string' ? parsedArgs.method : undefined;
+                if (incomingMethod !== session.context.activeVerificationMethod) {
+                  parsedArgs.method = session.context.activeVerificationMethod;
+                  effectiveArgsJson = JSON.stringify(parsedArgs);
+                }
+              }
+
               parsedArgsByCallId.set(tc.id, parsedArgs);
             } catch {
               // Ignore malformed args, tool executor will handle errors
@@ -6842,6 +6875,7 @@ export async function POST(
         const explicitStartVerificationCalls: Array<{
           draftId?: string;
           contact?: string;
+          method?: OtpVerificationMethod;
           ok: boolean;
         }> = [];
         let slotTakenInBatch = false;
@@ -7006,6 +7040,7 @@ export async function POST(
                 contextPatch.awaitingVerificationMethod = false;
                 contextPatch.awaitingRegistrationMethod = false;
                 contextPatch.pendingVerificationMethod = undefined;
+                contextPatch.activeVerificationMethod = undefined;
               }
             } catch {
               // Ignore malformed payload
@@ -7045,10 +7080,14 @@ export async function POST(
                 typeof parsedArgs?.draftId === 'string' ? parsedArgs.draftId : undefined;
               const contactArg =
                 typeof parsedArgs?.contact === 'string' ? parsedArgs.contact : undefined;
+              const methodArg = isOtpVerificationMethod(parsedArgs?.method)
+                ? parsedArgs.method
+                : undefined;
 
               explicitStartVerificationCalls.push({
                 draftId: draftIdArg,
                 contact: contactArg,
+                method: methodArg,
                 ok: Boolean(payload.ok),
               });
 
@@ -7057,6 +7096,11 @@ export async function POST(
               }
               if (payload.ok) {
                 otpSentDuringSession = true;
+                if (methodArg) {
+                  contextPatch.activeVerificationMethod = methodArg;
+                  contextPatch.pendingVerificationMethod = undefined;
+                  contextPatch.awaitingVerificationMethod = false;
+                }
               }
             } catch {
               explicitStartVerificationCalls.push({ ok: false });
@@ -7127,6 +7171,7 @@ export async function POST(
                 contextPatch.awaitingVerificationMethod = false;
                 contextPatch.awaitingRegistrationMethod = false;
                 contextPatch.pendingVerificationMethod = undefined;
+                contextPatch.activeVerificationMethod = undefined;
               }
 
               if (payload.error === 'SLOT_TAKEN') {
@@ -7150,6 +7195,7 @@ export async function POST(
                 contextPatch.awaitingVerificationMethod = false;
                 contextPatch.awaitingRegistrationMethod = false;
                 contextPatch.pendingVerificationMethod = undefined;
+                contextPatch.activeVerificationMethod = undefined;
               }
             } catch {
               // Ignore malformed payload
@@ -7260,6 +7306,7 @@ export async function POST(
               awaitingVerificationMethod: false,
               awaitingRegistrationMethod: false,
               pendingVerificationMethod: undefined,
+              activeVerificationMethod: undefined,
             },
           });
 
@@ -7296,6 +7343,7 @@ export async function POST(
             context: {
               awaitingRegistrationMethod: true,
               pendingVerificationMethod: undefined,
+              activeVerificationMethod: undefined,
               awaitingVerificationMethod: false,
             },
           });
@@ -7374,6 +7422,7 @@ export async function POST(
               context: {
                 awaitingVerificationMethod: false,
                 pendingVerificationMethod: verifyRes?.ok ? undefined : selectedMethod,
+                activeVerificationMethod: verifyRes?.ok ? selectedMethod : undefined,
               },
             });
 
