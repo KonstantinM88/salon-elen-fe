@@ -58,7 +58,6 @@ import {
   buildKnowledgeHydrafacialComparisonText,
   buildKnowledgeOccasionText,
   buildKnowledgeConsultationStyleText,
-  buildKnowledgeConsultationTopicText,
   buildKnowledgePmuContraindicationsText,
   buildKnowledgePmuTechniqueDetailsText,
   buildKnowledgePmuTechniqueContraindicationsText,
@@ -685,6 +684,7 @@ function isServiceAvailabilityInquiry(
 type ConsultationTechnique = NonNullable<
   AiSession['context']['consultationTechnique']
 >;
+type ConsultationTopic = NonNullable<AiSession['context']['consultationTopic']>;
 
 type SelectionCatalogGroup = {
   id: string;
@@ -933,18 +933,6 @@ function buildConsultationTechniqueSuitabilityText(
   );
 }
 
-function buildConsultationPmuTechniqueChoiceText(
-  locale: 'de' | 'ru' | 'en',
-): string {
-  if (locale === 'ru') {
-    return 'Чтобы подобрать время, сначала выберите конкретную PMU-услугу 🌸\n\n[option] 💖 Пудровые брови (Powder Brows) — мягкий эффект, 350 € [/option]\n[option] 🌟 Волосковая техника (Hairstroke Brows) — более детализированный, 450 € [/option]\n[option] 💄 Акварельные губы (Aquarell Lips) — свежий оттенок, 380 € [/option]\n[option] 💋 3D губы (3D Lips) — объёмный эффект, 420 € [/option]\n[option] 👁 Межресничка — выразительный взгляд, 130 € [/option]\n[option] 👁 Межресничка верх+низ — 150 € [/option]';
-  }
-  if (locale === 'en') {
-    return 'To pick a time, please choose a specific PMU service first 🌸\n\n[option] 💖 Powder Brows — soft effect, €350 [/option]\n[option] 🌟 Hairstroke Brows — more detailed, €450 [/option]\n[option] 💄 Aquarelle Lips — fresh color, €380 [/option]\n[option] 💋 3D Lips — fuller effect, €420 [/option]\n[option] 👁 Lash line — expressive look, €130 [/option]\n[option] 👁 Upper + lower lash line — €150 [/option]';
-  }
-  return 'Damit ich eine Zeit finde, wählen Sie zuerst eine konkrete PMU-Leistung 🌸\n\n[option] 💖 Powder Brows — weicher Effekt, 350 € [/option]\n[option] 🌟 Hairstroke Brows — detaillierter, 450 € [/option]\n[option] 💄 Aquarell Lips — frischer Farbton, 380 € [/option]\n[option] 💋 3D Lips — vollerer Effekt, 420 € [/option]\n[option] 👁 Wimpernkranz — ausdrucksvoller Blick, 130 € [/option]\n[option] 👁 Wimpernkranz oben + unten — 150 € [/option]';
-}
-
 function buildHydrafacialSelectedServiceDetailsText(
   locale: 'de' | 'ru' | 'en',
   serviceTitle: string,
@@ -961,20 +949,17 @@ function buildHydrafacialSelectedServiceDetailsText(
     if (locale === 'ru') {
       return `Signature Hydrafacial 🌿 Базовый формат: глубокое очищение, мягкая экстракция и интенсивное увлажнение.
 Подходит для регулярного ухода и быстрого «освежения» кожи без восстановления.
-Цена: **140 €**.
 
 ${bookingCta}`;
     }
     if (locale === 'en') {
       return `Signature Hydrafacial 🌿 Base format: deep cleansing, gentle extraction and intense hydration.
 Best for regular maintenance and a quick skin refresh with zero downtime.
-Price: **€140**.
 
 ${bookingCta}`;
     }
     return `Signature Hydrafacial 🌿 Basisformat: Tiefenreinigung, sanfte Extraktion und intensive Hydration.
 Ideal für regelmäßige Pflege und einen schnellen Frische-Effekt ohne Ausfallzeit.
-Preis: **140 €**.
 
 ${bookingCta}`;
   }
@@ -983,20 +968,17 @@ ${bookingCta}`;
     if (locale === 'ru') {
       return `Deluxe Hydrafacial ✨ Всё из Signature + усиленный пилинг и LED-терапия.
 Подходит, если кожа выглядит уставшей или тусклой и нужен более заметный результат.
-Цена: **180 €**.
 
 ${bookingCta}`;
     }
     if (locale === 'en') {
       return `Deluxe Hydrafacial ✨ Everything in Signature + intensive peel and LED therapy.
 Great if skin looks tired or dull and you want a more visible glow result.
-Price: **€180**.
 
 ${bookingCta}`;
     }
     return `Deluxe Hydrafacial ✨ Enthält alles aus Signature + intensives Peeling und LED-Therapie.
 Ideal bei müder, fahler Haut für einen sichtbareren Glow-Effekt.
-Preis: **180 €**.
 
 ${bookingCta}`;
   }
@@ -1005,20 +987,17 @@ ${bookingCta}`;
     if (locale === 'ru') {
       return `Platinum Hydrafacial 👑 Всё из Deluxe + лимфодренаж и премиум-сыворотки.
 Максимально насыщенный формат для выраженного glow-эффекта и подготовки к событию.
-Цена: **270 €**.
 
 ${bookingCta}`;
     }
     if (locale === 'en') {
       return `Platinum Hydrafacial 👑 Everything in Deluxe + lymphatic drainage and premium serums.
 Our most intensive format for maximum glow and event-level skin prep.
-Price: **€270**.
 
 ${bookingCta}`;
     }
     return `Platinum Hydrafacial 👑 Enthält alles aus Deluxe + Lymphdrainage und Premium-Seren.
 Unser intensivstes Format für maximalen Glow und Event-Vorbereitung.
-Preis: **270 €**.
 
 ${bookingCta}`;
   }
@@ -2867,8 +2846,171 @@ function isConsultationTopicAutoStartIntent(
   return cues.some((cue) => value.includes(cue));
 }
 
-function buildConsultationStartText(locale: 'de' | 'ru' | 'en'): string {
-  return buildKnowledgeConsultationStartText(locale);
+function buildConsultationStartText(
+  locale: 'de' | 'ru' | 'en',
+  groups: SelectionCatalogGroup[] = [],
+): string {
+  const intro =
+    buildKnowledgeConsultationStartText(locale).split('\n\n[option]')[0]?.trim() ?? '';
+  const activeGroups = groups.filter((group) => group.services.length > 0);
+  const options = activeGroups
+    .slice(0, 8)
+    .map((group) => `[option] ${categoryEmoji(group.title)} ${group.title} [/option]`);
+
+  if (options.length === 0) {
+    return locale === 'ru'
+      ? 'Сейчас не удалось загрузить активный каталог услуг. Могу попробовать ещё раз или помочь с общими вопросами по салону.'
+      : locale === 'en'
+        ? 'I could not load the active service catalog right now. I can try again or help with general salon questions.'
+        : 'Ich konnte den aktiven Leistungskatalog gerade nicht laden. Ich kann es erneut versuchen oder allgemeine Fragen zum Salon beantworten.';
+  }
+
+  const ask =
+    locale === 'ru'
+      ? 'Выберите актуальную категорию, и я помогу подобрать услугу:'
+      : locale === 'en'
+        ? 'Choose a current category and I will help you pick the right service:'
+        : 'Wählen Sie eine aktuelle Kategorie, dann helfe ich bei der passenden Leistung:';
+
+  return `${intro}\n\n${ask}\n${options.join('\n')}`;
+}
+
+function consultationTopicMatchesGroup(
+  topic: ConsultationTopic,
+  groupTitle: string,
+): boolean {
+  const value = normalizeChoiceText(groupTitle);
+  if (topic === 'pmu') {
+    return (
+      value.includes('pmu') ||
+      value.includes('permanent') ||
+      value.includes('перманент')
+    );
+  }
+  if (topic === 'brows_lashes') {
+    return (
+      !consultationTopicMatchesGroup('pmu', groupTitle) &&
+      (
+        value.includes('brow') ||
+        value.includes('lash') ||
+        value.includes('wimper') ||
+        value.includes('augenbrau') ||
+        value.includes('бров') ||
+        value.includes('ресниц')
+      )
+    );
+  }
+  if (topic === 'hydrafacial') {
+    return value.includes('hydra') || value.includes('hydrafacial');
+  }
+  return false;
+}
+
+function consultationTopicMatchesService(
+  topic: ConsultationTopic,
+  groupTitle: string,
+  serviceTitle: string,
+): boolean {
+  if (consultationTopicMatchesGroup(topic, groupTitle)) return true;
+
+  const value = normalizeChoiceText(`${groupTitle} ${serviceTitle}`);
+  if (topic === 'pmu') {
+    return (
+      value.includes('pmu') ||
+      value.includes('permanent') ||
+      value.includes('перманент') ||
+      value.includes('powder') ||
+      value.includes('hairstroke') ||
+      value.includes('aquarell') ||
+      value.includes('wimpernkranz') ||
+      value.includes('межреснич')
+    );
+  }
+  if (topic === 'brows_lashes') {
+    return (
+      !consultationTopicMatchesGroup('pmu', groupTitle) &&
+      (
+        value.includes('brow') ||
+        value.includes('lash') ||
+        value.includes('wimper') ||
+        value.includes('augenbrau') ||
+        value.includes('бров') ||
+        value.includes('ресниц') ||
+        value.includes('lifting') ||
+        value.includes('styling')
+      )
+    );
+  }
+  if (topic === 'hydrafacial') {
+    return value.includes('hydra') || value.includes('hydrafacial');
+  }
+  return false;
+}
+
+function buildConsultationTopicText(
+  locale: 'de' | 'ru' | 'en',
+  topic: ConsultationTopic,
+  groups: SelectionCatalogGroup[],
+): string {
+  if (topic === 'nails' || topic === 'hair') {
+    const activeOptions = groups
+      .filter((group) => group.services.length > 0)
+      .slice(0, 6)
+      .map((group) => `[option] ${categoryEmoji(group.title)} ${group.title} [/option]`);
+    const suffix = activeOptions.length > 0 ? `\n\n${activeOptions.join('\n')}` : '';
+    return locale === 'ru'
+      ? `Этой услуги сейчас нет в активном каталоге салона.${suffix}`
+      : locale === 'en'
+        ? `This service is not available in the active salon catalog right now.${suffix}`
+        : `Diese Leistung ist aktuell nicht im aktiven Salon-Katalog verfügbar.${suffix}`;
+  }
+
+  const matchedGroups = groups
+    .map((group) => ({
+      ...group,
+      services: group.services.filter((service) =>
+        consultationTopicMatchesService(topic, group.title, service.title),
+      ),
+    }))
+    .filter((group) => group.services.length > 0);
+
+  const serviceOptions = matchedGroups.flatMap((group) =>
+    group.services
+      .slice(0, 6)
+      .map((service) => formatServiceOption(locale, service, group.title)),
+  ).slice(0, 8);
+
+  if (serviceOptions.length === 0) {
+    return buildConsultationStartText(locale, groups);
+  }
+
+  const intro =
+    topic === 'pmu'
+      ? locale === 'ru'
+        ? 'Отлично, подберём PMU по актуальному каталогу 🌸'
+        : locale === 'en'
+          ? "Great, let's choose PMU from the current catalog 🌸"
+          : 'Sehr gern, wir wählen PMU aus dem aktuellen Katalog 🌸'
+      : topic === 'brows_lashes'
+        ? locale === 'ru'
+          ? 'Супер, подберём брови/ресницы из актуальных услуг 🌸'
+          : locale === 'en'
+            ? "Perfect, let's choose brows/lashes from the current services 🌸"
+            : 'Super, wir wählen Brows/Lashes aus den aktuellen Leistungen 🌸'
+        : locale === 'ru'
+          ? 'Хороший выбор, подберём Hydrafacial из актуального каталога 🌿'
+          : locale === 'en'
+            ? "Good choice, let's choose Hydrafacial from the current catalog 🌿"
+            : 'Gute Wahl, wir wählen Hydrafacial aus dem aktuellen Katalog 🌿';
+
+  const ask =
+    locale === 'ru'
+      ? 'Какой вариант смотрим?'
+      : locale === 'en'
+        ? 'Which option should we look at?'
+        : 'Welche Option schauen wir uns an?';
+
+  return `${intro}\n\n${serviceOptions.join('\n')}\n\n${ask}`;
 }
 
 function isDesiredDateQuestion(text: string, locale: 'de' | 'ru' | 'en'): boolean {
@@ -3728,10 +3870,11 @@ export async function POST(
 
     if (isConsultationBookingDeclineIntent(message, session.locale)) {
       const topic = session.context.consultationTopic ?? 'pmu';
-      const text =
-        topic === 'pmu'
-          ? buildConsultationPmuTechniqueChoiceText(session.locale)
-          : buildKnowledgeConsultationTopicText(session.locale, topic);
+      const startedAt = Date.now();
+      const catalog = await listServices({ locale: session.locale });
+      const durationMs = Date.now() - startedAt;
+      const groups = (catalog.groups ?? []) as SelectionCatalogGroup[];
+      const text = buildConsultationTopicText(session.locale, topic, groups);
       appendSessionMessage(sessionId, 'assistant', text);
       upsertSession(sessionId, {
         context: {
@@ -3747,6 +3890,7 @@ export async function POST(
       return NextResponse.json({
         text,
         sessionId,
+        toolCalls: [{ name: 'list_services', durationMs }],
       });
     }
 
@@ -4070,9 +4214,14 @@ export async function POST(
       consultationTopic &&
       isConsultationTopicAutoStartIntent(message, session.locale)
     ) {
-      const text = buildKnowledgeConsultationTopicText(
+      const startedAt = Date.now();
+      const catalog = await listServices({ locale: session.locale });
+      const durationMs = Date.now() - startedAt;
+      const groups = (catalog.groups ?? []) as SelectionCatalogGroup[];
+      const text = buildConsultationTopicText(
         session.locale,
         consultationTopic,
+        groups,
       );
       appendSessionMessage(sessionId, 'assistant', text);
       upsertSession(sessionId, {
@@ -4102,6 +4251,7 @@ export async function POST(
       return NextResponse.json({
         text,
         sessionId,
+        toolCalls: [{ name: 'list_services', durationMs }],
       });
     }
   }
@@ -4112,7 +4262,11 @@ export async function POST(
     !session.context.consultationMode &&
     isConsultationIntent(message, session.locale)
   ) {
-    const text = buildConsultationStartText(session.locale);
+    const startedAt = Date.now();
+    const catalog = await listServices({ locale: session.locale });
+    const durationMs = Date.now() - startedAt;
+    const groups = (catalog.groups ?? []) as SelectionCatalogGroup[];
+    const text = buildConsultationStartText(session.locale, groups);
     appendSessionMessage(sessionId, 'assistant', text);
     upsertSession(sessionId, {
       context: {
@@ -4141,6 +4295,7 @@ export async function POST(
     return NextResponse.json({
       text,
       sessionId,
+      toolCalls: [{ name: 'list_services', durationMs }],
     });
   }
 
@@ -4152,9 +4307,14 @@ export async function POST(
     if (!activeConsultationTopic) {
       const consultationTopic = detectKnowledgeConsultationTopic(message, session.locale);
       if (consultationTopic) {
-        const text = buildKnowledgeConsultationTopicText(
+        const startedAt = Date.now();
+        const catalog = await listServices({ locale: session.locale });
+        const durationMs = Date.now() - startedAt;
+        const groups = (catalog.groups ?? []) as SelectionCatalogGroup[];
+        const text = buildConsultationTopicText(
           session.locale,
           consultationTopic,
+          groups,
         );
         appendSessionMessage(sessionId, 'assistant', text);
         upsertSession(sessionId, {
@@ -4172,6 +4332,7 @@ export async function POST(
         return NextResponse.json({
           text,
           sessionId,
+          toolCalls: [{ name: 'list_services', durationMs }],
         });
       }
     }
@@ -4528,9 +4689,14 @@ export async function POST(
 
     const consultationTopic = detectKnowledgeConsultationTopic(message, session.locale);
     if (consultationTopic && consultationTopic !== activeConsultationTopic) {
-      const text = buildKnowledgeConsultationTopicText(
+      const startedAt = Date.now();
+      const catalog = await listServices({ locale: session.locale });
+      const durationMs = Date.now() - startedAt;
+      const groups = (catalog.groups ?? []) as SelectionCatalogGroup[];
+      const text = buildConsultationTopicText(
         session.locale,
         consultationTopic,
+        groups,
       );
       appendSessionMessage(sessionId, 'assistant', text);
       upsertSession(sessionId, {
@@ -4548,6 +4714,7 @@ export async function POST(
       return NextResponse.json({
         text,
         sessionId,
+        toolCalls: [{ name: 'list_services', durationMs }],
       });
     }
 
@@ -4573,7 +4740,11 @@ export async function POST(
       }
 
       if (activeConsultationTopic === 'pmu') {
-        const text = buildConsultationPmuTechniqueChoiceText(session.locale);
+        const startedAt = Date.now();
+        const catalog = await listServices({ locale: session.locale });
+        const durationMs = Date.now() - startedAt;
+        const groups = (catalog.groups ?? []) as SelectionCatalogGroup[];
+        const text = buildConsultationTopicText(session.locale, 'pmu', groups);
         appendSessionMessage(sessionId, 'assistant', text);
 
         console.log(
@@ -4583,6 +4754,7 @@ export async function POST(
         return NextResponse.json({
           text,
           sessionId,
+          toolCalls: [{ name: 'list_services', durationMs }],
         });
       }
 
@@ -4625,9 +4797,13 @@ export async function POST(
       });
     }
 
+    const startedAt = Date.now();
+    const catalog = await listServices({ locale: session.locale });
+    const durationMs = Date.now() - startedAt;
+    const groups = (catalog.groups ?? []) as SelectionCatalogGroup[];
     const text = activeConsultationTopic
-      ? buildKnowledgeConsultationTopicText(session.locale, activeConsultationTopic)
-      : buildConsultationStartText(session.locale);
+      ? buildConsultationTopicText(session.locale, activeConsultationTopic, groups)
+      : buildConsultationStartText(session.locale, groups);
     appendSessionMessage(sessionId, 'assistant', text);
 
     console.log(
@@ -4637,6 +4813,7 @@ export async function POST(
     return NextResponse.json({
       text,
       sessionId,
+      toolCalls: [{ name: 'list_services', durationMs }],
     });
   }
 

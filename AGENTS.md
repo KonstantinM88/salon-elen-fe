@@ -147,3 +147,8 @@ Useful scripts:
   migration `20260527094500_add_article_gallery_images`. The admin news form
   can attach and order up to four extra article photos, and public news detail
   pages render the cover plus gallery images through `NewsImageCarousel`.
+- 2026-05-27: AI assistant service recommendations must be driven by the
+  current active catalog from `list_services` (`Service.isActive=true` and
+  `isArchived=false`). Consultation entry points should build service/category
+  options from the live catalog and avoid static inactive services such as
+  haircut/manicure. Proactive chat help must not appear before 10 seconds.

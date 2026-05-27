@@ -1,5 +1,4 @@
 // src/lib/ai/recommendation-engine.ts
-import { PERMANENT_HALLE } from '@/lib/ai/knowledge';
 
 export type Locale = 'de' | 'en' | 'ru';
 
@@ -151,53 +150,53 @@ export function pickBestUpsell(ctx: RecommendationContext): UpsellCandidate | nu
  */
 const TEMPLATES = {
   pmu_brows_add_lash_lift: {
-    de: `Viele Kundinnen kombinieren Brauen-PMU mit Lashlifting (${PERMANENT_HALLE.prices.browsLashes.lash_lift} €) — der Blick wirkt offener 🌸 Möchten Sie das ergänzen?`,
-    en: `Many clients combine brow PMU with a lash lift (${PERMANENT_HALLE.prices.browsLashes.lash_lift} €) — it opens up the look 🌸 Would you like to add it?`,
-    ru: `Многие клиентки сочетают перманент бровей с ламинированием ресниц (${PERMANENT_HALLE.prices.browsLashes.lash_lift} €) — взгляд становится более открытым 🌸 Добавить?`,
+    de: 'Viele Kundinnen kombinieren Brauen-PMU mit Lashlifting — der Blick wirkt offener 🌸 Möchten Sie das ergänzen?',
+    en: 'Many clients combine brow PMU with a lash lift — it opens up the look 🌸 Would you like to add it?',
+    ru: 'Многие клиентки сочетают перманент бровей с ламинированием ресниц — взгляд становится более открытым 🌸 Добавить?',
   },
   pmu_brows_add_brow_lift: {
-    de: `Für besonders gepflegte Brauen ergänzen viele Kundinnen Browlifting (${PERMANENT_HALLE.prices.browsLashes.brow_lift} €) — die Härchen wirken voller 🌸 Soll ich das hinzufügen?`,
-    en: `For beautifully styled brows, many clients add a brow lift (${PERMANENT_HALLE.prices.browsLashes.brow_lift} €) — brows look fuller 🌸 Shall I add it?`,
-    ru: `Для максимально ухоженных бровей многие добавляют ламинирование бровей (${PERMANENT_HALLE.prices.browsLashes.brow_lift} €) — волоски выглядят объёмнее 🌸 Добавить?`,
+    de: 'Für besonders gepflegte Brauen ergänzen viele Kundinnen Browlifting — die Härchen wirken voller 🌸 Soll ich das hinzufügen?',
+    en: 'For beautifully styled brows, many clients add a brow lift — brows look fuller 🌸 Shall I add it?',
+    ru: 'Для максимально ухоженных бровей многие добавляют ламинирование бровей — волоски выглядят объёмнее 🌸 Добавить?',
   },
   pmu_lips_add_hydrafacial: {
-    de: `Für einen besonders frischen Gesamtlook ergänzen viele Kundinnen Lippen-PMU mit Hydrafacial (ab ${PERMANENT_HALLE.prices.hydrafacial.signature} €) 🌿 Möchten Sie das kombinieren?`,
-    en: `For an extra fresh overall look, many clients add Hydrafacial (from ${PERMANENT_HALLE.prices.hydrafacial.signature} €) to lip PMU 🌿 Would you like to combine them?`,
-    ru: `Для максимально свежего эффекта многие дополняют перманент губ Hydrafacial (от ${PERMANENT_HALLE.prices.hydrafacial.signature} €) 🌿 Хотите совместить?`,
+    de: 'Für einen besonders frischen Gesamtlook ergänzen viele Kundinnen Lippen-PMU mit Hydrafacial 🌿 Möchten Sie das kombinieren?',
+    en: 'For an extra fresh overall look, many clients add Hydrafacial to lip PMU 🌿 Would you like to combine them?',
+    ru: 'Для максимально свежего эффекта многие дополняют перманент губ Hydrafacial 🌿 Хотите совместить?',
   },
   pmu_lashline_add_lash_lift: {
-    de: `Für mehr Ausdruck wird der Wimpernkranz oft mit Lashlifting (${PERMANENT_HALLE.prices.browsLashes.lash_lift} €) kombiniert 🌿 Soll ich das ergänzen?`,
-    en: `For more definition, lash line PMU is often combined with a lash lift (${PERMANENT_HALLE.prices.browsLashes.lash_lift} €) 🌿 Shall I add it?`,
-    ru: `Для более выразительного эффекта межресничку часто сочетают с ламинированием ресниц (${PERMANENT_HALLE.prices.browsLashes.lash_lift} €) 🌿 Добавить?`,
+    de: 'Für mehr Ausdruck wird der Wimpernkranz oft mit Lashlifting kombiniert 🌿 Soll ich das ergänzen?',
+    en: 'For more definition, lash line PMU is often combined with a lash lift 🌿 Shall I add it?',
+    ru: 'Для более выразительного эффекта межресничку часто сочетают с ламинированием ресниц 🌿 Добавить?',
   },
   lash_lift_add_brow_styling: {
-    de: `Damit alles harmonisch wirkt, ergänzen viele Kundinnen nach Lashlifting eine Brauenkorrektur (${PERMANENT_HALLE.prices.browsLashes.brow_styling} €) 🌸 Möchten Sie das dazu?`,
-    en: `To keep the look balanced, many clients add brow styling (${PERMANENT_HALLE.prices.browsLashes.brow_styling} €) after a lash lift 🌸 Would you like to add it?`,
-    ru: `Чтобы образ выглядел гармонично, после ламинирования ресниц часто добавляют коррекцию бровей (${PERMANENT_HALLE.prices.browsLashes.brow_styling} €) 🌸 Добавить?`,
+    de: 'Damit alles harmonisch wirkt, ergänzen viele Kundinnen nach Lashlifting eine Brauenkorrektur 🌸 Möchten Sie das dazu?',
+    en: 'To keep the look balanced, many clients add brow styling after a lash lift 🌸 Would you like to add it?',
+    ru: 'Чтобы образ выглядел гармонично, после ламинирования ресниц часто добавляют коррекцию бровей 🌸 Добавить?',
   },
   lash_lift_add_lash_tint: {
-    de: `Kleines Upgrade: Wimpernfärben (${PERMANENT_HALLE.prices.browsLashes.lash_tint} €) macht das Lashlifting noch definierter 🌸 Möchten Sie das ergänzen?`,
-    en: `Small upgrade: lash tint (${PERMANENT_HALLE.prices.browsLashes.lash_tint} €) makes the lash lift look even more defined 🌸 Add it?`,
-    ru: `Небольшой апгрейд: окрашивание ресниц (${PERMANENT_HALLE.prices.browsLashes.lash_tint} €) делает результат ламинирования ещё выразительнее 🌸 Добавить?`,
+    de: 'Kleines Upgrade: Wimpernfärben macht das Lashlifting noch definierter 🌸 Möchten Sie das ergänzen?',
+    en: 'Small upgrade: lash tint makes the lash lift look even more defined 🌸 Add it?',
+    ru: 'Небольшой апгрейд: окрашивание ресниц делает результат ламинирования ещё выразительнее 🌸 Добавить?',
   },
   brows_add_tint: {
-    de: `Viele Kundinnen ergänzen dazu Färben (${PERMANENT_HALLE.prices.browsLashes.lash_tint} €) für ein gleichmäßigeres Ergebnis 🌸 Soll ich das hinzufügen?`,
-    en: `Many clients add tint (${PERMANENT_HALLE.prices.browsLashes.lash_tint} €) for a more even result 🌸 Shall I add it?`,
-    ru: `Многие добавляют окрашивание (${PERMANENT_HALLE.prices.browsLashes.lash_tint} €) для более ровного результата 🌸 Добавить?`,
+    de: 'Viele Kundinnen ergänzen dazu Färben für ein gleichmäßigeres Ergebnis 🌸 Soll ich das hinzufügen?',
+    en: 'Many clients add tint for a more even result 🌸 Shall I add it?',
+    ru: 'Многие добавляют окрашивание для более ровного результата 🌸 Добавить?',
   },
   eyes_add_hydrafacial: {
-    de: `Für strahlende Haut ergänzen viele Kundinnen Brow-/Lashbehandlungen mit Hydrafacial (ab ${PERMANENT_HALLE.prices.hydrafacial.signature} €) 🌿 Möchten Sie das dazu?`,
-    en: `For glowing skin, many clients add Hydrafacial (from ${PERMANENT_HALLE.prices.hydrafacial.signature} €) to brow/lash treatments 🌿 Would you like to add it?`,
-    ru: `Для сияющей кожи многие дополняют брови/ресницы Hydrafacial (от ${PERMANENT_HALLE.prices.hydrafacial.signature} €) 🌿 Добавить?`,
+    de: 'Für strahlende Haut ergänzen viele Kundinnen Brow-/Lashbehandlungen mit Hydrafacial 🌿 Möchten Sie das dazu?',
+    en: 'For glowing skin, many clients add Hydrafacial to brow/lash treatments 🌿 Would you like to add it?',
+    ru: 'Для сияющей кожи многие дополняют брови/ресницы Hydrafacial 🌿 Добавить?',
   },
   hydrafacial_add_pmu: {
-    de: `Wenn Sie dauerhaft „ready“ sein möchten, passt PMU (z.B. Powder Brows ab ${PERMANENT_HALLE.prices.pmu.brows.powder} €) sehr gut zu Hydrafacial 🌸 Soll ich kurz empfehlen, was zu Ihnen passt?`,
-    en: `If you want an always-polished look, PMU (e.g., Powder Brows from ${PERMANENT_HALLE.prices.pmu.brows.powder} €) pairs beautifully with Hydrafacial 🌸 Want a quick recommendation?`,
-    ru: `Если хотите всегда выглядеть ухоженно, перманент (например, Powder Brows от ${PERMANENT_HALLE.prices.pmu.brows.powder} €) отлично сочетается с Hydrafacial 🌸 Подобрать вариант?`,
+    de: 'Wenn Sie dauerhaft „ready“ sein möchten, passt PMU sehr gut zu Hydrafacial 🌸 Soll ich kurz empfehlen, was zu Ihnen passt?',
+    en: 'If you want an always-polished look, PMU pairs beautifully with Hydrafacial 🌸 Want a quick recommendation?',
+    ru: 'Если хотите всегда выглядеть ухоженно, перманент отлично сочетается с Hydrafacial 🌸 Подобрать вариант?',
   },
   hydrafacial_add_lash_lift: {
-    de: `Für ein rundum gepflegtes Ergebnis ergänzen viele Kundinnen Hydrafacial mit Lashlifting (${PERMANENT_HALLE.prices.browsLashes.lash_lift} €) 🌸 Möchten Sie das hinzufügen?`,
-    en: `For a fully polished look, many clients add a lash lift (${PERMANENT_HALLE.prices.browsLashes.lash_lift} €) to Hydrafacial 🌸 Would you like to add it?`,
-    ru: `Для полностью ухоженного образа многие дополняют Hydrafacial ламинированием ресниц (${PERMANENT_HALLE.prices.browsLashes.lash_lift} €) 🌸 Добавить?`,
+    de: 'Für ein rundum gepflegtes Ergebnis ergänzen viele Kundinnen Hydrafacial mit Lashlifting 🌸 Möchten Sie das hinzufügen?',
+    en: 'For a fully polished look, many clients add a lash lift to Hydrafacial 🌸 Would you like to add it?',
+    ru: 'Для полностью ухоженного образа многие дополняют Hydrafacial ламинированием ресниц 🌸 Добавить?',
   },
 } as const;

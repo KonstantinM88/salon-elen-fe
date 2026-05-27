@@ -37,7 +37,7 @@ export const TOOLS: ToolDefinition[] = [
         query: {
           type: 'string',
           description:
-            'Необязательный поисковый запрос для фильтрации. Пример: "Maniküre", "ресницы", "nail"',
+            'Необязательный поисковый запрос для фильтрации по текущему активному каталогу. Пример: "PMU", "ресницы", "Hydrafacial"',
         },
       },
       required: ['locale'],

@@ -146,7 +146,9 @@ const MIC_ACTIONABLE_ERROR_CODES = new Set<VoiceMicErrorCode>([
   'iframe-blocked',
 ]);
 
-const AUTO_GREETING_MIN_MS = 8000;
+const TEASER_MIN_MS = 10000;
+const TEASER_MAX_MS = 15000;
+const AUTO_GREETING_MIN_MS = 10000;
 const AUTO_GREETING_MAX_MS = 12000;
 const STREAM_PROGRESS_MIN_UPDATE_MS = 250;
 
@@ -260,7 +262,7 @@ export default function ChatWidget({ locale: propLocale }: ChatWidgetProps) {
     }
   }, [isOpen, messages.length, t.welcome]);
 
-  // Teaser bubble on the page (6–10s): appears before opening chat, then disappears on interaction.
+  // Teaser bubble on the page (10–15s): appears before opening chat, then disappears on interaction.
   useEffect(() => {
     // Clear timer when chat opens
     if (isOpen) {
@@ -275,7 +277,7 @@ export default function ChatWidget({ locale: propLocale }: ChatWidgetProps) {
     // Show only once per page load
     if (teaserShownRef.current) return;
 
-    const delay = randomDelayBetween(6000, 10000);
+    const delay = randomDelayBetween(TEASER_MIN_MS, TEASER_MAX_MS);
     teaserTimerRef.current = window.setTimeout(() => {
       if (isOpen) return;
       teaserShownRef.current = true;
@@ -291,7 +293,7 @@ export default function ChatWidget({ locale: propLocale }: ChatWidgetProps) {
     };
   }, [isOpen]);
 
-  // Auto-greeting (8–12s): only when chat is open and user has not sent anything yet.
+  // Auto-greeting (10–12s): only when chat is open and user has not sent anything yet.
   useEffect(() => {
     if (!isOpen) {
       if (chatAutoGreetingTimerRef.current !== null) {

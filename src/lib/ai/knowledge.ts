@@ -868,10 +868,6 @@ export function localeToLang(locale?: string): Lang {
   return 'DE';
 }
 
-function formatEuro(value: number): string {
-  return `${value} €`;
-}
-
 export function getKnowledgeMenuOptions(locale?: string): string[] {
   const lang = localeToLang(locale);
   return [...PERMANENT_HALLE.ui.menu[lang].items];
@@ -882,12 +878,12 @@ export function buildKnowledgeConsultationStartText(locale?: string): string {
   const intro = PERMANENT_HALLE.pmu.consultation_start[lang];
 
   if (lang === 'RU') {
-    return `${intro}\n\n[option] 💄 PMU: брови, губы, межресничка [/option]\n[option] ✨ Брови и ресницы: лифтинг/стайлинг [/option]\n[option] 💅 Маникюр: подбор услуги [/option]\n[option] ✂️ Стрижка: подбор услуги [/option]\n[option] 💧 Hydrafacial: подбор формата [/option]\n[option] 📅 Подобрать время и записаться [/option]`;
+    return `${intro}\n\n[option] 💄 PMU: брови, губы, межресничка [/option]\n[option] ✨ Брови и ресницы: лифтинг/стайлинг [/option]\n[option] 💧 Hydrafacial: подбор формата [/option]\n[option] 📅 Подобрать время и записаться [/option]`;
   }
   if (lang === 'EN') {
-    return `${intro}\n\n[option] 💄 PMU: brows, lips, lash line [/option]\n[option] ✨ Brows & lashes: lifting/styling [/option]\n[option] 💅 Nails: choose service [/option]\n[option] ✂️ Haircut: choose service [/option]\n[option] 💧 Hydrafacial: choose format [/option]\n[option] 📅 Pick time and book [/option]`;
+    return `${intro}\n\n[option] 💄 PMU: brows, lips, lash line [/option]\n[option] ✨ Brows & lashes: lifting/styling [/option]\n[option] 💧 Hydrafacial: choose format [/option]\n[option] 📅 Pick time and book [/option]`;
   }
-  return `${intro}\n\n[option] 💄 PMU: Augenbrauen, Lippen, Wimpernkranz [/option]\n[option] ✨ Brows & Lashes: Lifting/Styling [/option]\n[option] 💅 Maniküre: Leistung wählen [/option]\n[option] ✂️ Haarschnitt: Leistung wählen [/option]\n[option] 💧 Hydrafacial: passendes Paket [/option]\n[option] 📅 Zeit finden und buchen [/option]`;
+  return `${intro}\n\n[option] 💄 PMU: Augenbrauen, Lippen, Wimpernkranz [/option]\n[option] ✨ Brows & Lashes: Lifting/Styling [/option]\n[option] 💧 Hydrafacial: passendes Paket [/option]\n[option] 📅 Zeit finden und buchen [/option]`;
 }
 
 export function isKnowledgeLocationHoursIntent(
@@ -1024,36 +1020,15 @@ export function buildKnowledgeSystemMessage(locale?: string): string {
   const boundary = PERMANENT_HALLE.policies.medicalBoundary[lang];
   const antiHallucination = PERMANENT_HALLE.policies.antiHallucination[lang];
 
-  const powder = formatEuro(PERMANENT_HALLE.prices.pmu.brows.powder);
-  const hairstroke = formatEuro(PERMANENT_HALLE.prices.pmu.brows.hairstroke);
-  const aquarell = formatEuro(PERMANENT_HALLE.prices.pmu.lips.aquarell);
-  const lips3d = formatEuro(PERMANENT_HALLE.prices.pmu.lips.lips3d);
-  const lashline = formatEuro(PERMANENT_HALLE.prices.pmu.lashline.lashline);
-  const upperLower = formatEuro(PERMANENT_HALLE.prices.pmu.lashline.upper_lower);
-  const lashLift = formatEuro(PERMANENT_HALLE.prices.browsLashes.lash_lift);
-  const browLift = formatEuro(PERMANENT_HALLE.prices.browsLashes.brow_lift);
-  const hydraSignature = formatEuro(PERMANENT_HALLE.prices.hydrafacial.signature);
-  const hydraDeluxe = formatEuro(PERMANENT_HALLE.prices.hydrafacial.deluxe);
-  const hydraPlatinum = formatEuro(PERMANENT_HALLE.prices.hydrafacial.platinum);
-
   return [
     'KNOWLEDGE SOURCE: PERMANENT_HALLE',
     `Salon: ${PERMANENT_HALLE.salon.name}, Master: ${PERMANENT_HALLE.salon.master}, City: ${PERMANENT_HALLE.salon.city}`,
-    'Use this knowledge for consultation answers and price anchoring. Prefer tools for final availability/booking.',
+    'Use this knowledge only for general consultation wording and safety boundaries.',
+    'Do not use this knowledge as a service/price catalog. Concrete services, prices, durations, availability and upsells must come from list_services/search_availability tools in the current turn.',
     `Medical boundary: ${boundary}`,
     `Anti-hallucination: ${antiHallucination}`,
-    'Main PMU prices:',
-    `- Powder Brows: ${powder}`,
-    `- Hairstroke Brows: ${hairstroke}`,
-    `- Aquarell Lips: ${aquarell}`,
-    `- 3D Lips: ${lips3d}`,
-    `- Lash line: ${lashline}, upper+lower: ${upperLower}`,
-    'Brows & lashes:',
-    `- Lash lift: ${lashLift}, Brow lift: ${browLift}`,
-    'Hydrafacial:',
-    `- Signature: ${hydraSignature}, Deluxe: ${hydraDeluxe}, Platinum: ${hydraPlatinum}`,
     'Upsell policy:',
-    `- ${PERMANENT_HALLE.policies.upsellRules.join(' | ')}`,
+    '- Only suggest add-ons that list_services returned as active in the current catalog.',
   ].join('\n');
 }
 
@@ -1095,20 +1070,6 @@ export function detectKnowledgeConsultationTopic(
       return 'pmu';
     }
     if (
-      value.includes('маник') ||
-      value.includes('педик') ||
-      value.includes('ногт')
-    ) {
-      return 'nails';
-    }
-    if (
-      value.includes('стриж') ||
-      value.includes('волос') ||
-      value.includes('окрашив')
-    ) {
-      return 'hair';
-    }
-    if (
       value.includes('бров') ||
       value.includes('ресниц') ||
       value.includes('лифтинг') ||
@@ -1129,21 +1090,6 @@ export function detectKnowledgeConsultationTopic(
       return 'pmu';
     }
     if (
-      value.includes('nail') ||
-      value.includes('manicure') ||
-      value.includes('pedicure')
-    ) {
-      return 'nails';
-    }
-    if (
-      value.includes('hair') ||
-      value.includes('haircut') ||
-      value.includes('coloring') ||
-      value.includes('colouring')
-    ) {
-      return 'hair';
-    }
-    if (
       value.includes('brow') ||
       value.includes('lash') ||
       value.includes('lifting') ||
@@ -1162,20 +1108,6 @@ export function detectKnowledgeConsultationTopic(
     return 'pmu';
   }
   if (
-    value.includes('manik') ||
-    value.includes('nagel') ||
-    value.includes('pedik')
-  ) {
-    return 'nails';
-  }
-  if (
-    value.includes('haarschnitt') ||
-    value.includes('haare') ||
-    value.includes('farbe')
-  ) {
-    return 'hair';
-  }
-  if (
     value.includes('augenbrau') ||
     value.includes('wimper') ||
     value.includes('lifting') ||
@@ -1192,18 +1124,22 @@ export function buildKnowledgeConsultationTopicText(
 ): string {
   const normalized = normalizeLocale(locale);
 
+  if (topic === 'nails' || topic === 'hair') {
+    if (normalized === 'ru') {
+      return 'Этой услуги сейчас нет в активном каталоге салона. Могу предложить только актуальные услуги из текущего списка.\n\n[option] 💄 PMU: брови, губы, межресничка [/option]\n[option] ✨ Брови и ресницы [/option]\n[option] 💧 Hydrafacial [/option]\n[option] 📅 Подобрать время и записаться [/option]';
+    }
+    if (normalized === 'en') {
+      return 'This service is not available in the active salon catalog right now. I can only offer services from the current list.\n\n[option] 💄 PMU: brows, lips, lash line [/option]\n[option] ✨ Brows & lashes [/option]\n[option] 💧 Hydrafacial [/option]\n[option] 📅 Pick time and book [/option]';
+    }
+    return 'Diese Leistung ist aktuell nicht im aktiven Salon-Katalog verfügbar. Ich kann nur Leistungen aus dem aktuellen Katalog anbieten.\n\n[option] 💄 PMU: Augenbrauen, Lippen, Wimpernkranz [/option]\n[option] ✨ Brows & Lashes [/option]\n[option] 💧 Hydrafacial [/option]\n[option] 📅 Zeit finden und buchen [/option]';
+  }
+
   if (normalized === 'ru') {
     if (topic === 'pmu') {
       return 'Отлично, давайте спокойно подберём PMU 🌸 Что интересует больше всего?\n\n[option] Брови — форма и мягкий эффект [/option]\n[option] Губы — свежий оттенок [/option]\n[option] Межресничка — выразительный взгляд [/option]\n[option] ❓ Сначала короткая консультация по заживлению [/option]\n[option] 📅 Подобрать время и записаться [/option]';
     }
     if (topic === 'brows_lashes') {
       return 'Супер, подберём брови/ресницы под ваш запрос 🌸 Какой результат хотите получить?\n\n[option] Максимально натурально [/option]\n[option] Чуть ярче и выразительнее [/option]\n[option] Подобрать вариант по бюджету [/option]\n[option] ❓ Сравнить лифтинг и стайлинг [/option]\n[option] 📅 Подобрать время и записаться [/option]';
-    }
-    if (topic === 'nails') {
-      return 'Отлично, поможем с маникюром 🌸 Какой формат интересует?\n\n[option] Классический — 60 мин., 35,00 € [/option]\n[option] Наращивание ногтей — 120 мин., 70,00 € [/option]\n[option] Японский — 75 мин., 42,00 € [/option]\n[option] 📅 Подобрать время и записаться [/option]';
-    }
-    if (topic === 'hair') {
-      return 'Супер, подберём вариант по стрижке 🌿 Что хотите сделать?\n\n[option] Женская — 60 мин., 45,00 € [/option]\n[option] Мужская — 45 мин., 30,00 € [/option]\n[option] Окрашивание волос — 90 мин., 75,00 € [/option]\n[option] 📅 Подобрать время и записаться [/option]';
     }
     return 'Отличный выбор 🌿 По Hydrafacial подскажу формат под задачу кожи. Что сейчас важнее?\n\n[option] Глубокое очищение и свежесть [/option]\n[option] Больше сияния и ровный тон [/option]\n[option] Максимальный премиум-уход [/option]\n[option] ❓ Чем отличается Signature/Deluxe/Platinum [/option]\n[option] 📅 Подобрать время и записаться [/option]';
   }
@@ -1215,12 +1151,6 @@ export function buildKnowledgeConsultationTopicText(
     if (topic === 'brows_lashes') {
       return "Perfect, let's tailor brows/lashes to your goal 🌸 What result do you want?\n\n[option] Very natural look [/option]\n[option] More defined expression [/option]\n[option] Best option by budget [/option]\n[option] ❓ Compare lifting vs styling [/option]\n[option] 📅 Pick time and book [/option]";
     }
-    if (topic === 'nails') {
-      return "Great, let's choose the right nails service 🌸 What would you like?\n\n[option] Classic — 60 min., €35 [/option]\n[option] Nail extensions — 120 min., €70 [/option]\n[option] Japanese — 75 min., €42 [/option]\n[option] 📅 Pick time and book [/option]";
-    }
-    if (topic === 'hair') {
-      return "Perfect, let's pick the right haircut option 🌿 What do you need?\n\n[option] Women's haircut — 60 min., €45 [/option]\n[option] Men's haircut — 45 min., €30 [/option]\n[option] Hair coloring — 90 min., €75 [/option]\n[option] 📅 Pick time and book [/option]";
-    }
     return "Great choice 🌿 I can help choose the right Hydrafacial format. What's your main goal now?\n\n[option] Deep cleanse and freshness [/option]\n[option] More glow and even tone [/option]\n[option] Maximum premium care [/option]\n[option] ❓ Signature vs Deluxe vs Platinum [/option]\n[option] 📅 Pick time and book [/option]";
   }
 
@@ -1229,12 +1159,6 @@ export function buildKnowledgeConsultationTopicText(
   }
   if (topic === 'brows_lashes') {
     return 'Super, wir wählen Brows/Lashes passend zu Ihrem Wunsch 🌸 Welches Ergebnis möchten Sie?\n\n[option] Sehr natürlich [/option]\n[option] Etwas definierter [/option]\n[option] Passend zum Budget [/option]\n[option] ❓ Lifting vs Styling vergleichen [/option]\n[option] 📅 Zeit finden und buchen [/option]';
-  }
-  if (topic === 'nails') {
-    return 'Gern, wir finden die passende Maniküre 🌸 Welche Leistung möchten Sie?\n\n[option] Klassisch — 60 Min., 35,00 € [/option]\n[option] Nagelverlängerung — 120 Min., 70,00 € [/option]\n[option] Japanisch — 75 Min., 42,00 € [/option]\n[option] 📅 Zeit finden und buchen [/option]';
-  }
-  if (topic === 'hair') {
-    return 'Super, wir wählen die passende Leistung für Haare 🌿 Was passt für Sie?\n\n[option] Damenhaarschnitt — 60 Min., 45,00 € [/option]\n[option] Herrenhaarschnitt — 45 Min., 30,00 € [/option]\n[option] Haare färben — 90 Min., 75,00 € [/option]\n[option] 📅 Zeit finden und buchen [/option]';
   }
   return 'Sehr gute Wahl 🌿 Für Hydrafacial finde ich das passende Paket. Was ist aktuell wichtiger?\n\n[option] Tiefenreinigung und Frische [/option]\n[option] Mehr Glow und ebenmäßiger Teint [/option]\n[option] Maximaler Premium-Effekt [/option]\n[option] ❓ Unterschied Signature/Deluxe/Platinum [/option]\n[option] 📅 Zeit finden und buchen [/option]';
 }
