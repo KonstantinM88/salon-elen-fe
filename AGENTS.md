@@ -170,3 +170,8 @@ Useful scripts:
   `date=today`/`date=yesterday`. The summary uses `orgDayRange` for
   Europe/Berlin day boundaries; the default remains yesterday for scheduled
   morning cron jobs.
+- 2026-05-27: Site visits are tracked first-party through `SiteVisitTracker`
+  and `/api/site-visit` into the `SiteVisit` model
+  (`20260527113000_add_site_visit_analytics`). Admin/API/static routes are
+  excluded. AI Health daily Telegram summaries include site visits and
+  pageviews for the same salon-local date.

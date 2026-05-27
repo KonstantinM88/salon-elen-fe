@@ -59,6 +59,28 @@ model ArticleTranslation {
   @@map("article_translations")
 }
 
+model SiteVisit {
+  id         String   @id @default(cuid())
+  visitId    String   @db.VarChar(128)
+  dateISO    String   @db.VarChar(10)
+  entryPath  String   @db.VarChar(512)
+  lastPath   String   @db.VarChar(512)
+  referrer   String?  @db.VarChar(512)
+  locale     String?  @db.VarChar(5)
+  userAgent  String?  @db.VarChar(512)
+  deviceType String   @default("unknown") @db.VarChar(16)
+  ipAnon     String?  @db.VarChar(45)
+  pageviews  Int      @default(1)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([visitId, dateISO])
+  @@index([dateISO])
+  @@index([createdAt])
+  @@index([deviceType])
+  @@map("site_visit")
+}
+
 model Booking {
   id        String   @id @default(cuid())
   name      String

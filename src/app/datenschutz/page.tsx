@@ -70,6 +70,7 @@ const docs: Record<SeoLocale, LegalDocument> = {
         title: "5. Cookies und lokale Speicherung",
         paragraphs: [
           "Wir nutzen erforderliche Cookies und lokale Speicherwerte, insbesondere fuer Spracheinstellungen (z. B. locale) und technische Funktionen.",
+          "Zusaetzlich erfassen wir eine einfache First-Party-Besuchsstatistik (Besuch pro Browser-Sitzung und Seitenaufrufe), um die Nutzung der Website technisch auszuwerten. Dafuer wird eine technische Sitzungs-ID im sessionStorage verwendet; Microsoft Clarity oder andere Drittanbieter-Analyse-Cookies werden dabei nicht geladen.",
           "Optionale Analyse-Cookies werden derzeit nicht ueber diese Website geladen.",
         ],
       },
@@ -182,6 +183,7 @@ const docs: Record<SeoLocale, LegalDocument> = {
         title: "5. Cookies and local storage",
         paragraphs: [
           "We use necessary cookies and local storage values (for example language settings such as locale and technical preferences).",
+          "We also collect a simple first-party visit statistic (one visit per browser session and pageviews) to evaluate technical website usage. This uses a technical session ID in sessionStorage; Microsoft Clarity or other third-party analytics cookies are not loaded for this.",
           "Optional analytics cookies are currently not loaded through this website.",
         ],
       },
@@ -284,6 +286,7 @@ const docs: Record<SeoLocale, LegalDocument> = {
         title: "5. Cookies и localStorage",
         paragraphs: [
           "Используются необходимые cookies и локальные значения хранения (включая языковые настройки, например locale, и технические параметры).",
+          "Также ведётся простая first-party статистика посещений (одно посещение на браузерную сессию и просмотры страниц), чтобы технически оценивать использование сайта. Для этого используется технический sessionStorage ID; Microsoft Clarity и другие сторонние аналитические cookies при этом не загружаются.",
           "Опциональные аналитические cookies сейчас не загружаются через этот сайт.",
         ],
       },

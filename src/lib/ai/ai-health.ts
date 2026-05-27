@@ -8,6 +8,7 @@
 import { prisma } from '@/lib/prisma';
 import { Temporal } from '@js-temporal/polyfill';
 import { isYmd, ORG_TZ, orgDayRange } from '@/lib/orgTime';
+import { getSiteVisitSummary } from '@/lib/site-analytics';
 
 const AI_HEALTH_DB_RETRY_DELAY_MS = 750;
 
@@ -188,6 +189,8 @@ async function getAiHealthStatusOnce(): Promise<AiHealthStatus> {
 export interface DailySummaryData {
   dateISO: string;
   date: string;
+  siteVisits: number;
+  sitePageviews: number;
   totalSessions: number;
   completedBookings: number;
   conversionRate: number;
@@ -263,15 +266,20 @@ async function buildDailySummaryOnce(date?: Date | string): Promise<DailySummary
   const { start: dayStart, end: dayEnd } = orgDayRange(dateISO);
   const dateStr = displayDateISO(dateISO);
 
-  const sessions = await prisma.aiChatSession.findMany({
-    where: { startedAt: { gte: dayStart, lt: dayEnd } },
-  });
+  const [sessions, siteSummary] = await Promise.all([
+    prisma.aiChatSession.findMany({
+      where: { startedAt: { gte: dayStart, lt: dayEnd } },
+    }),
+    getSiteVisitSummary(dateISO),
+  ]);
 
   const total = sessions.length;
   if (total === 0) {
     return {
       dateISO,
       date: dateStr,
+      siteVisits: siteSummary.siteVisits,
+      sitePageviews: siteSummary.sitePageviews,
       totalSessions: 0, completedBookings: 0, conversionRate: 0,
       avgDurationSec: 0, avgMessages: 0, totalErrors: 0, totalRetries: 0,
       errorRate: 0, voicePercent: 0, streamingPercent: 0,
@@ -324,6 +332,8 @@ async function buildDailySummaryOnce(date?: Date | string): Promise<DailySummary
   return {
     dateISO,
     date: dateStr,
+    siteVisits: siteSummary.siteVisits,
+    sitePageviews: siteSummary.sitePageviews,
     totalSessions: total,
     completedBookings: completed,
     conversionRate: Math.round((completed / total) * 1000) / 10,
@@ -360,6 +370,8 @@ export function formatDailySummaryTelegram(data: DailySummaryData): string {
 ━━━━━━━━━━━━━━━━━━━━━
 
 📊 *Основные показатели*
+🌐 Посещения сайта: *${data.siteVisits}*
+📄 Просмотры страниц: *${data.sitePageviews}*
 👥 Сессии: *${data.totalSessions}*
 📝 Записи: *${data.completedBookings}* ${conv}
 ⏱ Ø Длительность: *${data.avgDurationSec}s*
