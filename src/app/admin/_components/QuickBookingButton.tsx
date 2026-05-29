@@ -1,7 +1,11 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { NotebookPen, CheckCircle2 } from "lucide-react";
+import {
+  getQuickBookingMastersAction,
+  getQuickBookingSlotsAction,
+} from "../quick-booking-actions";
 
 type MasterOpt = { id: string; name: string };
 type ServiceOpt = {
@@ -35,6 +39,9 @@ export type QuickBookingLabels = {
   notesPlaceholder: string;
   cancel: string;
   submit: string;
+  loadingSlots?: string;
+  noSlots?: string;
+  noMasters?: string;
 };
 
 const DEFAULT_LABELS_RU: QuickBookingLabels = {
@@ -57,6 +64,9 @@ const DEFAULT_LABELS_RU: QuickBookingLabels = {
   notesPlaceholder: "Комментарий для мастера…",
   cancel: "Отмена",
   submit: "Создать заявку",
+  loadingSlots: "Загружаем свободные слоты...",
+  noSlots: "Нет свободных слотов",
+  noMasters: "Нет доступных мастеров",
 };
 
 export default function QuickBookingButton({
@@ -80,8 +90,11 @@ export default function QuickBookingButton({
   const [open, setOpen] = useState(false);
   const [masterId, setMasterId] = useState(masters[0]?.id ?? "");
   const [serviceId, setServiceId] = useState(services[0]?.id ?? "");
+  const [availableMasters, setAvailableMasters] = useState(masters);
   const [date, setDate] = useState(defaultDate);
   const [time, setTime] = useState(defaultTime);
+  const [slots, setSlots] = useState<Array<{ time: string; displayTime: string }>>([]);
+  const [loadingSlots, setLoadingSlots] = useState(false);
 
   const sortedServices = useMemo(() => {
     const withCat = services.map((s) => ({
@@ -95,6 +108,53 @@ export default function QuickBookingButton({
     () => hints.filter((h) => h.id === masterId).flatMap((h) => h.slots),
     [hints, masterId]
   );
+
+  useEffect(() => {
+    if (!open || !serviceId) return;
+
+    let cancelled = false;
+    getQuickBookingMastersAction(serviceId).then((result) => {
+      if (cancelled || !result.ok) return;
+      setAvailableMasters(result.masters);
+      setMasterId((current) => {
+        if (result.masters.some((master) => master.id === current)) return current;
+        return result.masters[0]?.id ?? "";
+      });
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [open, serviceId]);
+
+  useEffect(() => {
+    if (!open) return;
+    if (!masterId || !serviceId || !date) {
+      setSlots([]);
+      setTime("");
+      return;
+    }
+
+    let cancelled = false;
+    setLoadingSlots(true);
+    getQuickBookingSlotsAction({ masterId, serviceId, dateISO: date })
+      .then((result) => {
+        if (cancelled) return;
+        const nextSlots = result.ok ? result.slots : [];
+        setSlots(nextSlots);
+        setTime((current) => {
+          if (nextSlots.some((slot) => slot.time === current)) return current;
+          return nextSlots[0]?.time ?? "";
+        });
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingSlots(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [date, masterId, open, serviceId]);
 
   return (
     <>
@@ -133,7 +193,6 @@ export default function QuickBookingButton({
                     name="customerName"
                     className="input"
                     placeholder={ui.clientPlaceholder}
-                    required
                   />
                 </label>
                 <label className="grid gap-1 text-sm">
@@ -166,11 +225,14 @@ export default function QuickBookingButton({
                     onChange={(e) => setMasterId(e.target.value)}
                     required
                   >
-                    {masters.map((m) => (
+                    {availableMasters.map((m) => (
                       <option key={m.id} value={m.id}>
                         {m.name}
                       </option>
                     ))}
+                    {availableMasters.length === 0 && (
+                      <option value="">{ui.noMasters ?? "No masters"}</option>
+                    )}
                   </select>
                 </label>
               </div>
@@ -206,14 +268,26 @@ export default function QuickBookingButton({
                 </label>
                 <label className="grid gap-1 text-sm">
                   <span className="opacity-70">{ui.time}</span>
-                  <input
+                  <select
                     name="time"
-                    type="time"
                     className="input"
                     value={time}
                     onChange={(e) => setTime(e.target.value)}
+                    disabled={loadingSlots || slots.length === 0}
                     required
-                  />
+                  >
+                    {loadingSlots ? (
+                      <option value="">{ui.loadingSlots ?? "Loading..."}</option>
+                    ) : slots.length === 0 ? (
+                      <option value="">{ui.noSlots ?? "No free slots"}</option>
+                    ) : (
+                      slots.map((slot) => (
+                        <option key={slot.time} value={slot.time}>
+                          {slot.displayTime}
+                        </option>
+                      ))
+                    )}
+                  </select>
                 </label>
               </div>
 
@@ -255,7 +329,8 @@ export default function QuickBookingButton({
                 </button>
                 <button
                   type="submit"
-                  className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-white bg-emerald-600 hover:bg-emerald-500 transition"
+                  disabled={loadingSlots || slots.length === 0 || !masterId}
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-white bg-emerald-600 hover:bg-emerald-500 transition disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   <CheckCircle2 className="h-4 w-4" />
                   {ui.submit}

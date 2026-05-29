@@ -39,6 +39,10 @@ import {
   type SearchParamsPromise,
 } from "@/lib/seo-locale";
 import { resolveContentLocale } from "@/lib/seo-locale-server";
+import {
+  createAdminQuickAppointment,
+  listAdminQuickBookingServices,
+} from "@/lib/booking/admin-quick-appointment";
 
 export const dynamic = "force-dynamic";
 
@@ -171,6 +175,9 @@ const ADMIN_COPY: Record<SeoLocale, AdminCopy> = {
       notesPlaceholder: "Kommentar für den Mitarbeiter...",
       cancel: "Abbrechen",
       submit: "Anfrage erstellen",
+      loadingSlots: "Freie Zeiten werden geladen...",
+      noSlots: "Keine freien Zeiten",
+      noMasters: "Keine Mitarbeiter verfügbar",
     },
   },
   ru: {
@@ -242,6 +249,9 @@ const ADMIN_COPY: Record<SeoLocale, AdminCopy> = {
       notesPlaceholder: "Комментарий для мастера…",
       cancel: "Отмена",
       submit: "Создать заявку",
+      loadingSlots: "Загружаем свободные слоты...",
+      noSlots: "Нет свободных слотов",
+      noMasters: "Нет доступных мастеров",
     },
   },
   en: {
@@ -313,6 +323,9 @@ const ADMIN_COPY: Record<SeoLocale, AdminCopy> = {
       notesPlaceholder: "Comment for the master...",
       cancel: "Cancel",
       submit: "Create request",
+      loadingSlots: "Loading free slots...",
+      noSlots: "No free slots",
+      noMasters: "No masters available",
     },
   },
 };
@@ -348,33 +361,25 @@ export async function createQuickAppointment(formData: FormData) {
     redirect("/admin?quick=error");
   }
 
-  const [hh, mm] = time.split(":").map((x) => Number(x));
-  const start = new Date(date + "T00:00:00");
-  start.setHours(hh, mm ?? 0, 0, 0);
-
-  const service = await prisma.service.findUnique({
-    where: { id: serviceId },
-    select: { durationMin: true },
+  const result = await createAdminQuickAppointment({
+    serviceId,
+    masterId,
+    dateISO: date,
+    time,
+    phone,
+    customerName,
+    email,
+    notes,
+    changedBy: "admin-site",
   });
 
-  const durationMin = service?.durationMin ?? 60;
-  const end = new Date(start.getTime() + durationMin * 60_000);
-
-  await prisma.appointment.create({
-    data: {
-      customerName,
-      phone,
-      email,
-      notes,
-      startAt: start,
-      endAt: end,
-      status: AppointmentStatus.PENDING,
-      master: { connect: { id: masterId } },
-      service: { connect: { id: serviceId } },
-    },
-  });
+  if (!result.ok) {
+    console.error("[Admin Quick Booking] Failed:", result);
+    redirect("/admin?quick=error");
+  }
 
   revalidatePath("/admin");
+  revalidatePath("/admin/bookings");
   redirect("/admin?quick=ok");
 }
 
@@ -683,16 +688,7 @@ export default async function AdminDashboard({
     prisma.client.findMany({
       select: { id: true, name: true, birthDate: true },
     }),
-    prisma.service.findMany({
-      where: { isActive: true },
-      orderBy: [{ parentId: "asc" }, { name: "asc" }],
-      select: {
-        id: true,
-        name: true,
-        durationMin: true,
-        parent: { select: { name: true } },
-      },
-    }),
+    listAdminQuickBookingServices(),
   ]);
 
   // Ближайшие ДР
@@ -821,9 +817,9 @@ export default async function AdminDashboard({
   const masterOpts = masters.map((m) => ({ id: m.id, name: m.name }));
   const serviceOpts = services.map((s) => ({
     id: s.id,
-    name: s.parent?.name ? `${s.parent.name} · ${s.name}` : s.name,
+    name: s.parentName ? `${s.parentName} · ${s.name}` : s.name,
     durationMin: s.durationMin ?? 60,
-    parentName: s.parent?.name ?? null,
+    parentName: s.parentName ?? null,
   }));
 
   return (

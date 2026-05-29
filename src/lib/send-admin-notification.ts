@@ -15,6 +15,7 @@ interface AppointmentData {
   masterId: string | null;
   startAt: Date;
   endAt: Date;
+  status?: AppointmentStatus;
   paymentStatus: string;
 }
 
@@ -276,7 +277,7 @@ ${appointment.email ? `📧 *Email:* ${appointment.email}\n` : ''}
 
     await sendTelegramAdminMarkdownMessage(
       message,
-      buildAppointmentStatusKeyboard(appointment.id, "PENDING"),
+      buildAppointmentStatusKeyboard(appointment.id, appointment.status ?? "PENDING"),
     );
 
     console.log('[Admin Notification] ✅ Sent successfully');

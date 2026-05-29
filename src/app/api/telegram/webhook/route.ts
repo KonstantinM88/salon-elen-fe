@@ -8,6 +8,13 @@ import {
   getAppointmentRescheduleSlots,
   rescheduleAppointment,
 } from '@/lib/booking/reschedule-appointment';
+import {
+  createAdminQuickAppointment,
+  getAdminQuickBookingDateOptions,
+  getAdminQuickBookingSlots,
+  listAdminQuickBookingMastersForService,
+  listAdminQuickBookingServices,
+} from '@/lib/booking/admin-quick-appointment';
 import { isPhoneDigitsValid, normalizePhoneDigits } from '@/lib/phone';
 import { AppointmentStatus } from '@/lib/prisma-client';
 import {
@@ -19,6 +26,7 @@ import { ORG_TZ } from '@/lib/orgTime';
 
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '';
 const TELEGRAM_API_URL = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}`;
+const ADMIN_QUICK_BOOKING_ACTION_PREFIX = 'qb';
 const APPOINTMENT_RESCHEDULE_DATE_ACTION_PREFIX = 'appt_rs_date';
 const APPOINTMENT_RESCHEDULE_SLOT_ACTION_PREFIX = 'appt_rs_slot';
 
@@ -47,6 +55,14 @@ const formatDeepLinkPhone = (value: string): string | null => {
     string,
     { appointmentId: string; expiresAt: number }
   >();
+  type QuickBookingState = {
+    serviceId?: string;
+    masterId?: string;
+    dateISO?: string;
+    time?: string;
+    expiresAt: number;
+  };
+  const pendingQuickBookings = new Map<string, QuickBookingState>();
 
   // Отправка сообщения в Telegram (HTML)
   type TelegramInlineKeyboardButton = {
@@ -330,6 +346,306 @@ const formatDeepLinkPhone = (value: string): string | null => {
     }
 
     return { inline_keyboard: rows };
+  }
+
+  function escapeTelegramHtml(value: string): string {
+    return value
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  function truncateButtonText(value: string, maxLength = 52): string {
+    return value.length > maxLength ? `${value.slice(0, maxLength - 1)}…` : value;
+  }
+
+  function buildAdminMenuKeyboard(): TelegramInlineKeyboardMarkup {
+    return {
+      inline_keyboard: [
+        [
+          {
+            text: '➕ Создать запись',
+            callback_data: `${ADMIN_QUICK_BOOKING_ACTION_PREFIX}:start`,
+          },
+        ],
+      ],
+    };
+  }
+
+  function formatQuickBookingServiceText(service: {
+    name: string;
+    parentName: string | null;
+    durationMin: number;
+    priceCents: number | null;
+  }): string {
+    const title = service.parentName
+      ? `${service.parentName} / ${service.name}`
+      : service.name;
+    const details = [
+      `${service.durationMin} мин`,
+      typeof service.priceCents === 'number'
+        ? `${(service.priceCents / 100).toFixed(0)}€`
+        : null,
+    ]
+      .filter(Boolean)
+      .join(', ');
+
+    return truncateButtonText(details ? `${title} (${details})` : title);
+  }
+
+  function buildQuickBookingServiceKeyboard(
+    services: Array<{
+      id: string;
+      name: string;
+      parentName: string | null;
+      durationMin: number;
+      priceCents: number | null;
+    }>,
+  ): TelegramInlineKeyboardMarkup {
+    const rows = services.map((service) => [
+      {
+        text: formatQuickBookingServiceText(service),
+        callback_data: `${ADMIN_QUICK_BOOKING_ACTION_PREFIX}:svc:${service.id}`,
+      },
+    ]);
+
+    rows.push([
+      {
+        text: 'Отмена',
+        callback_data: `${ADMIN_QUICK_BOOKING_ACTION_PREFIX}:cancel`,
+      },
+    ]);
+
+    return { inline_keyboard: rows };
+  }
+
+  function buildQuickBookingMasterKeyboard(
+    masters: Array<{ id: string; name: string }>,
+  ): TelegramInlineKeyboardMarkup {
+    const buttons = masters.map((master) => ({
+      text: truncateButtonText(master.name, 40),
+      callback_data: `${ADMIN_QUICK_BOOKING_ACTION_PREFIX}:master:${master.id}`,
+    }));
+    const rows: TelegramInlineKeyboardButton[][] = [];
+
+    for (let index = 0; index < buttons.length; index += 2) {
+      rows.push(buttons.slice(index, index + 2));
+    }
+
+    rows.push([
+      {
+        text: 'Отмена',
+        callback_data: `${ADMIN_QUICK_BOOKING_ACTION_PREFIX}:cancel`,
+      },
+    ]);
+
+    return { inline_keyboard: rows };
+  }
+
+  function formatQuickBookingDateButtonText({
+    dateISO,
+    slotsCount,
+    firstSlotTime,
+  }: {
+    dateISO: string;
+    slotsCount: number;
+    firstSlotTime: string | null;
+  }): string {
+    const date = new Date(`${dateISO}T12:00:00.000Z`);
+    const label = new Intl.DateTimeFormat('ru-RU', {
+      weekday: 'short',
+      day: '2-digit',
+      month: '2-digit',
+      timeZone: ORG_TZ,
+    }).format(date);
+    const firstSlot = firstSlotTime ? ` с ${firstSlotTime}` : '';
+    return `${label}${firstSlot} (${slotsCount})`;
+  }
+
+  function buildQuickBookingDateKeyboard(
+    dates: Array<{
+      dateISO: string;
+      slotsCount: number;
+      firstSlotTime: string | null;
+    }>,
+  ): TelegramInlineKeyboardMarkup {
+    const buttons = dates.map((date) => ({
+      text: formatQuickBookingDateButtonText(date),
+      callback_data: `${ADMIN_QUICK_BOOKING_ACTION_PREFIX}:date:${date.dateISO}`,
+    }));
+    const rows: TelegramInlineKeyboardButton[][] = [];
+
+    for (let index = 0; index < buttons.length; index += 2) {
+      rows.push(buttons.slice(index, index + 2));
+    }
+
+    rows.push([
+      {
+        text: 'Отмена',
+        callback_data: `${ADMIN_QUICK_BOOKING_ACTION_PREFIX}:cancel`,
+      },
+    ]);
+
+    return { inline_keyboard: rows };
+  }
+
+  function buildQuickBookingSlotKeyboard(
+    slots: Array<{ time: string; displayTime: string }>,
+  ): TelegramInlineKeyboardMarkup {
+    const buttons = slots.map((slot) => ({
+      text: slot.displayTime,
+      callback_data: `${ADMIN_QUICK_BOOKING_ACTION_PREFIX}:slot:${slot.time.replace(':', '')}`,
+    }));
+    const rows: TelegramInlineKeyboardButton[][] = [];
+
+    for (let index = 0; index < buttons.length; index += 3) {
+      rows.push(buttons.slice(index, index + 3));
+    }
+
+    rows.push([
+      {
+        text: 'Отмена',
+        callback_data: `${ADMIN_QUICK_BOOKING_ACTION_PREFIX}:cancel`,
+      },
+    ]);
+
+    return { inline_keyboard: rows };
+  }
+
+  function quickBookingErrorText(error: string): string {
+    const map: Record<string, string> = {
+      INVALID_INPUT: 'Некорректные данные записи',
+      INVALID_PHONE: 'Некорректный номер телефона',
+      SERVICE_NOT_FOUND: 'Услуга не найдена или недоступна',
+      MASTER_NOT_FOUND: 'Мастер не найден',
+      SLOT_TAKEN: 'Этот слот уже занят',
+      UPDATE_FAILED: 'Не удалось создать запись',
+    };
+
+    return map[error] ?? 'Не удалось создать запись';
+  }
+
+  function parseQuickBookingContactText(text: string): {
+    phone: string;
+    customerName: string | null;
+    email: string | null;
+  } {
+    const trimmed = text.trim();
+    const emailMatch = trimmed.match(/[^\s,;<>]+@[^\s,;<>]+\.[^\s,;<>]+/i);
+    const email = emailMatch?.[0].replace(/[.,;]+$/, '').toLowerCase() ?? null;
+    const withoutEmail = emailMatch
+      ? trimmed.replace(emailMatch[0], ' ')
+      : trimmed;
+    const phoneMatch = withoutEmail.match(/\+?\d[\d\s().-]{6,}\d/);
+    const phone = phoneMatch
+      ? phoneMatch[0].replace(/[^\d+]/g, '').replace(/(?!^)\+/g, '')
+      : trimmed;
+    const customerName = phoneMatch
+      ? withoutEmail
+          .replace(phoneMatch[0], ' ')
+          .replace(/[;,]+/g, ' ')
+          .replace(/\s+/g, ' ')
+          .trim() || null
+      : null;
+
+    return { phone, customerName, email };
+  }
+
+  async function sendAdminMenu(chatId: number | string): Promise<void> {
+    await sendTelegramMessage(
+      Number(chatId),
+      [
+        '<b>Админ-меню Salon Elen</b>',
+        '',
+        'Можно быстро создать запись клиента без входа в админку.',
+        'Услуги, даты и слоты берутся из актуального расписания.',
+      ].join('\n'),
+      buildAdminMenuKeyboard(),
+    );
+  }
+
+  function getQuickBookingPending(
+    chatId: number | string,
+    fromId: number,
+  ): { key: string; state: QuickBookingState } | null {
+    const key = pendingRescheduleKey(chatId, fromId);
+    const state = pendingQuickBookings.get(key);
+    if (!state) return null;
+
+    if (state.expiresAt < Date.now()) {
+      pendingQuickBookings.delete(key);
+      return null;
+    }
+
+    return { key, state };
+  }
+
+  async function finishQuickBookingFromState({
+    chatId,
+    key,
+    state,
+    actor,
+    phone,
+    customerName,
+    email,
+  }: {
+    chatId: number | string;
+    key: string;
+    state: QuickBookingState;
+    actor: string;
+    phone: string;
+    customerName: string | null;
+    email: string | null;
+  }): Promise<void> {
+    if (!state.serviceId || !state.masterId || !state.dateISO || !state.time) {
+      pendingQuickBookings.delete(key);
+      await sendTelegramMessage(
+        Number(chatId),
+        'Данные быстрой записи устарели. Начните заново через /admin.',
+      );
+      return;
+    }
+
+    const result = await createAdminQuickAppointment({
+      serviceId: state.serviceId,
+      masterId: state.masterId,
+      dateISO: state.dateISO,
+      time: state.time,
+      phone,
+      customerName,
+      email,
+      changedBy: actor,
+    });
+
+    if (!result.ok) {
+      await sendTelegramMessage(
+        Number(chatId),
+        `Не удалось создать запись: <code>${escapeTelegramHtml(quickBookingErrorText(result.error))}</code>`,
+      );
+      return;
+    }
+
+    pendingQuickBookings.delete(key);
+    const when = new Intl.DateTimeFormat('ru-RU', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      timeZone: ORG_TZ,
+    }).format(result.startAt);
+
+    await sendTelegramMessage(
+      Number(chatId),
+      [
+        '✅ <b>Запись создана</b>',
+        '',
+        `Клиент: <b>${escapeTelegramHtml(result.customerName)}</b>`,
+        `Время: <code>${escapeTelegramHtml(when)}</code>`,
+        `ID: <code>${escapeTelegramHtml(result.appointmentId)}</code>`,
+      ].join('\n'),
+    );
   }
 
   function rescheduleErrorText(error: string): string {
@@ -662,6 +978,265 @@ const formatDeepLinkPhone = (value: string): string | null => {
     return NextResponse.json({ ok: true });
   }
 
+  async function handleQuickBookingCallback(
+    callbackQuery: TelegramCallbackQuery,
+  ): Promise<NextResponse> {
+    const data = callbackQuery.data ?? '';
+    const parts = data.split(':');
+    const action = parts[1];
+
+    if (parts[0] !== ADMIN_QUICK_BOOKING_ACTION_PREFIX || !action) {
+      await answerCallbackQuery(callbackQuery.id, 'Неизвестное действие', true);
+      return NextResponse.json({ ok: true });
+    }
+
+    if (!isAdminCallback(callbackQuery)) {
+      await answerCallbackQuery(callbackQuery.id, 'Нет доступа', true);
+      return NextResponse.json({ ok: true });
+    }
+
+    const chatId = callbackQuery.message?.chat.id ?? callbackQuery.from.id;
+    const key = pendingRescheduleKey(chatId, callbackQuery.from.id);
+    const expiresAt = Date.now() + 15 * 60 * 1000;
+
+    if (action === 'cancel') {
+      pendingQuickBookings.delete(key);
+      await answerCallbackQuery(callbackQuery.id, 'Быстрая запись отменена');
+      await sendTelegramMessage(Number(chatId), 'Быстрая запись отменена.');
+      return NextResponse.json({ ok: true });
+    }
+
+    if (action === 'start') {
+      const services = await listAdminQuickBookingServices();
+      pendingQuickBookings.set(key, { expiresAt });
+      await answerCallbackQuery(callbackQuery.id, 'Выберите услугу');
+
+      if (services.length === 0) {
+        await sendTelegramMessage(
+          Number(chatId),
+          'Нет активных услуг для записи. Проверьте прайс в админке.',
+        );
+        return NextResponse.json({ ok: true });
+      }
+
+      await sendTelegramMessage(
+        Number(chatId),
+        [
+          '➕ <b>Быстрая запись клиента</b>',
+          '',
+          'Выберите точную услугу из актуального прайса.',
+        ].join('\n'),
+        buildQuickBookingServiceKeyboard(services),
+      );
+
+      return NextResponse.json({ ok: true });
+    }
+
+    const pending = getQuickBookingPending(chatId, callbackQuery.from.id);
+    if (!pending) {
+      await answerCallbackQuery(callbackQuery.id, 'Сессия устарела', true);
+      await sendTelegramMessage(
+        Number(chatId),
+        'Время ожидания истекло. Начните заново через /admin.',
+      );
+      return NextResponse.json({ ok: true });
+    }
+
+    if (action === 'svc') {
+      const serviceId = parts[2];
+      if (!serviceId) {
+        await answerCallbackQuery(callbackQuery.id, 'Услуга не выбрана', true);
+        return NextResponse.json({ ok: true });
+      }
+
+      const masters = await listAdminQuickBookingMastersForService(serviceId);
+      pendingQuickBookings.set(key, { serviceId, expiresAt });
+      await answerCallbackQuery(callbackQuery.id, 'Выберите мастера');
+
+      if (masters.length === 0) {
+        await sendTelegramMessage(
+          Number(chatId),
+          'Для этой услуги нет доступных мастеров. Выберите другую услугу.',
+        );
+        return NextResponse.json({ ok: true });
+      }
+
+      await sendTelegramMessage(
+        Number(chatId),
+        'Выберите мастера для записи:',
+        buildQuickBookingMasterKeyboard(masters),
+      );
+      return NextResponse.json({ ok: true });
+    }
+
+    if (action === 'master') {
+      const masterId = parts[2];
+      if (!masterId || !pending.state.serviceId) {
+        await answerCallbackQuery(callbackQuery.id, 'Мастер не выбран', true);
+        return NextResponse.json({ ok: true });
+      }
+
+      const nextState = {
+        serviceId: pending.state.serviceId,
+        masterId,
+        expiresAt,
+      };
+      pendingQuickBookings.set(key, nextState);
+      const dates = await getAdminQuickBookingDateOptions({
+        serviceId: nextState.serviceId,
+        masterId,
+        daysToScan: 45,
+        limit: 12,
+      });
+
+      await answerCallbackQuery(callbackQuery.id, 'Выберите дату');
+
+      if (dates.length === 0) {
+        await sendTelegramMessage(
+          Number(chatId),
+          'В ближайшие 45 дней нет свободных дат для этой услуги и мастера.',
+        );
+        return NextResponse.json({ ok: true });
+      }
+
+      await sendTelegramMessage(
+        Number(chatId),
+        [
+          'Выберите свободную дату.',
+          'В скобках указано количество доступных слотов.',
+        ].join('\n'),
+        buildQuickBookingDateKeyboard(dates),
+      );
+      return NextResponse.json({ ok: true });
+    }
+
+    if (action === 'date') {
+      const dateISO = parts[2];
+      if (!dateISO || !pending.state.serviceId || !pending.state.masterId) {
+        await answerCallbackQuery(callbackQuery.id, 'Дата не выбрана', true);
+        return NextResponse.json({ ok: true });
+      }
+
+      const nextState = {
+        ...pending.state,
+        dateISO,
+        expiresAt,
+      };
+      pendingQuickBookings.set(key, nextState);
+      const slots = await getAdminQuickBookingSlots({
+        serviceId: pending.state.serviceId,
+        masterId: pending.state.masterId,
+        dateISO,
+        limit: 42,
+      });
+
+      await answerCallbackQuery(callbackQuery.id, 'Выберите время');
+
+      if (slots.length === 0) {
+        await sendTelegramMessage(
+          Number(chatId),
+          'На эту дату нет свободных слотов. Выберите другую дату.',
+        );
+        return NextResponse.json({ ok: true });
+      }
+
+      await sendTelegramMessage(
+        Number(chatId),
+        `Свободные слоты на <code>${escapeTelegramHtml(dateISO)}</code>:`,
+        buildQuickBookingSlotKeyboard(slots),
+      );
+      return NextResponse.json({ ok: true });
+    }
+
+    if (action === 'slot') {
+      const rawTime = parts[2];
+      const time =
+        rawTime && /^\d{4}$/.test(rawTime)
+          ? `${rawTime.slice(0, 2)}:${rawTime.slice(2)}`
+          : null;
+
+      if (!time || !pending.state.serviceId || !pending.state.masterId || !pending.state.dateISO) {
+        await answerCallbackQuery(callbackQuery.id, 'Слот не выбран', true);
+        return NextResponse.json({ ok: true });
+      }
+
+      pendingQuickBookings.set(key, {
+        ...pending.state,
+        time,
+        expiresAt,
+      });
+      await answerCallbackQuery(callbackQuery.id, 'Введите телефон клиента');
+      await sendTelegramMessage(
+        Number(chatId),
+        [
+          `Выбран слот: <code>${escapeTelegramHtml(pending.state.dateISO)} ${escapeTelegramHtml(time)}</code>`,
+          '',
+          'Введите телефон клиента.',
+          'Можно сразу добавить имя и email через запятую:',
+          '<code>+4917612345678, Anna, anna@mail.com</code>',
+          '',
+          'Если у вас есть только номер, отправьте только номер. Клиент получит SMS.',
+          'Для отмены отправьте <code>/cancel</code>.',
+        ].join('\n'),
+      );
+      return NextResponse.json({ ok: true });
+    }
+
+    await answerCallbackQuery(callbackQuery.id, 'Неизвестное действие', true);
+    return NextResponse.json({ ok: true });
+  }
+
+  async function handlePendingQuickBookingMessage({
+    chatId,
+    text,
+    from,
+  }: {
+    chatId: number | string;
+    text: string;
+    from: {
+      id: number;
+      first_name?: string;
+      last_name?: string;
+      username?: string;
+    };
+  }): Promise<boolean> {
+    if (!isAdminMessage(chatId, from.id)) return false;
+
+    const pending = getQuickBookingPending(chatId, from.id);
+    if (!pending) return false;
+
+    if (text.trim() === '/cancel') {
+      pendingQuickBookings.delete(pending.key);
+      await sendTelegramMessage(Number(chatId), 'Быстрая запись отменена.');
+      return true;
+    }
+
+    if (
+      !pending.state.serviceId ||
+      !pending.state.masterId ||
+      !pending.state.dateISO ||
+      !pending.state.time
+    ) {
+      await sendTelegramMessage(
+        Number(chatId),
+        'Продолжите выбор записи кнопками или отправьте /cancel.',
+      );
+      return true;
+    }
+
+    const contact = parseQuickBookingContactText(text);
+    await finishQuickBookingFromState({
+      chatId,
+      key: pending.key,
+      state: pending.state,
+      actor: getMessageActor(from),
+      phone: contact.phone,
+      customerName: contact.customerName,
+      email: contact.email,
+    });
+    return true;
+  }
+
   async function handleAppointmentStatusCallback(
     callbackQuery: TelegramCallbackQuery,
   ): Promise<NextResponse> {
@@ -784,6 +1359,12 @@ const formatDeepLinkPhone = (value: string): string | null => {
       // Получить сообщение
       if (update.callback_query) {
         const callbackData = String(update.callback_query.data ?? '');
+        if (callbackData.startsWith(`${ADMIN_QUICK_BOOKING_ACTION_PREFIX}:`)) {
+          return handleQuickBookingCallback(
+            update.callback_query as TelegramCallbackQuery,
+          );
+        }
+
         if (callbackData.startsWith(`${APPOINTMENT_RESCHEDULE_DATE_ACTION_PREFIX}:`)) {
           return handleAppointmentRescheduleDateCallback(
             update.callback_query as TelegramCallbackQuery,
@@ -827,6 +1408,26 @@ const formatDeepLinkPhone = (value: string): string | null => {
         typeof text === 'string' &&
         (await handlePendingRescheduleMessage({ chatId, text, from }))
       ) {
+        return NextResponse.json({ ok: true });
+      }
+
+      if (
+        typeof text === 'string' &&
+        (await handlePendingQuickBookingMessage({ chatId, text, from }))
+      ) {
+        return NextResponse.json({ ok: true });
+      }
+
+      if (
+        typeof text === 'string' &&
+        isAdminMessage(chatId, from.id) &&
+        (text === '/admin' ||
+          text === '/menu' ||
+          text === '/quick' ||
+          text === '/create' ||
+          text === '/start')
+      ) {
+        await sendAdminMenu(chatId);
         return NextResponse.json({ ok: true });
       }
 
