@@ -175,3 +175,6 @@ Useful scripts:
   (`20260527113000_add_site_visit_analytics`). Admin/API/static routes are
   excluded. AI Health daily Telegram summaries include site visits and
   pageviews for the same salon-local date.
+- 2026-05-29: Admin booking status changes through `setStatus` send a Telegram
+  notification to configured admin chat IDs with previous/new status and
+  appointment details.

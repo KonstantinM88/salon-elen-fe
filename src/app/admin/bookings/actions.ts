@@ -6,6 +6,7 @@ import { AppointmentStatus } from "@/lib/prisma-client";
 import { revalidatePath } from "next/cache";
 import { sendStatusChangeEmail } from "@/lib/email";
 import { notifyClientAppointmentStatus } from "@/lib/telegram-bot";
+import { sendAdminAppointmentStatusNotification } from "@/lib/send-admin-notification";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 
@@ -158,7 +159,23 @@ export async function setStatus(
       });
     }
 
-    // 5. Ревалидация
+    // 5. Уведомление администратора и ревалидация
+    sendAdminAppointmentStatusNotification({
+      id: appointment.id,
+      customerName: appointment.customerName,
+      phone: appointment.phone,
+      email: appointment.email,
+      serviceName,
+      masterName,
+      startAt: appointment.startAt,
+      endAt: appointment.endAt,
+      status,
+      previousStatus,
+      changedBy: userId,
+    }).catch((error) => {
+      console.error("Admin Telegram status notification error:", error);
+    });
+
     revalidatePath("/admin/bookings");
     
     console.log(`✅ Status updated: ${id} | ${previousStatus} → ${status}`);

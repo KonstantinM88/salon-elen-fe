@@ -3,6 +3,7 @@
 
 import { ORG_TZ } from "@/lib/orgTime";
 import { parseTelegramAdminChatIds } from "@/lib/telegram-admin-chat-ids";
+import type { AppointmentStatus } from "@/lib/prisma-client";
 
 interface AppointmentData {
   id: string;
@@ -33,6 +34,20 @@ interface MissingServiceNotificationData {
     content: string;
     at?: string;
   }>;
+}
+
+interface AppointmentStatusNotificationData {
+  id: string;
+  customerName: string;
+  phone: string;
+  email: string | null;
+  serviceName: string;
+  masterName: string;
+  startAt: Date;
+  endAt: Date;
+  status: AppointmentStatus;
+  previousStatus: AppointmentStatus | null;
+  changedBy?: string | null;
 }
 
 function escapeMarkdown(value: string): string {
@@ -145,6 +160,80 @@ ${appointment.email ? `📧 *Email:* ${appointment.email}\n` : ''}
   } catch (error) {
     console.error('[Admin Notification] Error:', error);
     // Не бросаем ошибку - уведомление не должно блокировать создание записи
+  }
+}
+
+export async function sendAdminAppointmentStatusNotification(
+  appointment: AppointmentStatusNotificationData,
+): Promise<void> {
+  try {
+    const statusText: Record<AppointmentStatus, string> = {
+      PENDING: 'Ожидает подтверждения',
+      CONFIRMED: 'Подтверждена',
+      DONE: 'Выполнена',
+      CANCELED: 'Отменена',
+    };
+
+    const statusIcon: Record<AppointmentStatus, string> = {
+      PENDING: '🔔',
+      CONFIRMED: '✅',
+      DONE: '🎉',
+      CANCELED: '❌',
+    };
+
+    const dateStr = new Intl.DateTimeFormat('ru-RU', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+      timeZone: ORG_TZ,
+    }).format(appointment.startAt);
+
+    const startTime = new Intl.DateTimeFormat('ru-RU', {
+      hour: '2-digit',
+      minute: '2-digit',
+      timeZone: ORG_TZ,
+    }).format(appointment.startAt);
+
+    const endTime = new Intl.DateTimeFormat('ru-RU', {
+      hour: '2-digit',
+      minute: '2-digit',
+      timeZone: ORG_TZ,
+    }).format(appointment.endAt);
+
+    const previousStatusText = appointment.previousStatus
+      ? statusText[appointment.previousStatus]
+      : 'Не указан';
+    const newStatusText = statusText[appointment.status];
+
+    const message = [
+      `${statusIcon[appointment.status]} *СТАТУС ЗАПИСИ ИЗМЕНЕН*`,
+      '',
+      '━━━━━━━━━━━━━━━━━━━━━',
+      '',
+      `📌 *Статус:* ${escapeMarkdown(previousStatusText)} → *${escapeMarkdown(newStatusText)}*`,
+      appointment.changedBy ? `👤 *Изменил:* ${escapeMarkdown(appointment.changedBy)}` : '',
+      '',
+      `👥 *Клиент:* ${escapeMarkdown(appointment.customerName)}`,
+      `📞 *Телефон:* ${escapeMarkdown(appointment.phone)}`,
+      appointment.email ? `📧 *Email:* ${escapeMarkdown(appointment.email)}` : '',
+      `✂️ *Услуга:* ${escapeMarkdown(appointment.serviceName)}`,
+      `👩‍💼 *Мастер:* ${escapeMarkdown(appointment.masterName)}`,
+      '',
+      `📅 *Дата:* ${escapeMarkdown(dateStr)}`,
+      `🕐 *Время:* ${escapeMarkdown(startTime)} - ${escapeMarkdown(endTime)}`,
+      '',
+      '━━━━━━━━━━━━━━━━━━━━━',
+      '',
+      `🆔 *ID записи:* \`${escapeMarkdown(appointment.id)}\``,
+    ]
+      .filter(Boolean)
+      .join('\n');
+
+    await sendTelegramAdminMarkdownMessage(message);
+
+    console.log('[Admin Notification] Status-change notification sent');
+  } catch (error) {
+    console.error('[Admin Notification] Status-change notification failed:', error);
   }
 }
 
