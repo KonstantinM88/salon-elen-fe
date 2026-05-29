@@ -17,11 +17,19 @@ chmod +x scripts/deploy-pm2.sh
 
 Что делает скрипт:
 
-1. `npm ci`
-2. `rm -rf .next`
-3. `npm run build`
-4. `pm2 reload ecosystem.config.cjs --update-env`
-5. `pm2 save`
+1. stop the current PM2 process before mutating `node_modules` or `.next`;
+2. `npm ci`
+3. move the current `.next` to a temporary backup;
+4. `npm run build`
+5. start the app from `ecosystem.config.cjs --update-env`
+6. `pm2 save`
+
+This repository is deployed in-place from one directory. Keeping `next start`
+running while `.next` is removed or rebuilt can produce transient
+`ChunkLoadError` / `MODULE_NOT_FOUND` errors for server chunks. The script now
+prefers a short maintenance window during build over serving a half-replaced
+build artifact. If the build fails, it restores the previous `.next` backup and
+restarts the old PM2 process.
 
 Это уменьшает вероятность того, что клиент останется со старым action-id после новой сборки.
 

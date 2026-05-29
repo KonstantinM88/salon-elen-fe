@@ -205,3 +205,8 @@ Useful scripts:
   date when only phone is provided, and sends client/admin notifications through
   the existing email, Telegram, and SMS paths. Telegram admins can start it from
   `/admin`, `/start`, or the `/add` command.
+- 2026-05-30: `scripts/deploy-pm2.sh` now stops the single-directory PM2 app
+  before mutating `node_modules`/`.next`, backs up the previous `.next`, builds,
+  then starts from `ecosystem.config.cjs`. This avoids transient Next.js
+  `ChunkLoadError`/missing server chunk errors caused by deleting `.next` while
+  the old `next start` process is still serving traffic.
