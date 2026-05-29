@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { changeAppointmentStatus } from '@/lib/booking/status-change';
 import {
+  getAppointmentRescheduleDateOptions,
   getAppointmentRescheduleSlots,
   rescheduleAppointment,
 } from '@/lib/booking/reschedule-appointment';
@@ -18,6 +19,7 @@ import { ORG_TZ } from '@/lib/orgTime';
 
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '';
 const TELEGRAM_API_URL = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}`;
+const APPOINTMENT_RESCHEDULE_DATE_ACTION_PREFIX = 'appt_rs_date';
 const APPOINTMENT_RESCHEDULE_SLOT_ACTION_PREFIX = 'appt_rs_slot';
 
 const formatDeepLinkPhone = (value: string): string | null => {
@@ -289,6 +291,47 @@ const formatDeepLinkPhone = (value: string): string | null => {
     return { inline_keyboard: rows };
   }
 
+  function formatRescheduleDateButtonText({
+    dateISO,
+    slotsCount,
+    firstSlotTime,
+  }: {
+    dateISO: string;
+    slotsCount: number;
+    firstSlotTime: string | null;
+  }): string {
+    const date = new Date(`${dateISO}T12:00:00.000Z`);
+    const label = new Intl.DateTimeFormat('ru-RU', {
+      weekday: 'short',
+      day: '2-digit',
+      month: '2-digit',
+      timeZone: ORG_TZ,
+    }).format(date);
+    const firstSlot = firstSlotTime ? ` с ${firstSlotTime}` : '';
+    return `${label}${firstSlot} (${slotsCount})`;
+  }
+
+  function buildRescheduleDateKeyboard(
+    appointmentId: string,
+    dates: Array<{
+      dateISO: string;
+      slotsCount: number;
+      firstSlotTime: string | null;
+    }>,
+  ): TelegramInlineKeyboardMarkup {
+    const buttons = dates.map((date) => ({
+      text: formatRescheduleDateButtonText(date),
+      callback_data: `${APPOINTMENT_RESCHEDULE_DATE_ACTION_PREFIX}:${appointmentId}:${date.dateISO}`,
+    }));
+    const rows: TelegramInlineKeyboardButton[][] = [];
+
+    for (let index = 0; index < buttons.length; index += 2) {
+      rows.push(buttons.slice(index, index + 2));
+    }
+
+    return { inline_keyboard: rows };
+  }
+
   function rescheduleErrorText(error: string): string {
     const map: Record<string, string> = {
       NOT_FOUND: 'Запись не найдена',
@@ -329,6 +372,55 @@ const formatDeepLinkPhone = (value: string): string | null => {
         expiresAt: Date.now() + 10 * 60 * 1000,
       },
     );
+
+    if (process.env.TELEGRAM_RESCHEDULE_DATE_BUTTONS !== 'false') {
+      const datesResult = await getAppointmentRescheduleDateOptions({
+        appointmentId,
+        daysToScan: 45,
+        limit: 12,
+      });
+
+      if (!datesResult.ok) {
+        await answerCallbackQuery(
+          callbackQuery.id,
+          rescheduleErrorText(datesResult.error),
+          true,
+        );
+        return NextResponse.json({ ok: true });
+      }
+
+      await answerCallbackQuery(callbackQuery.id, 'Выберите дату');
+
+      if (datesResult.dates.length === 0) {
+        await sendTelegramMessage(
+          Number(chatId),
+          [
+            '📅 <b>Перенос записи</b>',
+            '',
+            'В ближайшие дни свободных дат не найдено.',
+            'Можно отправить дату вручную, например <code>10.06</code>, и бот проверит слоты.',
+            '',
+            'Для отмены отправьте <code>/cancel</code>.',
+          ].join('\n'),
+        );
+        return NextResponse.json({ ok: true });
+      }
+
+      await sendTelegramMessage(
+        Number(chatId),
+        [
+          '📅 <b>Перенос записи</b>',
+          '',
+          'Выберите свободную дату. В скобках указано количество свободных слотов.',
+          'После выбора даты бот покажет доступное время.',
+          '',
+          'Можно также отправить дату вручную: <code>10.06</code>.',
+        ].join('\n'),
+        buildRescheduleDateKeyboard(appointmentId, datesResult.dates),
+      );
+
+      return NextResponse.json({ ok: true });
+    }
 
     await answerCallbackQuery(callbackQuery.id, 'Введите новую дату и время');
     await sendTelegramMessage(
@@ -449,6 +541,69 @@ const formatDeepLinkPhone = (value: string): string | null => {
       `✅ Запись перенесена на <code>${parsed.dateISO} ${parsed.time}</code>.`,
     );
     return true;
+  }
+
+  async function handleAppointmentRescheduleDateCallback(
+    callbackQuery: TelegramCallbackQuery,
+  ): Promise<NextResponse> {
+    const data = callbackQuery.data ?? '';
+    const [prefix, appointmentId, dateISO] = data.split(':');
+
+    if (
+      prefix !== APPOINTMENT_RESCHEDULE_DATE_ACTION_PREFIX ||
+      !appointmentId ||
+      !dateISO
+    ) {
+      await answerCallbackQuery(callbackQuery.id, 'Некорректная дата', true);
+      return NextResponse.json({ ok: true });
+    }
+
+    if (!isAdminCallback(callbackQuery)) {
+      await answerCallbackQuery(callbackQuery.id, 'Нет доступа', true);
+      return NextResponse.json({ ok: true });
+    }
+
+    const slotsResult = await getAppointmentRescheduleSlots({
+      appointmentId,
+      dateISO,
+      limit: 42,
+    });
+
+    if (!slotsResult.ok) {
+      await answerCallbackQuery(
+        callbackQuery.id,
+        rescheduleErrorText(slotsResult.error),
+        true,
+      );
+      return NextResponse.json({ ok: true });
+    }
+
+    const chatId = callbackQuery.message?.chat.id ?? callbackQuery.from.id;
+    pendingReschedules.set(
+      pendingRescheduleKey(chatId, callbackQuery.from.id),
+      {
+        appointmentId,
+        expiresAt: Date.now() + 10 * 60 * 1000,
+      },
+    );
+
+    await answerCallbackQuery(callbackQuery.id, 'Выберите время');
+
+    if (slotsResult.slots.length === 0) {
+      await sendTelegramMessage(
+        Number(chatId),
+        'На эту дату нет свободных слотов. Выберите другую дату или отправьте дату вручную.',
+      );
+      return NextResponse.json({ ok: true });
+    }
+
+    await sendTelegramMessage(
+      Number(chatId),
+      `Свободные слоты на <code>${dateISO}</code>:`,
+      buildRescheduleSlotKeyboard(appointmentId, dateISO, slotsResult.slots),
+    );
+
+    return NextResponse.json({ ok: true });
   }
 
   async function handleAppointmentRescheduleSlotCallback(
@@ -629,6 +784,12 @@ const formatDeepLinkPhone = (value: string): string | null => {
       // Получить сообщение
       if (update.callback_query) {
         const callbackData = String(update.callback_query.data ?? '');
+        if (callbackData.startsWith(`${APPOINTMENT_RESCHEDULE_DATE_ACTION_PREFIX}:`)) {
+          return handleAppointmentRescheduleDateCallback(
+            update.callback_query as TelegramCallbackQuery,
+          );
+        }
+
         if (callbackData.startsWith(`${APPOINTMENT_RESCHEDULE_SLOT_ACTION_PREFIX}:`)) {
           return handleAppointmentRescheduleSlotCallback(
             update.callback_query as TelegramCallbackQuery,

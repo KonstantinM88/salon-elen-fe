@@ -1,6 +1,7 @@
 import { getAvailableSlots } from "@/lib/booking/availability-service";
 import { sendStatusChangeEmail } from "@/lib/email";
 import {
+  ORG_TZ,
   formatInOrgTzDateTime,
   orgDayRange,
   wallMinutesToUtc,
@@ -52,6 +53,23 @@ export type AppointmentRescheduleSlotsResult =
       ok: true;
       slots: AppointmentRescheduleSlot[];
       totalDurationMin: number;
+    }
+  | {
+      ok: false;
+      error: Exclude<RescheduleError, "INVALID_TIME" | "OUTSIDE_WORKING_HOURS" | "TIME_OFF" | "CONFLICT">;
+      message: string;
+    };
+
+export type AppointmentRescheduleDateOption = {
+  dateISO: string;
+  slotsCount: number;
+  firstSlotTime: string | null;
+};
+
+export type AppointmentRescheduleDateOptionsResult =
+  | {
+      ok: true;
+      dates: AppointmentRescheduleDateOption[];
     }
   | {
       ok: false;
@@ -119,6 +137,21 @@ function minutesToTime(minutes: number): string {
   return `${String(hours).padStart(2, "0")}:${String(mins).padStart(2, "0")}`;
 }
 
+function todayISO(): string {
+  return new Date()
+    .toLocaleString("sv-SE", {
+      timeZone: ORG_TZ,
+      hour12: false,
+    })
+    .split(" ")[0];
+}
+
+function addDaysISO(dateISO: string, days: number): string {
+  const date = new Date(`${dateISO}T00:00:00.000Z`);
+  date.setUTCDate(date.getUTCDate() + days);
+  return date.toISOString().slice(0, 10);
+}
+
 export async function getAppointmentRescheduleSlots({
   appointmentId,
   dateISO,
@@ -182,6 +215,81 @@ export async function getAppointmentRescheduleSlots({
       ok: false,
       error: "UPDATE_FAILED",
       message: "Failed to load available slots",
+    };
+  }
+}
+
+export async function getAppointmentRescheduleDateOptions({
+  appointmentId,
+  startDateISO,
+  daysToScan = 45,
+  limit = 12,
+}: {
+  appointmentId: string;
+  startDateISO?: string;
+  daysToScan?: number;
+  limit?: number;
+}): Promise<AppointmentRescheduleDateOptionsResult> {
+  const fromDateISO = startDateISO ?? todayISO();
+  if (!isValidDateISO(fromDateISO)) {
+    return { ok: false, error: "INVALID_DATE", message: "Invalid date" };
+  }
+
+  try {
+    const appointment = await prisma.appointment.findUnique({
+      where: { id: appointmentId },
+      select: {
+        id: true,
+        startAt: true,
+        endAt: true,
+        masterId: true,
+      },
+    });
+
+    if (!appointment) {
+      return { ok: false, error: "NOT_FOUND", message: "Appointment not found" };
+    }
+
+    if (!appointment.masterId) {
+      return { ok: false, error: "MISSING_MASTER", message: "Appointment has no master" };
+    }
+
+    const durationMin = Math.max(
+      1,
+      Math.round((appointment.endAt.getTime() - appointment.startAt.getTime()) / 60_000),
+    );
+    const dates: AppointmentRescheduleDateOption[] = [];
+
+    for (
+      let dayOffset = 0;
+      dayOffset < daysToScan && dates.length < limit;
+      dayOffset += 1
+    ) {
+      const dateISO = addDaysISO(fromDateISO, dayOffset);
+      const availability = await getAvailableSlots({
+        masterId: appointment.masterId,
+        dateISO,
+        serviceIds: [],
+        durationMinOverride: durationMin,
+        excludeAppointmentId: appointment.id,
+      });
+
+      if (availability.slots.length === 0) continue;
+
+      dates.push({
+        dateISO,
+        slotsCount: availability.slots.length,
+        firstSlotTime: minutesToTime(availability.slots[0].startMinutes),
+      });
+    }
+
+    return { ok: true, dates };
+  } catch (error) {
+    console.error("Get reschedule date options error:", error);
+    return {
+      ok: false,
+      error: "UPDATE_FAILED",
+      message: "Failed to load available dates",
     };
   }
 }
