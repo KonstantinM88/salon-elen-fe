@@ -160,7 +160,7 @@ export async function setStatus(
     }
 
     // 5. Уведомление администратора и ревалидация
-    sendAdminAppointmentStatusNotification({
+    await sendAdminAppointmentStatusNotification({
       id: appointment.id,
       customerName: appointment.customerName,
       phone: appointment.phone,
@@ -172,8 +172,6 @@ export async function setStatus(
       status,
       previousStatus,
       changedBy: userId,
-    }).catch((error) => {
-      console.error("Admin Telegram status notification error:", error);
     });
 
     revalidatePath("/admin/bookings");

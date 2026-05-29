@@ -55,7 +55,13 @@ function escapeMarkdown(value: string): string {
 }
 
 async function sendTelegramAdminMarkdownMessage(message: string): Promise<void> {
+  const token = process.env.TELEGRAM_BOT_TOKEN;
   const adminChatIds = parseTelegramAdminChatIds();
+
+  if (!token) {
+    console.warn('[Admin Notification] TELEGRAM_BOT_TOKEN not configured - skipping notification');
+    return;
+  }
 
   if (adminChatIds.length === 0) {
     console.warn('[Admin Notification] TELEGRAM_ADMIN_CHAT_ID not configured - skipping notification');
@@ -66,24 +72,32 @@ async function sendTelegramAdminMarkdownMessage(message: string): Promise<void> 
     `[Admin Notification] Sending Telegram notification to ${adminChatIds.length} admin(s): ${adminChatIds.join(', ')}`
   );
 
-  const webhookUrl = `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/telegram/webhook`;
   const results = await Promise.allSettled(
     adminChatIds.map(async (chatId) => {
       const response = await fetch(
-        `${webhookUrl}?action=notify&chatId=${encodeURIComponent(chatId)}`,
+        `https://api.telegram.org/bot${token}/sendMessage`,
         {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ message }),
+          body: JSON.stringify({
+            chat_id: chatId,
+            text: message,
+            parse_mode: 'Markdown',
+            disable_web_page_preview: true,
+          }),
         },
       );
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
+      const result = (await response.json().catch(() => null)) as {
+        ok?: boolean;
+        description?: string;
+      } | null;
+
+      if (!response.ok || !result?.ok) {
         throw new Error(
-          `[Admin Notification] Failed for ${chatId}: ${JSON.stringify(errorData)}`,
+          `[Admin Notification] Failed for ${chatId}: ${result?.description ?? response.statusText}`,
         );
       }
     }),
@@ -96,6 +110,10 @@ async function sendTelegramAdminMarkdownMessage(message: string): Promise<void> 
   failedResults.forEach((result) => {
     console.error('[Admin Notification] Failed to send:', result.reason);
   });
+
+  if (failedResults.length === adminChatIds.length) {
+    throw new Error('Failed to send Telegram admin notification to all configured chat IDs');
+  }
 }
 
 /**
