@@ -365,7 +365,7 @@ const formatDeepLinkPhone = (value: string): string | null => {
       inline_keyboard: [
         [
           {
-            text: '➕ Создать запись',
+            text: '➕ Добавить новую запись',
             callback_data: `${ADMIN_QUICK_BOOKING_ACTION_PREFIX}:start`,
           },
         ],
@@ -552,7 +552,50 @@ const formatDeepLinkPhone = (value: string): string | null => {
     return { phone, customerName, email };
   }
 
+  async function setupAdminTelegramMenu(chatId: number | string): Promise<void> {
+    try {
+      await Promise.all([
+        fetch(`${TELEGRAM_API_URL}/setChatMenuButton`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            chat_id: chatId,
+            menu_button: { type: 'commands' },
+          }),
+        }),
+        fetch(`${TELEGRAM_API_URL}/setMyCommands`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            scope: { type: 'chat', chat_id: chatId },
+            commands: [
+              {
+                command: 'add',
+                description: 'Добавить новую запись',
+              },
+              {
+                command: 'admin',
+                description: 'Открыть админ-меню',
+              },
+              {
+                command: 'cancel',
+                description: 'Отменить текущий диалог',
+              },
+              {
+                command: 'start',
+                description: 'Начать работу с ботом',
+              },
+            ],
+          }),
+        }),
+      ]);
+    } catch (menuError) {
+      console.error('[Telegram Webhook] Admin menu setup error:', menuError);
+    }
+  }
+
   async function sendAdminMenu(chatId: number | string): Promise<void> {
+    await setupAdminTelegramMenu(chatId);
     await sendTelegramMessage(
       Number(chatId),
       [
@@ -560,8 +603,38 @@ const formatDeepLinkPhone = (value: string): string | null => {
         '',
         'Можно быстро создать запись клиента без входа в админку.',
         'Услуги, даты и слоты берутся из актуального расписания.',
+        '',
+        'Команда для быстрого доступа: <code>/add</code>.',
       ].join('\n'),
       buildAdminMenuKeyboard(),
+    );
+  }
+
+  async function beginQuickBooking(
+    chatId: number | string,
+    fromId: number,
+  ): Promise<void> {
+    const services = await listAdminQuickBookingServices();
+    pendingQuickBookings.set(pendingRescheduleKey(chatId, fromId), {
+      expiresAt: Date.now() + 15 * 60 * 1000,
+    });
+
+    if (services.length === 0) {
+      await sendTelegramMessage(
+        Number(chatId),
+        'Нет активных услуг для записи. Проверьте прайс в админке.',
+      );
+      return;
+    }
+
+    await sendTelegramMessage(
+      Number(chatId),
+      [
+        '➕ <b>Быстрая запись клиента</b>',
+        '',
+        'Выберите точную услугу из актуального прайса.',
+      ].join('\n'),
+      buildQuickBookingServiceKeyboard(services),
     );
   }
 
@@ -1007,28 +1080,8 @@ const formatDeepLinkPhone = (value: string): string | null => {
     }
 
     if (action === 'start') {
-      const services = await listAdminQuickBookingServices();
-      pendingQuickBookings.set(key, { expiresAt });
       await answerCallbackQuery(callbackQuery.id, 'Выберите услугу');
-
-      if (services.length === 0) {
-        await sendTelegramMessage(
-          Number(chatId),
-          'Нет активных услуг для записи. Проверьте прайс в админке.',
-        );
-        return NextResponse.json({ ok: true });
-      }
-
-      await sendTelegramMessage(
-        Number(chatId),
-        [
-          '➕ <b>Быстрая запись клиента</b>',
-          '',
-          'Выберите точную услугу из актуального прайса.',
-        ].join('\n'),
-        buildQuickBookingServiceKeyboard(services),
-      );
-
+      await beginQuickBooking(chatId, callbackQuery.from.id);
       return NextResponse.json({ ok: true });
     }
 
@@ -1421,11 +1474,19 @@ const formatDeepLinkPhone = (value: string): string | null => {
       if (
         typeof text === 'string' &&
         isAdminMessage(chatId, from.id) &&
-        (text === '/admin' ||
-          text === '/menu' ||
+        (text === '/add' ||
+          text === '/new' ||
           text === '/quick' ||
-          text === '/create' ||
-          text === '/start')
+          text === '/create')
+      ) {
+        await beginQuickBooking(chatId, from.id);
+        return NextResponse.json({ ok: true });
+      }
+
+      if (
+        typeof text === 'string' &&
+        isAdminMessage(chatId, from.id) &&
+        (text === '/admin' || text === '/menu' || text === '/start')
       ) {
         await sendAdminMenu(chatId);
         return NextResponse.json({ ok: true });

@@ -199,8 +199,9 @@ Useful scripts:
   uniqueness is not violated by empty strings.
 - 2026-05-30: Admin quick booking now goes through
   `src/lib/booking/admin-quick-appointment.ts` for both the admin dashboard and
-  Telegram admin bot. It uses live active leaf services, service-specific
-  masters, shared availability slots, creates confirmed appointments, links or
-  creates clients with fallback email/birth date when only phone is provided,
-  and sends client/admin notifications through the existing email, Telegram, and
-  SMS paths.
+  `/admin/bookings`, plus the Telegram admin bot. It uses live active leaf
+  services, service-specific masters, shared availability slots, creates
+  confirmed appointments, links or creates clients with fallback email/birth
+  date when only phone is provided, and sends client/admin notifications through
+  the existing email, Telegram, and SMS paths. Telegram admins can start it from
+  `/admin`, `/start`, or the `/add` command.

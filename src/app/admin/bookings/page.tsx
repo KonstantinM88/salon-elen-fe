@@ -30,6 +30,9 @@ import { IconGlow, type GlowTone } from '@/components/admin/IconGlow';
 import { DeleteConfirmDialog } from './_components/DeleteConfirmDialog';
 import { RescheduleAppointmentForm } from './_components/RescheduleAppointmentForm';
 import { StatusHistory } from './_components/StatusHistory';
+import QuickBookingButton from '@/app/admin/_components/QuickBookingButton';
+import { createQuickAppointmentAction } from '@/app/admin/quick-booking-actions';
+import { listAdminQuickBookingServices } from '@/lib/booking/admin-quick-appointment';
 import {
   type SeoLocale,
   type SearchParamsPromise,
@@ -422,10 +425,13 @@ export default async function AdminBookingsPage({
     by,
   };
 
-  const masters = await prisma.master.findMany({
-    select: { id: true, name: true },
-    orderBy: { name: 'asc' },
-  });
+  const [masters, quickBookingServices] = await Promise.all([
+    prisma.master.findMany({
+      select: { id: true, name: true },
+      orderBy: { name: 'asc' },
+    }),
+    listAdminQuickBookingServices(),
+  ]);
 
   // ✅ Базовый фильтр: ТОЛЬКО активные заявки + период
   let where: Prisma.AppointmentWhereInput = {
@@ -479,6 +485,20 @@ export default async function AdminBookingsPage({
   const hasMore = rows.length === PAGE_SIZE;
 
   const csvHref = `/admin/bookings/export${qs(baseQS, {})}`;
+  const masterOpts = masters.map((master) => ({
+    id: master.id,
+    name: master.name,
+  }));
+  const serviceOpts = quickBookingServices.map((service) => ({
+    id: service.id,
+    name: service.parentName
+      ? `${service.parentName} · ${service.name}`
+      : service.name,
+    durationMin: service.durationMin,
+    parentName: service.parentName,
+  }));
+  const todayStr = formatOrgDateInput(new Date());
+  const defaultTime = formatOrgTimeInput(new Date());
 
   return (
     <div className="space-y-4 sm:space-y-6">
@@ -504,7 +524,17 @@ export default async function AdminBookingsPage({
           </div>
           
           {/* ✅ КНОПКИ С АРХИВОМ */}
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
+            <QuickBookingButton
+              masters={masterOpts}
+              services={serviceOpts}
+              defaultDate={todayStr}
+              defaultTime={defaultTime}
+              action={createQuickAppointmentAction}
+              hints={[]}
+              redirectTo="/admin/bookings"
+            />
+
             <Link
               href="/admin/bookings/archived"
               className="btn-glass inline-flex items-center gap-2 text-sm hover:scale-105 active:scale-95"

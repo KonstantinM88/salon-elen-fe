@@ -2,9 +2,6 @@
 import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { AppointmentStatus } from "@/lib/prisma-client";
-import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
-import { cookies } from "next/headers";
 import {
   Newspaper,
   CalendarDays,
@@ -34,15 +31,12 @@ import QuickBookingButton, {
 } from "@/app/admin/_components/QuickBookingButton";
 import { IconGlow } from "@/components/admin/IconGlow";
 import {
-  isSeoLocale,
   type SeoLocale,
   type SearchParamsPromise,
 } from "@/lib/seo-locale";
 import { resolveContentLocale } from "@/lib/seo-locale-server";
-import {
-  createAdminQuickAppointment,
-  listAdminQuickBookingServices,
-} from "@/lib/booking/admin-quick-appointment";
+import { listAdminQuickBookingServices } from "@/lib/booking/admin-quick-appointment";
+import { createQuickAppointmentAction } from "@/app/admin/quick-booking-actions";
 
 export const dynamic = "force-dynamic";
 
@@ -329,59 +323,6 @@ const ADMIN_COPY: Record<SeoLocale, AdminCopy> = {
     },
   },
 };
-
-async function resolveAdminActionLocale(): Promise<SeoLocale> {
-  const cookieStore = await cookies();
-  const cookieLocale = cookieStore.get("locale")?.value;
-  if (isSeoLocale(cookieLocale)) return cookieLocale;
-  return "de";
-}
-
-/* ═══════════════════════════════════════════════════════════════════════════
-   SERVER ACTION: Быстрая запись
-═══════════════════════════════════════════════════════════════════════════ */
-
-export async function createQuickAppointment(formData: FormData) {
-  "use server";
-  const locale = await resolveAdminActionLocale();
-  const t = ADMIN_COPY[locale];
-  const customerName = String(formData.get("customerName") ?? "").trim() || t.guestFallback;
-  const phone = String(formData.get("phone") ?? "").trim();
-  const emailRaw = String(formData.get("email") ?? "").trim();
-  const email = emailRaw ? emailRaw : null;
-  const notesRaw = String(formData.get("notes") ?? "").trim();
-  const notes = notesRaw ? notesRaw : null;
-
-  const masterId = String(formData.get("masterId") ?? "");
-  const serviceId = String(formData.get("serviceId") ?? "");
-  const date = String(formData.get("date") ?? ""); // YYYY-MM-DD
-  const time = String(formData.get("time") ?? ""); // HH:MM
-
-  if (!masterId || !serviceId || !date || !time) {
-    redirect("/admin?quick=error");
-  }
-
-  const result = await createAdminQuickAppointment({
-    serviceId,
-    masterId,
-    dateISO: date,
-    time,
-    phone,
-    customerName,
-    email,
-    notes,
-    changedBy: "admin-site",
-  });
-
-  if (!result.ok) {
-    console.error("[Admin Quick Booking] Failed:", result);
-    redirect("/admin?quick=error");
-  }
-
-  revalidatePath("/admin");
-  revalidatePath("/admin/bookings");
-  redirect("/admin?quick=ok");
-}
 
 /* ═══════════════════════════════════════════════════════════════════════════
    HELPER FUNCTIONS
@@ -847,9 +788,10 @@ export default async function AdminDashboard({
               services={serviceOpts}
               defaultDate={todayStr}
               defaultTime={nextHalfHour}
-              action={createQuickAppointment}
+              action={createQuickAppointmentAction}
               hints={freeRows.slice(0, 6)}
               labels={t.quickBooking}
+              redirectTo="/admin"
             />
           </div>
         </div>

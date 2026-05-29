@@ -77,6 +77,7 @@ export default function QuickBookingButton({
   action,
   hints,
   labels,
+  redirectTo,
 }: {
   masters: MasterOpt[];
   services: ServiceOpt[];
@@ -85,6 +86,7 @@ export default function QuickBookingButton({
   action: ServerAction;
   hints: Hint[];
   labels?: QuickBookingLabels;
+  redirectTo?: string;
 }) {
   const ui = labels ?? DEFAULT_LABELS_RU;
   const [open, setOpen] = useState(false);
@@ -186,6 +188,10 @@ export default function QuickBookingButton({
             </div>
 
             <form action={action} className="p-4 space-y-3">
+              {redirectTo && (
+                <input type="hidden" name="redirectTo" value={redirectTo} />
+              )}
+
               <div className="grid gap-3 sm:grid-cols-2">
                 <label className="grid gap-1 text-sm">
                   <span className="opacity-70">{ui.client}</span>
