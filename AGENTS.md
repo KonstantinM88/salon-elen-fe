@@ -183,3 +183,9 @@ Useful scripts:
   actions only from configured admin chat IDs and changes status through
   `src/lib/booking/status-change.ts`, preserving status logs and client/admin
   notifications.
+- 2026-05-29: Appointment rescheduling is centralized in
+  `src/lib/booking/reschedule-appointment.ts`. Admin bookings can be moved from
+  `/admin/bookings`, and Telegram admin notifications include an `appt_reschedule`
+  action. Reschedule slot lists reuse `getAvailableSlots` with the current
+  appointment excluded from busy windows, then apply the same validation, status
+  log, and client/admin notification flow.

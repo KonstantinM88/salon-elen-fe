@@ -1,15 +1,24 @@
   // src/app/api/telegram/webhook/route.ts
 
-  import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { changeAppointmentStatus } from '@/lib/booking/status-change';
+import {
+  getAppointmentRescheduleSlots,
+  rescheduleAppointment,
+} from '@/lib/booking/reschedule-appointment';
 import { isPhoneDigitsValid, normalizePhoneDigits } from '@/lib/phone';
 import { AppointmentStatus } from '@/lib/prisma-client';
-import { APPOINTMENT_STATUS_ACTION_PREFIX } from '@/lib/send-admin-notification';
+import {
+  APPOINTMENT_RESCHEDULE_ACTION_PREFIX,
+  APPOINTMENT_STATUS_ACTION_PREFIX,
+} from '@/lib/send-admin-notification';
 import { parseTelegramAdminChatIds } from '@/lib/telegram-admin-chat-ids';
+import { ORG_TZ } from '@/lib/orgTime';
 
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '';
 const TELEGRAM_API_URL = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}`;
+const APPOINTMENT_RESCHEDULE_SLOT_ACTION_PREFIX = 'appt_rs_slot';
 
 const formatDeepLinkPhone = (value: string): string | null => {
   const digits = normalizePhoneDigits(value);
@@ -32,9 +41,27 @@ const formatDeepLinkPhone = (value: string): string | null => {
   // Хранилище для связи телефон ↔ chat_id
   // В продакшене используй TelegramUser из БД!
   const phoneToChat = new Map<string, number>();
+  const pendingReschedules = new Map<
+    string,
+    { appointmentId: string; expiresAt: number }
+  >();
 
   // Отправка сообщения в Telegram (HTML)
-  async function sendTelegramMessage(chatId: number, text: string) {
+  type TelegramInlineKeyboardButton = {
+    text: string;
+    callback_data?: string;
+    url?: string;
+  };
+
+  type TelegramInlineKeyboardMarkup = {
+    inline_keyboard: TelegramInlineKeyboardButton[][];
+  };
+
+  async function sendTelegramMessage(
+    chatId: number,
+    text: string,
+    replyMarkup?: TelegramInlineKeyboardMarkup,
+  ) {
     try {
       const response = await fetch(`${TELEGRAM_API_URL}/sendMessage`, {
         method: 'POST',
@@ -43,6 +70,7 @@ const formatDeepLinkPhone = (value: string): string | null => {
           chat_id: chatId,
           text,
           parse_mode: 'HTML',
+          ...(replyMarkup ? { reply_markup: replyMarkup } : {}),
         }),
       });
       
@@ -159,6 +187,324 @@ const formatDeepLinkPhone = (value: string): string | null => {
     return username
       ? `telegram:${callbackQuery.from.id}:${username}`
       : `telegram:${callbackQuery.from.id}`;
+  }
+
+  function getMessageActor(from: {
+    id: number;
+    first_name?: string;
+    last_name?: string;
+    username?: string;
+  }): string {
+    const username = from.username
+      ? `@${from.username}`
+      : [from.first_name, from.last_name].filter(Boolean).join(' ').trim();
+
+    return username ? `telegram:${from.id}:${username}` : `telegram:${from.id}`;
+  }
+
+  function isAdminMessage(chatId: number | string, fromId: number): boolean {
+    const adminChatIds = new Set(parseTelegramAdminChatIds());
+    return adminChatIds.has(String(chatId)) || adminChatIds.has(String(fromId));
+  }
+
+  function pendingRescheduleKey(chatId: number | string, fromId: number): string {
+    return `${chatId}:${fromId}`;
+  }
+
+  function parseRescheduleText(
+    text: string,
+  ): { dateISO: string; time: string } | null {
+    const value = text.trim().replace(/\s+/g, ' ');
+    const iso = value.match(/^(\d{4}-\d{2}-\d{2})\s+(\d{1,2}):(\d{2})$/);
+    if (iso) {
+      return {
+        dateISO: iso[1],
+        time: `${iso[2].padStart(2, '0')}:${iso[3]}`,
+      };
+    }
+
+    const local = value.match(/^(\d{1,2})\.(\d{1,2})(?:\.(\d{2}|\d{4}))?\s+(\d{1,2}):(\d{2})$/);
+    if (!local) return null;
+
+    const now = new Date();
+    const currentYear = Number(
+      new Intl.DateTimeFormat('en-CA', {
+        timeZone: ORG_TZ,
+        year: 'numeric',
+      }).format(now),
+    );
+    const yearRaw = local[3];
+    const year = yearRaw
+      ? Number(yearRaw.length === 2 ? `20${yearRaw}` : yearRaw)
+      : currentYear;
+    const month = local[2].padStart(2, '0');
+    const day = local[1].padStart(2, '0');
+
+    return {
+      dateISO: `${year}-${month}-${day}`,
+      time: `${local[4].padStart(2, '0')}:${local[5]}`,
+    };
+  }
+
+  function parseRescheduleDate(text: string): string | null {
+    const value = text.trim().replace(/\s+/g, ' ');
+    const iso = value.match(/^(\d{4}-\d{2}-\d{2})$/);
+    if (iso) return iso[1];
+
+    const local = value.match(/^(\d{1,2})\.(\d{1,2})(?:\.(\d{2}|\d{4}))?$/);
+    if (!local) return null;
+
+    const now = new Date();
+    const currentYear = Number(
+      new Intl.DateTimeFormat('en-CA', {
+        timeZone: ORG_TZ,
+        year: 'numeric',
+      }).format(now),
+    );
+    const yearRaw = local[3];
+    const year = yearRaw
+      ? Number(yearRaw.length === 2 ? `20${yearRaw}` : yearRaw)
+      : currentYear;
+    const month = local[2].padStart(2, '0');
+    const day = local[1].padStart(2, '0');
+
+    return `${year}-${month}-${day}`;
+  }
+
+  function buildRescheduleSlotKeyboard(
+    appointmentId: string,
+    dateISO: string,
+    slots: Array<{ time: string; displayTime: string }>,
+  ): TelegramInlineKeyboardMarkup {
+    const buttons = slots.map((slot) => ({
+      text: slot.displayTime,
+      callback_data: `${APPOINTMENT_RESCHEDULE_SLOT_ACTION_PREFIX}:${appointmentId}:${dateISO}:${slot.time.replace(':', '')}`,
+    }));
+    const rows: TelegramInlineKeyboardButton[][] = [];
+
+    for (let index = 0; index < buttons.length; index += 3) {
+      rows.push(buttons.slice(index, index + 3));
+    }
+
+    return { inline_keyboard: rows };
+  }
+
+  function rescheduleErrorText(error: string): string {
+    const map: Record<string, string> = {
+      NOT_FOUND: 'Запись не найдена',
+      MISSING_MASTER: 'У записи не указан мастер',
+      INVALID_DATE: 'Некорректная дата',
+      INVALID_TIME: 'Некорректное время',
+      PAST: 'Нельзя перенести запись в прошлое',
+      OUTSIDE_WORKING_HOURS: 'Время вне рабочего графика мастера',
+      TIME_OFF: 'В это время у мастера недоступность',
+      CONFLICT: 'Это время уже занято',
+      UPDATE_FAILED: 'Не удалось перенести запись',
+    };
+
+    return map[error] ?? 'Не удалось перенести запись';
+  }
+
+  async function handleAppointmentRescheduleCallback(
+    callbackQuery: TelegramCallbackQuery,
+  ): Promise<NextResponse> {
+    const data = callbackQuery.data ?? '';
+    const [prefix, appointmentId] = data.split(':');
+
+    if (prefix !== APPOINTMENT_RESCHEDULE_ACTION_PREFIX || !appointmentId) {
+      await answerCallbackQuery(callbackQuery.id, 'Неизвестное действие', true);
+      return NextResponse.json({ ok: true });
+    }
+
+    if (!isAdminCallback(callbackQuery)) {
+      await answerCallbackQuery(callbackQuery.id, 'Нет доступа', true);
+      return NextResponse.json({ ok: true });
+    }
+
+    const chatId = callbackQuery.message?.chat.id ?? callbackQuery.from.id;
+    pendingReschedules.set(
+      pendingRescheduleKey(chatId, callbackQuery.from.id),
+      {
+        appointmentId,
+        expiresAt: Date.now() + 10 * 60 * 1000,
+      },
+    );
+
+    await answerCallbackQuery(callbackQuery.id, 'Введите новую дату и время');
+    await sendTelegramMessage(
+      Number(chatId),
+      [
+        '📅 <b>Перенос записи</b>',
+        '',
+        'Ответьте сообщением с новой датой и временем:',
+        '<code>29.05</code>',
+        'или',
+        '<code>29.05 14:30</code>',
+        'или',
+        '<code>2026-05-29 14:30</code>',
+        '',
+        'Для отмены отправьте <code>/cancel</code>.',
+      ].join('\n'),
+    );
+
+    return NextResponse.json({ ok: true });
+  }
+
+  async function handlePendingRescheduleMessage({
+    chatId,
+    text,
+    from,
+  }: {
+    chatId: number | string;
+    text: string;
+    from: {
+      id: number;
+      first_name?: string;
+      last_name?: string;
+      username?: string;
+    };
+  }): Promise<boolean> {
+    if (!isAdminMessage(chatId, from.id)) return false;
+
+    const key = pendingRescheduleKey(chatId, from.id);
+    const pending = pendingReschedules.get(key);
+    if (!pending) return false;
+
+    if (pending.expiresAt < Date.now()) {
+      pendingReschedules.delete(key);
+      await sendTelegramMessage(Number(chatId), '⏱ Время ожидания истекло. Нажмите «Перенести» еще раз.');
+      return true;
+    }
+
+    if (text.trim() === '/cancel') {
+      pendingReschedules.delete(key);
+      await sendTelegramMessage(Number(chatId), 'Перенос отменен.');
+      return true;
+    }
+
+    const parsed = parseRescheduleText(text);
+    if (!parsed) {
+      const dateISO = parseRescheduleDate(text);
+      if (dateISO) {
+        const slotsResult = await getAppointmentRescheduleSlots({
+          appointmentId: pending.appointmentId,
+          dateISO,
+          limit: 42,
+        });
+
+        if (!slotsResult.ok) {
+          await sendTelegramMessage(
+            Number(chatId),
+            `Не удалось загрузить свободные слоты: <code>${rescheduleErrorText(slotsResult.error)}</code>`,
+          );
+          return true;
+        }
+
+        if (slotsResult.slots.length === 0) {
+          await sendTelegramMessage(
+            Number(chatId),
+            'На эту дату нет свободных слотов. Отправьте другую дату.',
+          );
+          return true;
+        }
+
+        await sendTelegramMessage(
+          Number(chatId),
+          `Свободные слоты на <code>${dateISO}</code>:`,
+          buildRescheduleSlotKeyboard(
+            pending.appointmentId,
+            dateISO,
+            slotsResult.slots,
+          ),
+        );
+        return true;
+      }
+
+      await sendTelegramMessage(
+        Number(chatId),
+        'Не удалось распознать дату и время. Пример: <code>29.05 14:30</code>',
+      );
+      return true;
+    }
+
+    const result = await rescheduleAppointment({
+      appointmentId: pending.appointmentId,
+      dateISO: parsed.dateISO,
+      time: parsed.time,
+      changedBy: getMessageActor(from),
+      reason: `Rescheduled from Telegram bot to ${parsed.dateISO} ${parsed.time}`,
+    });
+
+    if (!result.ok) {
+      await sendTelegramMessage(
+        Number(chatId),
+        `Не удалось перенести запись: <code>${result.error}</code>`,
+      );
+      return true;
+    }
+
+    pendingReschedules.delete(key);
+    await sendTelegramMessage(
+      Number(chatId),
+      `✅ Запись перенесена на <code>${parsed.dateISO} ${parsed.time}</code>.`,
+    );
+    return true;
+  }
+
+  async function handleAppointmentRescheduleSlotCallback(
+    callbackQuery: TelegramCallbackQuery,
+  ): Promise<NextResponse> {
+    const data = callbackQuery.data ?? '';
+    const [prefix, appointmentId, dateISO, rawTime] = data.split(':');
+    const time =
+      rawTime && /^\d{4}$/.test(rawTime)
+        ? `${rawTime.slice(0, 2)}:${rawTime.slice(2)}`
+        : null;
+
+    if (
+      prefix !== APPOINTMENT_RESCHEDULE_SLOT_ACTION_PREFIX ||
+      !appointmentId ||
+      !dateISO ||
+      !time
+    ) {
+      await answerCallbackQuery(callbackQuery.id, 'Некорректный слот', true);
+      return NextResponse.json({ ok: true });
+    }
+
+    if (!isAdminCallback(callbackQuery)) {
+      await answerCallbackQuery(callbackQuery.id, 'РќРµС‚ РґРѕСЃС‚СѓРїР°', true);
+      return NextResponse.json({ ok: true });
+    }
+
+    const result = await rescheduleAppointment({
+      appointmentId,
+      dateISO,
+      time,
+      changedBy: getCallbackActor(callbackQuery),
+      reason: `Rescheduled from Telegram bot slot button to ${dateISO} ${time}`,
+    });
+
+    if (!result.ok) {
+      await answerCallbackQuery(
+        callbackQuery.id,
+        rescheduleErrorText(result.error),
+        true,
+      );
+      return NextResponse.json({ ok: true });
+    }
+
+    const chatId = callbackQuery.message?.chat.id ?? callbackQuery.from.id;
+    pendingReschedules.delete(
+      pendingRescheduleKey(chatId, callbackQuery.from.id),
+    );
+
+    await answerCallbackQuery(callbackQuery.id, 'Запись перенесена');
+    await sendTelegramMessage(
+      Number(chatId),
+      `✅ Запись перенесена на <code>${dateISO} ${time}</code>.`,
+    );
+
+    return NextResponse.json({ ok: true });
   }
 
   async function handleAppointmentStatusCallback(
@@ -282,6 +628,19 @@ const formatDeepLinkPhone = (value: string): string | null => {
       
       // Получить сообщение
       if (update.callback_query) {
+        const callbackData = String(update.callback_query.data ?? '');
+        if (callbackData.startsWith(`${APPOINTMENT_RESCHEDULE_SLOT_ACTION_PREFIX}:`)) {
+          return handleAppointmentRescheduleSlotCallback(
+            update.callback_query as TelegramCallbackQuery,
+          );
+        }
+
+        if (callbackData.startsWith(`${APPOINTMENT_RESCHEDULE_ACTION_PREFIX}:`)) {
+          return handleAppointmentRescheduleCallback(
+            update.callback_query as TelegramCallbackQuery,
+          );
+        }
+
         return handleAppointmentStatusCallback(
           update.callback_query as TelegramCallbackQuery,
         );
@@ -303,6 +662,13 @@ const formatDeepLinkPhone = (value: string): string | null => {
       });
       
       // Команда /start
+      if (
+        typeof text === 'string' &&
+        (await handlePendingRescheduleMessage({ chatId, text, from }))
+      ) {
+        return NextResponse.json({ ok: true });
+      }
+
       if (text === '/start' || text?.startsWith('/start ')) {
         const firstName = from.first_name || 'Guest';
         

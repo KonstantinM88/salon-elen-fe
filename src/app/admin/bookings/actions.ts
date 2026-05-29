@@ -7,10 +7,20 @@ import { revalidatePath } from "next/cache";
 import { sendStatusChangeEmail } from "@/lib/email";
 import { notifyClientAppointmentStatus } from "@/lib/telegram-bot";
 import { sendAdminAppointmentStatusNotification } from "@/lib/send-admin-notification";
+import {
+  getAppointmentRescheduleSlots,
+  rescheduleAppointment,
+} from "@/lib/booking/reschedule-appointment";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 
 type Result = { ok: true } | { ok: false; error: string };
+type RescheduleSlotsResult =
+  | {
+      ok: true;
+      slots: Array<{ time: string; displayTime: string }>;
+    }
+  | { ok: false; error: string };
 
 /**
  * Получить ID текущего пользователя
@@ -190,6 +200,86 @@ export async function setStatus(
 /**
  * Удалить заявку с логированием
  */
+export async function rescheduleAppointmentAction(
+  id: string,
+  dateISO: string,
+  time: string
+): Promise<Result> {
+  try {
+    const userId = await getCurrentUserId();
+    const result = await rescheduleAppointment({
+      appointmentId: id,
+      dateISO,
+      time,
+      changedBy: userId,
+    });
+
+    if (!result.ok) {
+      const errors: Partial<Record<typeof result.error, string>> = {
+        NOT_FOUND: "Запись не найдена",
+        MISSING_MASTER: "У записи не указан мастер",
+        INVALID_DATE: "Некорректная дата",
+        INVALID_TIME: "Некорректное время",
+        PAST: "Нельзя перенести запись в прошлое",
+        OUTSIDE_WORKING_HOURS: "Время вне рабочего графика мастера",
+        TIME_OFF: "В это время у мастера недоступность",
+        CONFLICT: "Это время пересекается с другой записью",
+        UPDATE_FAILED: "Не удалось перенести запись",
+      };
+
+      return {
+        ok: false,
+        error: errors[result.error] ?? "Не удалось перенести запись",
+      };
+    }
+
+    revalidatePath("/admin/bookings");
+    console.log(`Appointment rescheduled: ${id}`);
+    return { ok: true };
+  } catch (error) {
+    console.error("Reschedule action error:", error);
+    return { ok: false, error: "Не удалось перенести запись" };
+  }
+}
+
+export async function getRescheduleSlotsAction(
+  id: string,
+  dateISO: string,
+): Promise<RescheduleSlotsResult> {
+  try {
+    const result = await getAppointmentRescheduleSlots({
+      appointmentId: id,
+      dateISO,
+    });
+
+    if (!result.ok) {
+      const errors: Partial<Record<typeof result.error, string>> = {
+        NOT_FOUND: "Запись не найдена",
+        MISSING_MASTER: "У записи не указан мастер",
+        INVALID_DATE: "Некорректная дата",
+        PAST: "Нельзя перенести запись в прошлое",
+        UPDATE_FAILED: "Не удалось загрузить свободные слоты",
+      };
+
+      return {
+        ok: false,
+        error: errors[result.error] ?? "Не удалось загрузить свободные слоты",
+      };
+    }
+
+    return {
+      ok: true,
+      slots: result.slots.map((slot) => ({
+        time: slot.time,
+        displayTime: slot.displayTime,
+      })),
+    };
+  } catch (error) {
+    console.error("Get reschedule slots action error:", error);
+    return { ok: false, error: "Не удалось загрузить свободные слоты" };
+  }
+}
+
 export async function remove(id: string): Promise<Result> {
   try {
     // 1. Получаем информацию о заявке для логирования

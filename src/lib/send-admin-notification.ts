@@ -50,6 +50,21 @@ interface AppointmentStatusNotificationData {
   changedBy?: string | null;
 }
 
+interface AppointmentRescheduledNotificationData {
+  id: string;
+  customerName: string;
+  phone: string;
+  email: string | null;
+  serviceName: string;
+  masterName: string;
+  oldStartAt: Date;
+  oldEndAt: Date;
+  startAt: Date;
+  endAt: Date;
+  status: AppointmentStatus;
+  changedBy?: string | null;
+}
+
 interface TelegramInlineKeyboardButton {
   text: string;
   callback_data?: string;
@@ -61,9 +76,29 @@ interface TelegramInlineKeyboardMarkup {
 }
 
 export const APPOINTMENT_STATUS_ACTION_PREFIX = "appt_status";
+export const APPOINTMENT_RESCHEDULE_ACTION_PREFIX = "appt_reschedule";
 
 function escapeMarkdown(value: string): string {
   return value.replace(/([_*[\]()~`>#+=|{}.!\\-])/g, '\\$1');
+}
+
+function formatAdminDateTime(date: Date): string {
+  return new Intl.DateTimeFormat('ru-RU', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    timeZone: ORG_TZ,
+  }).format(date);
+}
+
+function formatAdminTime(date: Date): string {
+  return new Intl.DateTimeFormat('ru-RU', {
+    hour: '2-digit',
+    minute: '2-digit',
+    timeZone: ORG_TZ,
+  }).format(date);
 }
 
 function buildStatusCallbackData(
@@ -102,8 +137,15 @@ function buildAppointmentStatusKeyboard(
     "https://permanent-halle.de";
   rows.push([
     {
+      text: "📅 Перенести",
+      callback_data: `${APPOINTMENT_RESCHEDULE_ACTION_PREFIX}:${appointmentId}`,
+    },
+  ]);
+
+  rows.push([
+    {
       text: "📊 Открыть в админке",
-      url: `${baseUrl}/admin/appointments/${appointmentId}`,
+      url: `${baseUrl}/admin/bookings?period=thisYear&by=visit#appointment-${encodeURIComponent(appointmentId)}`,
     },
   ]);
 
@@ -318,6 +360,49 @@ export async function sendAdminAppointmentStatusNotification(
     console.log('[Admin Notification] Status-change notification sent');
   } catch (error) {
     console.error('[Admin Notification] Status-change notification failed:', error);
+  }
+}
+
+export async function sendAdminAppointmentRescheduledNotification(
+  appointment: AppointmentRescheduledNotificationData,
+): Promise<void> {
+  try {
+    const oldDateTime = formatAdminDateTime(appointment.oldStartAt);
+    const newDateTime = formatAdminDateTime(appointment.startAt);
+    const oldTime = formatAdminTime(appointment.oldEndAt);
+    const newTime = formatAdminTime(appointment.endAt);
+
+    const message = [
+      '📅 *ЗАПИСЬ ПЕРЕНЕСЕНА*',
+      '',
+      '━━━━━━━━━━━━━━━━━━━━━',
+      '',
+      `🕘 *Было:* ${escapeMarkdown(oldDateTime)} - ${escapeMarkdown(oldTime)}`,
+      `🕐 *Стало:* *${escapeMarkdown(newDateTime)} - ${escapeMarkdown(newTime)}*`,
+      appointment.changedBy ? `👤 *Изменил:* ${escapeMarkdown(appointment.changedBy)}` : '',
+      '',
+      `👥 *Клиент:* ${escapeMarkdown(appointment.customerName)}`,
+      `📞 *Телефон:* ${escapeMarkdown(appointment.phone)}`,
+      appointment.email ? `📧 *Email:* ${escapeMarkdown(appointment.email)}` : '',
+      `✂️ *Услуга:* ${escapeMarkdown(appointment.serviceName)}`,
+      `👩‍💼 *Мастер:* ${escapeMarkdown(appointment.masterName)}`,
+      `📌 *Статус:* ${escapeMarkdown(appointment.status)}`,
+      '',
+      '━━━━━━━━━━━━━━━━━━━━━',
+      '',
+      `🆔 *ID записи:* \`${escapeMarkdown(appointment.id)}\``,
+    ]
+      .filter(Boolean)
+      .join('\n');
+
+    await sendTelegramAdminMarkdownMessage(
+      message,
+      buildAppointmentStatusKeyboard(appointment.id, appointment.status),
+    );
+
+    console.log('[Admin Notification] Reschedule notification sent');
+  } catch (error) {
+    console.error('[Admin Notification] Reschedule notification failed:', error);
   }
 }
 

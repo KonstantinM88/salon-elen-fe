@@ -22,11 +22,13 @@ import {
   ExternalLink,
 } from 'lucide-react';
 import {
+  ORG_TZ,
   formatInOrgTzDateTime,
   formatWallRangeWithDate,
 } from '@/lib/orgTime';
 import { IconGlow, type GlowTone } from '@/components/admin/IconGlow';
 import { DeleteConfirmDialog } from './_components/DeleteConfirmDialog';
+import { RescheduleAppointmentForm } from './_components/RescheduleAppointmentForm';
 import { StatusHistory } from './_components/StatusHistory';
 import {
   type SeoLocale,
@@ -86,6 +88,13 @@ type BookingsCopy = {
   confirmAction: string;
   doneAction: string;
   cancelAction: string;
+  rescheduleAction: string;
+  rescheduleDate: string;
+  rescheduleTime: string;
+  rescheduleSubmit: string;
+  rescheduleSuccess: string;
+  rescheduleLoading: string;
+  rescheduleNoSlots: string;
 };
 
 const BOOKINGS_COPY: Record<SeoLocale, BookingsCopy> = {
@@ -135,6 +144,13 @@ const BOOKINGS_COPY: Record<SeoLocale, BookingsCopy> = {
     confirmAction: 'Bestaetigen',
     doneAction: 'Abgeschlossen',
     cancelAction: 'Stornieren',
+    rescheduleAction: 'Verschieben',
+    rescheduleDate: 'Datum',
+    rescheduleTime: 'Uhrzeit',
+    rescheduleSubmit: 'Speichern',
+    rescheduleSuccess: 'Termin verschoben',
+    rescheduleLoading: 'Lade...',
+    rescheduleNoSlots: 'Keine freien Slots',
   },
   ru: {
     title: 'Заявки на запись',
@@ -182,6 +198,13 @@ const BOOKINGS_COPY: Record<SeoLocale, BookingsCopy> = {
     confirmAction: 'Подтвердить',
     doneAction: 'Выполнен',
     cancelAction: 'Отменить',
+    rescheduleAction: 'Перенести',
+    rescheduleDate: 'Дата',
+    rescheduleTime: 'Время',
+    rescheduleSubmit: 'Сохранить',
+    rescheduleSuccess: 'Запись перенесена',
+    rescheduleLoading: 'Загрузка...',
+    rescheduleNoSlots: 'Нет свободных слотов',
   },
   en: {
     title: 'Bookings',
@@ -229,6 +252,13 @@ const BOOKINGS_COPY: Record<SeoLocale, BookingsCopy> = {
     confirmAction: 'Confirm',
     doneAction: 'Completed',
     cancelAction: 'Cancel',
+    rescheduleAction: 'Reschedule',
+    rescheduleDate: 'Date',
+    rescheduleTime: 'Time',
+    rescheduleSubmit: 'Save',
+    rescheduleSuccess: 'Appointment rescheduled',
+    rescheduleLoading: 'Loading...',
+    rescheduleNoSlots: 'No free slots',
   },
 };
 
@@ -241,6 +271,24 @@ function localeToIntl(locale: SeoLocale): string {
 /* ═══════════════════════════════════════════════════════════════════════════
    HELPER FUNCTIONS
 ═══════════════════════════════════════════════════════════════════════════ */
+
+function formatOrgDateInput(date: Date): string {
+  return new Intl.DateTimeFormat('sv-SE', {
+    timeZone: ORG_TZ,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(date);
+}
+
+function formatOrgTimeInput(date: Date): string {
+  return new Intl.DateTimeFormat('sv-SE', {
+    timeZone: ORG_TZ,
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  }).format(date);
+}
 
 function getOne(
   sp: Record<string, string | string[] | undefined>,
@@ -656,7 +704,10 @@ function DesktopBookingCard({
     );
 
   return (
-    <div className="card-glass-hover card-glass-accent card-glow">
+    <div
+      id={`appointment-${booking.id}`}
+      className="card-glass-hover card-glass-accent card-glow scroll-mt-24"
+    >
       <div className="p-4 sm:p-5 space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex flex-wrap items-center gap-2">
@@ -786,6 +837,8 @@ function DesktopBookingCard({
               id={booking.id} 
               customerName={booking.customerName}
               status={booking.status}
+              currentDate={formatOrgDateInput(booking.startAt)}
+              currentTime={formatOrgTimeInput(booking.startAt)}
               t={t}
               locale={locale}
             />
@@ -812,7 +865,10 @@ function MobileBookingCard({
   locale: SeoLocale;
 }) {
   return (
-    <div className="card-glass-hover card-glass-accent card-glow">
+    <div
+      id={`appointment-${booking.id}`}
+      className="card-glass-hover card-glass-accent card-glow scroll-mt-24"
+    >
       <div className="p-4 space-y-3">
         {/* Заголовок */}
         <div className="flex items-center justify-between gap-3">
@@ -918,6 +974,8 @@ function MobileBookingCard({
             id={booking.id} 
             customerName={booking.customerName}
             status={booking.status}
+            currentDate={formatOrgDateInput(booking.startAt)}
+            currentTime={formatOrgTimeInput(booking.startAt)}
             t={t}
             locale={locale}
           />
@@ -1018,6 +1076,8 @@ function Actions({
   id,
   customerName,
   status,
+  currentDate,
+  currentTime,
   t,
   locale,
   compact,
@@ -1025,6 +1085,8 @@ function Actions({
   id: string;
   customerName: string;
   status: AppointmentStatus;
+  currentDate: string;
+  currentTime: string;
   t: BookingsCopy;
   locale: SeoLocale;
   compact?: boolean;
@@ -1092,6 +1154,22 @@ function Actions({
           </button>
         </form>
       )}
+
+      {/* Перенести запись */}
+      <RescheduleAppointmentForm
+        appointmentId={id}
+        defaultDate={currentDate}
+        defaultTime={currentTime}
+        labels={{
+          action: t.rescheduleAction,
+          date: t.rescheduleDate,
+          time: t.rescheduleTime,
+          submit: t.rescheduleSubmit,
+          success: t.rescheduleSuccess,
+          loading: t.rescheduleLoading,
+          noSlots: t.rescheduleNoSlots,
+        }}
+      />
 
       {/* Удалить с подтверждением */}
       <DeleteConfirmDialog

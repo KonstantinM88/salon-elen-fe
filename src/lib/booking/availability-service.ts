@@ -41,6 +41,7 @@ interface GetAvailabilityArgs {
   serviceIds: string[];
   durationMinOverride?: number;
   preferredTime?: PreferredTime;
+  excludeAppointmentId?: string;
 }
 
 // ─── Helpers ────────────────────────────────────────────────────
@@ -114,6 +115,7 @@ export async function getAvailableSlots(
 ): Promise<AvailabilityResult> {
   const { masterId, dateISO, serviceIds, durationMinOverride, preferredTime } =
     args;
+  const { excludeAppointmentId } = args;
 
   // Duration
   const totalDurationMin =
@@ -150,6 +152,7 @@ export async function getAvailableSlots(
   // Appointments
   const appointments = await prisma.appointment.findMany({
     where: {
+      ...(excludeAppointmentId ? { id: { not: excludeAppointmentId } } : {}),
       masterId,
       startAt: { lt: dayEndUtc },
       endAt: { gt: dayStartUtc },
