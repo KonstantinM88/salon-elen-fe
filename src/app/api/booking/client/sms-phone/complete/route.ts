@@ -4,6 +4,34 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
+type ClientLookupCondition = { phone?: string; email?: string };
+
+function fallbackDigits(seed: string): string {
+  const digits = Array.from(seed)
+    .map((ch) => String(ch.charCodeAt(0) % 10))
+    .join('');
+  return digits.slice(0, 12).padEnd(12, '0');
+}
+
+function buildFallbackEmail(phone: string, seed: string): string {
+  const phoneToken = phone.replace(/[^\d]+/g, '').slice(-12);
+  const token = phoneToken || fallbackDigits(seed);
+  const suffix = seed.slice(-6).toLowerCase();
+  return `noemail+${token}-${suffix}@client.local`;
+}
+
+function buildClientLookupOr(phone?: string, email?: string): ClientLookupCondition[] {
+  return [
+    ...(phone ? [{ phone }] : []),
+    ...(email ? [{ email }] : []),
+  ];
+}
+
+function isUniqueConstraintError(error: unknown): boolean {
+  if (!error || typeof error !== 'object') return false;
+  return (error as { code?: unknown }).code === 'P2002';
+}
+
 /**
  * POST /api/booking/client/sms-phone/complete
  * 
@@ -72,8 +100,9 @@ export async function POST(req: NextRequest) {
     // Подготовка данных
     const finalBirthDate = birthDate ? new Date(birthDate) : null;
     const customerNameStr = customerName.trim();
-    const emailStr = email ? email.trim() : '';
+    const emailStr = email ? email.trim().toLowerCase() : '';
     const phoneStr = registration.phone.trim();
+    const clientEmail = emailStr || buildFallbackEmail(phoneStr, registration.id);
 
     const conflictError = 'SLOT_TAKEN';
 
@@ -101,33 +130,59 @@ export async function POST(req: NextRequest) {
       if (phoneStr || emailStr) {
         const existing = await tx.client.findFirst({
           where: {
-            OR: [
-              ...(phoneStr ? [{ phone: phoneStr }] : []),
-              ...(emailStr ? [{ email: emailStr }] : []),
-            ],
+            OR: buildClientLookupOr(phoneStr || undefined, emailStr || undefined),
           },
           select: { id: true },
         });
 
         if (existing) {
           clientId = existing.id;
+          await tx.client.update({
+            where: { id: existing.id },
+            data: {
+              name: customerNameStr,
+              ...(finalBirthDate ? { birthDate: finalBirthDate } : {}),
+            },
+          });
         }
       }
 
       // Если не нашли - создаём нового
       if (!clientId && (phoneStr || emailStr)) {
-        const newClient = await tx.client.create({
-          data: {
-            name: customerNameStr,
-            phone: phoneStr,
-            email: emailStr,
-            birthDate: finalBirthDate || new Date('1990-01-01'),
-            referral: null,
-          },
-          select: { id: true },
-        });
+        try {
+          const newClient = await tx.client.create({
+            data: {
+              name: customerNameStr,
+              phone: phoneStr,
+              email: clientEmail,
+              birthDate: finalBirthDate || new Date('1990-01-01'),
+              referral: null,
+            },
+            select: { id: true },
+          });
 
-        clientId = newClient.id;
+          clientId = newClient.id;
+        } catch (error) {
+          if (!isUniqueConstraintError(error)) {
+            throw error;
+          }
+
+          const existingAfterConflict = await tx.client.findFirst({
+            where: {
+              OR: [
+                ...buildClientLookupOr(phoneStr || undefined, emailStr || undefined),
+                ...buildClientLookupOr(phoneStr || undefined, clientEmail),
+              ],
+            },
+            select: { id: true },
+          });
+
+          if (!existingAfterConflict) {
+            throw error;
+          }
+
+          clientId = existingAfterConflict.id;
+        }
       }
 
       const created = await tx.appointment.create({
