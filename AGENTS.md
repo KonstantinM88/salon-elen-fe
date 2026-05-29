@@ -178,3 +178,8 @@ Useful scripts:
 - 2026-05-29: Admin booking status changes through `setStatus` await a direct
   Telegram Bot API notification to configured admin chat IDs with previous/new
   status and appointment details.
+- 2026-05-29: Admin Telegram booking/status notifications include inline
+  status action buttons. `/api/telegram/webhook` handles `appt_status` callback
+  actions only from configured admin chat IDs and changes status through
+  `src/lib/booking/status-change.ts`, preserving status logs and client/admin
+  notifications.

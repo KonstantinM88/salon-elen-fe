@@ -50,11 +50,70 @@ interface AppointmentStatusNotificationData {
   changedBy?: string | null;
 }
 
+interface TelegramInlineKeyboardButton {
+  text: string;
+  callback_data?: string;
+  url?: string;
+}
+
+interface TelegramInlineKeyboardMarkup {
+  inline_keyboard: TelegramInlineKeyboardButton[][];
+}
+
+export const APPOINTMENT_STATUS_ACTION_PREFIX = "appt_status";
+
 function escapeMarkdown(value: string): string {
   return value.replace(/([_*[\]()~`>#+=|{}.!\\-])/g, '\\$1');
 }
 
-async function sendTelegramAdminMarkdownMessage(message: string): Promise<void> {
+function buildStatusCallbackData(
+  appointmentId: string,
+  status: AppointmentStatus,
+): string {
+  return `${APPOINTMENT_STATUS_ACTION_PREFIX}:${appointmentId}:${status}`;
+}
+
+function buildAppointmentStatusKeyboard(
+  appointmentId: string,
+  currentStatus?: AppointmentStatus,
+): TelegramInlineKeyboardMarkup {
+  const statusButtons: Array<{ status: AppointmentStatus; text: string }> = [
+    { status: "CONFIRMED", text: "✅ Подтвердить" },
+    { status: "DONE", text: "🎉 Выполнена" },
+    { status: "CANCELED", text: "❌ Отменить" },
+    { status: "PENDING", text: "🔔 В ожидание" },
+  ];
+
+  const rows: TelegramInlineKeyboardButton[][] = [];
+  const buttons = statusButtons
+    .filter(({ status }) => status !== currentStatus)
+    .map(({ status, text }) => ({
+      text,
+      callback_data: buildStatusCallbackData(appointmentId, status),
+    }));
+
+  for (let index = 0; index < buttons.length; index += 2) {
+    rows.push(buttons.slice(index, index + 2));
+  }
+
+  const baseUrl =
+    process.env.NEXT_PUBLIC_BASE_URL ||
+    process.env.NEXTAUTH_URL ||
+    "https://permanent-halle.de";
+  rows.push([
+    {
+      text: "📊 Открыть в админке",
+      url: `${baseUrl}/admin/appointments/${appointmentId}`,
+    },
+  ]);
+
+  return { inline_keyboard: rows };
+}
+
+async function sendTelegramAdminMarkdownMessage(
+  message: string,
+  replyMarkup?: TelegramInlineKeyboardMarkup,
+): Promise<void> {
   const token = process.env.TELEGRAM_BOT_TOKEN;
   const adminChatIds = parseTelegramAdminChatIds();
 
@@ -86,6 +145,7 @@ async function sendTelegramAdminMarkdownMessage(message: string): Promise<void> 
             text: message,
             parse_mode: 'Markdown',
             disable_web_page_preview: true,
+            ...(replyMarkup ? { reply_markup: replyMarkup } : {}),
           }),
         },
       );
@@ -172,7 +232,10 @@ ${appointment.email ? `📧 *Email:* ${appointment.email}\n` : ''}
 
 🆔 *ID записи:* \`${appointment.id}\``;
 
-    await sendTelegramAdminMarkdownMessage(message);
+    await sendTelegramAdminMarkdownMessage(
+      message,
+      buildAppointmentStatusKeyboard(appointment.id, "PENDING"),
+    );
 
     console.log('[Admin Notification] ✅ Sent successfully');
   } catch (error) {
@@ -247,7 +310,10 @@ export async function sendAdminAppointmentStatusNotification(
       .filter(Boolean)
       .join('\n');
 
-    await sendTelegramAdminMarkdownMessage(message);
+    await sendTelegramAdminMarkdownMessage(
+      message,
+      buildAppointmentStatusKeyboard(appointment.id, appointment.status),
+    );
 
     console.log('[Admin Notification] Status-change notification sent');
   } catch (error) {

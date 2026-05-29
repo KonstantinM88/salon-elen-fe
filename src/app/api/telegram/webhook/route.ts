@@ -2,7 +2,10 @@
 
   import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { changeAppointmentStatus } from '@/lib/booking/status-change';
 import { isPhoneDigitsValid, normalizePhoneDigits } from '@/lib/phone';
+import { AppointmentStatus } from '@/lib/prisma-client';
+import { APPOINTMENT_STATUS_ACTION_PREFIX } from '@/lib/send-admin-notification';
 import { parseTelegramAdminChatIds } from '@/lib/telegram-admin-chat-ids';
 
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '';
@@ -87,6 +90,141 @@ const formatDeepLinkPhone = (value: string): string | null => {
   }
 
   // POST - Webhook от Telegram ИЛИ отправка уведомлений
+  type TelegramCallbackQuery = {
+    id: string;
+    from: {
+      id: number;
+      first_name?: string;
+      last_name?: string;
+      username?: string;
+    };
+    message?: {
+      message_id: number;
+      chat: {
+        id: number | string;
+      };
+    };
+    data?: string;
+  };
+
+  const APPOINTMENT_STATUSES: AppointmentStatus[] = [
+    AppointmentStatus.PENDING,
+    AppointmentStatus.CONFIRMED,
+    AppointmentStatus.DONE,
+    AppointmentStatus.CANCELED,
+  ];
+
+  function isAppointmentStatus(value: string): value is AppointmentStatus {
+    return APPOINTMENT_STATUSES.includes(value as AppointmentStatus);
+  }
+
+  function isAdminCallback(callbackQuery: TelegramCallbackQuery): boolean {
+    const adminChatIds = new Set(parseTelegramAdminChatIds());
+    const fromId = String(callbackQuery.from.id);
+    const chatId = callbackQuery.message?.chat.id
+      ? String(callbackQuery.message.chat.id)
+      : null;
+
+    return adminChatIds.has(fromId) || (chatId ? adminChatIds.has(chatId) : false);
+  }
+
+  async function answerCallbackQuery(
+    callbackQueryId: string,
+    text: string,
+    showAlert = false,
+  ): Promise<void> {
+    try {
+      await fetch(`${TELEGRAM_API_URL}/answerCallbackQuery`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          callback_query_id: callbackQueryId,
+          text,
+          show_alert: showAlert,
+        }),
+      });
+    } catch (error) {
+      console.error('[Telegram Webhook] answerCallbackQuery failed:', error);
+    }
+  }
+
+  function getCallbackActor(callbackQuery: TelegramCallbackQuery): string {
+    const username = callbackQuery.from.username
+      ? `@${callbackQuery.from.username}`
+      : [callbackQuery.from.first_name, callbackQuery.from.last_name]
+          .filter(Boolean)
+          .join(' ')
+          .trim();
+
+    return username
+      ? `telegram:${callbackQuery.from.id}:${username}`
+      : `telegram:${callbackQuery.from.id}`;
+  }
+
+  async function handleAppointmentStatusCallback(
+    callbackQuery: TelegramCallbackQuery,
+  ): Promise<NextResponse> {
+    const data = callbackQuery.data ?? '';
+    const [prefix, appointmentId, requestedStatus] = data.split(':');
+
+    if (prefix !== APPOINTMENT_STATUS_ACTION_PREFIX || !appointmentId) {
+      await answerCallbackQuery(callbackQuery.id, 'Неизвестное действие', true);
+      return NextResponse.json({ ok: true });
+    }
+
+    if (!isAdminCallback(callbackQuery)) {
+      await answerCallbackQuery(callbackQuery.id, 'Нет доступа', true);
+      console.warn('[Telegram Webhook] Unauthorized admin callback:', {
+        fromId: callbackQuery.from.id,
+        chatId: callbackQuery.message?.chat.id,
+        data,
+      });
+      return NextResponse.json({ ok: true });
+    }
+
+    if (!requestedStatus || !isAppointmentStatus(requestedStatus)) {
+      await answerCallbackQuery(callbackQuery.id, 'Некорректный статус', true);
+      return NextResponse.json({ ok: true });
+    }
+
+    const result = await changeAppointmentStatus({
+      appointmentId,
+      status: requestedStatus,
+      changedBy: getCallbackActor(callbackQuery),
+      reason: `Status changed from Telegram bot to ${requestedStatus}`,
+    });
+
+    if (!result.ok) {
+      await answerCallbackQuery(
+        callbackQuery.id,
+        result.error === 'NOT_FOUND'
+          ? 'Запись не найдена'
+          : 'Не удалось изменить статус',
+        true,
+      );
+      return NextResponse.json({ ok: true });
+    }
+
+    if (!result.changed) {
+      await answerCallbackQuery(callbackQuery.id, 'Статус уже установлен');
+      return NextResponse.json({ ok: true });
+    }
+
+    await answerCallbackQuery(
+      callbackQuery.id,
+      `Статус изменен: ${result.previousStatus} → ${result.status}`,
+    );
+
+    console.log('[Telegram Webhook] Admin changed appointment status:', {
+      appointmentId,
+      previousStatus: result.previousStatus,
+      status: result.status,
+      changedBy: getCallbackActor(callbackQuery),
+    });
+
+    return NextResponse.json({ ok: true });
+  }
+
   export async function POST(request: NextRequest) {
     try {
       const url = new URL(request.url);
@@ -143,6 +281,12 @@ const formatDeepLinkPhone = (value: string): string | null => {
       console.log('[Telegram Webhook] Update received:', JSON.stringify(update, null, 2));
       
       // Получить сообщение
+      if (update.callback_query) {
+        return handleAppointmentStatusCallback(
+          update.callback_query as TelegramCallbackQuery,
+        );
+      }
+
       const message = update.message;
       if (!message) {
         return NextResponse.json({ ok: true });
