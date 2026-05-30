@@ -15,6 +15,11 @@ import {
   listAdminQuickBookingMastersForService,
   listAdminQuickBookingServices,
 } from '@/lib/booking/admin-quick-appointment';
+import {
+  formatUpcomingAppointmentsHtmlChunks,
+  getUpcomingAppointmentsReport,
+  type UpcomingAppointmentsDays,
+} from '@/lib/booking/upcoming-appointments-report';
 import { isPhoneDigitsValid, normalizePhoneDigits } from '@/lib/phone';
 import { AppointmentStatus } from '@/lib/prisma-client';
 import {
@@ -27,8 +32,10 @@ import { ORG_TZ } from '@/lib/orgTime';
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '';
 const TELEGRAM_API_URL = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}`;
 const ADMIN_QUICK_BOOKING_ACTION_PREFIX = 'qb';
+const UPCOMING_APPOINTMENTS_ACTION_PREFIX = 'upcoming';
 const APPOINTMENT_RESCHEDULE_DATE_ACTION_PREFIX = 'appt_rs_date';
 const APPOINTMENT_RESCHEDULE_SLOT_ACTION_PREFIX = 'appt_rs_slot';
+const UPCOMING_APPOINTMENT_DAYS: UpcomingAppointmentsDays[] = [7, 14, 30];
 
 const formatDeepLinkPhone = (value: string): string | null => {
   const digits = normalizePhoneDigits(value);
@@ -375,6 +382,31 @@ const formatDeepLinkPhone = (value: string): string | null => {
       : normalized;
   }
 
+  function parseUpcomingAppointmentDays(value: string | undefined): UpcomingAppointmentsDays | null {
+    const days = Number(value);
+    return UPCOMING_APPOINTMENT_DAYS.includes(days as UpcomingAppointmentsDays)
+      ? (days as UpcomingAppointmentsDays)
+      : null;
+  }
+
+  function parseUpcomingAppointmentCommand(text: string): UpcomingAppointmentsDays | null {
+    const command = text.trim().split(/\s+/)[0]?.split('@')[0];
+    const match = command?.match(/^\/(?:next|terms|appointments)(7|14|30)$/);
+    return match ? parseUpcomingAppointmentDays(match[1]) : null;
+  }
+
+  async function sendUpcomingAppointmentsReport(
+    chatId: number | string,
+    days: UpcomingAppointmentsDays,
+  ): Promise<void> {
+    const report = await getUpcomingAppointmentsReport({ days });
+    const chunks = formatUpcomingAppointmentsHtmlChunks(report);
+
+    for (const chunk of chunks) {
+      await sendTelegramMessage(Number(chatId), chunk);
+    }
+  }
+
   function buildAdminMenuKeyboard(): TelegramInlineKeyboardMarkup {
     return {
       inline_keyboard: [
@@ -382,6 +414,20 @@ const formatDeepLinkPhone = (value: string): string | null => {
           {
             text: '➕ Добавить новую запись',
             callback_data: `${ADMIN_QUICK_BOOKING_ACTION_PREFIX}:start`,
+          },
+        ],
+        [
+          {
+            text: '📅 7 дней',
+            callback_data: `${UPCOMING_APPOINTMENTS_ACTION_PREFIX}:7`,
+          },
+          {
+            text: '📅 14 дней',
+            callback_data: `${UPCOMING_APPOINTMENTS_ACTION_PREFIX}:14`,
+          },
+          {
+            text: '📅 30 дней',
+            callback_data: `${UPCOMING_APPOINTMENTS_ACTION_PREFIX}:30`,
           },
         ],
       ],
@@ -662,6 +708,18 @@ const formatDeepLinkPhone = (value: string): string | null => {
                 description: 'Добавить новую запись',
               },
               {
+                command: 'next7',
+                description: 'Ближайшие термины на 7 дней',
+              },
+              {
+                command: 'next14',
+                description: 'Ближайшие термины на 14 дней',
+              },
+              {
+                command: 'next30',
+                description: 'Ближайшие термины на 30 дней',
+              },
+              {
                 command: 'admin',
                 description: 'Открыть админ-меню',
               },
@@ -690,9 +748,10 @@ const formatDeepLinkPhone = (value: string): string | null => {
         '<b>Админ-меню Salon Elen</b>',
         '',
         'Можно быстро создать запись клиента без входа в админку.',
+        'Также можно посмотреть ближайшие термины на 7, 14 или 30 дней.',
         'Услуги, даты и слоты берутся из актуального расписания.',
         '',
-        'Команда для быстрого доступа: <code>/add</code>.',
+        'Команды для быстрого доступа: <code>/add</code>, <code>/next7</code>, <code>/next14</code>, <code>/next30</code>.',
       ].join('\n'),
       buildAdminMenuKeyboard(),
     );
@@ -1141,6 +1200,30 @@ const formatDeepLinkPhone = (value: string): string | null => {
     return NextResponse.json({ ok: true });
   }
 
+  async function handleUpcomingAppointmentsCallback(
+    callbackQuery: TelegramCallbackQuery,
+  ): Promise<NextResponse> {
+    const data = callbackQuery.data ?? '';
+    const [prefix, rawDays] = data.split(':');
+    const days = parseUpcomingAppointmentDays(rawDays);
+
+    if (prefix !== UPCOMING_APPOINTMENTS_ACTION_PREFIX || !days) {
+      await answerCallbackQuery(callbackQuery.id, 'Некорректный период', true);
+      return NextResponse.json({ ok: true });
+    }
+
+    if (!isAdminCallback(callbackQuery)) {
+      await answerCallbackQuery(callbackQuery.id, 'Нет доступа', true);
+      return NextResponse.json({ ok: true });
+    }
+
+    const chatId = callbackQuery.message?.chat.id ?? callbackQuery.from.id;
+    await answerCallbackQuery(callbackQuery.id, `Показываю термины на ${days} дней`);
+    await sendUpcomingAppointmentsReport(chatId, days);
+
+    return NextResponse.json({ ok: true });
+  }
+
   async function handleQuickBookingCallback(
     callbackQuery: TelegramCallbackQuery,
   ): Promise<NextResponse> {
@@ -1570,6 +1653,12 @@ const formatDeepLinkPhone = (value: string): string | null => {
           );
         }
 
+        if (callbackData.startsWith(`${UPCOMING_APPOINTMENTS_ACTION_PREFIX}:`)) {
+          return handleUpcomingAppointmentsCallback(
+            update.callback_query as TelegramCallbackQuery,
+          );
+        }
+
         if (callbackData.startsWith(`${APPOINTMENT_RESCHEDULE_DATE_ACTION_PREFIX}:`)) {
           return handleAppointmentRescheduleDateCallback(
             update.callback_query as TelegramCallbackQuery,
@@ -1633,6 +1722,14 @@ const formatDeepLinkPhone = (value: string): string | null => {
       ) {
         await beginQuickBooking(chatId, from.id);
         return NextResponse.json({ ok: true });
+      }
+
+      if (typeof text === 'string' && isAdminMessage(chatId, from.id)) {
+        const upcomingDays = parseUpcomingAppointmentCommand(text);
+        if (upcomingDays) {
+          await sendUpcomingAppointmentsReport(chatId, upcomingDays);
+          return NextResponse.json({ ok: true });
+        }
       }
 
       if (

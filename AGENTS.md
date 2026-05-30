@@ -218,3 +218,7 @@ Useful scripts:
   catalog as long inline buttons. It first asks for a service category, then
   shows full service names in the message body with short numbered buttons for
   mobile-friendly selection.
+- 2026-05-30: Upcoming appointment reminders are centralized in
+  `src/lib/booking/upcoming-appointments-report.ts`. AI daily Telegram reports
+  append the next 7 days of non-deleted appointments across all statuses, and
+  the Telegram admin menu exposes 7/14/30-day upcoming appointment views.

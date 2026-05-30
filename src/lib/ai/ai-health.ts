@@ -8,6 +8,7 @@
 import { prisma } from '@/lib/prisma';
 import { Temporal } from '@js-temporal/polyfill';
 import { isYmd, ORG_TZ, orgDayRange } from '@/lib/orgTime';
+import { buildUpcomingAppointmentsMarkdownReport } from '@/lib/booking/upcoming-appointments-report';
 import { getSiteVisitSummary } from '@/lib/site-analytics';
 
 const AI_HEALTH_DB_RETRY_DELAY_MS = 750;
@@ -457,8 +458,15 @@ async function checkErrorRateAlertOnce(
  */
 export async function sendDailySummaryToTelegram(date?: Date | string): Promise<boolean> {
   try {
-    const summary = await buildDailySummary(date);
-    const message = formatDailySummaryTelegram(summary);
+    const [summary, upcomingAppointments] = await Promise.all([
+      buildDailySummary(date),
+      buildUpcomingAppointmentsMarkdownReport(7, { limit: 12 }),
+    ]);
+    const message = `${formatDailySummaryTelegram(summary)}
+
+━━━━━━━━━━━━━━━━━━━━━
+
+${upcomingAppointments}`;
     await sendTelegramAdminMessage(message);
 
     console.log(`[AI Health] Daily summary sent for ${summary.dateISO}: ${summary.totalSessions} sessions, ${summary.completedBookings} bookings`);
