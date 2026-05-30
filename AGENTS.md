@@ -214,3 +214,7 @@ Useful scripts:
   its client-side route gate, so client-facing booking hints do not appear in
   the admin interface while the widget remains mounted from the root layout for
   public pages.
+- 2026-05-30: Telegram admin quick booking no longer sends the full service
+  catalog as long inline buttons. It first asks for a service category, then
+  shows full service names in the message body with short numbered buttons for
+  mobile-friendly selection.

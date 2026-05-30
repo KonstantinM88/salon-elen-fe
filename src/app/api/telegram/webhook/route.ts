@@ -62,7 +62,19 @@ const formatDeepLinkPhone = (value: string): string | null => {
     time?: string;
     expiresAt: number;
   };
+  type QuickBookingServiceOption = {
+    id: string;
+    name: string;
+    parentName: string | null;
+    durationMin: number;
+    priceCents: number | null;
+  };
+  type QuickBookingServiceCategory = {
+    title: string;
+    services: QuickBookingServiceOption[];
+  };
   const pendingQuickBookings = new Map<string, QuickBookingState>();
+  const QUICK_BOOKING_UNCATEGORIZED_KEY = '__other__';
 
   // Отправка сообщения в Telegram (HTML)
   type TelegramInlineKeyboardButton = {
@@ -357,7 +369,10 @@ const formatDeepLinkPhone = (value: string): string | null => {
   }
 
   function truncateButtonText(value: string, maxLength = 52): string {
-    return value.length > maxLength ? `${value.slice(0, maxLength - 1)}…` : value;
+    const normalized = value.replace(/\s+/g, ' ').trim();
+    return normalized.length > maxLength
+      ? `${normalized.slice(0, Math.max(0, maxLength - 3))}...`
+      : normalized;
   }
 
   function buildAdminMenuKeyboard(): TelegramInlineKeyboardMarkup {
@@ -373,15 +388,11 @@ const formatDeepLinkPhone = (value: string): string | null => {
     };
   }
 
-  function formatQuickBookingServiceText(service: {
-    name: string;
-    parentName: string | null;
-    durationMin: number;
-    priceCents: number | null;
-  }): string {
-    const title = service.parentName
-      ? `${service.parentName} / ${service.name}`
-      : service.name;
+  function quickBookingServiceTitle(service: QuickBookingServiceOption): string {
+    return service.name;
+  }
+
+  function quickBookingServiceDetails(service: QuickBookingServiceOption): string {
     const details = [
       `${service.durationMin} мин`,
       typeof service.priceCents === 'number'
@@ -391,25 +402,102 @@ const formatDeepLinkPhone = (value: string): string | null => {
       .filter(Boolean)
       .join(', ');
 
-    return truncateButtonText(details ? `${title} (${details})` : title);
+    return details;
   }
 
-  function buildQuickBookingServiceKeyboard(
-    services: Array<{
-      id: string;
-      name: string;
-      parentName: string | null;
-      durationMin: number;
-      priceCents: number | null;
-    }>,
+  function buildQuickBookingServiceCategories(
+    services: QuickBookingServiceOption[],
+  ): QuickBookingServiceCategory[] {
+    const byCategory = new Map<string, QuickBookingServiceCategory>();
+
+    for (const service of services) {
+      const parentName = service.parentName?.trim();
+      const key = parentName
+        ? parentName.toLocaleLowerCase('ru-RU')
+        : QUICK_BOOKING_UNCATEGORIZED_KEY;
+      const title = parentName || 'Другие услуги';
+      const existing = byCategory.get(key);
+
+      if (existing) {
+        existing.services.push(service);
+      } else {
+        byCategory.set(key, {
+          title,
+          services: [service],
+        });
+      }
+    }
+
+    return Array.from(byCategory.values())
+      .map((category) => ({
+        ...category,
+        services: [...category.services].sort((a, b) =>
+          quickBookingServiceTitle(a).localeCompare(quickBookingServiceTitle(b), 'ru'),
+        ),
+      }))
+      .sort((a, b) => a.title.localeCompare(b.title, 'ru'));
+  }
+
+  function buildQuickBookingCategoryKeyboard(
+    categories: QuickBookingServiceCategory[],
   ): TelegramInlineKeyboardMarkup {
-    const rows = services.map((service) => [
+    const rows = categories.map((category, index) => [
       {
-        text: formatQuickBookingServiceText(service),
-        callback_data: `${ADMIN_QUICK_BOOKING_ACTION_PREFIX}:svc:${service.id}`,
+        text: truncateButtonText(`${category.title} (${category.services.length})`, 42),
+        callback_data: `${ADMIN_QUICK_BOOKING_ACTION_PREFIX}:cat:${index}`,
       },
     ]);
 
+    rows.push([
+      {
+        text: 'Отмена',
+        callback_data: `${ADMIN_QUICK_BOOKING_ACTION_PREFIX}:cancel`,
+      },
+    ]);
+
+    return { inline_keyboard: rows };
+  }
+
+  function buildQuickBookingServiceText(category: QuickBookingServiceCategory): string {
+    const lines = category.services.map((service, index) => {
+      const title = escapeTelegramHtml(quickBookingServiceTitle(service));
+      const details = quickBookingServiceDetails(service);
+
+      return details
+        ? `<b>${index + 1}.</b> ${title} - ${escapeTelegramHtml(details)}`
+        : `<b>${index + 1}.</b> ${title}`;
+    });
+
+    return [
+      `Категория: <b>${escapeTelegramHtml(category.title)}</b>`,
+      '',
+      'Полный список услуг в этой категории:',
+      '',
+      ...lines,
+      '',
+      'Выберите услугу по номеру на кнопке ниже.',
+    ].join('\n');
+  }
+
+  function buildQuickBookingServiceKeyboard(
+    services: QuickBookingServiceOption[],
+  ): TelegramInlineKeyboardMarkup {
+    const buttons = services.map((service, index) => ({
+      text: String(index + 1),
+      callback_data: `${ADMIN_QUICK_BOOKING_ACTION_PREFIX}:svc:${service.id}`,
+    }));
+    const rows: TelegramInlineKeyboardButton[][] = [];
+
+    for (let index = 0; index < buttons.length; index += 4) {
+      rows.push(buttons.slice(index, index + 4));
+    }
+
+    rows.push([
+      {
+        text: '⬅️ Категории',
+        callback_data: `${ADMIN_QUICK_BOOKING_ACTION_PREFIX}:cats`,
+      },
+    ]);
     rows.push([
       {
         text: 'Отмена',
@@ -615,6 +703,7 @@ const formatDeepLinkPhone = (value: string): string | null => {
     fromId: number,
   ): Promise<void> {
     const services = await listAdminQuickBookingServices();
+    const categories = buildQuickBookingServiceCategories(services);
     pendingQuickBookings.set(pendingRescheduleKey(chatId, fromId), {
       expiresAt: Date.now() + 15 * 60 * 1000,
     });
@@ -632,9 +721,10 @@ const formatDeepLinkPhone = (value: string): string | null => {
       [
         '➕ <b>Быстрая запись клиента</b>',
         '',
-        'Выберите точную услугу из актуального прайса.',
+        'Сначала выберите категорию услуги.',
+        'После этого бот покажет полный список услуг в выбранной категории.',
       ].join('\n'),
-      buildQuickBookingServiceKeyboard(services),
+      buildQuickBookingCategoryKeyboard(categories),
     );
   }
 
@@ -1080,7 +1170,7 @@ const formatDeepLinkPhone = (value: string): string | null => {
     }
 
     if (action === 'start') {
-      await answerCallbackQuery(callbackQuery.id, 'Выберите услугу');
+      await answerCallbackQuery(callbackQuery.id, 'Выберите категорию');
       await beginQuickBooking(chatId, callbackQuery.from.id);
       return NextResponse.json({ ok: true });
     }
@@ -1091,6 +1181,65 @@ const formatDeepLinkPhone = (value: string): string | null => {
       await sendTelegramMessage(
         Number(chatId),
         'Время ожидания истекло. Начните заново через /admin.',
+      );
+      return NextResponse.json({ ok: true });
+    }
+
+    if (action === 'cats') {
+      const services = await listAdminQuickBookingServices();
+      const categories = buildQuickBookingServiceCategories(services);
+      pendingQuickBookings.set(key, { expiresAt });
+
+      await answerCallbackQuery(callbackQuery.id, 'Выберите категорию');
+
+      if (categories.length === 0) {
+        await sendTelegramMessage(
+          Number(chatId),
+          'Нет активных услуг для записи. Проверьте прайс в админке.',
+        );
+        return NextResponse.json({ ok: true });
+      }
+
+      await sendTelegramMessage(
+        Number(chatId),
+        [
+          '➕ <b>Быстрая запись клиента</b>',
+          '',
+          'Выберите категорию услуги.',
+        ].join('\n'),
+        buildQuickBookingCategoryKeyboard(categories),
+      );
+      return NextResponse.json({ ok: true });
+    }
+
+    if (action === 'cat') {
+      const rawCategoryIndex = parts[2];
+      if (!rawCategoryIndex || !/^\d+$/.test(rawCategoryIndex)) {
+        await answerCallbackQuery(callbackQuery.id, 'Категория не выбрана', true);
+        return NextResponse.json({ ok: true });
+      }
+      const categoryIndex = Number(rawCategoryIndex);
+
+      const services = await listAdminQuickBookingServices();
+      const categories = buildQuickBookingServiceCategories(services);
+      const category = categories[categoryIndex];
+
+      if (!category) {
+        await answerCallbackQuery(callbackQuery.id, 'Категория устарела', true);
+        await sendTelegramMessage(
+          Number(chatId),
+          'Список услуг изменился. Выберите категорию заново.',
+          buildQuickBookingCategoryKeyboard(categories),
+        );
+        return NextResponse.json({ ok: true });
+      }
+
+      pendingQuickBookings.set(key, { expiresAt });
+      await answerCallbackQuery(callbackQuery.id, 'Выберите услугу');
+      await sendTelegramMessage(
+        Number(chatId),
+        buildQuickBookingServiceText(category),
+        buildQuickBookingServiceKeyboard(category.services),
       );
       return NextResponse.json({ ok: true });
     }
@@ -1107,9 +1256,12 @@ const formatDeepLinkPhone = (value: string): string | null => {
       await answerCallbackQuery(callbackQuery.id, 'Выберите мастера');
 
       if (masters.length === 0) {
+        const services = await listAdminQuickBookingServices();
+        const categories = buildQuickBookingServiceCategories(services);
         await sendTelegramMessage(
           Number(chatId),
           'Для этой услуги нет доступных мастеров. Выберите другую услугу.',
+          buildQuickBookingCategoryKeyboard(categories),
         );
         return NextResponse.json({ ok: true });
       }
