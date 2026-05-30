@@ -210,3 +210,7 @@ Useful scripts:
   then starts from `ecosystem.config.cjs`. This avoids transient Next.js
   `ChunkLoadError`/missing server chunk errors caused by deleting `.next` while
   the old `next start` process is still serving traffic.
+- 2026-05-30: The public AI `ChatWidget` is disabled on `/admin` routes through
+  its client-side route gate, so client-facing booking hints do not appear in
+  the admin interface while the widget remains mounted from the root layout for
+  public pages.

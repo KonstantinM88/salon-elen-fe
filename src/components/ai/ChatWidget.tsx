@@ -5,6 +5,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MessageCircle, X, Send, Loader2, RotateCcw } from 'lucide-react';
+import { usePathname } from 'next/navigation';
 import { ChatMessage, type Message } from './ChatMessage';
 import { OtpInput } from './OtpInput';
 import {
@@ -200,6 +201,17 @@ interface ChatWidgetProps {
 }
 
 export default function ChatWidget({ locale: propLocale }: ChatWidgetProps) {
+  const pathname = usePathname();
+  const isAdminRoute = pathname === '/admin' || pathname?.startsWith('/admin/');
+
+  if (isAdminRoute) {
+    return null;
+  }
+
+  return <ChatWidgetInner locale={propLocale} />;
+}
+
+function ChatWidgetInner({ locale: propLocale }: ChatWidgetProps) {
   const locale: SupportedLocale =
     propLocale && propLocale in UI_TEXT
       ? (propLocale as SupportedLocale)

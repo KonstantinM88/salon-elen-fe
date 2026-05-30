@@ -144,7 +144,7 @@ export default function AdminFooter({ locale = 'de' }: { locale?: SeoLocale }) {
 
           <div className="flex gap-2">
             <Link
-              href="/admin/bookings"
+              href="/admin/bookings?quick=open"
               className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-fuchsia-600 to-sky-500 px-4 py-2 text-sm font-medium text-white shadow-lg shadow-fuchsia-600/20 transition hover:brightness-110"
             >
               <Scissors className="h-4 w-4" />
