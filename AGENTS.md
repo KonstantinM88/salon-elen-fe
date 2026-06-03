@@ -222,3 +222,9 @@ Useful scripts:
   `src/lib/booking/upcoming-appointments-report.ts`. AI daily Telegram reports
   append the next 7 days of non-deleted appointments across all statuses, and
   the Telegram admin menu exposes 7/14/30-day upcoming appointment views.
+- 2026-06-03: AI Health DB retry now uses multiple exponential-backoff attempts
+  (`AI_HEALTH_DB_MAX_ATTEMPTS`, default 4) instead of a single 750ms retry, so
+  daily Telegram summaries and error alerts survive short PostgreSQL/pooler
+  pauses. `TurnTracker` now upserts the parent `AiChatSession` before writing
+  `AiChatTurn` rows to avoid analytics FK errors when initial session analytics
+  were delayed by transient DB failures.

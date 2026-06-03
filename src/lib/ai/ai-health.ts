@@ -12,6 +12,10 @@ import { buildUpcomingAppointmentsMarkdownReport } from '@/lib/booking/upcoming-
 import { getSiteVisitSummary } from '@/lib/site-analytics';
 
 const AI_HEALTH_DB_RETRY_DELAY_MS = 750;
+const AI_HEALTH_DB_MAX_ATTEMPTS = Math.max(
+  1,
+  parseInt(process.env.AI_HEALTH_DB_MAX_ATTEMPTS || '4', 10),
+);
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -47,16 +51,26 @@ async function withTransientDbRetry<T>(
   label: string,
   fn: () => Promise<T>,
 ): Promise<T> {
-  try {
-    return await fn();
-  } catch (error) {
-    if (!isTransientDbConnectionError(error)) {
-      throw error;
-    }
+  let attempt = 1;
 
-    console.warn(`[AI Health] Transient DB error during ${label}; retrying once`);
-    await sleep(AI_HEALTH_DB_RETRY_DELAY_MS);
-    return fn();
+  while (true) {
+    try {
+      return await fn();
+    } catch (error) {
+      if (!isTransientDbConnectionError(error) || attempt >= AI_HEALTH_DB_MAX_ATTEMPTS) {
+        throw error;
+      }
+
+      const delayMs = Math.min(
+        AI_HEALTH_DB_RETRY_DELAY_MS * 2 ** (attempt - 1),
+        5000,
+      );
+      console.warn(
+        `[AI Health] Transient DB error during ${label}; retry ${attempt}/${AI_HEALTH_DB_MAX_ATTEMPTS - 1} in ${delayMs}ms`,
+      );
+      await sleep(delayMs);
+      attempt += 1;
+    }
   }
 }
 

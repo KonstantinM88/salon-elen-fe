@@ -241,47 +241,60 @@ export class TurnBuilder {
 // ─── Database Write ─────────────────────────────────────────
 
 async function saveTurn(data: TurnData): Promise<void> {
-  const turn = await prisma.aiChatTurn.create({
-    data: {
-      sessionId: data.sessionId,
-      turnNumber: data.turnNumber,
-      userMessage: redactPII(data.userMessage),
-      assistantMessage: redactPII(data.assistantMessage)?.slice(0, 4000),
-      responseMode: data.responseMode,
-      isFastPath: data.isFastPath,
-      fastPathName: data.fastPathName,
-      isGptCall: data.isGptCall,
-      gptIterations: data.gptIterations ?? 0,
-      ttfdMs: data.ttfdMs,
-      totalMs: data.totalMs,
-      funnelStage: data.funnelStage,
-      outcome: data.outcome,
-      errorCategory: data.errorCategory,
-      errorCode: data.errorCode,
-      errorMessageSafe: data.errorMessageSafe,
-      retried: data.retried,
-      inputMode: data.inputMode,
-      startedAt: data.startedAt,
-      endedAt: data.endedAt,
-    },
-  });
-
-  // Save tool runs if any
-  if (data.toolRuns.length > 0) {
-    await prisma.aiToolRun.createMany({
-      data: data.toolRuns.map((tr) => ({
-        turnId: turn.id,
-        toolName: tr.toolName,
-        step: tr.step?.slice(0, 64),
-        orderIndex: tr.orderIndex,
-        durationMs: tr.durationMs,
-        ok: tr.ok,
-        errorCode: tr.errorCode?.slice(0, 64),
-        errorMessageSafe: tr.errorMessageSafe?.slice(0, 512),
-        startedAt: tr.startedAt,
-      })),
+  await prisma.$transaction(async (tx) => {
+    await tx.aiChatSession.upsert({
+      where: { sessionId: data.sessionId },
+      create: {
+        sessionId: data.sessionId,
+        startedAt: data.startedAt,
+        endedAt: data.endedAt,
+      },
+      update: {
+        endedAt: data.endedAt,
+      },
     });
-  }
+
+    const turn = await tx.aiChatTurn.create({
+      data: {
+        sessionId: data.sessionId,
+        turnNumber: data.turnNumber,
+        userMessage: redactPII(data.userMessage),
+        assistantMessage: redactPII(data.assistantMessage)?.slice(0, 4000),
+        responseMode: data.responseMode,
+        isFastPath: data.isFastPath,
+        fastPathName: data.fastPathName,
+        isGptCall: data.isGptCall,
+        gptIterations: data.gptIterations ?? 0,
+        ttfdMs: data.ttfdMs,
+        totalMs: data.totalMs,
+        funnelStage: data.funnelStage,
+        outcome: data.outcome,
+        errorCategory: data.errorCategory,
+        errorCode: data.errorCode,
+        errorMessageSafe: data.errorMessageSafe,
+        retried: data.retried,
+        inputMode: data.inputMode,
+        startedAt: data.startedAt,
+        endedAt: data.endedAt,
+      },
+    });
+
+    if (data.toolRuns.length > 0) {
+      await tx.aiToolRun.createMany({
+        data: data.toolRuns.map((tr) => ({
+          turnId: turn.id,
+          toolName: tr.toolName,
+          step: tr.step?.slice(0, 64),
+          orderIndex: tr.orderIndex,
+          durationMs: tr.durationMs,
+          ok: tr.ok,
+          errorCode: tr.errorCode?.slice(0, 64),
+          errorMessageSafe: tr.errorMessageSafe?.slice(0, 512),
+          startedAt: tr.startedAt,
+        })),
+      });
+    }
+  });
 }
 
 // ─── Query: Session Replay ──────────────────────────────────
