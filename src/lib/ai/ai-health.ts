@@ -472,10 +472,20 @@ async function checkErrorRateAlertOnce(
  */
 export async function sendDailySummaryToTelegram(date?: Date | string): Promise<boolean> {
   try {
-    const [summary, upcomingAppointments] = await Promise.all([
-      buildDailySummary(date),
-      buildUpcomingAppointmentsMarkdownReport(7, { limit: 12 }),
-    ]);
+    const summary = await buildDailySummary(date);
+    let upcomingAppointments: string;
+
+    try {
+      upcomingAppointments = await withTransientDbRetry(
+        'build upcoming appointments report',
+        () => buildUpcomingAppointmentsMarkdownReport(7, { limit: 12 }),
+      );
+    } catch (upcomingError) {
+      console.error('[AI Health] Failed to build upcoming appointments block:', upcomingError);
+      upcomingAppointments =
+        '📅 *Ближайшие термины на 7 дней*\n\nНе удалось получить список из\\-за временной ошибки БД\\. Откройте список через меню бота: /admin';
+    }
+
     const message = `${formatDailySummaryTelegram(summary)}
 
 ━━━━━━━━━━━━━━━━━━━━━

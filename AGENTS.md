@@ -228,3 +228,7 @@ Useful scripts:
   pauses. `TurnTracker` now upserts the parent `AiChatSession` before writing
   `AiChatTurn` rows to avoid analytics FK errors when initial session analytics
   were delayed by transient DB failures.
+- 2026-06-09: AI daily Telegram summaries build the core AI/site summary first,
+  then build the upcoming-appointments block with its own retry and graceful
+  fallback. A transient DB failure in the upcoming appointment query no longer
+  prevents the daily summary from being sent.
