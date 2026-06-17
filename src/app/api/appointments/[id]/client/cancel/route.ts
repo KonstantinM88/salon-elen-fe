@@ -6,14 +6,14 @@ import {
 import { changeAppointmentStatus } from "@/lib/booking/status-change";
 import { prisma } from "@/lib/prisma";
 import { AppointmentStatus } from "@/lib/prisma-client";
+import { buildPublicUrl } from "@/lib/public-url";
 
 function redirectToManage(
-  request: NextRequest,
   appointmentId: string,
   token: string,
   params: Record<string, string>,
 ): NextResponse {
-  const url = new URL(`/appointments/${encodeURIComponent(appointmentId)}/manage`, request.url);
+  const url = new URL(buildPublicUrl(`/appointments/${encodeURIComponent(appointmentId)}/manage`));
   url.searchParams.set("action", "cancel");
   url.searchParams.set("token", token);
   for (const [key, value] of Object.entries(params)) {
@@ -24,9 +24,9 @@ function redirectToManage(
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ): Promise<NextResponse> {
-  const appointmentId = params.id;
+  const { id: appointmentId } = await params;
   const formData = await request.formData();
   const token = String(formData.get("token") || "");
 
@@ -37,7 +37,7 @@ export async function POST(
       token,
     })
   ) {
-    return redirectToManage(request, appointmentId, token, { error: "invalid_link" });
+    return redirectToManage(appointmentId, token, { error: "invalid_link" });
   }
 
   const appointment = await prisma.appointment.findUnique({
@@ -46,7 +46,7 @@ export async function POST(
   });
 
   if (!appointment || appointment.deletedAt) {
-    return redirectToManage(request, appointmentId, token, { error: "not_found" });
+    return redirectToManage(appointmentId, token, { error: "not_found" });
   }
 
   if (
@@ -54,7 +54,7 @@ export async function POST(
     appointment.status === AppointmentStatus.CANCELED ||
     appointment.status === AppointmentStatus.DONE
   ) {
-    return redirectToManage(request, appointmentId, token, { error: "not_available" });
+    return redirectToManage(appointmentId, token, { error: "not_available" });
   }
 
   const result = await changeAppointmentStatus({
@@ -65,8 +65,8 @@ export async function POST(
   });
 
   if (!result.ok) {
-    return redirectToManage(request, appointmentId, token, { error: result.error });
+    return redirectToManage(appointmentId, token, { error: result.error });
   }
 
-  return redirectToManage(request, appointmentId, token, { result: "canceled" });
+  return redirectToManage(appointmentId, token, { result: "canceled" });
 }

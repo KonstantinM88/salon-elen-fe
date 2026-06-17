@@ -251,3 +251,7 @@ Useful scripts:
   day-level breakdown of created appointments by booking method. Production
   Google/PayPal external return URLs now use `src/lib/public-url.ts` so local
   env values cannot leak into customer-facing redirects.
+- 2026-06-17: Client self-service cancel/reschedule API routes must await
+  App Router `params` in Next 16 and redirect through `src/lib/public-url.ts`;
+  otherwise production proxy URLs can produce `localhost` redirects and
+  `appointmentId=undefined` invalid-link errors.
