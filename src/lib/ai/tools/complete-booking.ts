@@ -3,6 +3,7 @@
 import { verifyOTP, deleteOTP, type OTPMethod } from '@/lib/otp-store';
 import { prisma } from '@/lib/prisma';
 import { finalizeBookingFromDraft, type FinalizeResult, type FinalizeError } from '@/lib/booking/finalize-booking';
+import { bookingMethodForAiOtp } from '@/lib/booking/booking-method';
 
 interface Args {
   method: string;
@@ -57,6 +58,14 @@ async function completeBookingInternal(args: Args): Promise<CompleteResult> {
     return { ok: false, error: 'DRAFT_NOT_FOUND' };
   }
 
+  if (!draft.phone?.trim()) {
+    return {
+      ok: false,
+      error: 'PHONE_REQUIRED',
+      message: 'Phone number is required for appointment booking',
+    };
+  }
+
   // Resolve OTP lookup params
   const lookup = resolveOtpLookup(method, draft);
   if ('error' in lookup) {
@@ -73,6 +82,11 @@ async function completeBookingInternal(args: Args): Promise<CompleteResult> {
       message: 'Invalid or expired verification code',
     };
   }
+
+  await prisma.bookingDraft.update({
+    where: { id: draftId },
+    data: { bookingMethod: bookingMethodForAiOtp(method) },
+  });
 
   // Finalize booking (create Appointment from draft)
   const result = await finalizeBookingFromDraft(draftId);
@@ -109,6 +123,7 @@ async function completeBookingInternal(args: Args): Promise<CompleteResult> {
       const masterName = appt.master?.name || '—';
 
       void sendStatusChangeEmail({
+        appointmentId: result.appointmentId,
         customerName: appt.customerName,
         email: appt.email,
         serviceName,
@@ -147,6 +162,7 @@ async function completeBookingInternal(args: Args): Promise<CompleteResult> {
         const masterName = appt.master?.name || '—';
 
         void notifyClientAppointmentStatus({
+          appointmentId: result.appointmentId,
           customerName: appt.customerName,
           email: appt.email,
           phone: appt.phone,
@@ -185,6 +201,7 @@ async function completeBookingInternal(args: Args): Promise<CompleteResult> {
         startAt: appt.startAt,
         endAt: appt.endAt,
         paymentStatus: appt.paymentStatus,
+        bookingMethod: appt.bookingMethod,
       });
     }
   } catch (e) {

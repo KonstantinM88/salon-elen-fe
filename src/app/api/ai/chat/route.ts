@@ -2543,6 +2543,16 @@ function buildMissingContactForMethodText(
   return 'Für die Telegram-Verifizierung wird eine mit dem Bot verknüpfte Telefonnummer im Format +49... oder +38... benötigt. Bitte korrekte Nummer angeben und erneut versuchen.';
 }
 
+function buildPhoneRequiredForBookingText(locale: 'de' | 'ru' | 'en'): string {
+  if (locale === 'ru') {
+    return 'Для записи нужен номер телефона клиента. Пожалуйста, укажите телефон в международном формате: +49... или +38..., затем я продолжу подтверждение записи.';
+  }
+  if (locale === 'en') {
+    return 'A phone number is required for the appointment. Please provide it in international format, for example +49... or +38..., and I will continue the confirmation.';
+  }
+  return 'Für den Termin wird eine Telefonnummer benötigt. Bitte geben Sie sie im internationalen Format an, z. B. +49... oder +38..., dann fahre ich mit der Bestätigung fort.';
+}
+
 function buildGoogleHandoffUrl(session: AiSession): string | null {
   const serviceId = session.context.selectedServiceIds?.[0];
   const masterId = session.context.selectedMasterId;
@@ -7123,6 +7133,17 @@ export async function POST(
                     });
                 }
                 continue;
+              }
+
+              if (payload.error === 'PHONE_REQUIRED') {
+                const text = buildPhoneRequiredForBookingText(session.locale);
+                appendSessionMessage(sessionId, 'assistant', text);
+
+                return NextResponse.json({
+                  text,
+                  sessionId,
+                  toolCalls: toolCallLog,
+                });
               }
 
               if (payload.draftId && !payload.error) {

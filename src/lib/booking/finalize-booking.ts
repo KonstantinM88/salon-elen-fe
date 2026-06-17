@@ -168,6 +168,7 @@ export async function finalizeBookingFromDraft(
           referral: draft.referral || null,
           notes: draft.notes || null,
           locale: draft.locale || 'de',
+          bookingMethod: draft.bookingMethod || 'website',
           status: 'PENDING',
         },
         include: {

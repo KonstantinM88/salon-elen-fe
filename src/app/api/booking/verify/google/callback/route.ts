@@ -13,8 +13,10 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
+import { BOOKING_METHOD } from "@/lib/booking/booking-method";
 import { prisma } from "@/lib/prisma";
 import { GoogleOAuth } from "@/lib/google-oauth";
+import { getPublicBaseUrl } from "@/lib/public-url";
 import { DEFAULT_LOCALE, LOCALES, type Locale } from "@/i18n/locales";
 import { translate, type MessageKey } from "@/i18n/messages";
 
@@ -264,6 +266,7 @@ export async function GET(req: NextRequest) {
             referral: draft.referral,
             notes: draft.notes,
             status: "PENDING",
+            bookingMethod: BOOKING_METHOD.websiteGoogle,
           },
         });
 
@@ -345,7 +348,10 @@ function redirectToVerifyPage(
   error: string | null,
   appointmentId?: string
 ): NextResponse {
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
+  const baseUrl =
+    process.env.NODE_ENV === "production"
+      ? getPublicBaseUrl()
+      : process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
   const params = new URLSearchParams();
 
   if (email) params.append("email", email);

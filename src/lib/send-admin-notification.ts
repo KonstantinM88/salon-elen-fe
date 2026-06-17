@@ -2,7 +2,9 @@
 // Универсальная функция для отправки уведомлений администратору
 
 import { ORG_TZ } from "@/lib/orgTime";
+import { buildPublicUrl } from "@/lib/public-url";
 import { parseTelegramAdminChatIds } from "@/lib/telegram-admin-chat-ids";
+import { getBookingMethodLabel } from "@/lib/booking/booking-method";
 import type { AppointmentStatus } from "@/lib/prisma-client";
 
 interface AppointmentData {
@@ -17,6 +19,7 @@ interface AppointmentData {
   endAt: Date;
   status?: AppointmentStatus;
   paymentStatus: string;
+  bookingMethod?: string | null;
 }
 
 interface MissingServiceNotificationData {
@@ -132,10 +135,6 @@ function buildAppointmentStatusKeyboard(
     rows.push(buttons.slice(index, index + 2));
   }
 
-  const baseUrl =
-    process.env.NEXT_PUBLIC_BASE_URL ||
-    process.env.NEXTAUTH_URL ||
-    "https://permanent-halle.de";
   rows.push([
     {
       text: "📅 Перенести",
@@ -146,7 +145,9 @@ function buildAppointmentStatusKeyboard(
   rows.push([
     {
       text: "📊 Открыть в админке",
-      url: `${baseUrl}/admin/bookings?period=thisYear&by=visit#appointment-${encodeURIComponent(appointmentId)}`,
+      url: buildPublicUrl(
+        `/admin/bookings?period=thisYear&by=visit#appointment-${encodeURIComponent(appointmentId)}`,
+      ),
     },
   ]);
 
@@ -265,6 +266,7 @@ export async function sendAdminNotification(appointment: AppointmentData): Promi
 ${appointment.email ? `📧 *Email:* ${appointment.email}\n` : ''}
 ✂️ *Услуга:* ${appointment.serviceName}
 👩‍💼 *Мастер:* ${appointment.masterName}
+🧭 *Способ записи:* ${getBookingMethodLabel(appointment.bookingMethod)}
 
 📅 *Дата:* ${dateStr}
 🕐 *Время:* ${startTime} - ${endTime}

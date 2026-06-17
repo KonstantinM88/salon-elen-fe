@@ -2,6 +2,7 @@
 //----------работает добавляеи отчет в телеграмм при завершении регистрации по смс телефону----------------
 // src/app/api/booking/client/sms-phone/complete/route.ts
 import { NextRequest, NextResponse } from 'next/server';
+import { BOOKING_METHOD } from '@/lib/booking/booking-method';
 import { prisma } from '@/lib/prisma';
 
 type ClientLookupCondition = { phone?: string; email?: string };
@@ -199,6 +200,7 @@ export async function POST(req: NextRequest) {
           locale: (registration as { locale?: string }).locale || 'de', // ✅ Язык клиента для уведомлений
           status: 'PENDING',
           paymentStatus: 'PENDING',
+          bookingMethod: BOOKING_METHOD.websiteSms,
         },
       });
 

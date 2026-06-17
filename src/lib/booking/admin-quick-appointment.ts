@@ -1,4 +1,6 @@
 import { getAvailableSlots } from "@/lib/booking/availability-service";
+import { BOOKING_METHOD } from "@/lib/booking/booking-method";
+import { buildClientAppointmentActionLinks } from "@/lib/booking/client-appointment-links";
 import { sendStatusChangeEmail } from "@/lib/email";
 import {
   ORG_TZ,
@@ -161,13 +163,21 @@ function smsText({
   serviceName,
   masterName,
   startAt,
+  rescheduleUrl,
+  cancelUrl,
 }: {
   serviceName: string;
   masterName: string;
   startAt: Date;
+  rescheduleUrl?: string | null;
+  cancelUrl?: string | null;
 }): string {
   const when = formatInOrgTzDateTime(startAt, "de-DE");
-  return `Salon Elen: Ihr Termin ist bestaetigt. ${when}, ${serviceName}, ${masterName}. Adresse: Lessingstr. 37, Halle.`;
+  const actionText =
+    rescheduleUrl && cancelUrl
+      ? ` Verschieben: ${rescheduleUrl} Absagen: ${cancelUrl}`
+      : "";
+  return `Salon Elen: Ihr Termin ist bestaetigt. ${when}, ${serviceName}, ${masterName}. Adresse: Lessingstr. 37, Halle.${actionText}`;
 }
 
 export async function listAdminQuickBookingServices(): Promise<
@@ -478,6 +488,7 @@ export async function createAdminQuickAppointment({
           notes,
           status: AppointmentStatus.CONFIRMED,
           paymentStatus: "PENDING",
+          bookingMethod: BOOKING_METHOD.adminQuick,
         },
         select: {
           id: true,
@@ -514,6 +525,7 @@ export async function createAdminQuickAppointment({
 
     const serviceName = serviceNameOf(result.service);
     const masterName = result.master.name;
+    const actionLinks = buildClientAppointmentActionLinks(result.appointment.id);
 
     const notifications = await Promise.allSettled([
       emailStr
@@ -527,9 +539,11 @@ export async function createAdminQuickAppointment({
             status: AppointmentStatus.CONFIRMED,
             previousStatus: AppointmentStatus.PENDING,
             locale: "de",
+            appointmentId: result.appointment.id,
           })
         : Promise.resolve(),
       notifyClientAppointmentStatus({
+        appointmentId: result.appointment.id,
         customerName: result.appointment.customerName,
         email: emailStr,
         phone: normalizedPhone,
@@ -547,6 +561,8 @@ export async function createAdminQuickAppointment({
               serviceName,
               masterName,
               startAt: result.appointment.startAt,
+              rescheduleUrl: actionLinks?.rescheduleUrl,
+              cancelUrl: actionLinks?.cancelUrl,
             }),
           )
         : Promise.resolve(),
@@ -562,6 +578,7 @@ export async function createAdminQuickAppointment({
         endAt: result.appointment.endAt,
         status: AppointmentStatus.CONFIRMED,
         paymentStatus: "PENDING",
+        bookingMethod: BOOKING_METHOD.adminQuick,
       }),
     ]);
 

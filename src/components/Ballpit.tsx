@@ -930,9 +930,8 @@ class Spheres extends InstancedMesh {
     const material = new ScatteringMaterial({
       envMap: envTexture,
       ...config.materialParams,
-      transmission: 0.96,
-      ior: 1.3,
-      thickness: 1.2,
+      opacity: 0.92,
+      transparent: true,
     });
 
     material.envMapRotation.x = -Math.PI / 2;

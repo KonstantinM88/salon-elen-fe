@@ -8,6 +8,7 @@
 import { prisma } from '@/lib/prisma';
 import { Temporal } from '@js-temporal/polyfill';
 import { isYmd, ORG_TZ, orgDayRange } from '@/lib/orgTime';
+import { getBookingMethodLabel } from '@/lib/booking/booking-method';
 import { buildUpcomingAppointmentsMarkdownReport } from '@/lib/booking/upcoming-appointments-report';
 import { getSiteVisitSummary } from '@/lib/site-analytics';
 
@@ -206,6 +207,8 @@ export interface DailySummaryData {
   date: string;
   siteVisits: number;
   sitePageviews: number;
+  appointmentCreations: number;
+  bookingMethods: Array<{ method: string; label: string; count: number }>;
   totalSessions: number;
   completedBookings: number;
   conversionRate: number;
@@ -281,12 +284,35 @@ async function buildDailySummaryOnce(date?: Date | string): Promise<DailySummary
   const { start: dayStart, end: dayEnd } = orgDayRange(dateISO);
   const dateStr = displayDateISO(dateISO);
 
-  const [sessions, siteSummary] = await Promise.all([
+  const [sessions, siteSummary, createdAppointments] = await Promise.all([
     prisma.aiChatSession.findMany({
       where: { startedAt: { gte: dayStart, lt: dayEnd } },
     }),
     getSiteVisitSummary(dateISO),
+    prisma.appointment.findMany({
+      where: {
+        createdAt: { gte: dayStart, lt: dayEnd },
+        deletedAt: null,
+      },
+      select: {
+        bookingMethod: true,
+      },
+    }),
   ]);
+
+  const bookingMethodCounts = new Map<string, number>();
+  for (const appointment of createdAppointments) {
+    const method = appointment.bookingMethod || 'website';
+    bookingMethodCounts.set(method, (bookingMethodCounts.get(method) ?? 0) + 1);
+  }
+
+  const bookingMethods = Array.from(bookingMethodCounts.entries())
+    .map(([method, count]) => ({
+      method,
+      label: getBookingMethodLabel(method),
+      count,
+    }))
+    .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label));
 
   const total = sessions.length;
   if (total === 0) {
@@ -295,6 +321,8 @@ async function buildDailySummaryOnce(date?: Date | string): Promise<DailySummary
       date: dateStr,
       siteVisits: siteSummary.siteVisits,
       sitePageviews: siteSummary.sitePageviews,
+      appointmentCreations: createdAppointments.length,
+      bookingMethods,
       totalSessions: 0, completedBookings: 0, conversionRate: 0,
       avgDurationSec: 0, avgMessages: 0, totalErrors: 0, totalRetries: 0,
       errorRate: 0, voicePercent: 0, streamingPercent: 0,
@@ -349,6 +377,8 @@ async function buildDailySummaryOnce(date?: Date | string): Promise<DailySummary
     date: dateStr,
     siteVisits: siteSummary.siteVisits,
     sitePageviews: siteSummary.sitePageviews,
+    appointmentCreations: createdAppointments.length,
+    bookingMethods,
     totalSessions: total,
     completedBookings: completed,
     conversionRate: Math.round((completed / total) * 1000) / 10,
@@ -377,6 +407,11 @@ async function buildDailySummaryOnce(date?: Date | string): Promise<DailySummary
 export function formatDailySummaryTelegram(data: DailySummaryData): string {
   const conv = data.conversionRate > 0 ? `📈 ${data.conversionRate}%` : '📉 0%';
   const errorEmoji = data.totalErrors === 0 ? '✅' : data.errorRate > 10 ? '🔴' : '⚠️';
+  const bookingMethodLines = data.bookingMethods.length > 0
+    ? data.bookingMethods
+        .map((item) => `   • ${escMd(item.label)}: *${item.count}*`)
+        .join('\n')
+    : '   • \\-';
 
   return `🤖 *AI Ассистент \\— Дневной отчёт*
 
@@ -389,6 +424,8 @@ export function formatDailySummaryTelegram(data: DailySummaryData): string {
 📄 Просмотры страниц: *${data.sitePageviews}*
 👥 Сессии: *${data.totalSessions}*
 📝 Записи: *${data.completedBookings}* ${conv}
+🧭 Все новые записи за день: *${data.appointmentCreations}*
+${bookingMethodLines}
 ⏱ Ø Длительность: *${data.avgDurationSec}s*
 💬 Ø Сообщений: *${data.avgMessages}*
 

@@ -1,6 +1,7 @@
 // src/lib/ai/tools/create-draft.ts
 
 import { prisma } from '@/lib/prisma';
+import { isPhoneDigitsValid, normalizePhoneDigits } from '@/lib/phone';
 
 interface Args {
   serviceId: string;
@@ -114,6 +115,15 @@ function normalizeEmailInput(raw: string): string {
 export async function createDraft(args: Args) {
   try {
     const normalizedEmail = normalizeEmailInput(args.email);
+    const phone = String(args.phone || '').trim();
+    const phoneDigits = normalizePhoneDigits(phone);
+
+    if (!phone || !isPhoneDigitsValid(phoneDigits)) {
+      return {
+        error: 'PHONE_REQUIRED',
+        message: 'Phone number is required for appointment booking',
+      };
+    }
 
     const draft = await prisma.bookingDraft.create({
       data: {
@@ -122,7 +132,7 @@ export async function createDraft(args: Args) {
         startAt: new Date(args.startAt),
         endAt: new Date(args.endAt),
         customerName: args.customerName,
-        phone: args.phone || '',
+        phone,
         email: normalizedEmail,
         birthDate: args.birthDate ? new Date(args.birthDate) : null,
         notes: args.notes || null,

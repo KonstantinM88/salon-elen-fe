@@ -103,6 +103,7 @@ export async function POST(request: NextRequest) {
           startAt: true,
           endAt: true,
           paymentStatus: true,
+          bookingMethod: true,
           locale: true, // ✅ Явно выбираем locale
           service: {
             select: {
@@ -136,6 +137,7 @@ export async function POST(request: NextRequest) {
         startAt: updated.startAt,
         endAt: updated.endAt,
         paymentStatus: updated.paymentStatus,
+        bookingMethod: updated.bookingMethod,
       }).catch((err) => {
         console.error('🔴 [PayPal Capture] Failed to send Telegram notification:', err);
       });
@@ -147,6 +149,7 @@ export async function POST(request: NextRequest) {
 
       if (updated.email) {
         sendStatusChangeEmail({
+          appointmentId: updated.id,
           customerName: updated.customerName,
           email: updated.email,
           serviceName,
@@ -162,6 +165,7 @@ export async function POST(request: NextRequest) {
 
       if (updated.phone) {
         notifyClientAppointmentStatus({
+          appointmentId: updated.id,
           customerName: updated.customerName,
           email: updated.email,
           phone: updated.phone,

@@ -6,6 +6,7 @@
 // ✅ ДОБАВЛЕНО: Автоматическое создание клиентов
 
 import { NextRequest, NextResponse } from 'next/server';
+import { BOOKING_METHOD } from '@/lib/booking/booking-method';
 import { prisma } from '@/lib/prisma';
 import { normalizePhoneDigits } from '@/lib/phone';
 
@@ -249,6 +250,7 @@ export async function POST(request: NextRequest) {
           referral: draft.referral || null,
           status: 'PENDING',
           paymentStatus: 'PENDING',
+          bookingMethod: BOOKING_METHOD.websiteTelegram,
         },
       });
 

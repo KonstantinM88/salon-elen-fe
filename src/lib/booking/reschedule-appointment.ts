@@ -525,6 +525,7 @@ export async function rescheduleAppointment({
     const notifications = await Promise.allSettled([
       result.updated.email
         ? sendStatusChangeEmail({
+            appointmentId: result.updated.id,
             customerName: result.updated.customerName,
             email: result.updated.email,
             serviceName,
@@ -538,6 +539,7 @@ export async function rescheduleAppointment({
         : Promise.resolve(),
       result.updated.phone
         ? notifyClientAppointmentStatus({
+            appointmentId: result.updated.id,
             customerName: result.updated.customerName,
             email: result.updated.email,
             phone: result.updated.phone,

@@ -1,5 +1,6 @@
 import { Temporal } from "@js-temporal/polyfill";
 
+import { getBookingMethodLabel } from "@/lib/booking/booking-method";
 import { ORG_TZ, formatWallRangeLabel } from "@/lib/orgTime";
 import { prisma } from "@/lib/prisma";
 import type { AppointmentStatus } from "@/lib/prisma-client";
@@ -16,6 +17,7 @@ export type UpcomingAppointmentItem = {
   startAt: Date;
   endAt: Date;
   status: AppointmentStatus;
+  bookingMethod: string;
 };
 
 export type UpcomingAppointmentsReport = {
@@ -144,6 +146,7 @@ export async function getUpcomingAppointmentsReport({
       startAt: appointment.startAt,
       endAt: appointment.endAt,
       status: appointment.status,
+      bookingMethod: appointment.bookingMethod,
     })),
   };
 }
@@ -170,6 +173,7 @@ export function formatUpcomingAppointmentsMarkdown(
     lines.push(`*${escapeMarkdown(formatDateTitle(appointments[0].startAt))}*`);
 
     for (const appointment of appointments) {
+      lines.push(`Способ записи: ${escapeMarkdown(getBookingMethodLabel(appointment.bookingMethod))}`);
       lines.push(
         `${STATUS_EMOJI[appointment.status]} ${escapeMarkdown(formatWallRangeLabel(appointment.startAt, appointment.endAt))} \\— *${escapeMarkdown(STATUS_LABELS[appointment.status])}*`,
       );
@@ -224,6 +228,7 @@ export function formatUpcomingAppointmentsHtmlChunks(
     pushBlock(`<b>${escapeHtml(formatDateTitle(appointments[0].startAt))}</b>\n`);
 
     for (const appointment of appointments) {
+      pushBlock(`Способ записи: ${escapeHtml(getBookingMethodLabel(appointment.bookingMethod))}\n`);
       pushBlock(
         [
           `${STATUS_EMOJI[appointment.status]} <b>${escapeHtml(formatWallRangeLabel(appointment.startAt, appointment.endAt))}</b> - ${escapeHtml(STATUS_LABELS[appointment.status])}`,

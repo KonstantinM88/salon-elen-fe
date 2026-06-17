@@ -109,6 +109,7 @@ export async function changeAppointmentStatus({
     const notificationResults = await Promise.allSettled([
       appointment.email
         ? sendStatusChangeEmail({
+            appointmentId: appointment.id,
             customerName: appointment.customerName,
             email: appointment.email,
             serviceName,
@@ -122,6 +123,7 @@ export async function changeAppointmentStatus({
         : Promise.resolve(),
       appointment.phone
         ? notifyClientAppointmentStatus({
+            appointmentId: appointment.id,
             customerName: appointment.customerName,
             email: appointment.email,
             phone: appointment.phone,

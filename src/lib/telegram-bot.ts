@@ -2,7 +2,9 @@
 // ИСПРАВЛЕНО: Убраны все `any`, добавлены правильные типы
 
 import { AppointmentStatus } from "@/lib/prisma-client";
+import { buildClientAppointmentActionLinks } from "@/lib/booking/client-appointment-links";
 import { ORG_TZ } from "@/lib/orgTime";
+import { buildPublicUrl } from "@/lib/public-url";
 import { parseTelegramAdminChatIds } from "@/lib/telegram-admin-chat-ids";
 import { isPhoneDigitsValid, normalizePhoneDigits } from "@/lib/phone";
 import { DEFAULT_LOCALE, LOCALES, type Locale } from "@/i18n/locales";
@@ -98,6 +100,7 @@ interface MasterData {
 }
 
 interface ClientAppointmentStatusData {
+  appointmentId?: string;
   email?: string | null;
   phone: string;
   customerName: string;
@@ -336,9 +339,9 @@ export async function notifyAdminNewAppointment(
       `🆔 *${t("telegram_admin_label_id")}:* \`${appointment.id}\``;
 
     // URL для админ-панели
-    const baseUrl =
-      process.env.NEXT_PUBLIC_BASE_URL || "https://permanent-halle.de";
-    const adminUrl = `${baseUrl}/admin/appointments/${appointment.id}`;
+    const adminUrl = buildPublicUrl(
+      `/admin/bookings?period=thisYear&by=visit#appointment-${encodeURIComponent(appointment.id)}`,
+    );
 
     const options: TelegramSendMessageOptions = {
       parse_mode: "Markdown",
@@ -534,6 +537,10 @@ export async function notifyClientAppointmentStatus(
       `👩‍💼 ${escapeHtml(t("telegram_client_label_master"))}: ${escapeHtml(data.masterName)}\n` +
       `📌 ${escapeHtml(t("telegram_client_label_status"))}: <b>${escapeHtml(t(statusText[data.status]))}</b>\n\n` +
       `${escapeHtml(t(statusMessage[data.status]))}`;
+    const actionLinks =
+      data.status === "PENDING" || data.status === "CONFIRMED"
+        ? buildClientAppointmentActionLinks(data.appointmentId)
+        : null;
 
     const response = await fetch(
       `${TELEGRAM_API_URL}/bot${token}/sendMessage`,
@@ -546,6 +553,18 @@ export async function notifyClientAppointmentStatus(
           chat_id: chatId,
           text: message,
           parse_mode: "HTML",
+          ...(actionLinks
+            ? {
+                reply_markup: {
+                  inline_keyboard: [
+                    [
+                      { text: "📅 Перенести", url: actionLinks.rescheduleUrl },
+                      { text: "❌ Отменить", url: actionLinks.cancelUrl },
+                    ],
+                  ],
+                },
+              }
+            : {}),
         }),
       }
     );

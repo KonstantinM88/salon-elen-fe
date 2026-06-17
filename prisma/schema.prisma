@@ -237,6 +237,7 @@ model Appointment {
   birthDate            DateTime?
   referral             String?
   paymentStatus        PaymentStatus          @default(PENDING)
+  bookingMethod        String                 @default("website")
   deletedAt            DateTime?              @db.Timestamp(6)
   deletedBy            String?
   /// Язык клиента при бронировании (для email/sms уведомлений): "de", "ru", "en"
@@ -256,6 +257,7 @@ model Appointment {
   @@index([masterId, startAt])
   @@index([birthDate])
   @@index([paymentStatus])
+  @@index([bookingMethod])
   @@index([deletedAt])
   @@index([masterId, startAt], map: "appointment_master_time_idx")
   @@map("Appointment")
@@ -390,23 +392,25 @@ model EmailVerification {
 }
 
 model BookingDraft {
-  id           String    @id @default(cuid())
-  serviceId    String
-  masterId     String
-  startAt      DateTime
-  endAt        DateTime
-  customerName String
-  phone        String
-  email        String
-  birthDate    DateTime?
-  referral     String?
-  notes        String?
-  createdAt    DateTime  @default(now())
+  id            String    @id @default(cuid())
+  serviceId     String
+  masterId      String
+  startAt       DateTime
+  endAt         DateTime
+  customerName  String
+  phone         String
+  email         String
+  birthDate     DateTime?
+  referral      String?
+  notes         String?
+  createdAt     DateTime  @default(now())
+  bookingMethod String    @default("website")
   /// Язык клиента при бронировании: "de", "ru", "en"
-  locale       String?   @default("de")
+  locale        String?   @default("de")
 
   @@index([serviceId])
   @@index([masterId])
+  @@index([bookingMethod])
   @@index([startAt, endAt])
 }
 

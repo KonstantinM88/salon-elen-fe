@@ -61,6 +61,7 @@ export async function POST(
           startAt: true,
           endAt: true,
           paymentStatus: true,
+          bookingMethod: true,
           locale: true,
           service: {
             select: {
@@ -110,6 +111,7 @@ export async function POST(
           startAt: true,
           endAt: true,
           paymentStatus: true,
+          bookingMethod: true,
           locale: true, // ✅ Явно выбираем locale
           service: {
             select: {
@@ -167,6 +169,7 @@ export async function POST(
       startAt: updated.startAt,
       endAt: updated.endAt,
       paymentStatus: updated.paymentStatus, // PENDING
+      bookingMethod: updated.bookingMethod,
     }).catch((err) => {
       console.error('❌ [Onsite Payment] Failed to send Telegram notification:', err);
     });
@@ -181,6 +184,7 @@ export async function POST(
 
     if (updated.email) {
       sendStatusChangeEmail({
+        appointmentId: updated.id,
         customerName: updated.customerName,
         email: updated.email,
         serviceName,
@@ -196,6 +200,7 @@ export async function POST(
 
     if (updated.phone) {
       notifyClientAppointmentStatus({
+        appointmentId: updated.id,
         customerName: updated.customerName,
         email: updated.email,
         phone: updated.phone,

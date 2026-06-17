@@ -3,6 +3,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { exchangeCodeForToken, getUserInfo } from "@/lib/google-oauth";
+import { getPublicBaseUrl } from "@/lib/public-url";
 
 /**
  * GET /api/booking/client/google-quick/callback
@@ -190,6 +191,10 @@ export async function GET(req: NextRequest) {
 
     // ✅ ИСПРАВЛЕНО: Правильное формирование базового URL
     const getBaseUrl = () => {
+      if (process.env.NODE_ENV === "production") {
+        return getPublicBaseUrl();
+      }
+
       // 1. Приоритет: переменная окружения
       if (process.env.NEXT_PUBLIC_BASE_URL) {
         return process.env.NEXT_PUBLIC_BASE_URL;

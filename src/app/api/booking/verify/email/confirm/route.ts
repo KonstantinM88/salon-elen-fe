@@ -1,8 +1,10 @@
 // src/app/api/booking/verify/email/confirm/route.ts
 
 import { NextRequest, NextResponse } from 'next/server';
+import { BOOKING_METHOD } from '@/lib/booking/booking-method';
 import { verifyOTP, deleteOTP, OTPMethod } from '@/lib/otp-store';
 import { finalizeBookingFromDraft } from '@/lib/booking/finalize-booking';
+import { prisma } from '@/lib/prisma';
 import { DEFAULT_LOCALE, LOCALES, type Locale } from '@/i18n/locales';
 import { translate, type MessageKey } from '@/i18n/messages';
 
@@ -52,6 +54,11 @@ export async function POST(
     }
 
     console.log(`[OTP Verify] Код подтверждён для ${email}:${draftId}`);
+
+    await prisma.bookingDraft.updateMany({
+      where: { id: draftId },
+      data: { bookingMethod: BOOKING_METHOD.websiteEmail },
+    });
 
     const finalizeResult = await finalizeBookingFromDraft(draftId);
     if (!finalizeResult.ok) {

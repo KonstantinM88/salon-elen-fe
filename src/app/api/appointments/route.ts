@@ -1,5 +1,6 @@
 // src/app/api/appointments/route.ts
 import { NextResponse } from "next/server";
+import { BOOKING_METHOD } from "@/lib/booking/booking-method";
 import { prisma } from "@/lib/prisma";
 import type { Prisma } from "@/lib/prisma-client";
 
@@ -165,6 +166,7 @@ export async function POST(req: Request) {
           email,
           notes: composedNotes || null,
           status: "PENDING",
+          bookingMethod: BOOKING_METHOD.api,
         },
         select: {
           id: true,

@@ -5,6 +5,7 @@
 // 3. ДОБАВЛЕНО: Автоматическое создание клиентов
 
 import { NextRequest, NextResponse } from 'next/server';
+import { BOOKING_METHOD } from '@/lib/booking/booking-method';
 import { prisma } from '@/lib/prisma';
 import { normalizePhoneDigits } from '@/lib/phone';
 // import { sendAdminNotification } from '@/lib/send-admin-notification';
@@ -318,6 +319,7 @@ export async function POST(request: NextRequest) {
           locale: (verification as { locale?: string }).locale || 'de', // ✅ Язык клиента для уведомлений
           status: 'PENDING',
           paymentStatus: 'PENDING',
+          bookingMethod: BOOKING_METHOD.telegramBot,
         },
         include: {
           service: true,

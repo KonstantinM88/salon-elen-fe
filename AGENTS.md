@@ -232,3 +232,22 @@ Useful scripts:
   then build the upcoming-appointments block with its own retry and graceful
   fallback. A transient DB failure in the upcoming appointment query no longer
   prevents the daily summary from being sent.
+- 2026-06-16: `Appointment` and `BookingDraft` now store `bookingMethod`
+  (`20260616120000_add_appointment_booking_method`) so Telegram appointment
+  reports can show how a client booked. AI bookings require a valid phone before
+  `create_draft`, and client email/Telegram/SMS notifications can include signed
+  self-service links for cancellation and rescheduling through
+  `/appointments/[id]/manage`.
+- 2026-06-16: Prisma packages were updated to 7.8.0. Keep `prisma`,
+  `@prisma/client`, and `@prisma/adapter-pg` aligned when upgrading.
+- 2026-06-16: External appointment/admin links for Telegram/email now use
+  `src/lib/public-url.ts`, which ignores localhost/private hosts and falls
+  back to `https://permanent-halle.de`. This prevents Telegram inline keyboard
+  `Wrong HTTP URL` failures when local env vars are present during testing.
+- 2026-06-16: `Ballpit` no longer enables `MeshPhysicalMaterial` transmission
+  because it caused Three/WebGL shader compile errors with the current runtime.
+- 2026-06-17: Admin booking Telegram notifications include
+  `Appointment.bookingMethod` labels, and AI daily summaries include a
+  day-level breakdown of created appointments by booking method. Production
+  Google/PayPal external return URLs now use `src/lib/public-url.ts` so local
+  env values cannot leak into customer-facing redirects.

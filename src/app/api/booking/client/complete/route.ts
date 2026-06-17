@@ -1,6 +1,7 @@
 //---------работает добавляем ответ админ боту при успешной регистрации-------
 // src/app/api/booking/client/complete/route.ts
 import { NextRequest, NextResponse } from "next/server";
+import { BOOKING_METHOD } from "@/lib/booking/booking-method";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 
@@ -187,6 +188,7 @@ export async function POST(req: NextRequest) {
           birthDate: birthdayDate, // ✅ Дата рождения (опциональная) — поле модели Appointment
           status: "PENDING",
           locale: quickReg.locale || 'de',
+          bookingMethod: BOOKING_METHOD.websiteGoogle,
         },
       });
 

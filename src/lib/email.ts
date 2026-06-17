@@ -1,6 +1,8 @@
 // src/lib/email.ts
 import { Resend } from 'resend';
+import { buildClientAppointmentActionLinks } from '@/lib/booking/client-appointment-links';
 import { AppointmentStatus } from '@/lib/prisma-client';
+import { getPublicBaseUrl } from '@/lib/public-url';
 import { DEFAULT_LOCALE, LOCALES, type Locale } from '@/i18n/locales';
 import { translate, type MessageKey } from '@/i18n/messages';
 
@@ -8,6 +10,7 @@ import { translate, type MessageKey } from '@/i18n/messages';
  * Интерфейс данных для email уведомления
  */
 interface AppointmentEmailData {
+  appointmentId?: string;
   customerName: string;
   email: string;
   serviceName: string;
@@ -213,7 +216,11 @@ function getEmailBody(
       break;
   }
 
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://permanent-halle.de';
+  const baseUrl = getPublicBaseUrl();
+  const actionLinks =
+    data.status === 'PENDING' || data.status === 'CONFIRMED'
+      ? buildClientAppointmentActionLinks(data.appointmentId)
+      : null;
 
   return `
     <!DOCTYPE html>
@@ -272,6 +279,19 @@ function getEmailBody(
               </tr>
             </table>
           </div>
+
+          ${actionLinks ? `
+            <div style="text-align: center; margin: 25px 0;">
+              <a href="${actionLinks.rescheduleUrl}"
+                 style="display: inline-block; background: #7c3aed; color: white; text-decoration: none; padding: 12px 20px; border-radius: 8px; font-weight: 600; font-size: 14px; margin: 4px;">
+                Termin verschieben
+              </a>
+              <a href="${actionLinks.cancelUrl}"
+                 style="display: inline-block; background: #ef4444; color: white; text-decoration: none; padding: 12px 20px; border-radius: 8px; font-weight: 600; font-size: 14px; margin: 4px;">
+                Termin absagen
+              </a>
+            </div>
+          ` : ''}
           
           <!-- CTA Button (for CONFIRMED status) -->
           ${data.status === 'CONFIRMED' ? `

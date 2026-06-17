@@ -1,5 +1,6 @@
 // src/app/api/payment/create-paypal-order/route.ts
 import { NextRequest, NextResponse } from 'next/server';
+import { buildPublicUrl } from '@/lib/public-url';
 import { getPayPalAccessToken, getPayPalApiUrl } from '@/lib/paypal-utils';
 
 export async function POST(request: NextRequest) {
@@ -40,8 +41,8 @@ export async function POST(request: NextRequest) {
           brand_name: 'Salon Elen',
           landing_page: 'NO_PREFERENCE',
           user_action: 'PAY_NOW',
-          return_url: `${process.env.NEXT_PUBLIC_BASE_URL}/booking/payment/success?appointment=${appointmentId}`,
-          cancel_url: `${process.env.NEXT_PUBLIC_BASE_URL}/booking/payment?appointment=${appointmentId}`,
+          return_url: buildPublicUrl(`/booking/payment/success?appointment=${encodeURIComponent(appointmentId)}`),
+          cancel_url: buildPublicUrl(`/booking/payment?appointment=${encodeURIComponent(appointmentId)}`),
         },
       }),
     });

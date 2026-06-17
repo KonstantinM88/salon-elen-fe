@@ -189,6 +189,7 @@ export const TOOLS: ToolDefinition[] = [
         'startAt',
         'endAt',
         'customerName',
+        'phone',
         'email',
         'locale',
       ],
