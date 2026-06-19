@@ -228,6 +228,31 @@ Useful scripts:
   pauses. `TurnTracker` now upserts the parent `AiChatSession` before writing
   `AiChatTurn` rows to avoid analytics FK errors when initial session analytics
   were delayed by transient DB failures.
+- 2026-06-19: The public homepage was redesigned around a dusty rose, milk, and
+  deep plum visual system with a new desktop hero, services, trust, gallery,
+  reviews, news, booking CTA, and contact sections. The existing mobile hero
+  poster/video experience (`hero-mobile.webp` + `hero-video.webm`) remains
+  unchanged in structure and is rendered separately below the `md` breakpoint.
+  Homepage motion uses progressive section/card reveals, restrained image and
+  light effects, and respects `prefers-reduced-motion`; key sections remain
+  visible without waiting for a section-level intersection animation.
+- 2026-06-19: `src/proxy.ts` excludes `/api/*` from its matcher. API route
+  handlers remain responsible for their own authentication, while the proxy is
+  limited to page protection, locale cookies, and SEO request headers. This
+  avoids routing NextAuth session requests through the page proxy during cold
+  Turbopack development compilation.
+- 2026-06-19: AI/search discovery signals are centralized around the current
+  permanent make-up catalog. `BeautySalon` JSON-LD includes a linked service
+  offer catalog, commercial landing pages expose linked `Service`/`WebPage`
+  entities, and `robots.txt` explicitly permits `OAI-SearchBot` on public
+  content. Site visits store traffic attribution and classify ChatGPT,
+  Perplexity, Claude, Gemini, and Copilot referrals via migration
+  `20260619090000_add_site_visit_traffic_attribution`; daily Telegram reports
+  include AI referral counts and source breakdowns.
+- 2026-06-19: Public news detail pages expose linked `NewsArticle`/`Article`,
+  `WebPage`, `WebSite`, and salon JSON-LD entities. Static sitemap entries omit
+  `lastModified` unless a real content timestamp is available; article entries
+  continue to use `Article.updatedAt`.
 - 2026-06-09: AI daily Telegram summaries build the core AI/site summary first,
   then build the upcoming-appointments block with its own retry and graceful
   fallback. A transient DB failure in the upcoming appointment query no longer

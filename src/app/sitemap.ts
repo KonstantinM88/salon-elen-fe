@@ -50,14 +50,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { path: "/nutzungsbedingungen", priority: 0.3 },
   ];
 
-  const lastModified = new Date();
-
   for (const page of staticPages) {
     const url = page.path === "/" ? `${BASE_URL}/` : `${BASE_URL}${page.path}`;
 
     items.push({
       url,
-      lastModified,
       changeFrequency: "weekly",
       priority: page.priority,
       alternates: {
@@ -84,7 +81,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
       items.push({
         url: `${BASE_URL}${path}`,
-        lastModified: article.updatedAt || lastModified,
+        lastModified: article.updatedAt,
         changeFrequency: "weekly",
         priority: 0.5,
         alternates: {

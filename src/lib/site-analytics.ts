@@ -6,14 +6,44 @@ export interface RecordSiteVisitInput {
   path: string;
   locale?: string;
   referrer?: string | null;
+  utmSource?: string | null;
+  utmMedium?: string | null;
+  utmCampaign?: string | null;
   userAgent?: string | null;
   ip?: string | null;
+}
+
+export interface TrafficSourceSummary {
+  source: string;
+  label: string;
+  visits: number;
+  pageviews: number;
 }
 
 export interface SiteVisitSummary {
   siteVisits: number;
   sitePageviews: number;
+  aiReferrals: number;
+  aiTrafficSources: TrafficSourceSummary[];
+  trafficSources: TrafficSourceSummary[];
 }
+
+const AI_TRAFFIC_SOURCES = new Set(['chatgpt', 'perplexity', 'claude', 'gemini', 'copilot']);
+
+const TRAFFIC_SOURCE_LABELS: Record<string, string> = {
+  chatgpt: 'ChatGPT',
+  perplexity: 'Perplexity',
+  claude: 'Claude',
+  gemini: 'Gemini',
+  copilot: 'Microsoft Copilot',
+  google: 'Google',
+  bing: 'Bing',
+  instagram: 'Instagram',
+  facebook: 'Facebook',
+  social: 'Social',
+  referral: 'Referral',
+  direct: 'Direct',
+};
 
 function orgDateISO(date = new Date()): string {
   const parts = new Intl.DateTimeFormat('en-CA', {
@@ -94,6 +124,41 @@ function truncate(value: string | null | undefined, max: number): string | null 
   return trimmed.slice(0, max);
 }
 
+function sanitizeCampaignValue(value: string | null | undefined, max: number): string | null {
+  const trimmed = value?.trim();
+  if (!trimmed) return null;
+  return trimmed.replace(/[\u0000-\u001f\u007f]/gu, '').slice(0, max) || null;
+}
+
+function sourceFromValue(value: string): string | null {
+  const normalized = value.toLowerCase();
+  if (normalized.includes('chatgpt') || normalized.includes('openai')) return 'chatgpt';
+  if (normalized.includes('perplexity')) return 'perplexity';
+  if (normalized.includes('claude') || normalized.includes('anthropic')) return 'claude';
+  if (normalized.includes('gemini')) return 'gemini';
+  if (normalized.includes('copilot')) return 'copilot';
+  if (normalized.includes('google')) return 'google';
+  if (normalized.includes('bing')) return 'bing';
+  if (normalized.includes('instagram')) return 'instagram';
+  if (normalized.includes('facebook') || normalized.includes('fb.')) return 'facebook';
+  return null;
+}
+
+export function classifyTrafficSource(referrer?: string | null, utmSource?: string | null): string {
+  const utmMatch = utmSource ? sourceFromValue(utmSource) : null;
+  if (utmMatch) return utmMatch;
+  if (utmSource?.trim()) return 'campaign';
+
+  if (!referrer) return 'direct';
+  try {
+    const host = new URL(referrer).hostname.toLowerCase();
+    if (host === 'permanent-halle.de' || host.endsWith('.permanent-halle.de')) return 'direct';
+    return sourceFromValue(host) ?? 'referral';
+  } catch {
+    return sourceFromValue(referrer) ?? 'referral';
+  }
+}
+
 export async function recordSiteVisit(input: RecordSiteVisitInput): Promise<void> {
   const visitId = sanitizeVisitId(input.visitId);
   if (!visitId) return;
@@ -101,6 +166,11 @@ export async function recordSiteVisit(input: RecordSiteVisitInput): Promise<void
   const dateISO = orgDateISO();
   const path = sanitizePath(input.path);
   const userAgent = truncate(input.userAgent, 512);
+  const referrer = truncate(input.referrer, 512);
+  const utmSource = sanitizeCampaignValue(input.utmSource, 120);
+  const utmMedium = sanitizeCampaignValue(input.utmMedium, 120);
+  const utmCampaign = sanitizeCampaignValue(input.utmCampaign, 160);
+  const trafficSource = classifyTrafficSource(referrer, utmSource);
 
   await prisma.siteVisit.upsert({
     where: {
@@ -114,7 +184,11 @@ export async function recordSiteVisit(input: RecordSiteVisitInput): Promise<void
       dateISO,
       entryPath: path,
       lastPath: path,
-      referrer: truncate(input.referrer, 512),
+      referrer,
+      trafficSource,
+      utmSource,
+      utmMedium,
+      utmCampaign,
       locale: sanitizeLocale(input.locale),
       userAgent,
       deviceType: detectDeviceType(userAgent),
@@ -125,21 +199,44 @@ export async function recordSiteVisit(input: RecordSiteVisitInput): Promise<void
       lastPath: path,
       pageviews: { increment: 1 },
       locale: sanitizeLocale(input.locale),
+      trafficSource,
+      referrer,
+      utmSource,
+      utmMedium,
+      utmCampaign,
     },
   });
 }
 
 export async function getSiteVisitSummary(dateISO: string): Promise<SiteVisitSummary> {
-  const [siteVisits, pageviewAggregate] = await Promise.all([
+  const [siteVisits, pageviewAggregate, sourceGroups] = await Promise.all([
     prisma.siteVisit.count({ where: { dateISO } }),
     prisma.siteVisit.aggregate({
       where: { dateISO },
       _sum: { pageviews: true },
     }),
+    prisma.siteVisit.groupBy({
+      by: ['trafficSource'],
+      where: { dateISO },
+      _count: { _all: true },
+      _sum: { pageviews: true },
+      orderBy: { _count: { trafficSource: 'desc' } },
+    }),
   ]);
+
+  const trafficSources = sourceGroups.map((group) => ({
+    source: group.trafficSource,
+    label: TRAFFIC_SOURCE_LABELS[group.trafficSource] ?? group.trafficSource,
+    visits: group._count._all,
+    pageviews: group._sum.pageviews ?? 0,
+  }));
+  const aiTrafficSources = trafficSources.filter((item) => AI_TRAFFIC_SOURCES.has(item.source));
 
   return {
     siteVisits,
     sitePageviews: pageviewAggregate._sum.pageviews ?? 0,
+    aiReferrals: aiTrafficSources.reduce((total, item) => total + item.visits, 0),
+    aiTrafficSources,
+    trafficSources,
   };
 }

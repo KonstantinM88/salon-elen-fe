@@ -207,6 +207,8 @@ export interface DailySummaryData {
   date: string;
   siteVisits: number;
   sitePageviews: number;
+  aiReferrals: number;
+  aiTrafficSources: Array<{ source: string; label: string; visits: number; pageviews: number }>;
   appointmentCreations: number;
   bookingMethods: Array<{ method: string; label: string; count: number }>;
   totalSessions: number;
@@ -321,6 +323,8 @@ async function buildDailySummaryOnce(date?: Date | string): Promise<DailySummary
       date: dateStr,
       siteVisits: siteSummary.siteVisits,
       sitePageviews: siteSummary.sitePageviews,
+      aiReferrals: siteSummary.aiReferrals,
+      aiTrafficSources: siteSummary.aiTrafficSources,
       appointmentCreations: createdAppointments.length,
       bookingMethods,
       totalSessions: 0, completedBookings: 0, conversionRate: 0,
@@ -377,6 +381,8 @@ async function buildDailySummaryOnce(date?: Date | string): Promise<DailySummary
     date: dateStr,
     siteVisits: siteSummary.siteVisits,
     sitePageviews: siteSummary.sitePageviews,
+    aiReferrals: siteSummary.aiReferrals,
+    aiTrafficSources: siteSummary.aiTrafficSources,
     appointmentCreations: createdAppointments.length,
     bookingMethods,
     totalSessions: total,
@@ -412,6 +418,11 @@ export function formatDailySummaryTelegram(data: DailySummaryData): string {
         .map((item) => `   • ${escMd(item.label)}: *${item.count}*`)
         .join('\n')
     : '   • \\-';
+  const aiTrafficLines = data.aiTrafficSources.length > 0
+    ? data.aiTrafficSources
+        .map((item) => `   • ${escMd(item.label)}: *${item.visits}*`)
+        .join('\n')
+    : '   • \\-';
 
   return `🤖 *AI Ассистент \\— Дневной отчёт*
 
@@ -422,6 +433,8 @@ export function formatDailySummaryTelegram(data: DailySummaryData): string {
 📊 *Основные показатели*
 🌐 Посещения сайта: *${data.siteVisits}*
 📄 Просмотры страниц: *${data.sitePageviews}*
+🤖 Переходы из AI\\-поиска: *${data.aiReferrals}*
+${aiTrafficLines}
 👥 Сессии: *${data.totalSessions}*
 📝 Записи: *${data.completedBookings}* ${conv}
 🧭 Все новые записи за день: *${data.appointmentCreations}*

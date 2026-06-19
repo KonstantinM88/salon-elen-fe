@@ -11,7 +11,11 @@ import {
   type SearchParamsPromise,
 } from "@/lib/seo-locale";
 import { HOME_LATEST_ARTICLES_TAG } from "@/lib/cache-tags";
-import { SALON_SCHEMA_ID, WEBSITE_SCHEMA_ID } from "@/lib/structured-data";
+import {
+  SALON_SCHEMA_ID,
+  WEBSITE_SCHEMA_ID,
+  buildSalonJsonLd,
+} from "@/lib/structured-data";
 
 export const revalidate = 3600;
 
@@ -27,72 +31,90 @@ type ArticleItem = {
 };
 
 const metaTitles: Record<SeoLocale, string> = {
-  de: "Permanent Make-up in Halle (Saale) — Salon Elen | PMU, Nägel & Kosmetik",
-  ru: "Salon Elen — салон красоты в Halle (Saale) | Перманентный макияж и ногти",
+  de: "Permanent Make-up & Hairstroke Brows Halle — Salon Elen",
+  ru: "Salon Elen — перманентный макияж и Hairstroke брови в Halle",
   en: "Permanent Make-up in Halle (Saale) — Salon Elen | Beauty Salon",
 };
 
 const metaDescriptions: Record<SeoLocale, string> = {
-  de: "Permanent Make-up in Halle (Saale): Powder Brows, Lippenpigmentierung, Wimpernkranzverdichtung, Nageldesign und Microneedling bei Salon Elen, Lessingstraße 37. Jetzt Termin online buchen!",
-  ru: "Салон красоты в Halle (Saale): перманентный макияж, наращивание ресниц, маникюр, микронидлинг. Запись онлайн!",
-  en: "Permanent make-up in Halle (Saale): powder brows, lip pigmentation, lashline enhancement, nails and microneedling at Salon Elen, Lessingstrasse 37. Book online now!",
+  de: "Permanent Make-up in Halle: Hairstroke Augenbrauen, Powder Brows, Lippenpigmentierung, Wimpernkranzverdichtung und Microneedling bei Salon Elen. Online buchen!",
+  ru: "Salon Elen в Halle: Hairstroke и Powder Brows, перманентный макияж губ, межресничка и микронидлинг. Онлайн-запись по адресу Lessingstraße 37.",
+  en: "Permanent make-up in Halle: Hairstroke Brows, Powder Brows, lip pigmentation, lashline enhancement and microneedling at Salon Elen. Book online.",
 };
+
+const homeServiceNames: Record<SeoLocale, string[]> = {
+  de: [
+    "Hairstroke Augenbrauen",
+    "Powder Brows",
+    "Lippenpigmentierung",
+    "Wimpernkranzverdichtung",
+    "Microneedling",
+  ],
+  en: [
+    "Hairstroke Brows",
+    "Powder Brows",
+    "Lip Pigmentation",
+    "Lashline Enhancement",
+    "Microneedling",
+  ],
+  ru: [
+    "Hairstroke брови",
+    "Powder Brows",
+    "Перманентный макияж губ",
+    "Межресничная линия",
+    "Микронидлинг",
+  ],
+};
+
+const homeServicePaths = [
+  "/microblading-halle",
+  "/powder-brows-halle",
+  "/lippenpigmentierung-halle",
+  "/wimpernkranzverdichtung-halle",
+  "/microneedling-halle",
+];
 
 function buildHomeJsonLd(locale: SeoLocale) {
   const alts = buildAlternates("/", locale);
+  const serviceItems = homeServiceNames[locale].map((name, index) => ({
+    "@type": "ListItem",
+    position: index + 1,
+    name,
+    url: `${BASE_URL}${homeServicePaths[index]}`,
+  }));
 
   return JSON.stringify({
     "@context": "https://schema.org",
     "@graph": [
-      {
-        "@type": ["BeautySalon", "LocalBusiness"],
-        "@id": SALON_SCHEMA_ID,
-        name: "Salon Elen",
+      buildSalonJsonLd({
         url: alts.canonical,
         image: [`${BASE_URL}/images/hero.webp`],
-        telephone: "+49 177 899 51 06",
-        email: "elen69@web.de",
-        priceRange: "€€",
-        address: {
-          "@type": "PostalAddress",
-          streetAddress: "Lessingstraße 37",
-          postalCode: "06114",
-          addressLocality: "Halle (Saale)",
-          addressCountry: "DE",
-        },
-        openingHoursSpecification: [
-          {
-            "@type": "OpeningHoursSpecification",
-            dayOfWeek: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
-            opens: "10:00",
-            closes: "19:00",
-          },
-          {
-            "@type": "OpeningHoursSpecification",
-            dayOfWeek: "Saturday",
-            opens: "10:00",
-            closes: "16:00",
-          },
-        ],
-        areaServed: {
-          "@type": "City",
-          name: "Halle (Saale)",
-        },
-        knowsAbout: [
-          "Permanent Make-up",
-          "Powder Brows",
-          "Lippenpigmentierung",
-          "Wimpernkranzverdichtung",
-          "Nageldesign",
-          "Microneedling",
-        ],
-      },
+        description: metaDescriptions[locale],
+      }),
       {
         "@type": "WebSite",
         "@id": WEBSITE_SCHEMA_ID,
         url: BASE_URL,
         name: "Salon Elen",
         inLanguage: locale,
+      },
+      {
+        "@type": "WebPage",
+        "@id": `${alts.canonical}#webpage`,
+        url: alts.canonical,
+        name: metaTitles[locale],
+        description: metaDescriptions[locale],
+        inLanguage: locale,
+        isPartOf: { "@id": WEBSITE_SCHEMA_ID },
+        about: { "@id": SALON_SCHEMA_ID },
+        mainEntity: { "@id": SALON_SCHEMA_ID },
+      },
+      {
+        "@type": "ItemList",
+        "@id": `${alts.canonical}#featured-services`,
+        name: homeServiceNames[locale].join(", "),
+        numberOfItems: serviceItems.length,
+        itemListElement: serviceItems,
       },
     ],
   });

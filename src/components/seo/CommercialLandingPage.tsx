@@ -30,7 +30,7 @@ import {
   type SeoLandingCategory,
   type SeoLandingPageData,
 } from "@/lib/seo-landing-pages";
-import { SALON_SCHEMA_ID, buildSalonJsonLd, salonAddressJsonLd } from "@/lib/structured-data";
+import { SALON_SCHEMA_ID, buildSalonJsonLd } from "@/lib/structured-data";
 import {
   SeoHeroVisual,
   SeoReveal,
@@ -259,15 +259,16 @@ function buildJsonLd(basePage: SeoLandingPageData, locale: SeoLocale) {
   const url = pageUrl(page, locale);
   const service: Record<string, unknown> = {
     "@type": "Service",
+    "@id": `${url}#service`,
+    url,
     name: page.serviceName,
     description: page.metaDescription,
-    areaServed: "Halle (Saale)",
+    areaServed: {
+      "@type": "City",
+      name: "Halle (Saale)",
+    },
     provider: {
-      "@type": "BeautySalon",
       "@id": SALON_SCHEMA_ID,
-      name: "Salon Elen",
-      telephone: "+49 177 899 51 06",
-      address: salonAddressJsonLd,
     },
   };
 
@@ -286,6 +287,16 @@ function buildJsonLd(basePage: SeoLandingPageData, locale: SeoLocale) {
     "@graph": [
       buildSalonJsonLd({ image: [`${BASE_URL}${page.heroImage}`] }),
       service,
+      {
+        "@type": "WebPage",
+        "@id": `${url}#webpage`,
+        url,
+        name: page.metaTitle,
+        description: page.metaDescription,
+        inLanguage: locale,
+        about: { "@id": `${url}#service` },
+        mainEntity: { "@id": `${url}#service` },
+      },
       {
         "@type": "FAQPage",
         mainEntity: page.faq.map((item) => ({

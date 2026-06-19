@@ -12,6 +12,11 @@ import { resolveContentLocale } from "@/lib/seo-locale-server";
 import MarkdownContent from "@/components/news/MarkdownContent";
 import NewsImageCarousel from "@/components/news/NewsImageCarousel";
 import NewsArticleMeta from "@/components/news/NewsArticleMeta";
+import {
+  SALON_SCHEMA_ID,
+  WEBSITE_SCHEMA_ID,
+  buildSalonJsonLd,
+} from "@/lib/structured-data";
 
 export const dynamic = "force-dynamic";
 
@@ -131,6 +136,12 @@ function estimateReadingMinutes(text: string | null | undefined): number {
   return Math.max(1, Math.ceil(words.length / 180));
 }
 
+function absoluteImageUrl(src: string): string {
+  return src.startsWith("http://") || src.startsWith("https://")
+    ? src
+    : `${BASE_URL}${src.startsWith("/") ? src : `/${src}`}`;
+}
+
 /* ─────────────────── PAGE ─────────────────── */
 
 export default async function Page({
@@ -154,7 +165,7 @@ export default async function Page({
     include: {
       translations: {
         where: { locale },
-        select: { title: true, excerpt: true, content: true },
+        select: { title: true, excerpt: true, content: true, updatedAt: true },
       },
     },
   });
@@ -168,9 +179,64 @@ export default async function Page({
   const articleImages = [item.cover, ...(item.galleryImages ?? [])].filter(
     (src): src is string => Boolean(src),
   );
+  const canonical = buildAlternates(`/news/${slug}`, locale).canonical;
+  const articleSchemaId = `${canonical}#article`;
+  const webpageSchemaId = `${canonical}#webpage`;
+  const dateModified =
+    translation?.updatedAt && translation.updatedAt > item.updatedAt
+      ? translation.updatedAt
+      : item.updatedAt;
+  const jsonLd = JSON.stringify({
+    "@context": "https://schema.org",
+    "@graph": [
+      buildSalonJsonLd(),
+      {
+        "@type": "WebSite",
+        "@id": WEBSITE_SCHEMA_ID,
+        url: BASE_URL,
+        name: "Salon Elen",
+      },
+      {
+        "@type": "WebPage",
+        "@id": webpageSchemaId,
+        url: canonical,
+        name: title,
+        description: excerpt || undefined,
+        inLanguage: locale,
+        isPartOf: { "@id": WEBSITE_SCHEMA_ID },
+        about: { "@id": SALON_SCHEMA_ID },
+        mainEntity: { "@id": articleSchemaId },
+      },
+      {
+        "@type": item.type === "NEWS" ? "NewsArticle" : "Article",
+        "@id": articleSchemaId,
+        headline: title,
+        description: excerpt || undefined,
+        image:
+          articleImages.length > 0
+            ? articleImages.map(absoluteImageUrl)
+            : [`${BASE_URL}/images/hero.webp`],
+        datePublished: item.publishedAt?.toISOString(),
+        dateModified: dateModified.toISOString(),
+        articleSection: item.type,
+        inLanguage: locale,
+        mainEntityOfPage: { "@id": webpageSchemaId },
+        author: {
+          "@type": "Organization",
+          name: "Salon Elen",
+          url: BASE_URL,
+        },
+        publisher: { "@id": SALON_SCHEMA_ID },
+      },
+    ],
+  });
 
   return (
     <main className="px-4">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: jsonLd }}
+      />
       <article className="mx-auto max-w-3xl py-8">
         <header className="mb-6">
           <h1 className="text-3xl sm:text-4xl font-semibold tracking-tight">{title}</h1>

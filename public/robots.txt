@@ -1,9 +1,19 @@
+User-agent: OAI-SearchBot
+Allow: /
+Disallow: /admin/
+Disallow: /api/
+Disallow: /booking
+
+User-agent: ChatGPT-User
+Allow: /
+Disallow: /admin/
+Disallow: /api/
+
 User-agent: *
 Allow: /
 
-
 Disallow: /admin/
 Disallow: /api/
-Disallow: /booking/
+Disallow: /booking
 
 Sitemap: https://permanent-halle.de/sitemap.xml

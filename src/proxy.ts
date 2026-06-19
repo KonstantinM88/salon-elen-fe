@@ -91,7 +91,8 @@ export async function proxy(req: NextRequest) {
 
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|uploads|images|flags|video|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|css|js)$).*)",
+    // API handlers own their authentication and must bypass the page/SEO proxy.
+    "/((?!api|_next/static|_next/image|favicon.ico|uploads|images|flags|video|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|css|js)$).*)",
   ],
 };
 

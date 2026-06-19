@@ -66,6 +66,10 @@ model SiteVisit {
   entryPath  String   @db.VarChar(512)
   lastPath   String   @db.VarChar(512)
   referrer   String?  @db.VarChar(512)
+  trafficSource String @default("direct") @db.VarChar(32)
+  utmSource     String? @db.VarChar(120)
+  utmMedium     String? @db.VarChar(120)
+  utmCampaign   String? @db.VarChar(160)
   locale     String?  @db.VarChar(5)
   userAgent  String?  @db.VarChar(512)
   deviceType String   @default("unknown") @db.VarChar(16)
@@ -78,6 +82,7 @@ model SiteVisit {
   @@index([dateISO])
   @@index([createdAt])
   @@index([deviceType])
+  @@index([dateISO, trafficSource])
   @@map("site_visit")
 }
 
