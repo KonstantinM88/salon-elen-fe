@@ -1162,7 +1162,7 @@ const ruMessages: BaseMessages = {
   booking_client_form_button: "Заполнить форму",
   booking_client_form_security: "Подтверждение через Telegram Bot",
 
-  booking_client_choice_footer: "Оба способа безопасны и надёжны.",
+  booking_client_choice_footer: "Все способы безопасны и надёжны.",
   booking_client_choice_footer_highlight: "Выберите тот, который вам удобнее.",
 
   booking_client_popup_blocked:
@@ -2126,7 +2126,7 @@ const deMessages: BaseMessages = {
   booking_client_form_button: "Formular ausfüllen",
   booking_client_form_security: "Bestätigung über Telegram Bot",
 
-  booking_client_choice_footer: "Beide Methoden sind sicher und zuverlässig.",
+  booking_client_choice_footer: "Alle Methoden sind sicher und zuverlässig.",
   booking_client_choice_footer_highlight: "Wählen Sie die für Sie bequemste.",
 
   booking_client_popup_blocked:
@@ -3085,7 +3085,7 @@ const enMessages: BaseMessages = {
   booking_client_form_button: "Fill out form",
   booking_client_form_security: "Confirmation via Telegram Bot",
 
-  booking_client_choice_footer: "Both methods are safe and reliable.",
+  booking_client_choice_footer: "All methods are safe and reliable.",
   booking_client_choice_footer_highlight:
     "Choose the one that's more convenient for you.",
 

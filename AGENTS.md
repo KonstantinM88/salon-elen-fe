@@ -283,3 +283,9 @@ Useful scripts:
   App Router `params` in Next 16 and redirect through `src/lib/public-url.ts`;
   otherwise production proxy URLs can produce `localhost` redirects and
   `appointmentId=undefined` invalid-link errors.
+- 2026-06-20: Booking pages use the global `next-themes` system default for
+  client theme selection and expose a booking-specific footer/theme control from
+  `src/components/booking/BookingFooter.tsx`. Dark booking step components stay
+  as the compatibility baseline; light variants are selected by small
+  route-level theme clients, as now used by `/booking/services`,
+  `/booking/master`, and `/booking/calendar`.

@@ -3,6 +3,8 @@
 
 import React, { useEffect } from 'react';
 
+import BookingFooter, { BookingThemeControl } from '@/components/booking/BookingFooter';
+
 export default function BookingLayout({
   children,
 }: {
@@ -18,8 +20,10 @@ export default function BookingLayout({
   }, []);
 
   return (
-    <div className="min-h-screen bg-black text-white">
+    <div className="min-h-screen bg-[#f8eeee] text-[#38272d] dark:bg-black dark:text-white">
+      <BookingThemeControl compact />
       {children}
+      <BookingFooter />
 
       {/* Глобальные стили ТОЛЬКО для секции букинга */}
       <style jsx global>{`

@@ -1,7 +1,7 @@
 // src/app/booking/(steps)/master/page.tsx
 import type { Metadata } from "next";
 import { cookies } from "next/headers";
-import MasterStepClient from "./MasterStepClient";
+import MasterStepThemeClient from "./MasterStepThemeClient";
 
 export const dynamic = "force-dynamic";
 
@@ -84,7 +84,7 @@ export async function generateMetadata({
 }
 
 export default function Page(): React.JSX.Element {
-  return <MasterStepClient />;
+  return <MasterStepThemeClient />;
 }
 
 
