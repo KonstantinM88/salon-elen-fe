@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { cookies } from "next/headers";
-import ServicesStepClient from "./ServicesStepClient";
+import ServicesStepThemeClient from "./ServicesStepThemeClient";
 
 export const dynamic = "force-dynamic";
 
@@ -89,7 +89,7 @@ export async function generateMetadata({
 export default function Page(): React.JSX.Element {
   return (
     <Suspense>
-      <ServicesStepClient />
+      <ServicesStepThemeClient />
     </Suspense>
   );
 }
@@ -429,4 +429,3 @@ export default function Page(): React.JSX.Element {
 // export default function Page(): React.JSX.Element {
 //   return <ServicesStepClient />;
 // }
-

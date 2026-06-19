@@ -11,8 +11,7 @@ import { BookingAnimatedBackground } from "@/components/layout/BookingAnimatedBa
 import PremiumProgressBar from "@/components/PremiumProgressBar";
 import { Sparkles, Star, Zap, Award } from "lucide-react";
 
-import type { Locale } from "@/i18n/locales";
-import { translate, type MessageKey } from "@/i18n/messages";
+import type { MessageKey } from "@/i18n/messages";
 import { useI18n } from "@/i18n/I18nProvider";
 import { useTranslations } from "@/i18n/useTranslations";
 
@@ -2507,6 +2506,5 @@ export default function ServicesPage(): React.JSX.Element {
 //     </div>
 //   );
 // }
-
 
 

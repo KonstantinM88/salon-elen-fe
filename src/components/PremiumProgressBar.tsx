@@ -16,15 +16,18 @@ interface PremiumProgressBarProps {
   currentStep: number;
   steps: Step[];
   showLogo?: boolean;
+  variant?: "dark" | "light";
 }
 
 export default function PremiumProgressBar({
   currentStep,
   steps,
   showLogo = true,
+  variant = "dark",
 }: PremiumProgressBarProps) {
   const progress = ((currentStep + 1) / steps.length) * 100;
   const t = useTranslations();
+  const isLight = variant === "light";
 
   // ✅ Функция для сокращения длинных названий на мобильных (7 символов)
   const truncateLabel = (label: string, maxLength: number = 7) => {
@@ -33,7 +36,13 @@ export default function PremiumProgressBar({
   };
 
   return (
-    <div className="fixed top-0 left-0 right-0 z-50 bg-slate-950/95 backdrop-blur-xl border-b border-white/10">
+    <div
+      className={`fixed top-0 left-0 right-0 z-50 border-b backdrop-blur-xl ${
+        isLight
+          ? "border-rose-200/70 bg-white/88 shadow-[0_16px_44px_rgba(126,76,91,0.12)]"
+          : "border-white/10 bg-slate-950/95"
+      }`}
+    >
       {/* 👁️ УЛУЧШЕННЫЙ ЛОГОТИП С СВЕЧЕНИЕМ */}
       {showLogo && (
         <motion.div
@@ -45,10 +54,18 @@ export default function PremiumProgressBar({
           {/* Логотип с двойным контейнером и свечением */}
           <motion.div
             whileHover={{ scale: 1.1 }}
-            className="relative w-12 h-12 md:w-14 md:h-14 rounded-full bg-gradient-to-br from-amber-400 via-yellow-500 to-orange-600 p-0.5 shadow-xl shadow-amber-500/40"
+            className={`relative w-12 h-12 md:w-14 md:h-14 rounded-full p-0.5 shadow-xl ${
+              isLight
+                ? "bg-gradient-to-br from-rose-400 via-pink-400 to-amber-300 shadow-rose-300/30"
+                : "bg-gradient-to-br from-amber-400 via-yellow-500 to-orange-600 shadow-amber-500/40"
+            }`}
           >
             {/* Внутренний контейнер */}
-            <div className="w-full h-full rounded-full bg-slate-950 flex items-center justify-center">
+            <div
+              className={`w-full h-full rounded-full flex items-center justify-center ${
+                isLight ? "bg-white" : "bg-slate-950"
+              }`}
+            >
               <motion.span
                 animate={{ scale: [1, 1.08, 1] }}
                 transition={{ duration: 4, repeat: Infinity }}
@@ -60,7 +77,9 @@ export default function PremiumProgressBar({
 
             {/* Пульсирующее свечение */}
             <motion.div
-              className="absolute inset-0 rounded-full bg-amber-400/30 blur-xl"
+              className={`absolute inset-0 rounded-full blur-xl ${
+                isLight ? "bg-rose-300/30" : "bg-amber-400/30"
+              }`}
               animate={{ opacity: [0.4, 0.7, 0.4] }}
               transition={{ duration: 3, repeat: Infinity }}
             />
@@ -73,6 +92,14 @@ export default function PremiumProgressBar({
               animate={{ opacity: 1 }}
               transition={{ delay: 0.2 }}
               className="text-xl md:text-2xl font-bold tracking-wider italic bg-gradient-to-r from-amber-300 to-yellow-400 bg-clip-text text-transparent"
+              style={
+                isLight
+                  ? {
+                      backgroundImage:
+                        "linear-gradient(90deg, #7d4e5b, #c06b86, #c98b3f)",
+                    }
+                  : undefined
+              }
             >
               {t("site_name")}
             </motion.div>
@@ -80,7 +107,9 @@ export default function PremiumProgressBar({
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.3 }}
-              className="text-xs uppercase tracking-widest text-amber-300/70 italic"
+              className={`text-xs uppercase tracking-widest italic ${
+                isLight ? "text-[#7d4e5b]/60" : "text-amber-300/70"
+              }`}
             >
               {t("booking_header_subtitle")}
             </motion.div>
@@ -115,7 +144,11 @@ export default function PremiumProgressBar({
                     {/* Свечение для текущего шага */}
                     {isCurrent && (
                       <motion.div
-                        className="absolute -inset-2 md:-inset-3 rounded-full bg-gradient-to-br from-amber-400 to-orange-600 blur-xl md:blur-2xl"
+                        className={`absolute -inset-2 md:-inset-3 rounded-full blur-xl md:blur-2xl ${
+                          isLight
+                            ? "bg-gradient-to-br from-rose-300 to-amber-200"
+                            : "bg-gradient-to-br from-amber-400 to-orange-600"
+                        }`}
                         animate={{
                           scale: [1, 1.4, 1],
                           opacity: [0.6, 0.3, 0.6],
@@ -133,7 +166,11 @@ export default function PremiumProgressBar({
                       <div
                         className={`
                           p-[2px] rounded-full
-                          bg-gradient-to-r from-cyan-400 via-purple-500 via-orange-500 to-amber-400
+                          ${
+                            isLight
+                              ? "bg-gradient-to-r from-rose-300 via-pink-300 to-amber-200"
+                              : "bg-gradient-to-r from-cyan-400 via-purple-500 via-orange-500 to-amber-400"
+                          }
                           ${isCompleted ? 'opacity-100' : 'opacity-50'}
                         `}
                       >
@@ -145,8 +182,12 @@ export default function PremiumProgressBar({
                             transition-all duration-500 shadow-xl md:shadow-2xl
                             ${
                               isCompleted
-                                ? "bg-gradient-to-br from-cyan-400 to-blue-600 text-white shadow-cyan-500/50"
-                                : "bg-slate-900 text-white/40"
+                                ? isLight
+                                  ? "bg-gradient-to-br from-rose-500 to-pink-500 text-white shadow-rose-300/50"
+                                  : "bg-gradient-to-br from-cyan-400 to-blue-600 text-white shadow-cyan-500/50"
+                                : isLight
+                                  ? "bg-white text-[#7d4e5b]/40 shadow-rose-100/60"
+                                  : "bg-slate-900 text-white/40"
                             }
                           `}
                         >
@@ -184,13 +225,32 @@ export default function PremiumProgressBar({
                         className="relative w-10 h-10 md:w-14 md:h-14 rounded-full 
                           flex items-center justify-center text-base md:text-xl
                           transition-all duration-500 shadow-xl md:shadow-2xl
-                          bg-gradient-to-br from-amber-400 via-yellow-500 to-orange-600 text-black scale-105 md:scale-110 shadow-amber-500/60"
+                          scale-105 md:scale-110"
+                        style={
+                          isLight
+                            ? {
+                                backgroundImage:
+                                  "linear-gradient(135deg, #b85b75, #e78aa0, #f0bd78)",
+                                color: "white",
+                                boxShadow: "0 18px 38px rgba(184, 91, 117, 0.28)",
+                              }
+                            : {
+                                backgroundImage:
+                                  "linear-gradient(135deg, #fbbf24, #eab308, #ea580c)",
+                                color: "black",
+                                boxShadow: "0 18px 38px rgba(245, 158, 11, 0.6)",
+                              }
+                        }
                       >
-                        <div className="font-bold text-black">{step.icon}</div>
+                        <div className={`font-bold ${isLight ? "text-white" : "text-black"}`}>
+                          {step.icon}
+                        </div>
 
                         {/* Анимированное кольцо для текущего шага */}
                         <motion.div
-                          className="absolute inset-0 rounded-full border-2 md:border-4 border-amber-300/60"
+                          className={`absolute inset-0 rounded-full border-2 md:border-4 ${
+                            isLight ? "border-white/55" : "border-amber-300/60"
+                          }`}
                           animate={{
                             scale: [1, 1.5, 1],
                             opacity: [1, 0, 1],
@@ -215,10 +275,16 @@ export default function PremiumProgressBar({
                       transition-all duration-300
                       ${
                         isCurrent
-                          ? "bg-gradient-to-r from-amber-300 to-yellow-400 bg-clip-text text-transparent font-bold"
+                          ? isLight
+                            ? "bg-gradient-to-r from-[#7d4e5b] to-[#c06b86] bg-clip-text text-transparent font-bold"
+                            : "bg-gradient-to-r from-amber-300 to-yellow-400 bg-clip-text text-transparent font-bold"
                           : isCompleted
-                          ? "text-cyan-300"
-                          : "text-white/40"
+                          ? isLight
+                            ? "text-[#7d4e5b]"
+                            : "text-cyan-300"
+                          : isLight
+                            ? "text-[#7d4e5b]/40"
+                            : "text-white/40"
                       }
                     `}
                   >
@@ -230,7 +296,11 @@ export default function PremiumProgressBar({
 
                 {/* ✨ Анимированная линия между шагами */}
                 {index < steps.length - 1 && (
-                  <div className="hidden md:block flex-1 h-0.5 bg-white/10 relative overflow-hidden max-w-[60px] lg:max-w-[80px]">
+                  <div
+                    className={`hidden md:block flex-1 h-0.5 relative overflow-hidden max-w-[60px] lg:max-w-[80px] ${
+                      isLight ? "bg-rose-200/70" : "bg-white/10"
+                    }`}
+                  >
                     <motion.div
                       initial={{ width: 0 }}
                       animate={{ width: isCompleted ? "100%" : "0%" }}
@@ -239,7 +309,11 @@ export default function PremiumProgressBar({
                         delay: index * 0.1,
                         ease: "easeOut",
                       }}
-                      className="absolute inset-0 h-full bg-gradient-to-r from-cyan-400 to-blue-600 shadow-lg shadow-cyan-500/30"
+                      className={`absolute inset-0 h-full shadow-lg ${
+                        isLight
+                          ? "bg-gradient-to-r from-rose-400 to-pink-400 shadow-rose-300/30"
+                          : "bg-gradient-to-r from-cyan-400 to-blue-600 shadow-cyan-500/30"
+                      }`}
                     />
                   </div>
                 )}
@@ -250,13 +324,21 @@ export default function PremiumProgressBar({
       </div>
 
       {/* 🌈 ЖИВАЯ РАДУЖНАЯ ПОЛОСА С ПРОГРЕССОМ */}
-      <div className="absolute bottom-0 left-0 right-0 h-[5px] bg-slate-900/50 overflow-hidden">
+      <div
+        className={`absolute bottom-0 left-0 right-0 h-[5px] overflow-hidden ${
+          isLight ? "bg-rose-100/90" : "bg-slate-900/50"
+        }`}
+      >
         {/* Основная радужная полоса с прогрессом */}
         <motion.div
           initial={{ width: 0 }}
           animate={{ width: `${progress}%` }}
           transition={{ duration: 0.8, ease: "easeInOut" }}
-          className="relative h-full bg-gradient-to-r from-cyan-400 via-purple-500 via-orange-500 to-amber-400 shadow-xl"
+          className={`relative h-full shadow-xl ${
+            isLight
+              ? "bg-gradient-to-r from-rose-400 via-pink-400 to-amber-300"
+              : "bg-gradient-to-r from-cyan-400 via-purple-500 via-orange-500 to-amber-400"
+          }`}
         >
           {/* Движущийся блик */}
           <motion.div
