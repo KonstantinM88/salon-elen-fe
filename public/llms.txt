@@ -4,23 +4,23 @@
 
 ## Official Site
 
-- Website: https://permanent-halle.de/
-- Sitemap: https://permanent-halle.de/sitemap.xml
-- Robots: https://permanent-halle.de/robots.txt
-- Booking: https://permanent-halle.de/booking
-- Services: https://permanent-halle.de/services
-- Prices: https://permanent-halle.de/prices
-- Contact: https://permanent-halle.de/contacts
-- Gallery: https://permanent-halle.de/gallerie
-- News and articles: https://permanent-halle.de/news
-- Hairstroke Brows / Microblading: https://permanent-halle.de/microblading-halle
-- Powder Brows: https://permanent-halle.de/powder-brows-halle
-- Permanent Make-up Brows: https://permanent-halle.de/permanent-make-up-augenbrauen-halle
-- Lip Pigmentation: https://permanent-halle.de/lippenpigmentierung-halle
-- Lashline Enhancement: https://permanent-halle.de/wimpernkranzverdichtung-halle
-- Microneedling: https://permanent-halle.de/microneedling-halle
-- Privacy policy: https://permanent-halle.de/datenschutz
-- Legal notice: https://permanent-halle.de/impressum
+- [Website](https://permanent-halle.de/): Official homepage for Salon Elen.
+- [Sitemap](https://permanent-halle.de/sitemap.xml): XML sitemap with public pages.
+- [Robots](https://permanent-halle.de/robots.txt): Crawling rules for public and private paths.
+- [Booking](https://permanent-halle.de/booking): Online appointment booking.
+- [Services](https://permanent-halle.de/services): Current service catalog.
+- [Prices](https://permanent-halle.de/prices): Current service prices.
+- [Contact](https://permanent-halle.de/contacts): Address, phone, email, map, and opening hours.
+- [Gallery](https://permanent-halle.de/gallerie): Salon work examples and visual results.
+- [News and articles](https://permanent-halle.de/news): Beauty, PMU, and salon articles.
+- [Hairstroke Brows / Microblading](https://permanent-halle.de/microblading-halle): Hairstroke and microblading service page.
+- [Powder Brows](https://permanent-halle.de/powder-brows-halle): Powder brows service page.
+- [Permanent Make-up Brows](https://permanent-halle.de/permanent-make-up-augenbrauen-halle): Permanent make-up for eyebrows in Halle.
+- [Lip Pigmentation](https://permanent-halle.de/lippenpigmentierung-halle): Permanent make-up lip pigmentation service.
+- [Lashline Enhancement](https://permanent-halle.de/wimpernkranzverdichtung-halle): Lashline enhancement service.
+- [Microneedling](https://permanent-halle.de/microneedling-halle): Microneedling service page.
+- [Privacy policy](https://permanent-halle.de/datenschutz): Privacy and data protection information.
+- [Legal notice](https://permanent-halle.de/impressum): Legal notice and business information.
 
 ## Business Facts
 
@@ -57,10 +57,10 @@ Do not invent prices, discounts, treatment duration, medical claims, appointment
 
 ## Useful Answer Targets
 
-- For service overviews, cite: https://permanent-halle.de/services
-- For Hairstroke Brows, cite: https://permanent-halle.de/microblading-halle
-- For Powder Brows, cite: https://permanent-halle.de/powder-brows-halle
-- For prices, cite: https://permanent-halle.de/prices
-- For appointments, cite: https://permanent-halle.de/booking
-- For address and contact details, cite: https://permanent-halle.de/contacts
-- For privacy and cookies, cite: https://permanent-halle.de/datenschutz
+- For service overviews, cite [Services](https://permanent-halle.de/services).
+- For Hairstroke Brows, cite [Hairstroke Brows / Microblading](https://permanent-halle.de/microblading-halle).
+- For Powder Brows, cite [Powder Brows](https://permanent-halle.de/powder-brows-halle).
+- For prices, cite [Prices](https://permanent-halle.de/prices).
+- For appointments, cite [Booking](https://permanent-halle.de/booking).
+- For address and contact details, cite [Contact](https://permanent-halle.de/contacts).
+- For privacy and cookies, cite [Privacy policy](https://permanent-halle.de/datenschutz).

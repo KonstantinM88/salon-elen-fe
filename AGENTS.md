@@ -253,6 +253,9 @@ Useful scripts:
   `WebPage`, `WebSite`, and salon JSON-LD entities. Static sitemap entries omit
   `lastModified` unless a real content timestamp is available; article entries
   continue to use `Article.updatedAt`.
+- 2026-06-20: `public/llms.txt` uses Markdown links (`[label](url)`) for all
+  key public pages so Lighthouse/PageSpeed agentic browsing checks can recognize
+  site links instead of treating the file as linkless plain text.
 - 2026-06-09: AI daily Telegram summaries build the core AI/site summary first,
   then build the upcoming-appointments block with its own retry and graceful
   fallback. A transient DB failure in the upcoming appointment query no longer
