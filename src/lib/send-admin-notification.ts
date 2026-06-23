@@ -177,27 +177,43 @@ async function sendTelegramAdminMarkdownMessage(
 
   const results = await Promise.allSettled(
     adminChatIds.map(async (chatId) => {
-      const response = await fetch(
-        `https://api.telegram.org/bot${token}/sendMessage`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
+      const send = async (parseMode: 'Markdown' | null) => {
+        const response = await fetch(
+          `https://api.telegram.org/bot${token}/sendMessage`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              chat_id: chatId,
+              text: message,
+              ...(parseMode ? { parse_mode: parseMode } : {}),
+              disable_web_page_preview: true,
+              ...(replyMarkup ? { reply_markup: replyMarkup } : {}),
+            }),
           },
-          body: JSON.stringify({
-            chat_id: chatId,
-            text: message,
-            parse_mode: 'Markdown',
-            disable_web_page_preview: true,
-            ...(replyMarkup ? { reply_markup: replyMarkup } : {}),
-          }),
-        },
-      );
+        );
 
-      const result = (await response.json().catch(() => null)) as {
-        ok?: boolean;
-        description?: string;
-      } | null;
+        const result = (await response.json().catch(() => null)) as {
+          ok?: boolean;
+          description?: string;
+        } | null;
+
+        return { response, result };
+      };
+
+      let { response, result } = await send('Markdown');
+
+      if (
+        (!response.ok || !result?.ok) &&
+        result?.description?.includes("can't parse entities")
+      ) {
+        console.warn(
+          `[Admin Notification] Markdown parse failed for ${chatId}; retrying without parse_mode`,
+        );
+        ({ response, result } = await send(null));
+      }
 
       if (!response.ok || !result?.ok) {
         throw new Error(
@@ -261,21 +277,21 @@ export async function sendAdminNotification(appointment: AppointmentData): Promi
 
 ━━━━━━━━━━━━━━━━━━━━━
 
-👤 *Клиент:* ${appointment.customerName}
-📞 *Телефон:* ${appointment.phone}
-${appointment.email ? `📧 *Email:* ${appointment.email}\n` : ''}
-✂️ *Услуга:* ${appointment.serviceName}
-👩‍💼 *Мастер:* ${appointment.masterName}
-🧭 *Способ записи:* ${getBookingMethodLabel(appointment.bookingMethod)}
+👤 *Клиент:* ${escapeMarkdown(appointment.customerName)}
+📞 *Телефон:* ${escapeMarkdown(appointment.phone)}
+${appointment.email ? `📧 *Email:* ${escapeMarkdown(appointment.email)}\n` : ''}
+✂️ *Услуга:* ${escapeMarkdown(appointment.serviceName)}
+👩‍💼 *Мастер:* ${escapeMarkdown(appointment.masterName)}
+🧭 *Способ записи:* ${escapeMarkdown(getBookingMethodLabel(appointment.bookingMethod))}
 
-📅 *Дата:* ${dateStr}
-🕐 *Время:* ${startTime} - ${endTime}
+📅 *Дата:* ${escapeMarkdown(dateStr)}
+🕐 *Время:* ${escapeMarkdown(startTime)} - ${escapeMarkdown(endTime)}
 
-💳 *Оплата:* ${paymentEmoji} ${paymentText}
+💳 *Оплата:* ${paymentEmoji} ${escapeMarkdown(paymentText)}
 
 ━━━━━━━━━━━━━━━━━━━━━
 
-🆔 *ID записи:* \`${appointment.id}\``;
+🆔 *ID записи:* \`${escapeMarkdown(appointment.id)}\``;
 
     await sendTelegramAdminMarkdownMessage(
       message,

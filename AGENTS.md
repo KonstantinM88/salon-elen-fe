@@ -289,3 +289,8 @@ Useful scripts:
   as the compatibility baseline; light variants are selected by small
   route-level theme clients, as now used by `/booking/services`,
   `/booking/master`, and `/booking/calendar`.
+- 2026-06-23: Telegram admin notification text sent through
+  `src/lib/send-admin-notification.ts` must escape dynamic Markdown fields
+  such as email, service, customer, and master names. The shared sender retries
+  without `parse_mode` on Telegram `can't parse entities` errors so admin
+  notifications are delivered even when formatting is invalid.
