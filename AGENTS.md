@@ -304,3 +304,9 @@ Useful scripts:
   `X-Telegram-Bot-Api-Secret-Token` validation; the legacy `action=notify` and
   GET code endpoint require `TELEGRAM_INTERNAL_NOTIFY_SECRET` and should not be
   used for normal flows.
+- 2026-07-05: Telegram admin conversation state for quick booking and
+  appointment rescheduling is persisted in `TelegramConversationState`
+  (`20260705114500_add_telegram_conversation_state`) through
+  `src/lib/telegram/conversation-state.ts`. Do not use process-local `Map`
+  state for multi-step bot flows that must survive PM2 restarts or multiple
+  app instances.

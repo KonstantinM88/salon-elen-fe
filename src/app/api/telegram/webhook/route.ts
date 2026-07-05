@@ -35,6 +35,14 @@ import {
   summarizeTelegramUpdateForLog,
 } from '@/lib/telegram/logging';
 import { sendTelegramMessage as sendTelegramApiMessage } from '@/lib/telegram/sender';
+import {
+  conversationExpiresIn,
+  deleteTelegramConversationState,
+  getTelegramConversationState,
+  saveTelegramConversationState,
+  telegramConversationKey,
+  type TelegramConversationKey,
+} from '@/lib/telegram/conversation-state';
 
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '';
 const TELEGRAM_API_URL = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}`;
@@ -106,17 +114,16 @@ const formatDeepLinkPhone = (value: string): string | null => {
 
   // Хранилище для связи телефон ↔ chat_id
   // В продакшене используй TelegramUser из БД!
-  const pendingReschedules = new Map<
-    string,
-    { appointmentId: string; expiresAt: number }
-  >();
   const phoneToChat = new Map<string, number>();
+  type PendingRescheduleState = {
+    appointmentId: string;
+    expiresAt: number;
+  };
   type QuickBookingState = {
     serviceId?: string;
     masterId?: string;
     dateISO?: string;
     time?: string;
-    expiresAt: number;
   };
   type QuickBookingServiceOption = {
     id: string;
@@ -129,7 +136,6 @@ const formatDeepLinkPhone = (value: string): string | null => {
     title: string;
     services: QuickBookingServiceOption[];
   };
-  const pendingQuickBookings = new Map<string, QuickBookingState>();
   const QUICK_BOOKING_UNCATEGORIZED_KEY = '__other__';
 
   // Отправка сообщения в Telegram (HTML)
@@ -267,8 +273,80 @@ const formatDeepLinkPhone = (value: string): string | null => {
     return adminChatIds.has(String(chatId)) || adminChatIds.has(String(fromId));
   }
 
-  function pendingRescheduleKey(chatId: number | string, fromId: number): string {
-    return `${chatId}:${fromId}`;
+  function quickBookingConversationKey(
+    chatId: number | string,
+    fromId: number,
+  ): TelegramConversationKey {
+    return telegramConversationKey({
+      chatId,
+      fromId,
+      flow: 'admin_quick_booking',
+    });
+  }
+
+  function rescheduleConversationKey(
+    chatId: number | string,
+    fromId: number,
+  ): TelegramConversationKey {
+    return telegramConversationKey({
+      chatId,
+      fromId,
+      flow: 'admin_reschedule',
+    });
+  }
+
+  async function saveQuickBookingState({
+    chatId,
+    fromId,
+    state,
+    step = null,
+  }: {
+    chatId: number | string;
+    fromId: number;
+    state: QuickBookingState;
+    step?: string | null;
+  }): Promise<void> {
+    await saveTelegramConversationState({
+      key: quickBookingConversationKey(chatId, fromId),
+      payload: state,
+      step,
+      expiresAt: conversationExpiresIn(15),
+    });
+  }
+
+  async function deleteQuickBookingState(
+    key: TelegramConversationKey,
+  ): Promise<void> {
+    await deleteTelegramConversationState(key);
+  }
+
+  async function saveRescheduleState({
+    chatId,
+    fromId,
+    state,
+    step = null,
+  }: {
+    chatId: number | string;
+    fromId: number;
+    state: Pick<PendingRescheduleState, 'appointmentId'>;
+    step?: string | null;
+  }): Promise<void> {
+    const expiresAt = conversationExpiresIn(10);
+    await saveTelegramConversationState({
+      key: rescheduleConversationKey(chatId, fromId),
+      payload: {
+        ...state,
+        expiresAt: expiresAt.getTime(),
+      },
+      step,
+      expiresAt,
+    });
+  }
+
+  async function deleteRescheduleState(
+    key: TelegramConversationKey,
+  ): Promise<void> {
+    await deleteTelegramConversationState(key);
   }
 
   function parseRescheduleText(
@@ -786,8 +864,11 @@ const formatDeepLinkPhone = (value: string): string | null => {
   ): Promise<void> {
     const services = await listAdminQuickBookingServices();
     const categories = buildQuickBookingServiceCategories(services);
-    pendingQuickBookings.set(pendingRescheduleKey(chatId, fromId), {
-      expiresAt: Date.now() + 15 * 60 * 1000,
+    await saveQuickBookingState({
+      chatId,
+      fromId,
+      state: {},
+      step: 'category',
     });
 
     if (services.length === 0) {
@@ -810,20 +891,15 @@ const formatDeepLinkPhone = (value: string): string | null => {
     );
   }
 
-  function getQuickBookingPending(
+  async function getQuickBookingPending(
     chatId: number | string,
     fromId: number,
-  ): { key: string; state: QuickBookingState } | null {
-    const key = pendingRescheduleKey(chatId, fromId);
-    const state = pendingQuickBookings.get(key);
+  ): Promise<{ key: TelegramConversationKey; state: QuickBookingState } | null> {
+    const key = quickBookingConversationKey(chatId, fromId);
+    const state = await getTelegramConversationState<QuickBookingState>(key);
     if (!state) return null;
 
-    if (state.expiresAt < Date.now()) {
-      pendingQuickBookings.delete(key);
-      return null;
-    }
-
-    return { key, state };
+    return { key, state: state.payload };
   }
 
   async function finishQuickBookingFromState({
@@ -836,7 +912,7 @@ const formatDeepLinkPhone = (value: string): string | null => {
     email,
   }: {
     chatId: number | string;
-    key: string;
+    key: TelegramConversationKey;
     state: QuickBookingState;
     actor: string;
     phone: string;
@@ -844,7 +920,7 @@ const formatDeepLinkPhone = (value: string): string | null => {
     email: string | null;
   }): Promise<void> {
     if (!state.serviceId || !state.masterId || !state.dateISO || !state.time) {
-      pendingQuickBookings.delete(key);
+      await deleteQuickBookingState(key);
       await sendTelegramMessage(
         Number(chatId),
         'Данные быстрой записи устарели. Начните заново через /admin.',
@@ -871,7 +947,7 @@ const formatDeepLinkPhone = (value: string): string | null => {
       return;
     }
 
-    pendingQuickBookings.delete(key);
+    await deleteQuickBookingState(key);
     const when = new Intl.DateTimeFormat('ru-RU', {
       day: '2-digit',
       month: '2-digit',
@@ -926,13 +1002,12 @@ const formatDeepLinkPhone = (value: string): string | null => {
     }
 
     const chatId = callbackQuery.message?.chat.id ?? callbackQuery.from.id;
-    pendingReschedules.set(
-      pendingRescheduleKey(chatId, callbackQuery.from.id),
-      {
-        appointmentId,
-        expiresAt: Date.now() + 10 * 60 * 1000,
-      },
-    );
+    await saveRescheduleState({
+      chatId,
+      fromId: callbackQuery.from.id,
+      state: { appointmentId },
+      step: 'date',
+    });
 
     if (process.env.TELEGRAM_RESCHEDULE_DATE_BUTTONS !== 'false') {
       const datesResult = await getAppointmentRescheduleDateOptions({
@@ -1019,18 +1094,19 @@ const formatDeepLinkPhone = (value: string): string | null => {
   }): Promise<boolean> {
     if (!isAdminMessage(chatId, from.id)) return false;
 
-    const key = pendingRescheduleKey(chatId, from.id);
-    const pending = pendingReschedules.get(key);
+    const key = rescheduleConversationKey(chatId, from.id);
+    const pendingRecord = await getTelegramConversationState<PendingRescheduleState>(key);
+    const pending = pendingRecord?.payload ?? null;
     if (!pending) return false;
 
     if (pending.expiresAt < Date.now()) {
-      pendingReschedules.delete(key);
+      await deleteRescheduleState(key);
       await sendTelegramMessage(Number(chatId), '⏱ Время ожидания истекло. Нажмите «Перенести» еще раз.');
       return true;
     }
 
     if (text.trim() === '/cancel') {
-      pendingReschedules.delete(key);
+      await deleteRescheduleState(key);
       await sendTelegramMessage(Number(chatId), 'Перенос отменен.');
       return true;
     }
@@ -1096,7 +1172,7 @@ const formatDeepLinkPhone = (value: string): string | null => {
       return true;
     }
 
-    pendingReschedules.delete(key);
+    await deleteRescheduleState(key);
     await sendTelegramMessage(
       Number(chatId),
       `✅ Запись перенесена на <code>${parsed.dateISO} ${parsed.time}</code>.`,
@@ -1140,13 +1216,12 @@ const formatDeepLinkPhone = (value: string): string | null => {
     }
 
     const chatId = callbackQuery.message?.chat.id ?? callbackQuery.from.id;
-    pendingReschedules.set(
-      pendingRescheduleKey(chatId, callbackQuery.from.id),
-      {
-        appointmentId,
-        expiresAt: Date.now() + 10 * 60 * 1000,
-      },
-    );
+    await saveRescheduleState({
+      chatId,
+      fromId: callbackQuery.from.id,
+      state: { appointmentId },
+      step: 'slot',
+    });
 
     await answerCallbackQuery(callbackQuery.id, 'Выберите время');
 
@@ -1210,9 +1285,7 @@ const formatDeepLinkPhone = (value: string): string | null => {
     }
 
     const chatId = callbackQuery.message?.chat.id ?? callbackQuery.from.id;
-    pendingReschedules.delete(
-      pendingRescheduleKey(chatId, callbackQuery.from.id),
-    );
+    await deleteRescheduleState(rescheduleConversationKey(chatId, callbackQuery.from.id));
 
     await answerCallbackQuery(callbackQuery.id, 'Запись перенесена');
     await sendTelegramMessage(
@@ -1265,11 +1338,10 @@ const formatDeepLinkPhone = (value: string): string | null => {
     }
 
     const chatId = callbackQuery.message?.chat.id ?? callbackQuery.from.id;
-    const key = pendingRescheduleKey(chatId, callbackQuery.from.id);
-    const expiresAt = Date.now() + 15 * 60 * 1000;
+    const key = quickBookingConversationKey(chatId, callbackQuery.from.id);
 
     if (action === 'cancel') {
-      pendingQuickBookings.delete(key);
+      await deleteQuickBookingState(key);
       await answerCallbackQuery(callbackQuery.id, 'Быстрая запись отменена');
       await sendTelegramMessage(Number(chatId), 'Быстрая запись отменена.');
       return NextResponse.json({ ok: true });
@@ -1281,7 +1353,7 @@ const formatDeepLinkPhone = (value: string): string | null => {
       return NextResponse.json({ ok: true });
     }
 
-    const pending = getQuickBookingPending(chatId, callbackQuery.from.id);
+    const pending = await getQuickBookingPending(chatId, callbackQuery.from.id);
     if (!pending) {
       await answerCallbackQuery(callbackQuery.id, 'Сессия устарела', true);
       await sendTelegramMessage(
@@ -1294,7 +1366,12 @@ const formatDeepLinkPhone = (value: string): string | null => {
     if (action === 'cats') {
       const services = await listAdminQuickBookingServices();
       const categories = buildQuickBookingServiceCategories(services);
-      pendingQuickBookings.set(key, { expiresAt });
+      await saveQuickBookingState({
+        chatId,
+        fromId: callbackQuery.from.id,
+        state: {},
+        step: 'category',
+      });
 
       await answerCallbackQuery(callbackQuery.id, 'Выберите категорию');
 
@@ -1340,7 +1417,12 @@ const formatDeepLinkPhone = (value: string): string | null => {
         return NextResponse.json({ ok: true });
       }
 
-      pendingQuickBookings.set(key, { expiresAt });
+      await saveQuickBookingState({
+        chatId,
+        fromId: callbackQuery.from.id,
+        state: {},
+        step: 'service',
+      });
       await answerCallbackQuery(callbackQuery.id, 'Выберите услугу');
       await sendTelegramMessage(
         Number(chatId),
@@ -1358,7 +1440,12 @@ const formatDeepLinkPhone = (value: string): string | null => {
       }
 
       const masters = await listAdminQuickBookingMastersForService(serviceId);
-      pendingQuickBookings.set(key, { serviceId, expiresAt });
+      await saveQuickBookingState({
+        chatId,
+        fromId: callbackQuery.from.id,
+        state: { serviceId },
+        step: 'master',
+      });
       await answerCallbackQuery(callbackQuery.id, 'Выберите мастера');
 
       if (masters.length === 0) {
@@ -1390,9 +1477,13 @@ const formatDeepLinkPhone = (value: string): string | null => {
       const nextState = {
         serviceId: pending.state.serviceId,
         masterId,
-        expiresAt,
       };
-      pendingQuickBookings.set(key, nextState);
+      await saveQuickBookingState({
+        chatId,
+        fromId: callbackQuery.from.id,
+        state: nextState,
+        step: 'date',
+      });
       const dates = await getAdminQuickBookingDateOptions({
         serviceId: nextState.serviceId,
         masterId,
@@ -1431,9 +1522,13 @@ const formatDeepLinkPhone = (value: string): string | null => {
       const nextState = {
         ...pending.state,
         dateISO,
-        expiresAt,
       };
-      pendingQuickBookings.set(key, nextState);
+      await saveQuickBookingState({
+        chatId,
+        fromId: callbackQuery.from.id,
+        state: nextState,
+        step: 'slot',
+      });
       const slots = await getAdminQuickBookingSlots({
         serviceId: pending.state.serviceId,
         masterId: pending.state.masterId,
@@ -1471,10 +1566,14 @@ const formatDeepLinkPhone = (value: string): string | null => {
         return NextResponse.json({ ok: true });
       }
 
-      pendingQuickBookings.set(key, {
-        ...pending.state,
-        time,
-        expiresAt,
+      await saveQuickBookingState({
+        chatId,
+        fromId: callbackQuery.from.id,
+        state: {
+          ...pending.state,
+          time,
+        },
+        step: 'contact',
       });
       await answerCallbackQuery(callbackQuery.id, 'Введите телефон клиента');
       await sendTelegramMessage(
@@ -1513,11 +1612,11 @@ const formatDeepLinkPhone = (value: string): string | null => {
   }): Promise<boolean> {
     if (!isAdminMessage(chatId, from.id)) return false;
 
-    const pending = getQuickBookingPending(chatId, from.id);
+    const pending = await getQuickBookingPending(chatId, from.id);
     if (!pending) return false;
 
     if (text.trim() === '/cancel') {
-      pendingQuickBookings.delete(pending.key);
+      await deleteQuickBookingState(pending.key);
       await sendTelegramMessage(Number(chatId), 'Быстрая запись отменена.');
       return true;
     }

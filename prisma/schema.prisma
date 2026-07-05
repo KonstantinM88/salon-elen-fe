@@ -541,6 +541,22 @@ model TelegramUser {
   @@index([phone])
 }
 
+model TelegramConversationState {
+  id        String   @id @default(cuid())
+  chatId    String
+  fromId    String
+  flow      String
+  step      String?
+  payload   Json
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([chatId, fromId, flow])
+  @@index([chatId, fromId])
+  @@index([expiresAt])
+}
+
 model TemporarySlotReservation {
   id        String   @id @default(cuid())
   masterId  String
