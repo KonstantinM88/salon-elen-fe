@@ -322,3 +322,8 @@ Useful scripts:
   richer public/admin article presentation: styled tables, icon-led check
   lists, numbered step lists, and quote callouts. GEO/news articles can use
   normal Markdown tables instead of custom HTML.
+- 2026-07-05: `/sitemap.xml` is generated only from explicit public indexable
+  pages plus currently published, non-expired news articles. Paths disallowed
+  in `public/robots.txt` (`/admin`, `/api`, `/appointments`, `/booking`,
+  `/coming-soon`, `/login`, `/register`, `/users`) and redirect-only aliases
+  (`/for-masters`, `/privacy`, `/terms`) must stay out of the sitemap.

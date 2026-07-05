@@ -1,5 +1,3 @@
-//--------с /
-// src/app/sitemap.ts
 import { prisma } from "@/lib/db";
 import { seoLandingPages } from "@/lib/seo-landing-pages";
 import type { MetadataRoute } from "next";
@@ -8,79 +6,145 @@ export const dynamic = "force-dynamic";
 
 const BASE_URL = "https://permanent-halle.de";
 
-// Создаёт alternates для всех языков
-function createAlternates(path: string): Record<string, string> {
-  // Корень строго со слэшем: https://.../
-  const normalizedPath = path === "/" ? "/" : path;
+type SitemapEntry = MetadataRoute.Sitemap[number];
+type ChangeFrequency = NonNullable<SitemapEntry["changeFrequency"]>;
 
-  const joinWithLang = (lang: "en" | "ru") => {
-    // Если вдруг когда-нибудь появятся query в path — подстрахуемся
-    const sep = normalizedPath.includes("?") ? "&" : "?";
-    return `${BASE_URL}${normalizedPath}${sep}lang=${lang}`;
-  };
+type PublicPage = {
+  path: string;
+  priority: number;
+  changeFrequency?: ChangeFrequency;
+};
+
+const ROBOTS_DISALLOWED_PREFIXES = [
+  "/admin",
+  "/api",
+  "/appointments",
+  "/booking",
+  "/coming-soon",
+  "/login",
+  "/register",
+  "/users",
+] as const;
+
+const REDIRECT_ONLY_PATHS = new Set(["/for-masters", "/privacy", "/terms"]);
+
+const publicPages: PublicPage[] = [
+  { path: "/", priority: 1.0, changeFrequency: "weekly" },
+  {
+    path: "/permanent-make-up-in-der-naehe",
+    priority: 0.95,
+    changeFrequency: "weekly",
+  },
+  ...seoLandingPages.map((page) => ({
+    path: `/${page.slug}`,
+    priority: 0.86,
+    changeFrequency: "weekly" as const,
+  })),
+  { path: "/services", priority: 0.9, changeFrequency: "weekly" },
+  { path: "/prices", priority: 0.8, changeFrequency: "weekly" },
+  { path: "/about", priority: 0.7, changeFrequency: "monthly" },
+  { path: "/news", priority: 0.7, changeFrequency: "daily" },
+  { path: "/contacts", priority: 0.65, changeFrequency: "monthly" },
+  { path: "/gallerie", priority: 0.6, changeFrequency: "monthly" },
+  { path: "/impressum", priority: 0.3, changeFrequency: "yearly" },
+  { path: "/datenschutz", priority: 0.3, changeFrequency: "yearly" },
+  { path: "/nutzungsbedingungen", priority: 0.3, changeFrequency: "yearly" },
+];
+
+function normalizePath(path: string): string {
+  if (!path || path === "/") {
+    return "/";
+  }
+
+  return `/${path.replace(/^\/+/, "").replace(/\/+$/, "")}`;
+}
+
+function isDisallowedByRobots(path: string): boolean {
+  const normalizedPath = normalizePath(path);
+  return ROBOTS_DISALLOWED_PREFIXES.some((prefix) =>
+    normalizedPath === prefix || normalizedPath.startsWith(`${prefix}/`),
+  );
+}
+
+function isIndexablePath(path: string): boolean {
+  const normalizedPath = normalizePath(path);
+  return (
+    !isDisallowedByRobots(normalizedPath) &&
+    !REDIRECT_ONLY_PATHS.has(normalizedPath)
+  );
+}
+
+function absoluteUrl(path: string): string {
+  const normalizedPath = normalizePath(path);
+  return normalizedPath === "/" ? `${BASE_URL}/` : `${BASE_URL}${normalizedPath}`;
+}
+
+function createAlternates(path: string): Record<string, string> {
+  const normalizedPath = normalizePath(path);
+  const baseUrl = absoluteUrl(normalizedPath);
+  const separator = normalizedPath === "/" ? "?" : "?";
 
   return {
-    de: `${BASE_URL}${normalizedPath}`,
-    en: joinWithLang("en"),
-    ru: joinWithLang("ru"),
-    "x-default": `${BASE_URL}${normalizedPath}`,
+    de: baseUrl,
+    en: `${baseUrl}${separator}lang=en`,
+    ru: `${baseUrl}${separator}lang=ru`,
+    "x-default": baseUrl,
   };
+}
+
+function pushSitemapEntry(
+  items: MetadataRoute.Sitemap,
+  seenPaths: Set<string>,
+  page: PublicPage,
+): void {
+  const path = normalizePath(page.path);
+
+  if (!isIndexablePath(path) || seenPaths.has(path)) {
+    return;
+  }
+
+  seenPaths.add(path);
+  items.push({
+    url: absoluteUrl(path),
+    changeFrequency: page.changeFrequency ?? "weekly",
+    priority: page.priority,
+    alternates: {
+      languages: createAlternates(path),
+    },
+  });
 }
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const items: MetadataRoute.Sitemap = [];
+  const seenPaths = new Set<string>();
 
-  // ========== СТАТИЧЕСКИЕ СТРАНИЦЫ ==========
-  // ❗ booking убран из sitemap (они noindex/Disallow и не должны попадать в sitemap)
-  const staticPages = [
-    { path: "/", priority: 1.0 },
-    { path: "/permanent-make-up-in-der-naehe", priority: 0.95 },
-    ...seoLandingPages.map((page) => ({
-      path: `/${page.slug}`,
-      priority: 0.86,
-    })),
-    { path: "/services", priority: 0.9 },
-    { path: "/prices", priority: 0.8 },
-    { path: "/about", priority: 0.8 },
-    { path: "/news", priority: 0.7 },
-    { path: "/contacts", priority: 0.6 },
-    { path: "/gallerie", priority: 0.6 },
-    { path: "/impressum", priority: 0.3 },
-    { path: "/datenschutz", priority: 0.3 },
-    { path: "/nutzungsbedingungen", priority: 0.3 },
-  ];
-
-  for (const page of staticPages) {
-    const url = page.path === "/" ? `${BASE_URL}/` : `${BASE_URL}${page.path}`;
-
-    items.push({
-      url,
-      changeFrequency: "weekly",
-      priority: page.priority,
-      alternates: {
-        languages: createAlternates(page.path),
-      },
-    });
+  for (const page of publicPages) {
+    pushSitemapEntry(items, seenPaths, page);
   }
 
-  // ========== СТАТЬИ ==========
   try {
     const now = new Date();
     const articles = await prisma.article.findMany({
       where: {
-        publishedAt: {
-          not: null,
-          lte: now,
-        },
+        AND: [
+          { publishedAt: { not: null, lte: now } },
+          { OR: [{ expiresAt: null }, { expiresAt: { gte: now } }] },
+        ],
       },
+      orderBy: [{ updatedAt: "desc" }],
       select: { slug: true, updatedAt: true },
     });
 
     for (const article of articles) {
-      const path = `/news/${article.slug}`;
+      const path = normalizePath(`/news/${article.slug}`);
 
+      if (!isIndexablePath(path) || seenPaths.has(path)) {
+        continue;
+      }
+
+      seenPaths.add(path);
       items.push({
-        url: `${BASE_URL}${path}`,
+        url: absoluteUrl(path),
         lastModified: article.updatedAt,
         changeFrequency: "weekly",
         priority: 0.5,
@@ -95,268 +159,3 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   return items;
 }
-
-
-
-
-// //---------без /
-// import { prisma } from "@/lib/db";
-// import type { MetadataRoute } from "next";
-
-// export const dynamic = "force-dynamic";
-
-// const BASE_URL = "https://permanent-halle.de";
-
-// // Создаёт alternates для всех языков
-// function createAlternates(path: string): Record<string, string> {
-//   // Важно: для корня не добавляем второй "/" (чтобы было строго https://.../)
-//   const normalized = path === "/" ? "/" : path;
-
-//   return {
-//     de: `${BASE_URL}${normalized}`,
-//     en: `${BASE_URL}${normalized}${normalized.includes("?") ? "&" : "?"}lang=en`,
-//     ru: `${BASE_URL}${normalized}${normalized.includes("?") ? "&" : "?"}lang=ru`,
-//   };
-// }
-
-// export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-//   const items: MetadataRoute.Sitemap = [];
-
-//   // ========== СТАТИЧЕСКИЕ СТРАНИЦЫ ==========
-//   // ❗ Убрали booking из sitemap (они noindex и не должны попадать в sitemap)
-//   const staticPages = [
-//     { path: "/", priority: 1.0 },
-//     { path: "/services", priority: 0.9 },
-//     { path: "/prices", priority: 0.8 },
-//     { path: "/about", priority: 0.8 },
-//     { path: "/news", priority: 0.7 },
-//     { path: "/contacts", priority: 0.6 },
-//     { path: "/gallerie", priority: 0.6 },
-//   ];
-
-//   const lastModified = new Date();
-
-//   for (const page of staticPages) {
-//     items.push({
-//       url: `${BASE_URL}${page.path === "/" ? "" : page.path}`,
-//       lastModified,
-//       changeFrequency: "weekly",
-//       priority: page.priority,
-//       alternates: {
-//         languages: createAlternates(page.path),
-//       },
-//     });
-//   }
-
-//   // ========== СТАТЬИ ==========
-//   try {
-//     const now = new Date();
-//     const articles = await prisma.article.findMany({
-//       where: {
-//         publishedAt: {
-//           not: null,
-//           lte: now, // опубликованные (дата публикации <= сейчас)
-//         },
-//       },
-//       select: { slug: true, updatedAt: true },
-//     });
-
-//     for (const article of articles) {
-//       const path = `/news/${article.slug}`;
-//       items.push({
-//         url: `${BASE_URL}${path}`,
-//         lastModified: article.updatedAt || lastModified,
-//         changeFrequency: "weekly",
-//         priority: 0.5,
-//         alternates: {
-//           languages: createAlternates(path),
-//         },
-//       });
-//     }
-//   } catch (error) {
-//     console.error("[Sitemap] Error fetching articles:", error);
-//   }
-
-//   return items;
-// }
-
-
-
-
-// import { prisma } from "@/lib/db";
-// import type { MetadataRoute } from "next";
-
-// export const dynamic = "force-dynamic";
-
-// const BASE_URL = "https://permanent-halle.de";
-
-// // Создаёт alternates для всех языков
-// function createAlternates(path: string): Record<string, string> {
-//   // Важно: для корня не добавляем второй "/" (чтобы было строго https://.../)
-//   const normalized = path === "/" ? "/" : path;
-
-//   return {
-//     de: `${BASE_URL}${normalized}`,
-//     en: `${BASE_URL}${normalized}${normalized.includes("?") ? "&" : "?"}lang=en`,
-//     ru: `${BASE_URL}${normalized}${normalized.includes("?") ? "&" : "?"}lang=ru`,
-//   };
-// }
-
-// export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-//   const items: MetadataRoute.Sitemap = [];
-
-//   // ========== СТАТИЧЕСКИЕ СТРАНИЦЫ ==========
-//   // ❗ Убрали booking из sitemap (они noindex и не должны попадать в sitemap)
-//   const staticPages = [
-//     { path: "/", priority: 1.0 },
-//     { path: "/services", priority: 0.9 },
-//     { path: "/prices", priority: 0.8 },
-//     { path: "/news", priority: 0.7 },
-//     { path: "/contacts", priority: 0.6 },
-//     { path: "/gallerie", priority: 0.6 },
-//   ];
-
-//   const lastModified = new Date();
-
-//   for (const page of staticPages) {
-//     items.push({
-//       url: `${BASE_URL}${page.path === "/" ? "" : page.path}`,
-//       lastModified,
-//       changeFrequency: "weekly",
-//       priority: page.priority,
-//       alternates: {
-//         languages: createAlternates(page.path),
-//       },
-//     });
-//   }
-
-//   // ========== СТАТЬИ ==========
-//   try {
-//     const now = new Date();
-//     const articles = await prisma.article.findMany({
-//       where: {
-//         publishedAt: {
-//           not: null,
-//           lte: now, // опубликованные (дата публикации <= сейчас)
-//         },
-//       },
-//       select: { slug: true, updatedAt: true },
-//     });
-
-//     for (const article of articles) {
-//       const path = `/news/${article.slug}`;
-//       items.push({
-//         url: `${BASE_URL}${path}`,
-//         lastModified: article.updatedAt || lastModified,
-//         changeFrequency: "weekly",
-//         priority: 0.5,
-//         alternates: {
-//           languages: createAlternates(path),
-//         },
-//       });
-//     }
-//   } catch (error) {
-//     console.error("[Sitemap] Error fetching articles:", error);
-//   }
-
-//   return items;
-// }
-
-
-
-
-
-//---------убираем букинги из карты сайта------------------- --- IGNORE ---
-// import { prisma } from "@/lib/db";
-// import type { MetadataRoute } from "next";
-
-// export const dynamic = "force-dynamic";
-
-// const BASE_URL = "https://permanent-halle.de";
-// const LOCALES = ['de', 'en', 'ru'] as const;
-
-// // Создаёт alternates для всех языков
-// function createAlternates(path: string): Record<string, string> {
-//   return {
-//     de: `${BASE_URL}${path}`,
-//     en: `${BASE_URL}${path}?lang=en`,
-//     ru: `${BASE_URL}${path}?lang=ru`,
-//   };
-// }
-
-// export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-//   const items: MetadataRoute.Sitemap = [];
-
-//   // ========== СТАТИЧЕСКИЕ СТРАНИЦЫ ==========
-//   const staticPages = [
-//     { path: '/', priority: 1.0 },
-//     { path: '/services', priority: 0.9 },
-//     { path: '/booking/services', priority: 0.9 },
-//     { path: '/prices', priority: 0.8 },
-//     { path: '/news', priority: 0.7 },
-//     { path: '/contacts', priority: 0.6 },
-//     { path: '/gallerie', priority: 0.6 },
-//   ];
-
-//   for (const page of staticPages) {
-//     // Основная страница (немецкая)
-//     items.push({
-//       url: `${BASE_URL}${page.path}`,
-//       lastModified: new Date(),
-//       changeFrequency: 'weekly',
-//       priority: page.priority,
-//       alternates: {
-//         languages: createAlternates(page.path),
-//       },
-//     });
-//   }
-
-//   // ========== СТАТЬИ ==========
-//   try {
-//     const now = new Date();
-//     const articles = await prisma.article.findMany({ 
-//       where: { 
-//         publishedAt: { 
-//           not: null,
-//           lte: now // Опубликованные (дата публикации <= сейчас)
-//         }
-//       },
-//       select: { slug: true, updatedAt: true } 
-//     });
-    
-//     for (const article of articles) {
-//       const path = `/news/${article.slug}`;
-//       items.push({
-//         url: `${BASE_URL}${path}`,
-//         lastModified: article.updatedAt || new Date(),
-//         changeFrequency: 'weekly',
-//         priority: 0.5,
-//         alternates: {
-//           languages: createAlternates(path),
-//         },
-//       });
-//     }
-//   } catch (error) {
-//     console.error('[Sitemap] Error fetching articles:', error);
-//   }
-
-//   return items;
-// }
-
-
-
-
-// import { prisma } from "@/lib/db";
-// import type { MetadataRoute } from "next";
-
-// export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-//   const base = process.env.NEXTAUTH_URL || "http://localhost:3000"; // <-- без пробела
-//   const items: MetadataRoute.Sitemap = [
-//     { url: base + "/", priority: 1.0 },
-//     { url: base + "/services", priority: 0.8 },
-//     { url: base + "/news", priority: 0.6 },
-//   ];
-//   const articles = await prisma.article.findMany({ select: { slug: true } }); // ожидается ОК
-//   for (const a of articles) items.push({ url: base + "/news/" + a.slug, priority: 0.5 });
-//   return items;
-// }
