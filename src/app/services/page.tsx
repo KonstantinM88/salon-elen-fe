@@ -12,6 +12,7 @@ import {
   type SearchParamsPromise,
 } from "@/lib/seo-locale";
 import { resolveContentLocale } from "@/lib/seo-locale-server";
+import { SALON_SCHEMA_ID, buildSalonJsonLd } from "@/lib/structured-data";
 
 export const dynamic = "force-dynamic";
 
@@ -142,8 +143,47 @@ export default async function ServicesPage({
     };
   });
 
+  const servicesJsonLd = {
+    "@context": "https://schema.org",
+    "@graph": [
+      buildSalonJsonLd(),
+      {
+        "@type": "OfferCatalog",
+        "@id": `${BASE_URL}/services#catalog`,
+        name: "Salon Elen - Leistungen",
+        url: `${BASE_URL}/services`,
+        itemListElement: categoriesWithTranslations.flatMap((cat) =>
+          cat.children.map((child) => ({
+            "@type": "Offer",
+            itemOffered: {
+              "@type": "Service",
+              name: child.name,
+              ...(child.description ? { description: child.description } : {}),
+              serviceType: cat.name,
+              areaServed: "Halle (Saale)",
+              provider: { "@id": SALON_SCHEMA_ID },
+            },
+            ...(typeof child.priceCents === "number" && child.priceCents > 0
+              ? {
+                  price: (child.priceCents / 100).toFixed(2),
+                  priceCurrency: "EUR",
+                }
+              : {}),
+            url: `${BASE_URL}/services?service=${encodeURIComponent(child.slug)}`,
+          })),
+        ),
+      },
+    ],
+  };
+
   return (
     <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(servicesJsonLd).replace(/</g, "\\u003c"),
+        }}
+      />
       <Suspense>
         <ServicesClient categories={categoriesWithTranslations} locale={locale} />
       </Suspense>

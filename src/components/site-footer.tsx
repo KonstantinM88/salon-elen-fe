@@ -6,8 +6,6 @@ import type { ElementType, ReactNode } from "react";
 import Link from "next/link";
 import {
   Instagram,
-  Facebook,
-  Youtube,
   Mail,
   Phone,
   MapPin,
@@ -158,22 +156,6 @@ const socials: SocialItem[] = [
     bgClass: "from-[#F58529] via-[#DD2A7B] to-[#8134AF]",
     ringClass: "ring-fuchsia-400/70",
     tooltipKey: "footer_socials_instagram_hint",
-  },
-  {
-    href: "https://facebook.com",
-    label: "Facebook",
-    icon: Facebook,
-    bgClass: "from-[#1877F2] via-[#1d4ed8] to-[#0f172a]",
-    ringClass: "ring-sky-400/70",
-    tooltipKey: "footer_socials_facebook_hint",
-  },
-  {
-    href: "https://youtube.com",
-    label: "YouTube",
-    icon: Youtube,
-    bgClass: "from-[#FF0000] via-[#f97316] to-[#7f1d1d]",
-    ringClass: "ring-red-400/70",
-    tooltipKey: "footer_socials_youtube_hint",
   },
 ];
 

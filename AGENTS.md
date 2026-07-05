@@ -310,3 +310,10 @@ Useful scripts:
   `src/lib/telegram/conversation-state.ts`. Do not use process-local `Map`
   state for multi-step bot flows that must survive PM2 restarts or multiple
   app instances.
+- 2026-07-05: SEO/GEO/AIO signals were expanded from the temporary update
+  package: `buildSalonJsonLd()` includes exact salon geo coordinates and the
+  Google Business profile; `/services` emits dynamic `BeautySalon` +
+  `OfferCatalog` JSON-LD from active DB services; `robots.txt` and
+  `llms.txt` include AI crawler and answer-target guidance. The direct Google
+  review URL is centralized as `SALON_GOOGLE_REVIEW_URL` and is shown in
+  `DONE` status emails.

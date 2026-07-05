@@ -742,6 +742,9 @@ booking_payment_paypal_footer: string;
   email_status_message_done_outro: string;
   email_status_message_done_tip_title: string;
   email_status_message_done_tip_text: string;
+  email_status_review_title: string;
+  email_status_review_text: string;
+  email_status_review_button: string;
   email_status_message_canceled_intro: string;
   email_status_message_canceled_contact_intro: string;
   email_status_message_canceled_contact: string;
@@ -1690,6 +1693,10 @@ booking_payment_paypal_footer: "Платежи обрабатываются че
   email_status_message_done_tip_title: "📅 Совет:",
   email_status_message_done_tip_text:
     "Для поддержания результата рекомендуем записаться через 3-4 недели.",
+  email_status_review_title: "Вам понравился результат?",
+  email_status_review_text:
+    "Ваш отзыв в Google помогает другим клиентам выбрать мастера и поддерживает развитие Salon Elen.",
+  email_status_review_button: "Оставить отзыв в Google",
   email_status_message_canceled_intro:
     "К сожалению, ваша запись была отменена.",
   email_status_message_canceled_contact_intro:
@@ -2671,6 +2678,10 @@ const deMessages: BaseMessages = {
   email_status_message_done_tip_title: "📅 Tipp:",
   email_status_message_done_tip_text:
     "Für ein dauerhaftes Ergebnis empfehlen wir eine neue Buchung in 3-4 Wochen.",
+  email_status_review_title: "Hat Ihnen das Ergebnis gefallen?",
+  email_status_review_text:
+    "Ihre Google-Bewertung hilft anderen Kundinnen bei der Entscheidung und unterstützt Salon Elen.",
+  email_status_review_button: "Google-Bewertung schreiben",
   email_status_message_canceled_intro:
     "Leider wurde Ihre Buchung storniert.",
   email_status_message_canceled_contact_intro:
@@ -3630,6 +3641,10 @@ const enMessages: BaseMessages = {
   email_status_message_done_tip_title: "📅 Tip:",
   email_status_message_done_tip_text:
     "To maintain results, we recommend booking again in 3-4 weeks.",
+  email_status_review_title: "Did you love the result?",
+  email_status_review_text:
+    "Your Google review helps other clients choose with confidence and supports Salon Elen.",
+  email_status_review_button: "Leave a Google review",
   email_status_message_canceled_intro:
     "Unfortunately, your booking was canceled.",
   email_status_message_canceled_contact_intro:

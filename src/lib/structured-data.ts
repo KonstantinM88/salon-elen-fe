@@ -2,8 +2,15 @@ import { BASE_URL } from "@/lib/seo-locale";
 
 export const SALON_SCHEMA_ID = `${BASE_URL}/#salon`;
 export const WEBSITE_SCHEMA_ID = `${BASE_URL}/#website`;
-export const SALON_MAP_URL =
-  "https://www.google.com/maps/search/?api=1&query=Lessingstrasse+37%2C+06114+Halle+(Saale)";
+export const SALON_GOOGLE_BUSINESS_URL = "https://g.page/r/CU4PoX1xNkLdEBE";
+export const SALON_GOOGLE_REVIEW_URL = `${SALON_GOOGLE_BUSINESS_URL}/review`;
+export const SALON_MAP_URL = SALON_GOOGLE_BUSINESS_URL;
+
+export const salonGeoJsonLd = {
+  "@type": "GeoCoordinates",
+  latitude: 51.4917034,
+  longitude: 11.9782927,
+} as const;
 
 export const salonAddressJsonLd = {
   "@type": "PostalAddress",
@@ -101,6 +108,7 @@ export function buildSalonJsonLd(extra: Record<string, unknown> = {}) {
     currenciesAccepted: "EUR",
     hasMap: SALON_MAP_URL,
     address: salonAddressJsonLd,
+    geo: salonGeoJsonLd,
     openingHoursSpecification: salonOpeningHoursJsonLd,
     areaServed: [
       {
@@ -121,7 +129,10 @@ export function buildSalonJsonLd(extra: Record<string, unknown> = {}) {
       "Cosmetic treatments",
     ],
     hasOfferCatalog: salonServiceCatalogJsonLd,
-    sameAs: ["https://www.instagram.com/salon_elen_halle/"],
+    sameAs: [
+      "https://www.instagram.com/salon_elen_halle/",
+      SALON_GOOGLE_BUSINESS_URL,
+    ],
     ...extra,
   };
 }

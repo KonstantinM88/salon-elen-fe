@@ -3,6 +3,7 @@ import { Resend } from 'resend';
 import { buildClientAppointmentActionLinks } from '@/lib/booking/client-appointment-links';
 import { AppointmentStatus } from '@/lib/prisma-client';
 import { getPublicBaseUrl } from '@/lib/public-url';
+import { SALON_GOOGLE_REVIEW_URL } from '@/lib/structured-data';
 import { DEFAULT_LOCALE, LOCALES, type Locale } from '@/i18n/locales';
 import { translate, type MessageKey } from '@/i18n/messages';
 
@@ -221,6 +222,23 @@ function getEmailBody(
     data.status === 'PENDING' || data.status === 'CONFIRMED'
       ? buildClientAppointmentActionLinks(data.appointmentId)
       : null;
+  const reviewBlock =
+    data.status === 'DONE'
+      ? `
+        <div style="background: linear-gradient(135deg, #fff1f2 0%, #fff7ed 100%); border: 1px solid #fecdd3; border-radius: 12px; padding: 22px; margin: 25px 0; text-align: center;">
+          <h3 style="margin: 0 0 10px 0; color: #9f1239; font-size: 18px; font-weight: 700;">
+            ${t('email_status_review_title')}
+          </h3>
+          <p style="color: #374151; margin: 0 0 18px 0; font-size: 15px; line-height: 1.6;">
+            ${t('email_status_review_text')}
+          </p>
+          <a href="${SALON_GOOGLE_REVIEW_URL}"
+             style="display: inline-block; background: linear-gradient(135deg, #e11d48 0%, #f59e0b 100%); color: white; text-decoration: none; padding: 13px 24px; border-radius: 999px; font-weight: 700; font-size: 15px;">
+            ${t('email_status_review_button')}
+          </a>
+        </div>
+      `
+      : '';
 
   return `
     <!DOCTYPE html>
@@ -292,6 +310,8 @@ function getEmailBody(
               </a>
             </div>
           ` : ''}
+
+          ${reviewBlock}
           
           <!-- CTA Button (for CONFIRMED status) -->
           ${data.status === 'CONFIRMED' ? `

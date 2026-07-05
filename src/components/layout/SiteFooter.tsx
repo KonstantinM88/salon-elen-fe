@@ -1,8 +1,6 @@
 import Link from "next/link";
 import {
   Instagram,
-  Facebook,
-  Send,
   Phone,
   Mail,
   MapPin,
@@ -43,16 +41,6 @@ export default function SiteFooter() {
                 href="https://www.instagram.com/salon_elen_halle/"
                 label="Instagram"
                 icon={<Instagram className="h-4 w-4" />}
-              />
-              <SocialIcon
-                href="https://facebook.com"
-                label="Facebook"
-                icon={<Facebook className="h-4 w-4" />}
-              />
-              <SocialIcon
-                href="https://t.me/"
-                label="Telegram"
-                icon={<Send className="h-4 w-4" />}
               />
             </div>
           </div>

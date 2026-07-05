@@ -1,3 +1,5 @@
+# --- AI assistants / answer engines (GEO/AIO) ---
+
 User-agent: OAI-SearchBot
 Allow: /
 Disallow: /admin/
@@ -8,12 +10,59 @@ User-agent: ChatGPT-User
 Allow: /
 Disallow: /admin/
 Disallow: /api/
+Disallow: /booking
+
+User-agent: GPTBot
+Allow: /
+Disallow: /admin/
+Disallow: /api/
+Disallow: /booking
+
+User-agent: ClaudeBot
+Allow: /
+Disallow: /admin/
+Disallow: /api/
+Disallow: /booking
+
+User-agent: Claude-User
+Allow: /
+Disallow: /admin/
+Disallow: /api/
+Disallow: /booking
+
+User-agent: PerplexityBot
+Allow: /
+Disallow: /admin/
+Disallow: /api/
+Disallow: /booking
+
+User-agent: Perplexity-User
+Allow: /
+Disallow: /admin/
+Disallow: /api/
+Disallow: /booking
+
+User-agent: Google-Extended
+Allow: /
+
+User-agent: Applebot-Extended
+Allow: /
+
+User-agent: Bytespider
+Allow: /
+Disallow: /admin/
+Disallow: /api/
+Disallow: /booking
+
+# --- All other crawlers ---
 
 User-agent: *
 Allow: /
-
 Disallow: /admin/
 Disallow: /api/
 Disallow: /booking
 
 Sitemap: https://permanent-halle.de/sitemap.xml
+
+# AI-readable site summary
+# https://permanent-halle.de/llms.txt
