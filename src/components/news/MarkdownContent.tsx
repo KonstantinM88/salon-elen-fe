@@ -1,4 +1,11 @@
 import type { ReactNode } from "react";
+import {
+  ArrowRight,
+  CheckCircle2,
+  Quote,
+  Sparkles,
+  Star,
+} from "lucide-react";
 
 type MarkdownContentProps = {
   body: string;
@@ -9,6 +16,7 @@ type Block =
   | { type: "heading"; level: 1 | 2 | 3 | 4; text: string }
   | { type: "paragraph"; text: string }
   | { type: "quote"; text: string }
+  | { type: "table"; headers: string[]; rows: string[][] }
   | { type: "unordered-list"; items: string[] }
   | { type: "ordered-list"; items: string[] }
   | { type: "code"; text: string }
@@ -66,7 +74,34 @@ function splitSentences(text: string): string[] {
 function hasMarkdownSyntax(text: string): boolean {
   return /(^|\n)\s*(#{1,4}\s+|[-*+]\s+|\d+\.\s+|>\s+|`{3}|-{3,}\s*$)|(\*\*[^*]+\*\*)|(__[^_]+__)|(`[^`]+`)|(\[[^\]]+\]\([^)]+\))/m.test(
     text,
-  );
+  ) || /(^|\n)\s*\|.+\|\s*\n\s*\|?\s*:?-{3,}:?\s*(\|\s*:?-{3,}:?\s*)+\|?\s*/m.test(text);
+}
+
+function isTableSeparator(line: string): boolean {
+  const trimmed = line.trim();
+  if (!trimmed.includes("|")) {
+    return false;
+  }
+
+  return trimmed
+    .replace(/^\|/, "")
+    .replace(/\|$/, "")
+    .split("|")
+    .every((cell) => /^:?-{3,}:?$/.test(cell.trim()));
+}
+
+function isTableRow(line: string): boolean {
+  const trimmed = line.trim();
+  return trimmed.startsWith("|") && trimmed.endsWith("|") && trimmed.includes("|");
+}
+
+function parseTableRow(line: string): string[] {
+  return line
+    .trim()
+    .replace(/^\|/, "")
+    .replace(/\|$/, "")
+    .split("|")
+    .map((cell) => cell.trim());
 }
 
 function isBlockStart(line: string): boolean {
@@ -76,6 +111,7 @@ function isBlockStart(line: string): boolean {
     /^[-*+]\s+/.test(trimmed) ||
     /^\d+\.\s+/.test(trimmed) ||
     /^>\s?/.test(trimmed) ||
+    (isTableRow(trimmed) && isTableSeparator(trimmed)) ||
     /^-{3,}$/.test(trimmed) ||
     /^```/.test(trimmed)
   );
@@ -142,6 +178,24 @@ function parseBlocks(raw: string): Block[] {
     if (/^-{3,}$/.test(trimmed)) {
       blocks.push({ type: "hr" });
       index += 1;
+      continue;
+    }
+
+    if (
+      isTableRow(trimmed) &&
+      index + 1 < lines.length &&
+      isTableSeparator(lines[index + 1])
+    ) {
+      const headers = parseTableRow(trimmed);
+      index += 2;
+
+      const rows: string[][] = [];
+      while (index < lines.length && isTableRow(lines[index])) {
+        rows.push(parseTableRow(lines[index]));
+        index += 1;
+      }
+
+      blocks.push({ type: "table", headers, rows });
       continue;
     }
 
@@ -272,9 +326,12 @@ export default function MarkdownContent({
 
         if (block.type === "unordered-list") {
           return (
-            <ul key={index}>
+            <ul key={index} className="prose-elen-check-list">
               {block.items.map((item, itemIndex) => (
-                <li key={itemIndex}>{renderInline(item)}</li>
+                <li key={itemIndex}>
+                  <CheckCircle2 className="prose-elen-list-icon" aria-hidden="true" />
+                  <span>{renderInline(item)}</span>
+                </li>
               ))}
             </ul>
           );
@@ -282,16 +339,60 @@ export default function MarkdownContent({
 
         if (block.type === "ordered-list") {
           return (
-            <ol key={index}>
+            <ol key={index} className="prose-elen-step-list">
               {block.items.map((item, itemIndex) => (
-                <li key={itemIndex}>{renderInline(item)}</li>
+                <li key={itemIndex}>
+                  <span className="prose-elen-step-number">{itemIndex + 1}</span>
+                  <span>{renderInline(item)}</span>
+                </li>
               ))}
             </ol>
           );
         }
 
         if (block.type === "quote") {
-          return <blockquote key={index}>{renderInline(block.text)}</blockquote>;
+          return (
+            <blockquote key={index}>
+              <Quote className="prose-elen-quote-icon" aria-hidden="true" />
+              <span>{renderInline(block.text)}</span>
+            </blockquote>
+          );
+        }
+
+        if (block.type === "table") {
+          return (
+            <div key={index} className="prose-elen-table-wrap">
+              <table className="prose-elen-table">
+                <thead>
+                  <tr>
+                    {block.headers.map((header, headerIndex) => (
+                      <th key={headerIndex}>
+                        <span className="prose-elen-table-heading">
+                          {headerIndex === 0 ? (
+                            <Sparkles aria-hidden="true" />
+                          ) : headerIndex === block.headers.length - 1 ? (
+                            <Star aria-hidden="true" />
+                          ) : (
+                            <ArrowRight aria-hidden="true" />
+                          )}
+                          {renderInline(header)}
+                        </span>
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {block.rows.map((row, rowIndex) => (
+                    <tr key={rowIndex}>
+                      {block.headers.map((_header, cellIndex) => (
+                        <td key={cellIndex}>{renderInline(row[cellIndex] ?? "")}</td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          );
         }
 
         if (block.type === "code") {

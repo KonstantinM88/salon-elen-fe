@@ -237,7 +237,8 @@ async function prepareData(
   // ── Обложка ──
   let coverSrc: string | null | undefined = undefined;
   let ogImageSrc: string | null | undefined = undefined;
-  const coverCandidate = fd.get("coverFile") ?? fd.get("cover");
+  const coverClearCandidate = fd.get("cover");
+  const coverCandidate = fd.get("coverFile") ?? coverClearCandidate;
 
   if (coverCandidate instanceof File && coverCandidate.size > 0) {
     try {
@@ -251,6 +252,8 @@ async function prepareData(
       const msg = err instanceof Error ? err.message : t.imageSaveFailed;
       return { ok: false, error: msg };
     }
+  } else if (typeof coverClearCandidate === "string" && coverClearCandidate === "") {
+    coverSrc = null; // очистить
   } else if (coverCandidate instanceof File) {
     coverSrc = undefined; // пустой File — не трогаем
   } else if (typeof coverCandidate === "string" && coverCandidate === "") {

@@ -317,3 +317,8 @@ Useful scripts:
   `llms.txt` include AI crawler and answer-target guidance. The direct Google
   review URL is centralized as `SALON_GOOGLE_REVIEW_URL` and is shown in
   `DONE` status emails.
+- 2026-07-05: News Markdown rendering in
+  `src/components/news/MarkdownContent.tsx` supports Markdown tables and uses
+  richer public/admin article presentation: styled tables, icon-led check
+  lists, numbered step lists, and quote callouts. GEO/news articles can use
+  normal Markdown tables instead of custom HTML.

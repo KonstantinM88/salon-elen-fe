@@ -105,6 +105,11 @@ type ArticleFormCopy = {
   aspectTooWide: string;
   coverLabel: string;
   chooseFile: string;
+  coverReplace: string;
+  coverRemove: string;
+  coverRestore: string;
+  coverClearSelection: string;
+  coverWillBeRemoved: string;
   galleryLabel: string;
   chooseGallery: string;
   galleryHint: string;
@@ -202,6 +207,11 @@ const ARTICLE_FORM_COPY: Record<SeoLocale, ArticleFormCopy> = {
       "zu breit (Panorama). Empfohlen 1200x675 (16:9).",
     coverLabel: "Titelbild",
     chooseFile: "Datei auswaehlen",
+    coverReplace: "Titelbild ersetzen",
+    coverRemove: "Titelbild entfernen",
+    coverRestore: "Titelbild behalten",
+    coverClearSelection: "Neue Auswahl entfernen",
+    coverWillBeRemoved: "Das aktuelle Titelbild wird beim Speichern entfernt.",
     galleryLabel: "Galerie im Beitrag",
     chooseGallery: "Fotos auswaehlen",
     galleryHint:
@@ -272,6 +282,11 @@ const ARTICLE_FORM_COPY: Record<SeoLocale, ArticleFormCopy> = {
       "слишком широкое (панорама). Рекомендуем 1200×675 (16:9).",
     coverLabel: "Обложка",
     chooseFile: "Выберите файл",
+    coverReplace: "Заменить обложку",
+    coverRemove: "Удалить обложку",
+    coverRestore: "Оставить обложку",
+    coverClearSelection: "Убрать новый файл",
+    coverWillBeRemoved: "Текущая обложка будет удалена после сохранения.",
     galleryLabel: "Галерея в новости",
     chooseGallery: "Выберите фото",
     galleryHint:
@@ -342,6 +357,11 @@ const ARTICLE_FORM_COPY: Record<SeoLocale, ArticleFormCopy> = {
       "too wide (panorama). Recommended 1200x675 (16:9).",
     coverLabel: "Cover",
     chooseFile: "Choose file",
+    coverReplace: "Replace cover",
+    coverRemove: "Remove cover",
+    coverRestore: "Keep cover",
+    coverClearSelection: "Clear new file",
+    coverWillBeRemoved: "The current cover will be removed after saving.",
     galleryLabel: "Article gallery",
     chooseGallery: "Choose photos",
     galleryHint:
@@ -435,6 +455,8 @@ export default function ArticleForm({
   const [fileLabel, setFileLabel] = React.useState(t.fileNotSelected);
   const [aspectWarning, setAspectWarning] = React.useState<string | null>(null);
   const currentCover = initial?.cover ?? null;
+  const [coverRemoved, setCoverRemoved] = React.useState(false);
+  const coverInputRef = React.useRef<HTMLInputElement | null>(null);
   const [galleryItems, setGalleryItems] = React.useState<GalleryItem[]>(
     () => buildInitialGalleryItems(initial?.galleryImages),
   );
@@ -530,6 +552,25 @@ export default function ArticleForm({
     });
   }
 
+  function clearCoverSelection() {
+    setNewFilePreview((prev) => {
+      if (prev) URL.revokeObjectURL(prev);
+      return null;
+    });
+    setFileLabel(t.fileNotSelected);
+    setAspectWarning(null);
+    if (coverInputRef.current) coverInputRef.current.value = "";
+  }
+
+  function removeCurrentCover() {
+    clearCoverSelection();
+    setCoverRemoved(true);
+  }
+
+  function restoreCurrentCover() {
+    setCoverRemoved(false);
+  }
+
   async function handleSubmit(formData: FormData) {
     setPending(true);
     setServerError(null);
@@ -562,6 +603,7 @@ export default function ArticleForm({
       <input type="hidden" name="sortOrder" value={sortOrder} />
       <input type="hidden" name="videoUrl" value={videoUrl} />
       <input type="hidden" name="videoType" value={videoType} />
+      {coverRemoved && !newFilePreview && <input type="hidden" name="cover" value="" />}
       {galleryItems.map((item) => (
         <React.Fragment key={item.id}>
           <input
@@ -686,7 +728,8 @@ export default function ArticleForm({
           <label htmlFor="cover" className={labelCls}>{t.coverLabel}</label>
           <div className="mt-1 flex items-center rounded-xl border px-2 h-10">
             <input
-              id="cover" name="cover" type="file"
+              ref={coverInputRef}
+              id="cover" name="coverFile" type="file"
               accept="image/*"
               onChange={(e) => {
                 const f = e.currentTarget.files?.[0] ?? null;
@@ -696,6 +739,7 @@ export default function ArticleForm({
                   setAspectWarning(null);
                   return;
                 }
+                setCoverRemoved(false);
                 setFileLabel(f.name);
                 checkAspect(f);
                 const url = URL.createObjectURL(f);
@@ -712,10 +756,42 @@ export default function ArticleForm({
                 bg-emerald-600 text-white text-sm font-medium cursor-pointer
                 hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-400"
             >
-              {t.chooseFile}
+              {currentCover && !coverRemoved ? t.coverReplace : t.chooseFile}
             </label>
             <span className="ml-3 truncate text-sm opacity-80">{fileLabel}</span>
           </div>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {newFilePreview && (
+              <button
+                type="button"
+                onClick={clearCoverSelection}
+                className="rounded-full border border-white/15 px-3 py-1.5 text-xs font-medium opacity-80 transition hover:border-white/30 hover:opacity-100"
+              >
+                {t.coverClearSelection}
+              </button>
+            )}
+            {currentCover && !newFilePreview && !coverRemoved && (
+              <button
+                type="button"
+                onClick={removeCurrentCover}
+                className="rounded-full border border-red-500/35 bg-red-500/10 px-3 py-1.5 text-xs font-medium text-red-300 transition hover:bg-red-500/15"
+              >
+                {t.coverRemove}
+              </button>
+            )}
+            {currentCover && coverRemoved && (
+              <button
+                type="button"
+                onClick={restoreCurrentCover}
+                className="rounded-full border border-emerald-500/35 bg-emerald-500/10 px-3 py-1.5 text-xs font-medium text-emerald-300 transition hover:bg-emerald-500/15"
+              >
+                {t.coverRestore}
+              </button>
+            )}
+          </div>
+          {coverRemoved && !newFilePreview && (
+            <p className="mt-1 text-xs text-red-300">{t.coverWillBeRemoved}</p>
+          )}
           {aspectWarning && (
             <p className="mt-1 text-xs text-amber-400">⚠️ {aspectWarning}</p>
           )}
@@ -755,7 +831,7 @@ export default function ArticleForm({
         <div>{/* spacer */}</div>
 
         {/* Предпросмотр обложки */}
-        {(newFilePreview || currentCover) && (
+        {(newFilePreview || (!coverRemoved && currentCover)) && (
           <div className="md:col-span-2">
             <div className="mt-1 rounded-xl border p-2">
               <div className="mb-2 text-xs opacity-70">{t.coverPreviewTitle}</div>
