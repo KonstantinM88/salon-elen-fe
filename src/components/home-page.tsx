@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 
 import RainbowCTA from "@/components/RainbowCTA";
+import { HOME_FAQ } from "@/lib/home-faq";
 import { useI18n } from "@/i18n/I18nProvider";
 import type { Locale } from "@/i18n/locales";
 import styles from "./home-page.module.css";
@@ -1040,6 +1041,40 @@ export default function HomePage({ latest }: Props) {
           </div>
         </section>
       ) : null}
+
+      <section
+        id="faq"
+        className="scroll-mt-16 border-t border-[#bb8d96]/20 bg-[#f6ecee] py-20 sm:py-24 dark:border-white/10 dark:bg-[#241b1f]"
+      >
+        <div className="mx-auto max-w-7xl px-5 sm:px-8 lg:px-10">
+          <SectionHeading
+            eyebrow={HOME_FAQ[locale].eyebrow}
+            title={HOME_FAQ[locale].title}
+            description={HOME_FAQ[locale].description}
+          />
+          <div className="mt-10 grid gap-3 md:grid-cols-2 md:gap-4">
+            {HOME_FAQ[locale].items.map((item) => (
+              <details
+                key={item.q}
+                className="group self-start rounded-lg border border-[#c79aa2]/30 bg-white/70 px-5 py-4 transition open:bg-white dark:border-white/10 dark:bg-white/5 dark:open:bg-white/10"
+              >
+                <summary className="flex cursor-pointer list-none items-start justify-between gap-4 text-left text-sm font-semibold leading-6 text-[#38272d] [&::-webkit-details-marker]:hidden dark:text-white">
+                  <span>{item.q}</span>
+                  <span
+                    aria-hidden="true"
+                    className="mt-0.5 shrink-0 text-[#9c5965] transition-transform duration-200 group-open:rotate-45 dark:text-[#e2a8b2]"
+                  >
+                    +
+                  </span>
+                </summary>
+                <p className="mt-3 text-sm leading-6 text-[#765f66] dark:text-white/70">
+                  {item.a}
+                </p>
+              </details>
+            ))}
+          </div>
+        </div>
+      </section>
 
       <section
         id="booking-cta"

@@ -16,6 +16,7 @@ import {
   WEBSITE_SCHEMA_ID,
   buildSalonJsonLd,
 } from "@/lib/structured-data";
+import { HOME_FAQ } from "@/lib/home-faq";
 
 export const revalidate = 3600;
 
@@ -115,6 +116,20 @@ function buildHomeJsonLd(locale: SeoLocale) {
         name: homeServiceNames[locale].join(", "),
         numberOfItems: serviceItems.length,
         itemListElement: serviceItems,
+      },
+      {
+        "@type": "FAQPage",
+        "@id": `${alts.canonical}#faq`,
+        inLanguage: locale,
+        isPartOf: { "@id": `${alts.canonical}#webpage` },
+        mainEntity: HOME_FAQ[locale].items.map((item) => ({
+          "@type": "Question",
+          name: item.q,
+          acceptedAnswer: {
+            "@type": "Answer",
+            text: item.a,
+          },
+        })),
       },
     ],
   });

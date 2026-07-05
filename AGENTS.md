@@ -327,3 +327,8 @@ Useful scripts:
   in `public/robots.txt` (`/admin`, `/api`, `/appointments`, `/booking`,
   `/coming-soon`, `/login`, `/register`, `/users`) and redirect-only aliases
   (`/for-masters`, `/privacy`, `/terms`) must stay out of the sitemap.
+- 2026-07-05: Homepage FAQ content is centralized in
+  `src/lib/home-faq.ts` and drives both the visible `<section id="faq">` in
+  `src/components/home-page.tsx` and the homepage `FAQPage` JSON-LD in
+  `src/app/page.tsx`. Keep visible FAQ answers and schema answers synchronized
+  by editing only this shared source.
