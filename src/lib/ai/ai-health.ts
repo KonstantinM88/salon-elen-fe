@@ -436,7 +436,7 @@ export function formatDailySummaryTelegram(data: DailySummaryData): string {
 🤖 Переходы из AI\\-поиска: *${data.aiReferrals}*
 ${aiTrafficLines}
 👥 Сессии: *${data.totalSessions}*
-📝 Записи: *${data.completedBookings}* ${conv}
+🤖 AI записи: *${data.completedBookings}* ${conv}
 🧭 Все новые записи за день: *${data.appointmentCreations}*
 ${bookingMethodLines}
 ⏱ Ø Длительность: *${data.avgDurationSec}s*
@@ -543,7 +543,9 @@ export async function sendDailySummaryToTelegram(date?: Date | string): Promise<
 ${upcomingAppointments}`;
     await sendTelegramAdminMessage(message);
 
-    console.log(`[AI Health] Daily summary sent for ${summary.dateISO}: ${summary.totalSessions} sessions, ${summary.completedBookings} bookings`);
+    console.log(
+      `[AI Health] Daily summary sent for ${summary.dateISO}: ${summary.totalSessions} sessions, ${summary.completedBookings} AI bookings, ${summary.appointmentCreations} appointments`,
+    );
     return true;
   } catch (err) {
     console.error('[AI Health] Failed to send daily summary:', err);
