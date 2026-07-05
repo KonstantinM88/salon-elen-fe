@@ -6,6 +6,7 @@ import { buildClientAppointmentActionLinks } from "@/lib/booking/client-appointm
 import { ORG_TZ } from "@/lib/orgTime";
 import { buildPublicUrl } from "@/lib/public-url";
 import { parseTelegramAdminChatIds } from "@/lib/telegram-admin-chat-ids";
+import { summarizeTelegramUpdateForLog } from "@/lib/telegram/logging";
 import { isPhoneDigitsValid, normalizePhoneDigits } from "@/lib/phone";
 import { DEFAULT_LOCALE, LOCALES, type Locale } from "@/i18n/locales";
 import { translate, type MessageKey } from "@/i18n/messages";
@@ -733,7 +734,7 @@ export async function handleTelegramWebhook(
   try {
     console.log(
       `[Telegram Bot] Получен update ${update.update_id}:`,
-      JSON.stringify(update)
+      summarizeTelegramUpdateForLog(update)
     );
 
     // Обработка обычных сообщений

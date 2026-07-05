@@ -11,6 +11,10 @@ import { isYmd, ORG_TZ, orgDayRange } from '@/lib/orgTime';
 import { getBookingMethodLabel } from '@/lib/booking/booking-method';
 import { buildUpcomingAppointmentsMarkdownReport } from '@/lib/booking/upcoming-appointments-report';
 import { getSiteVisitSummary } from '@/lib/site-analytics';
+import {
+  assertTelegramAdminDelivery,
+  sendTelegramAdminMessage,
+} from '@/lib/telegram/sender';
 
 const AI_HEALTH_DB_RETRY_DELAY_MS = 750;
 const AI_HEALTH_DB_MAX_ATTEMPTS = Math.max(
@@ -541,7 +545,10 @@ export async function sendDailySummaryToTelegram(date?: Date | string): Promise<
 ━━━━━━━━━━━━━━━━━━━━━
 
 ${upcomingAppointments}`;
-    await sendTelegramAdminMessage(message);
+    const results = await sendTelegramAdminMessage(message, {
+      parseMode: 'Markdown',
+    });
+    assertTelegramAdminDelivery(results);
 
     console.log(
       `[AI Health] Daily summary sent for ${summary.dateISO}: ${summary.totalSessions} sessions, ${summary.completedBookings} AI bookings, ${summary.appointmentCreations} appointments`,
@@ -561,33 +568,14 @@ export async function checkAndAlertErrors(): Promise<boolean> {
     const alert = await checkErrorRateAlert();
     if (!alert) return false;
 
-    await sendTelegramAdminMessage(alert);
+    const results = await sendTelegramAdminMessage(alert, {
+      parseMode: 'Markdown',
+    });
+    assertTelegramAdminDelivery(results);
     console.warn('[AI Health] Error rate alert sent');
     return true;
   } catch (err) {
     console.error('[AI Health] Failed to check or send alert:', err);
     return false;
-  }
-}
-
-// ─── Telegram Sender (reuses existing pattern) ──────────────
-
-async function sendTelegramAdminMessage(message: string): Promise<void> {
-  const adminChatId = process.env.TELEGRAM_ADMIN_CHAT_ID;
-  if (!adminChatId) {
-    throw new Error('TELEGRAM_ADMIN_CHAT_ID not configured');
-  }
-
-  const webhookUrl = `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/telegram/webhook`;
-
-  const res = await fetch(`${webhookUrl}?action=notify&chatId=${encodeURIComponent(adminChatId)}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ message }),
-  });
-
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(`Telegram send failed: ${JSON.stringify(err)}`);
   }
 }

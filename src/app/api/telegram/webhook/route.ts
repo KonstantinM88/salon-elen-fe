@@ -1,5 +1,6 @@
   // src/app/api/telegram/webhook/route.ts
 
+import { timingSafeEqual } from 'crypto';
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { changeAppointmentStatus } from '@/lib/booking/status-change';
@@ -28,6 +29,12 @@ import {
 } from '@/lib/send-admin-notification';
 import { parseTelegramAdminChatIds } from '@/lib/telegram-admin-chat-ids';
 import { ORG_TZ } from '@/lib/orgTime';
+import {
+  maskPhoneForLog,
+  redactTextForLog,
+  summarizeTelegramUpdateForLog,
+} from '@/lib/telegram/logging';
+import { sendTelegramMessage as sendTelegramApiMessage } from '@/lib/telegram/sender';
 
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '';
 const TELEGRAM_API_URL = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}`;
@@ -36,6 +43,48 @@ const UPCOMING_APPOINTMENTS_ACTION_PREFIX = 'upcoming';
 const APPOINTMENT_RESCHEDULE_DATE_ACTION_PREFIX = 'appt_rs_date';
 const APPOINTMENT_RESCHEDULE_SLOT_ACTION_PREFIX = 'appt_rs_slot';
 const UPCOMING_APPOINTMENT_DAYS: UpcomingAppointmentsDays[] = [7, 14, 30];
+
+function safeCompareSecret(value: string | null, expected: string | null): boolean {
+  if (!value || !expected) return false;
+
+  const valueBuffer = Buffer.from(value);
+  const expectedBuffer = Buffer.from(expected);
+
+  if (valueBuffer.length !== expectedBuffer.length) {
+    return false;
+  }
+
+  return timingSafeEqual(valueBuffer, expectedBuffer);
+}
+
+function isTelegramWebhookAuthorized(request: NextRequest): boolean {
+  const expectedSecret =
+    process.env.TELEGRAM_WEBHOOK_SECRET_TOKEN ||
+    process.env.TELEGRAM_WEBHOOK_SECRET ||
+    null;
+
+  if (!expectedSecret) {
+    return true;
+  }
+
+  return safeCompareSecret(
+    request.headers.get('x-telegram-bot-api-secret-token'),
+    expectedSecret,
+  );
+}
+
+function isInternalNotifyAuthorized(request: NextRequest): boolean {
+  const expectedSecret = process.env.TELEGRAM_INTERNAL_NOTIFY_SECRET || null;
+
+  if (!expectedSecret) {
+    return false;
+  }
+
+  return safeCompareSecret(
+    request.headers.get('x-salon-telegram-internal-secret'),
+    expectedSecret,
+  );
+}
 
 const formatDeepLinkPhone = (value: string): string | null => {
   const digits = normalizePhoneDigits(value);
@@ -57,11 +106,11 @@ const formatDeepLinkPhone = (value: string): string | null => {
 
   // Хранилище для связи телефон ↔ chat_id
   // В продакшене используй TelegramUser из БД!
-  const phoneToChat = new Map<string, number>();
   const pendingReschedules = new Map<
     string,
     { appointmentId: string; expiresAt: number }
   >();
+  const phoneToChat = new Map<string, number>();
   type QuickBookingState = {
     serviceId?: string;
     masterId?: string;
@@ -128,32 +177,6 @@ const formatDeepLinkPhone = (value: string): string | null => {
   /**
    * Отправка сообщения с поддержкой Markdown
    */
-  async function sendTelegramMessageMarkdown(chatId: number | string, text: string) {
-    try {
-      const response = await fetch(`${TELEGRAM_API_URL}/sendMessage`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          chat_id: chatId,
-          text,
-          parse_mode: 'Markdown',
-        }),
-      });
-      
-      const data = await response.json();
-      
-      if (!data.ok) {
-        console.error('[Telegram Webhook] Send markdown message error:', data);
-        return { success: false, error: data.description };
-      }
-      
-      return { success: true, data };
-    } catch (error) {
-      console.error('[Telegram Webhook] Send markdown message failed:', error);
-      return { success: false, error };
-    }
-  }
-
   // POST - Webhook от Telegram ИЛИ отправка уведомлений
   type TelegramCallbackQuery = {
     id: string;
@@ -1596,12 +1619,20 @@ const formatDeepLinkPhone = (value: string): string | null => {
       
       // ✅ НОВОЕ: Если это запрос на отправку уведомления администратору
       if (action === 'notify') {
+        if (!isInternalNotifyAuthorized(request)) {
+          console.warn('[Telegram Webhook] Rejected unauthorized internal notify request');
+          return NextResponse.json(
+            { error: 'Unauthorized internal notify request' },
+            { status: 403 },
+          );
+        }
+
         const chatIdParam = url.searchParams.get('chatId');
         const body = await request.json();
         const message = body.message;
         const adminChatIds = parseTelegramAdminChatIds(chatIdParam);
         
-        if (adminChatIds.length === 0 || !message) {
+        if (adminChatIds.length === 0 || typeof message !== 'string' || !message.trim()) {
           return NextResponse.json(
             { error: 'Missing chatId or message' },
             { status: 400 }
@@ -1610,17 +1641,19 @@ const formatDeepLinkPhone = (value: string): string | null => {
         
         console.log('[Telegram Webhook] Sending notification to:', adminChatIds.join(', '));
 
-        const results = await Promise.allSettled(
-          adminChatIds.map((chatId) => sendTelegramMessageMarkdown(chatId, message))
+        const results = await Promise.all(
+          adminChatIds.map((chatId) =>
+            sendTelegramApiMessage({
+              chatId,
+              text: message,
+              parseMode: 'Markdown',
+            }),
+          ),
         );
 
         const failedDetails = results.flatMap((result) => {
-          if (result.status === 'rejected') {
-            return [result.reason];
-          }
-
-          if (!result.value.success) {
-            return [result.value.error];
+          if (!result.ok) {
+            return [result.description ?? 'Unknown Telegram send error'];
           }
 
           return [];
@@ -1640,9 +1673,14 @@ const formatDeepLinkPhone = (value: string): string | null => {
       }
       
       // ✅ Иначе это обычный webhook от Telegram
+      if (!isTelegramWebhookAuthorized(request)) {
+        console.warn('[Telegram Webhook] Rejected request with invalid Telegram secret token');
+        return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 });
+      }
+
       const update = await request.json();
       
-      console.log('[Telegram Webhook] Update received:', JSON.stringify(update, null, 2));
+      console.log('[Telegram Webhook] Update received:', summarizeTelegramUpdateForLog(update));
       
       // Получить сообщение
       if (update.callback_query) {
@@ -1693,7 +1731,7 @@ const formatDeepLinkPhone = (value: string): string | null => {
       
       console.log('[Telegram Webhook] Message:', {
         chatId,
-        text,
+        text: redactTextForLog(text),
         from: from.username,
       });
       
@@ -1753,7 +1791,7 @@ const formatDeepLinkPhone = (value: string): string | null => {
             startParam.replace('phone_', '')
           );
           
-          console.log('[Telegram Webhook] Deep link registration:', phoneFromParam);
+          console.log('[Telegram Webhook] Deep link registration:', maskPhoneForLog(phoneFromParam));
           
           // Валидация номера
           const phoneRegex = /^\+\d{10,15}$/;
@@ -1782,7 +1820,7 @@ const formatDeepLinkPhone = (value: string): string | null => {
                 },
               });
               
-              console.log('[Telegram Webhook] Auto-registered from deep link:', phoneFromParam);
+              console.log('[Telegram Webhook] Auto-registered from deep link:', maskPhoneForLog(phoneFromParam));
               
               // Отправить подтверждение
               await sendTelegramMessage(chatId, `
@@ -1861,7 +1899,6 @@ const formatDeepLinkPhone = (value: string): string | null => {
       const phoneRegex = /^\+\d{10,15}$/;
       if (phoneRegex.test(text)) {
         // Сохранить в памяти (в продакшене - в БД через TelegramUser)
-        phoneToChat.set(text, chatId);
         
         // Сохранить в БД (опционально, но рекомендуется)
         try {
@@ -1887,7 +1924,7 @@ const formatDeepLinkPhone = (value: string): string | null => {
             },
           });
           
-          console.log('[Telegram Webhook] Saved to DB:', text, '→', chatId);
+          console.log('[Telegram Webhook] Saved to DB:', maskPhoneForLog(text), 'saved for chatId:', chatId);
         } catch (dbError) {
           console.error('[Telegram Webhook] DB save error:', dbError);
           // Продолжаем, даже если БД не сохранилась
@@ -1927,6 +1964,13 @@ const formatDeepLinkPhone = (value: string): string | null => {
   // GET - Отправка кода (вызывается из send-code API)
   export async function GET(request: NextRequest) {
     try {
+      if (!isInternalNotifyAuthorized(request)) {
+        return NextResponse.json(
+          { error: 'Deprecated endpoint' },
+          { status: 410 },
+        );
+      }
+
       const searchParams = request.nextUrl.searchParams;
       const phone = searchParams.get('phone');
       const code = searchParams.get('code');
@@ -1938,7 +1982,7 @@ const formatDeepLinkPhone = (value: string): string | null => {
         );
       }
       
-      console.log('[Telegram Webhook] Send code request:', phone, '→', code);
+      console.log('[Telegram Webhook] Deprecated send code request:', maskPhoneForLog(phone));
       
       // Найти chat_id в памяти
       let chatId = phoneToChat.get(phone);
@@ -1953,7 +1997,7 @@ const formatDeepLinkPhone = (value: string): string | null => {
           if (user) {
             chatId = Number(user.telegramChatId);
             phoneToChat.set(phone, chatId);  // Кэшировать
-            console.log('[Telegram Webhook] Loaded from DB:', phone, '→', chatId);
+            console.log('[Telegram Webhook] Loaded from DB:', maskPhoneForLog(phone), 'saved for chatId:', chatId);
           }
         } catch (dbError) {
           console.error('[Telegram Webhook] DB lookup error:', dbError);
@@ -1961,11 +2005,11 @@ const formatDeepLinkPhone = (value: string): string | null => {
       }
       
       if (!chatId) {
-        console.log('[Telegram Webhook] Chat ID not found for:', phone);
+        console.log('[Telegram Webhook] Chat ID not found for:', maskPhoneForLog(phone));
         return NextResponse.json(
           { 
             error: 'Phone not registered. User must send /start and phone to bot first.',
-            phone,
+            phone: maskPhoneForLog(phone),
           },
           { status: 404 }
         );
@@ -1989,7 +2033,7 @@ const formatDeepLinkPhone = (value: string): string | null => {
         );
       }
       
-      console.log('[Telegram Webhook] Code sent successfully:', phone, '→', chatId);
+      console.log('[Telegram Webhook] Code sent successfully:', maskPhoneForLog(phone), 'sent to chatId:', chatId);
       
       return NextResponse.json({ 
         success: true, 

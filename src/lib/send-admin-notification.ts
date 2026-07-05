@@ -3,9 +3,14 @@
 
 import { ORG_TZ } from "@/lib/orgTime";
 import { buildPublicUrl } from "@/lib/public-url";
-import { parseTelegramAdminChatIds } from "@/lib/telegram-admin-chat-ids";
 import { getBookingMethodLabel } from "@/lib/booking/booking-method";
 import type { AppointmentStatus } from "@/lib/prisma-client";
+import {
+  assertTelegramAdminDelivery,
+  sendTelegramAdminMessage,
+  type TelegramInlineKeyboardButton,
+  type TelegramInlineKeyboardMarkup,
+} from "@/lib/telegram/sender";
 
 interface AppointmentData {
   id: string;
@@ -67,16 +72,6 @@ interface AppointmentRescheduledNotificationData {
   endAt: Date;
   status: AppointmentStatus;
   changedBy?: string | null;
-}
-
-interface TelegramInlineKeyboardButton {
-  text: string;
-  callback_data?: string;
-  url?: string;
-}
-
-interface TelegramInlineKeyboardMarkup {
-  inline_keyboard: TelegramInlineKeyboardButton[][];
 }
 
 export const APPOINTMENT_STATUS_ACTION_PREFIX = "appt_status";
@@ -158,82 +153,16 @@ async function sendTelegramAdminMarkdownMessage(
   message: string,
   replyMarkup?: TelegramInlineKeyboardMarkup,
 ): Promise<void> {
-  const token = process.env.TELEGRAM_BOT_TOKEN;
-  const adminChatIds = parseTelegramAdminChatIds();
-
-  if (!token) {
-    console.warn('[Admin Notification] TELEGRAM_BOT_TOKEN not configured - skipping notification');
-    return;
-  }
-
-  if (adminChatIds.length === 0) {
-    console.warn('[Admin Notification] TELEGRAM_ADMIN_CHAT_ID not configured - skipping notification');
-    return;
-  }
-
-  console.log(
-    `[Admin Notification] Sending Telegram notification to ${adminChatIds.length} admin(s): ${adminChatIds.join(', ')}`
-  );
-
-  const results = await Promise.allSettled(
-    adminChatIds.map(async (chatId) => {
-      const send = async (parseMode: 'Markdown' | null) => {
-        const response = await fetch(
-          `https://api.telegram.org/bot${token}/sendMessage`,
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              chat_id: chatId,
-              text: message,
-              ...(parseMode ? { parse_mode: parseMode } : {}),
-              disable_web_page_preview: true,
-              ...(replyMarkup ? { reply_markup: replyMarkup } : {}),
-            }),
-          },
-        );
-
-        const result = (await response.json().catch(() => null)) as {
-          ok?: boolean;
-          description?: string;
-        } | null;
-
-        return { response, result };
-      };
-
-      let { response, result } = await send('Markdown');
-
-      if (
-        (!response.ok || !result?.ok) &&
-        result?.description?.includes("can't parse entities")
-      ) {
-        console.warn(
-          `[Admin Notification] Markdown parse failed for ${chatId}; retrying without parse_mode`,
-        );
-        ({ response, result } = await send(null));
-      }
-
-      if (!response.ok || !result?.ok) {
-        throw new Error(
-          `[Admin Notification] Failed for ${chatId}: ${result?.description ?? response.statusText}`,
-        );
-      }
-    }),
-  );
-
-  const failedResults = results.filter(
-    (result): result is PromiseRejectedResult => result.status === 'rejected',
-  );
-
-  failedResults.forEach((result) => {
-    console.error('[Admin Notification] Failed to send:', result.reason);
+  const results = await sendTelegramAdminMessage(message, {
+    parseMode: "Markdown",
+    replyMarkup,
   });
 
-  if (failedResults.length === adminChatIds.length) {
-    throw new Error('Failed to send Telegram admin notification to all configured chat IDs');
+  if (results.length === 0) {
+    return;
   }
+
+  assertTelegramAdminDelivery(results);
 }
 
 /**

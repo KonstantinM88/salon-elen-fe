@@ -294,3 +294,13 @@ Useful scripts:
   such as email, service, customer, and master names. The shared sender retries
   without `parse_mode` on Telegram `can't parse entities` errors so admin
   notifications are delivered even when formatting is invalid.
+- 2026-07-05: Telegram delivery is centralized in
+  `src/lib/telegram/sender.ts` with admin fan-out and parse-mode fallback. AI
+  daily reports and admin notifications send directly through this helper
+  instead of `/api/telegram/webhook?action=notify`. Telegram OTP routes send
+  codes directly to saved `telegramChatId` values instead of passing `phone` and
+  `code` through webhook query parameters. The webhook supports
+  `TELEGRAM_WEBHOOK_SECRET_TOKEN`/`TELEGRAM_WEBHOOK_SECRET` for Telegram
+  `X-Telegram-Bot-Api-Secret-Token` validation; the legacy `action=notify` and
+  GET code endpoint require `TELEGRAM_INTERNAL_NOTIFY_SECRET` and should not be
+  used for normal flows.
