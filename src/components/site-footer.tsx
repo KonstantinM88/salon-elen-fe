@@ -549,6 +549,14 @@ export default function SiteFooter(): React.JSX.Element {
             © {year} Salon Elen. {t("footer_copyright")}
           </p>
           <div className="flex flex-wrap items-center gap-3">
+            <a
+              href="https://saaleweb.de/"
+              target="_blank"
+              rel="sponsored noopener noreferrer"
+              className="footer-legal-link transition hover:text-rose-800 hover:underline hover:underline-offset-4 dark:hover:text-slate-200"
+            >
+              Werbung · Webentwicklung: SaaleWeb
+            </a>
             <Link
               href="/impressum"
               className="footer-legal-link transition hover:text-rose-800 hover:underline hover:underline-offset-4 dark:hover:text-slate-200"

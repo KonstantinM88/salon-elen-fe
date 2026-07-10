@@ -118,6 +118,9 @@ Useful scripts:
 - After any important structural or behavioral change, append a short note to
   the change log below. Do not log purely cosmetic edits or routine bug fixes
   unless they affect project conventions.
+- When the user explicitly marks a change as important, or the change affects
+  public SEO, booking, notifications, integrations, deployment, data models, or
+  project-wide conventions, record it in the change log before handoff.
 
 ## Important Change Log
 
@@ -332,3 +335,6 @@ Useful scripts:
   `src/components/home-page.tsx` and the homepage `FAQPage` JSON-LD in
   `src/app/page.tsx`. Keep visible FAQ answers and schema answers synchronized
   by editing only this shared source.
+- 2026-07-10: Global `SiteFooter` includes the public sponsored attribution
+  link `Werbung · Webentwicklung: SaaleWeb` to `https://saaleweb.de/` with
+  `rel="sponsored noopener noreferrer"`.
