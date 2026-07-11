@@ -116,6 +116,7 @@ export const PERMANENT_HALLE = {
           "💅 Behandlungen & Preise",
           "📍 Adresse & Öffnungszeiten",
           "❓ Beratung",
+          "✨ Über Salon & FAQ",
         ],
       },
       EN: {
@@ -125,6 +126,7 @@ export const PERMANENT_HALLE = {
           "💅 Treatments & prices",
           "📍 Location & hours",
           "❓ Consultation",
+          "✨ About the salon & FAQ",
         ],
       },
       RU: {
@@ -134,6 +136,7 @@ export const PERMANENT_HALLE = {
           "💅 Услуги и цены",
           "📍 Адрес и часы работы",
           "❓ Консультация",
+          "✨ О салоне и FAQ",
         ],
       },
     },
@@ -979,6 +982,7 @@ export function isConsultationIntentByKnowledge(
       'консультация и подбор',
       'подбор процедуры',
       'подбор услуги',
+      'подобрать услугу',
       'что подойдет',
       'что подойдёт',
       'что выбрать',
@@ -1007,6 +1011,7 @@ export function isConsultationIntentByKnowledge(
     'beratung und auswahl',
     'konsultation',
     'hilfe bei auswahl',
+    'passende leistung finden',
     'was passt zu mir',
     'empfehlung',
     'pmu beratung',
@@ -1955,15 +1960,31 @@ export function isKnowledgeDetailsIntent(
   return (
     value.includes('подроб') ||
     value.includes('расскажи') ||
+    value.includes('что такое') ||
+    value.includes('как проходит') ||
     value.includes('детальн') ||
     value.includes('в деталях') ||
     value.includes('больше деталей') ||
+    value.includes('больше информац') ||
+    value.includes('информация про') ||
+    value.includes('информация об') ||
+    value.includes('информацию про') ||
+    value.includes('информацию об') ||
     value.includes('more details') ||
+    value.includes('more information') ||
+    value.includes('information about') ||
     value.includes('tell me more') ||
+    value.includes('what is') ||
+    value.includes('how does it work') ||
     value.includes('details') ||
     value.includes('explain') ||
     value.includes('mehr info') ||
+    value.includes('informationen über') ||
+    value.includes('informationen uber') ||
     value.includes('mehr details') ||
+    value.includes('was ist') ||
+    value.includes('wie läuft') ||
+    value.includes('wie lauft') ||
     value.includes('genauer') ||
     value.includes('erzahl')
   );
@@ -2387,9 +2408,23 @@ export function buildKnowledgePmuTechniqueSafetyText(
       'Wimpernkranz oben + unten 🌸 Typische vorübergehende Reaktionen:\n• leichte Lid-Empfindlichkeit und geringe Schwellung für 1-2 Tage;\n• kurzfristig sind Trockenheit/tränende Augen möglich;\n• die Pigmentierung wirkt anfangs etwas stärker.\n\nWenn die Reaktion stark ist oder zunimmt, bitte sofort der Meisterin schreiben.\n\n[option] ❓ Mehr zur PMU-Heilung [/option]\n[option] 📅 Zeit finden und buchen [/option]',
   };
 
-  if (normalized === 'ru') return ru[technique];
-  if (normalized === 'en') return en[technique];
-  return de[technique];
+  const text =
+    normalized === 'ru'
+      ? ru[technique]
+      : normalized === 'en'
+        ? en[technique]
+        : de[technique];
+  const safetyBoundary =
+    normalized === 'ru'
+      ? '⚠️ При неожиданной реакции или сомнениях сообщите мастеру и обратитесь к медицинскому специалисту. При сильной или быстро усиливающейся реакции не ждите ответа в чате.'
+      : normalized === 'en'
+        ? '⚠️ For any unexpected reaction or concern, notify your master and contact a health care professional. If it is strong or worsening quickly, do not wait for a chat reply.'
+        : '⚠️ Bei einer unerwarteten Reaktion oder Unsicherheit bitte die Meisterin informieren und medizinisches Fachpersonal kontaktieren. Bei einer starken oder schnell zunehmenden Reaktion nicht auf eine Chat-Antwort warten.';
+
+  return text.replace(
+    '\n\n[option]',
+    `\n\n${safetyBoundary}\n\n[option]`,
+  );
 }
 
 export function buildKnowledgePmuContraindicationsText(

@@ -165,6 +165,151 @@ const BASE_TESTS: TestCase[] = [
       { kind: "containsAny", anyOf: ["Запис", "цены", "услуги", "адрес", "Чем могу помочь"] },
     ],
   },
+  {
+    id: "salon-overview-ru",
+    title: "RU salon overview stays in scope",
+    locale: "ru",
+    message: "Расскажи мне о вас",
+    expectMode: "json",
+    expectations: [
+      { kind: "containsAll", allOf: ["Salon Elen", "Paulusviertel", "Elena"] },
+      { kind: "notContainsAny", anyOf: ["Я помогаю только", "не могу помочь"] },
+      optMin(3),
+    ],
+  },
+  {
+    id: "salon-faq-ru",
+    title: "RU shared salon FAQ menu",
+    locale: "ru",
+    message: "Частые вопросы",
+    expectMode: "json",
+    expectations: [
+      { kind: "containsAny", anyOf: ["Сколько стоит", "Как проходит", "Как записаться"] },
+      optMin(5),
+    ],
+  },
+  {
+    id: "service-discovery-hairstroke-ru",
+    title: "RU service question consults before booking",
+    locale: "ru",
+    message: "Есть у вас волосковая техника?",
+    expectMode: "json",
+    expectations: [
+      { kind: "containsAll", allOf: ["Волосковая техника", "Длительность", "Цена"] },
+      {
+        kind: "notContainsAny",
+        anyOf: ["Сначала выберите дату", "Эту услугу выполнит мастер"],
+      },
+      optMin(2),
+    ],
+  },
+  {
+    id: "catalog-after-overview-ru",
+    title: "RU all services opens catalog after overview",
+    locale: "ru",
+    prelude: ["Расскажи о салоне"],
+    message: "Все услуги и цены",
+    expectMode: "json",
+    expectations: [
+      { kind: "containsAll", allOf: ["полный список", "Hairstroke", "HYDRAFACIAL"] },
+      { kind: "notContainsAny", anyOf: ["вернула в начало", "Чем могу помочь?"] },
+    ],
+  },
+  {
+    id: "service-info-priced-hairstroke-ru",
+    title: "RU priced Hairstroke text stays informational",
+    locale: "ru",
+    prelude: ["Все услуги и цены"],
+    message:
+      "Расскажи о Hairstroke брови (волосковая техника) — 180 мин., 450,00 €",
+    expectMode: "json",
+    expectations: [
+      { kind: "containsAll", allOf: ["Hairstroke", "Длительность", "450,00 €"] },
+      {
+        kind: "notContainsAny",
+        anyOf: ["Сначала выберите дату", "Эту услугу выполнит мастер"],
+      },
+      optMin(2),
+    ],
+  },
+  {
+    id: "service-info-followup-hairstroke-ru",
+    title: "RU service information follow-up stays deterministic",
+    locale: "ru",
+    prelude: [
+      "Расскажи о Hairstroke брови (волосковая техника) — 180 мин., 450,00 €",
+    ],
+    message: "Я хочу больше информации про услугу",
+    expectMode: "json",
+    expectations: [
+      { kind: "containsAll", allOf: ["Hairstroke", "Длительность", "Цена"] },
+      optMin(2),
+    ],
+  },
+  {
+    id: "service-safety-hairstroke-ru",
+    title: "RU Hairstroke reactions use safe deterministic answer",
+    locale: "ru",
+    prelude: [
+      "Расскажи о Hairstroke брови (волосковая техника) — 180 мин., 450,00 €",
+    ],
+    message: "Побочные эффекты есть?",
+    expectMode: "json",
+    expectations: [
+      {
+        kind: "containsAll",
+        allOf: ["Hairstroke", "1-3 дня", "медицинскому специалисту"],
+      },
+      optMin(2),
+    ],
+  },
+  {
+    id: "service-book-hairstroke-ru",
+    title: "RU book continues exact consulted Hairstroke service",
+    locale: "ru",
+    prelude: [
+      "Расскажи о Hairstroke брови (волосковая техника) — 180 мин., 450,00 €",
+    ],
+    message: "Запиши",
+    expectMode: "json",
+    expectations: [
+      { kind: "containsAll", allOf: ["Hairstroke", "Elena", "Ближайшая дата"] },
+      { kind: "notContainsAny", anyOf: ["Какую услугу", "выберите услугу"] },
+      optMin(3),
+    ],
+  },
+  {
+    id: "active-booking-safety-hairstroke-ru",
+    title: "RU active Hairstroke booking keeps safe reaction answer",
+    locale: "ru",
+    prelude: [
+      "Hairstroke брови (волосковая техника) — 180 мин., 450,00 €",
+    ],
+    message: "Побочные эффекты есть?",
+    expectMode: "json",
+    expectations: [
+      {
+        kind: "containsAll",
+        allOf: ["Hairstroke", "1-3 дня", "медицинскому специалисту"],
+      },
+      { kind: "notContainsAny", anyOf: ["Какую услугу", "выберите услугу"] },
+    ],
+  },
+  {
+    id: "active-booking-continue-hairstroke-ru",
+    title: "RU active Hairstroke booking continues without reselection",
+    locale: "ru",
+    prelude: [
+      "Hairstroke брови (волосковая техника) — 180 мин., 450,00 €",
+    ],
+    message: "Запиши",
+    expectMode: "json",
+    expectations: [
+      { kind: "containsAll", allOf: ["продолжим запись", "Ближайшая дата"] },
+      { kind: "notContainsAny", anyOf: ["Какую услугу", "выберите услугу"] },
+      optMin(3),
+    ],
+  },
 
   // SSE / consultation long (GPT path)
   {

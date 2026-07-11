@@ -20,6 +20,10 @@ import {
   appendSessionMessage,
 } from '@/lib/ai/session-store';
 import {
+  beginAiChatInactivityWindow,
+  scheduleAiChatInactivityNotification,
+} from '@/lib/ai/chat-inactivity-notifier';
+import {
   initSessionAnalytics,
   trackRequestMetrics,
   detectFunnelStage,
@@ -51,7 +55,6 @@ import {
   buildKnowledgeBrowsLashesDetailsText,
   buildKnowledgeBrowsLashesComparisonText,
   buildKnowledgeBrowsLashesStyleText,
-  buildKnowledgeConsultationStartText,
   buildKnowledgePmuHealingText,
   buildKnowledgePmuLipsChoiceText,
   buildKnowledgeHydrafacialGoalText,
@@ -88,6 +91,14 @@ import {
   isConsultationIntentByKnowledge,
 } from '@/lib/ai/knowledge';
 import { prisma } from '@/lib/prisma';
+import {
+  buildSalonFaqAnswerText,
+  buildSalonFaqMenuText,
+  buildSalonOverviewText,
+  findSalonFaqItem,
+  isSalonFaqMenuIntent,
+  isSalonOverviewIntent,
+} from '@/lib/ai/salon-assistant-content';
 
 // ─── Config ─────────────────────────────────────────────────────
 
@@ -136,6 +147,13 @@ interface DateSuggestionOption {
   label: string;
   count: number;
 }
+
+type LiveServiceCatalog = Awaited<ReturnType<typeof listServices>>;
+
+type PreloadedServiceCatalog = {
+  catalog: LiveServiceCatalog;
+  durationMs: number;
+};
 
 const AFFIRMATIVE_MESSAGES = new Set([
   'yes',
@@ -617,10 +635,14 @@ function isConsultationOperationalBookingInput(text: string): boolean {
     'meister',
     'записаться',
     'запись',
+    'запиши',
+    'записывай',
     'book',
     'booking',
+    'book it',
     'buchen',
     'buchung',
+    'jetzt buchen',
   ];
   return hints.some((h) => value.includes(h));
 }
@@ -628,6 +650,7 @@ function isConsultationOperationalBookingInput(text: string): boolean {
 function isServiceAvailabilityInquiry(
   text: string,
   locale: 'de' | 'ru' | 'en',
+  hasCatalogMatch = false,
 ): boolean {
   const value = normalizeInput(text).replace(/ё/g, 'е');
   if (!value) return false;
@@ -655,7 +678,8 @@ function isServiceAvailabilityInquiry(
     'augenbrau',
     'haarschnitt',
   ];
-  const hasServiceHint = serviceHints.some((hint) => value.includes(hint));
+  const hasServiceHint =
+    hasCatalogMatch || serviceHints.some((hint) => value.includes(hint));
   if (!hasServiceHint) return false;
 
   const hasQuestionMark = /[?？]/u.test(text);
@@ -679,6 +703,14 @@ function isServiceAvailabilityInquiry(
       'на сайте в услугах',
       'в списке услуг',
       'в прайсе',
+      'что такое',
+      'расскажи про',
+      'расскажите про',
+      'расскажи об',
+      'расскажите об',
+      'как проходит',
+      'кому подходит',
+      'подробнее',
     ];
     return hasQuestionMark || ruCues.some((cue) => value.includes(cue));
   }
@@ -693,6 +725,11 @@ function isServiceAvailabilityInquiry(
       'i saw on the site',
       'on your site',
       'in your services list',
+      'what is',
+      'tell me about',
+      'how does it work',
+      'who is it for',
+      'more details',
     ];
     return hasQuestionMark || enCues.some((cue) => value.includes(cue));
   }
@@ -706,6 +743,14 @@ function isServiceAvailabilityInquiry(
     'ich habe auf der website gesehen',
     'auf ihrer website',
     'in der leistungsliste',
+    'was ist',
+    'erzählen sie über',
+    'erzahlen sie uber',
+    'wie läuft',
+    'wie lauft',
+    'für wen',
+    'fur wen',
+    'mehr details',
   ];
   return hasQuestionMark || deCues.some((cue) => value.includes(cue));
 }
@@ -721,6 +766,7 @@ type SelectionCatalogGroup = {
   services: Array<{
     id: string;
     title: string;
+    description?: string | null;
     durationMin: number;
     priceCents: number | null;
   }>;
@@ -730,6 +776,9 @@ type SelectionCatalogService = {
   id: string;
   title: string;
   groupTitle: string;
+  description: string | null;
+  durationMin: number;
+  priceCents: number | null;
 };
 
 function getConsultationTechniqueBookingLabels(
@@ -812,6 +861,9 @@ function resolveConsultationTechniqueService(
       id: service.id,
       title: service.title,
       groupTitle: group.title,
+      description: service.description ?? null,
+      durationMin: service.durationMin,
+      priceCents: service.priceCents,
     })),
   );
   if (flatServices.length === 0) return null;
@@ -932,6 +984,48 @@ function resolveConsultationTechniqueService(
   return bestScore > 0 ? best : null;
 }
 
+function findSelectedCatalogService(
+  groups: SelectionCatalogGroup[],
+  selectedServiceIds: string[],
+): SelectionCatalogService | null {
+  const selectedIds = new Set(selectedServiceIds);
+  for (const group of groups) {
+    for (const service of group.services) {
+      if (!selectedIds.has(service.id)) continue;
+      return {
+        id: service.id,
+        title: service.title,
+        groupTitle: group.title,
+        description: service.description ?? null,
+        durationMin: service.durationMin,
+        priceCents: service.priceCents,
+      };
+    }
+  }
+  return null;
+}
+
+function findCatalogServiceByTitle(
+  groups: SelectionCatalogGroup[],
+  serviceTitle: string,
+): SelectionCatalogService | null {
+  const expectedTitle = normalizeChoiceText(serviceTitle);
+  for (const group of groups) {
+    for (const service of group.services) {
+      if (normalizeChoiceText(service.title) !== expectedTitle) continue;
+      return {
+        id: service.id,
+        title: service.title,
+        groupTitle: group.title,
+        description: service.description ?? null,
+        durationMin: service.durationMin,
+        priceCents: service.priceCents,
+      };
+    }
+  }
+  return null;
+}
+
 function buildConsultationBookingConfirmText(
   locale: 'de' | 'ru' | 'en',
   technique: ConsultationTechnique,
@@ -962,73 +1056,76 @@ function buildConsultationTechniqueSuitabilityText(
   );
 }
 
-function buildHydrafacialSelectedServiceDetailsText(
+function getHydrafacialServiceNarrative(
   locale: 'de' | 'ru' | 'en',
   serviceTitle: string,
-): string | null {
+): { icon: string; intro: string; idealFor: string } | null {
   const titleNorm = normalizeChoiceText(serviceTitle);
-  const bookingCta =
-    locale === 'ru'
-      ? '[option] 📅 Подобрать время и записаться [/option]'
-      : locale === 'en'
-        ? '[option] 📅 Pick time and book [/option]'
-        : '[option] 📅 Zeit finden und buchen [/option]';
 
   if (titleNorm.includes('signature')) {
     if (locale === 'ru') {
-      return `Signature Hydrafacial 🌿 Базовый формат: глубокое очищение, мягкая экстракция и интенсивное увлажнение.
-Подходит для регулярного ухода и быстрого «освежения» кожи без восстановления.
-
-${bookingCta}`;
+      return {
+        icon: '💧',
+        intro: 'Signature Hydrafacial — базовый формат с глубоким очищением, мягкой экстракцией и интенсивным увлажнением.',
+        idealFor: '🌿 Подходит для регулярного ухода и быстрого освежения кожи.',
+      };
     }
     if (locale === 'en') {
-      return `Signature Hydrafacial 🌿 Base format: deep cleansing, gentle extraction and intense hydration.
-Best for regular maintenance and a quick skin refresh with zero downtime.
-
-${bookingCta}`;
+      return {
+        icon: '💧',
+        intro: 'Signature Hydrafacial is the core format with deep cleansing, gentle extraction, and intense hydration.',
+        idealFor: '🌿 Best for regular maintenance and a quick skin refresh.',
+      };
     }
-    return `Signature Hydrafacial 🌿 Basisformat: Tiefenreinigung, sanfte Extraktion und intensive Hydration.
-Ideal für regelmäßige Pflege und einen schnellen Frische-Effekt ohne Ausfallzeit.
-
-${bookingCta}`;
+    return {
+      icon: '💧',
+      intro: 'Signature Hydrafacial ist das Basisformat mit Tiefenreinigung, sanfter Extraktion und intensiver Hydration.',
+      idealFor: '🌿 Ideal für regelmäßige Pflege und einen schnellen Frische-Effekt.',
+    };
   }
 
   if (titleNorm.includes('deluxe')) {
     if (locale === 'ru') {
-      return `Deluxe Hydrafacial ✨ Всё из Signature + усиленный пилинг и LED-терапия.
-Подходит, если кожа выглядит уставшей или тусклой и нужен более заметный результат.
-
-${bookingCta}`;
+      return {
+        icon: '✨',
+        intro: 'Deluxe Hydrafacial дополняет базовый уход более интенсивным пилингом и LED-терапией.',
+        idealFor: '🌸 Подходит, если кожа выглядит уставшей или тусклой и хочется более заметного glow-эффекта.',
+      };
     }
     if (locale === 'en') {
-      return `Deluxe Hydrafacial ✨ Everything in Signature + intensive peel and LED therapy.
-Great if skin looks tired or dull and you want a more visible glow result.
-
-${bookingCta}`;
+      return {
+        icon: '✨',
+        intro: 'Deluxe Hydrafacial adds a more intensive peel and LED therapy to the core treatment.',
+        idealFor: '🌸 Great when skin looks tired or dull and you want a more visible glow.',
+      };
     }
-    return `Deluxe Hydrafacial ✨ Enthält alles aus Signature + intensives Peeling und LED-Therapie.
-Ideal bei müder, fahler Haut für einen sichtbareren Glow-Effekt.
-
-${bookingCta}`;
+    return {
+      icon: '✨',
+      intro: 'Deluxe Hydrafacial ergänzt die Basisbehandlung um ein intensiveres Peeling und LED-Therapie.',
+      idealFor: '🌸 Ideal bei müder, fahler Haut für einen sichtbareren Glow-Effekt.',
+    };
   }
 
   if (titleNorm.includes('platinum')) {
     if (locale === 'ru') {
-      return `Platinum Hydrafacial 👑 Всё из Deluxe + лимфодренаж и премиум-сыворотки.
-Максимально насыщенный формат для выраженного glow-эффекта и подготовки к событию.
-
-${bookingCta}`;
+      return {
+        icon: '👑',
+        intro: 'Platinum Hydrafacial — самый полный формат с лимфодренажем и усиленным уходом сыворотками.',
+        idealFor: '✨ Подходит для выраженного glow-эффекта и подготовки кожи к событию.',
+      };
     }
     if (locale === 'en') {
-      return `Platinum Hydrafacial 👑 Everything in Deluxe + lymphatic drainage and premium serums.
-Our most intensive format for maximum glow and event-level skin prep.
-
-${bookingCta}`;
+      return {
+        icon: '👑',
+        intro: 'Platinum Hydrafacial is the most complete format with lymphatic drainage and enhanced serum care.',
+        idealFor: '✨ Best for a pronounced glow and event-level skin preparation.',
+      };
     }
-    return `Platinum Hydrafacial 👑 Enthält alles aus Deluxe + Lymphdrainage und Premium-Seren.
-Unser intensivstes Format für maximalen Glow und Event-Vorbereitung.
-
-${bookingCta}`;
+    return {
+      icon: '👑',
+      intro: 'Platinum Hydrafacial ist das umfassendste Format mit Lymphdrainage und intensivierter Serum-Pflege.',
+      idealFor: '✨ Ideal für einen deutlichen Glow und die Vorbereitung auf einen besonderen Anlass.',
+    };
   }
 
   return null;
@@ -1277,123 +1374,11 @@ Geeignet, wenn Sie ein gepflegtes, langanhaltendes Ergebnis und weniger täglich
 ${bookingCta}`;
 }
 
-function buildSelectedServiceDetailsText(
-  locale: 'de' | 'ru' | 'en',
-  serviceTitle: string,
-  groupTitle?: string,
-  durationMin?: number,
-): string {
-  const technique = detectKnowledgePmuTechnique(serviceTitle, locale);
-  if (technique) {
-    return buildKnowledgePmuTechniqueDetailsText(locale, technique);
-  }
-
-  const combined = `${normalizeChoiceText(groupTitle ?? '')} ${normalizeChoiceText(serviceTitle)}`;
-  const isHydrafacial =
-    combined.includes('hydra') ||
-    combined.includes('hydrafacial') ||
-    combined.includes('гидра');
-  if (isHydrafacial) {
-    return (
-      buildHydrafacialSelectedServiceDetailsText(locale, serviceTitle) ??
-      buildKnowledgeHydrafacialDetailsText(locale)
-    );
-  }
-
-  const browsLashesRe = /(бров|ресниц|lash|brow|wimper|augenbrau)/u;
-  if (browsLashesRe.test(combined)) {
-    return buildKnowledgeBrowsLashesDetailsText(locale);
-  }
-
-  const durationText =
-    typeof durationMin === 'number' && durationMin > 0
-      ? locale === 'ru'
-        ? `Длительность: около **${durationMin} мин.**.`
-        : locale === 'en'
-          ? `Duration: about **${durationMin} min**.`
-          : `Dauer: etwa **${durationMin} Min.**.`
-      : locale === 'ru'
-        ? 'Длительность зависит от выбранного формата.'
-        : locale === 'en'
-          ? 'Duration depends on the selected format.'
-          : 'Die Dauer hängt vom gewählten Format ab.';
-
-  const nailsRe = /(маник|ногт|педик|nail|nagel|manik)/u;
-  if (nailsRe.test(combined)) {
-    if (locale === 'ru') {
-      return `${serviceTitle} 💅
-Классический маникюр обычно включает придание формы ногтям, обработку кутикулы и аккуратный уход за ногтевой пластиной.
-${durationText}
-Перед визитом лучше сообщить, есть ли чувствительность кожи или предыдущее покрытие, чтобы мастер подобрал комфортный формат процедуры.
-
-[option] 📅 Подобрать время и записаться [/option]`;
-    }
-    if (locale === 'en') {
-      return `${serviceTitle} 💅
-Classic manicure usually includes nail shaping, cuticle care, and neat basic nail treatment.
-${durationText}
-Before the visit, it helps to mention any skin sensitivity or existing coating so the master can choose the most comfortable procedure format.
-
-[option] 📅 Pick time and book [/option]`;
-    }
-    return `${serviceTitle} 💅
-Eine klassische Maniküre umfasst in der Regel Nagelform, Nagelhautpflege und eine saubere Basispflege der Nägel.
-${durationText}
-Vor dem Termin ist es hilfreich, eventuelle Hautempfindlichkeit oder vorhandenes Material zu erwähnen, damit die Meisterin das passende Vorgehen wählt.
-
-[option] 📅 Zeit finden und buchen [/option]`;
-  }
-
-  const hairRe = /(стриж|волос|окраш|hair|haarschnitt|farbe)/u;
-  if (hairRe.test(combined)) {
-    if (locale === 'ru') {
-      return `${serviceTitle} ✂️
-Это услуга по стрижке/волосам с подбором формы под тип волос и желаемый результат.
-${durationText}
-Перед визитом удобно подготовить референс (фото желаемого результата), чтобы быстрее согласовать длину и форму.
-
-[option] 📅 Подобрать время и записаться [/option]`;
-    }
-    if (locale === 'en') {
-      return `${serviceTitle} ✂️
-This is a haircut/hair service where shape is adjusted to your hair type and desired result.
-${durationText}
-It is useful to bring a reference photo so the length and shape can be aligned quickly.
-
-[option] 📅 Pick time and book [/option]`;
-    }
-    return `${serviceTitle} ✂️
-Das ist eine Haar-/Schnittleistung, bei der Form und Ergebnis auf Ihren Haartyp abgestimmt werden.
-${durationText}
-Ein Referenzfoto ist hilfreich, damit Länge und Form schnell abgestimmt werden können.
-
-[option] 📅 Zeit finden und buchen [/option]`;
-  }
-
-  if (locale === 'ru') {
-    return `${serviceTitle} 🌸
-Это услуга из нашего каталога. Могу помочь подобрать формат, мастера и ближайшее время.
-
-[option] 📅 Подобрать время и записаться [/option]`;
-  }
-  if (locale === 'en') {
-    return `${serviceTitle} 🌸
-This service is available in our catalog. I can help choose format, specialist, and nearest time.
-
-[option] 📅 Pick time and book [/option]`;
-  }
-  return `${serviceTitle} 🌸
-Diese Leistung ist in unserem Katalog verfügbar. Ich helfe gern bei Auswahl von Format, Meisterin und nächster freier Zeit.
-
-[option] 📅 Zeit finden und buchen [/option]`;
-}
-
 /**
  * Build a SERVICE-SPECIFIC consultation card for the consultation flow.
  *
- * Why a new function: `buildSelectedServiceDetailsText` returns CATEGORY-level
- * generic text for brows/lashes (and similar) — so all 11 brows-lashes services
- * looked identical. This function:
+ * This function keeps service cards specific instead of returning the same
+ * category-level copy for every treatment. It:
  *   1) First uses the service description from the DB (admin-controlled source of truth)
  *   2) Falls back to per-service templated content matched by title
  *   3) Falls back to PMU technique flow when the title maps to a known technique
@@ -1405,17 +1390,16 @@ function buildServiceConsultationCard(
   locale: 'de' | 'ru' | 'en',
   service: { title: string; description: string | null; durationMin: number; priceCents: number | null },
   groupTitle: string,
+  options?: { bookingInProgress?: boolean },
 ): string {
   const { title, description, durationMin, priceCents } = service;
 
-  // First try existing PMU technique flow — keeps rich PMU consultation intact
+  // PMU narratives below use the live catalog metadata for price and duration.
+  // Static knowledge contributes explanation only.
   const pmuTechnique = detectKnowledgePmuTechnique(title, locale);
-  if (pmuTechnique) {
-    return buildKnowledgePmuTechniqueDetailsText(locale, pmuTechnique);
-  }
 
   // Build core meta lines (price + duration)
-  const priceStr = priceCents
+  const priceStr = priceCents != null
     ? `${(priceCents / 100).toFixed(2).replace('.', ',')} €`
     : null;
 
@@ -1496,7 +1480,8 @@ function buildServiceConsultationCard(
     // Detect overlap: take first 30 chars of intro and check if they appear in DB desc
     const introHead = intro.replace(/^[^a-zA-Zа-яА-ЯёЁ]+/, '').slice(0, 30).toLowerCase();
     const overlaps =
-      introHead.length >= 15 && dbDesc.toLowerCase().includes(introHead);
+      dbDesc.toLowerCase() === intro.trim().toLowerCase() ||
+      (introHead.length >= 15 && dbDesc.toLowerCase().includes(introHead));
 
     const blocks = [`${icon} **${title}**`, ''];
     // Show intro only when there's no substantial overlapping DB description
@@ -1511,8 +1496,13 @@ function buildServiceConsultationCard(
     if (metaLines.length) blocks.push('', ...metaLines);
     if (healing) blocks.push('', healing);
 
-    const cta =
-      locale === 'ru'
+    const cta = options?.bookingInProgress
+      ? locale === 'ru'
+        ? ['', '[option] 📅 Завтра [/option]', '[option] 📅 Ближайшая дата [/option]', '[option] ❌ Отменить текущую запись [/option]']
+        : locale === 'en'
+          ? ['', '[option] 📅 Tomorrow [/option]', '[option] 📅 Nearest date [/option]', '[option] ❌ Cancel current booking [/option]']
+          : ['', '[option] 📅 Morgen [/option]', '[option] 📅 Nächstes Datum [/option]', '[option] ❌ Aktuelle Buchung abbrechen [/option]']
+      : locale === 'ru'
         ? ['', '[option] 📅 Подобрать время и записаться [/option]', '[option] ↩️ Назад к списку услуг [/option]']
         : locale === 'en'
           ? ['', '[option] 📅 Pick time and book [/option]', '[option] ↩️ Back to service list [/option]']
@@ -1520,6 +1510,202 @@ function buildServiceConsultationCard(
     blocks.push(...cta);
     return blocks.join('\n');
   };
+
+  const hydrafacialNarrative = getHydrafacialServiceNarrative(locale, title);
+  if (hydrafacialNarrative) {
+    return compose(
+      hydrafacialNarrative.icon,
+      hydrafacialNarrative.intro,
+      hydrafacialNarrative.idealFor,
+      null,
+    );
+  }
+
+  if (pmuTechnique) {
+    const narratives: Record<
+      'de' | 'ru' | 'en',
+      Record<
+        ConsultationTechnique,
+        { icon: string; intro: string; idealFor: string; healing: string }
+      >
+    > = {
+      ru: {
+        powder_brows: {
+          icon: '💄',
+          intro:
+            'Пудровые брови создают мягкое теневое напыление без жёстких линий — эффект напоминает аккуратно подкрашенные брови.',
+          idealFor:
+            '🌸 Подходит, если хочется выразительной формы и естественного результата на каждый день.',
+          healing:
+            '🌿 Сразу после процедуры оттенок ярче, после заживления он становится заметно мягче.',
+        },
+        hairstroke_brows: {
+          icon: '✨',
+          intro:
+            'Волосковая техника (Hairstroke Brows) — мастер прорисовывает тонкие штрихи по направлению роста бровей, чтобы визуально заполнить пробелы.',
+          idealFor:
+            '🌸 Хороший выбор, когда важен максимально натуральный эффект отдельных волосков и сохранение собственной формы.',
+          healing:
+            '🌿 Форму и оттенок сначала согласуем на эскизе; финальный мягкий результат оценивают после полного заживления.',
+        },
+        aquarell_lips: {
+          icon: '💋',
+          intro:
+            'Акварельная пигментация губ даёт свежий равномерный оттенок без жёсткой нарисованной границы.',
+          idealFor:
+            '🌸 Подходит, если хочется освежить естественный цвет и сделать контур визуально аккуратнее.',
+          healing:
+            '🌿 Первые дни цвет выглядит насыщеннее, затем светлеет до согласованного мягкого оттенка.',
+        },
+        lips_3d: {
+          icon: '💋',
+          intro:
+            'Техника 3D Lips сочетает несколько оттенков и более выразительную растушёвку для визуально объёмного результата.',
+          idealFor:
+            '✨ Подходит тем, кто хочет заметнее подчеркнуть форму и цвет губ.',
+          healing:
+            '🌿 Интенсивность после заживления становится мягче; оттенок заранее подбирается на консультации.',
+        },
+        lashline: {
+          icon: '👁️',
+          intro:
+            'Межресничное заполнение подчёркивает линию роста ресниц без эффекта тяжёлой стрелки.',
+          idealFor:
+            '🌸 Подходит для более выразительного взгляда и естественного результата без ежедневного карандаша.',
+          healing:
+            '🌿 Толщину и форму линии мастер согласует до начала процедуры.',
+        },
+        upper_lower: {
+          icon: '👁️',
+          intro:
+            'Межресничное заполнение верхнего и нижнего века делает контур глаз более заметным и собранным.',
+          idealFor:
+            '✨ Подходит, если нужен более выразительный результат, чем при работе только с верхним веком.',
+          healing:
+            '🌿 Интенсивность и симметрия предварительно согласуются с мастером.',
+        },
+      },
+      en: {
+        powder_brows: {
+          icon: '💄',
+          intro:
+            'Powder Brows create soft shaded definition without harsh lines, similar to neatly filled everyday brows.',
+          idealFor:
+            '🌸 A good choice when you want a defined shape with a natural daily look.',
+          healing:
+            '🌿 The shade looks stronger immediately after treatment and becomes noticeably softer as it heals.',
+        },
+        hairstroke_brows: {
+          icon: '✨',
+          intro:
+            'Hairstroke Brows use fine strokes following natural brow growth to visually fill sparse areas.',
+          idealFor:
+            '🌸 Ideal when individual hair detail and preservation of your natural brow character matter most.',
+          healing:
+            '🌿 Shape and shade are approved in a pre-drawing; the final soft result is assessed after healing.',
+        },
+        aquarell_lips: {
+          icon: '💋',
+          intro:
+            'Aquarelle lip pigmentation creates a fresh, even tint without a hard drawn outline.',
+          idealFor:
+            '🌸 Suitable when you want to refresh natural color and make the contour look neater.',
+          healing:
+            '🌿 Color is more intense at first and softens to the agreed shade during healing.',
+        },
+        lips_3d: {
+          icon: '💋',
+          intro:
+            '3D Lips combine several tones and stronger shading for a visually fuller result.',
+          idealFor:
+            '✨ Best when you want to emphasize lip shape and color more clearly.',
+          healing:
+            '🌿 Intensity softens after healing; the shade is selected together beforehand.',
+        },
+        lashline: {
+          icon: '👁️',
+          intro:
+            'Lash-line enhancement defines the lash roots without the look of a heavy eyeliner wing.',
+          idealFor:
+            '🌸 A natural option for a more expressive gaze without daily pencil.',
+          healing:
+            '🌿 Line thickness and shape are agreed before the treatment starts.',
+        },
+        upper_lower: {
+          icon: '👁️',
+          intro:
+            'Upper and lower lash-line enhancement gives the eye contour a more defined, polished look.',
+          idealFor:
+            '✨ Suitable when you want a more expressive result than upper lash line alone.',
+          healing:
+            '🌿 Intensity and symmetry are agreed with the master beforehand.',
+        },
+      },
+      de: {
+        powder_brows: {
+          icon: '💄',
+          intro:
+            'Powder Brows erzeugen eine weiche Schattierung ohne harte Linien, ähnlich wie dezent geschminkte Augenbrauen.',
+          idealFor:
+            '🌸 Ideal, wenn Sie eine klare Form mit natürlicher Alltagswirkung wünschen.',
+          healing:
+            '🌿 Direkt danach wirkt der Ton kräftiger und wird während der Heilung deutlich weicher.',
+        },
+        hairstroke_brows: {
+          icon: '✨',
+          intro:
+            'Bei Hairstroke Brows werden feine Striche in natürlicher Wuchsrichtung gezeichnet, um lichte Stellen optisch aufzufüllen.',
+          idealFor:
+            '🌸 Eine gute Wahl, wenn einzelne Härchen und der natürliche Charakter Ihrer Brauen im Mittelpunkt stehen.',
+          healing:
+            '🌿 Form und Farbton werden zuerst vorgezeichnet; das weiche Endergebnis zeigt sich nach der Heilung.',
+        },
+        aquarell_lips: {
+          icon: '💋',
+          intro:
+            'Aquarell-Lippenpigmentierung sorgt für einen frischen, gleichmäßigen Farbton ohne harte gezeichnete Kontur.',
+          idealFor:
+            '🌸 Passend, wenn Sie die natürliche Lippenfarbe auffrischen und die Kontur sanft ordnen möchten.',
+          healing:
+            '🌿 Anfangs ist die Farbe intensiver und wird während der Heilung zum abgestimmten Ton weicher.',
+        },
+        lips_3d: {
+          icon: '💋',
+          intro:
+            '3D Lips kombinieren mehrere Nuancen und stärkere Schattierung für einen optisch volleren Effekt.',
+          idealFor:
+            '✨ Passend, wenn Form und Farbe deutlicher betont werden sollen.',
+          healing:
+            '🌿 Die Intensität wird nach der Heilung weicher; der Farbton wird vorher gemeinsam gewählt.',
+        },
+        lashline: {
+          icon: '👁️',
+          intro:
+            'Eine Wimpernkranzverdichtung betont den Wimpernansatz, ohne wie ein schwerer Lidstrich zu wirken.',
+          idealFor:
+            '🌸 Eine natürliche Wahl für einen ausdrucksvolleren Blick ohne täglichen Kajal.',
+          healing:
+            '🌿 Stärke und Form der Linie werden vor Behandlungsbeginn abgestimmt.',
+        },
+        upper_lower: {
+          icon: '👁️',
+          intro:
+            'Die Verdichtung am oberen und unteren Wimpernkranz definiert die Augenkontur sichtbarer.',
+          idealFor:
+            '✨ Passend, wenn das Ergebnis ausdrucksvoller als nur am Oberlid sein soll.',
+          healing:
+            '🌿 Intensität und Symmetrie werden vorher mit der Meisterin abgestimmt.',
+        },
+      },
+    };
+    const narrative = narratives[locale][pmuTechnique];
+    return compose(
+      narrative.icon,
+      narrative.intro,
+      narrative.idealFor,
+      narrative.healing,
+    );
+  }
 
   // ─── Per-service intros ───────────────────────────────────────────
   if (locale === 'ru') {
@@ -1914,8 +2100,8 @@ function buildScopeGuardText(
 
   if (locale === 'ru') {
     const header = hasActiveBookingFlow
-      ? 'Я помогаю только с записью и вопросами о салоне. Давайте продолжим текущую запись.'
-      : 'Я помогаю только с записью и вопросами о салоне.';
+      ? 'Я специализируюсь на услугах Salon Elen и записи. Давайте продолжим текущую запись или выберем полезный раздел.'
+      : 'Я специализируюсь на услугах Salon Elen, консультациях и записи. Выберите, что подсказать 🌸';
     const continueOption = hasActiveBookingFlow
       ? '[option] ✅ Продолжить запись [/option]\n'
       : '';
@@ -1924,8 +2110,8 @@ function buildScopeGuardText(
 
   if (locale === 'en') {
     const header = hasActiveBookingFlow
-      ? 'I can only help with salon bookings and service questions. Let us continue your current booking.'
-      : 'I can only help with salon bookings and service questions.';
+      ? 'I specialize in Salon Elen services and appointments. Let us continue your booking or choose a helpful section.'
+      : 'I specialize in Salon Elen services, consultations, and appointments. Choose what you would like to know 🌸';
     const continueOption = hasActiveBookingFlow
       ? '[option] ✅ Continue booking [/option]\n'
       : '';
@@ -1933,8 +2119,8 @@ function buildScopeGuardText(
   }
 
   const header = hasActiveBookingFlow
-    ? 'Ich helfe nur bei Terminbuchung und Salonfragen. Lassen Sie uns Ihre aktuelle Buchung fortsetzen.'
-    : 'Ich helfe nur bei Terminbuchung und Salonfragen.';
+    ? 'Ich bin auf Leistungen und Termine bei Salon Elen spezialisiert. Wir können Ihre Buchung fortsetzen oder einen passenden Bereich wählen.'
+    : 'Ich bin auf Leistungen, Beratung und Termine bei Salon Elen spezialisiert. Wählen Sie gern, was Sie wissen möchten 🌸';
   const continueOption = hasActiveBookingFlow
     ? '[option] ✅ Buchung fortsetzen [/option]\n'
     : '';
@@ -2011,13 +2197,17 @@ function isGreetingIntent(
 }
 
 function buildGreetingText(locale: 'de' | 'ru' | 'en'): string {
+  const options = getKnowledgeMenuOptions(locale)
+    .map((item) => `[option] ${item} [/option]`)
+    .join('\n');
+
   if (locale === 'ru') {
-    return 'Привет! 👋 Рада тебя видеть. Я помогу записаться, подобрать услугу или подсказать цены и свободное время. Что выберем?';
+    return `Здравствуйте! 👋 Рада вас видеть. Я помогу разобраться в процедурах, подобрать услугу под желаемый результат и найти удобное время. С чего начнём?\n\n${options}`;
   }
   if (locale === 'en') {
-    return 'Hello! 👋 Nice to see you. I can help with booking, choosing a service, prices, and available time slots. What would you like to do?';
+    return `Hello! 👋 Nice to see you. I can explain treatments, help choose the right service for your goal, and find a convenient appointment. Where shall we start?\n\n${options}`;
   }
-  return 'Hallo! 👋 Schön, Sie zu sehen. Ich helfe bei Terminbuchung, Serviceauswahl, Preisen und freien Zeiten. Womit möchten Sie starten?';
+  return `Hallo! 👋 Schön, Sie zu sehen. Ich erkläre Behandlungen, helfe bei der passenden Auswahl und finde einen bequemen Termin. Womit möchten Sie starten?\n\n${options}`;
 }
 
 function formatDateLabel(dateISO: string, locale: 'de' | 'ru' | 'en'): string {
@@ -2761,10 +2951,10 @@ function buildCategoryToServiceText(
 ): string {
   const intro =
     locale === 'ru'
-      ? `Вы выбрали категорию "${categoryTitle}". Чтобы записаться, выберите конкретную услугу:`
+      ? `В категории «${categoryTitle}» доступны эти актуальные услуги:`
       : locale === 'en'
-        ? `You selected the category "${categoryTitle}". To continue booking, please choose a specific service:`
-        : `Sie haben die Kategorie "${categoryTitle}" gewählt. Für die Buchung wählen Sie bitte eine konkrete Leistung:`;
+        ? `These current services are available in “${categoryTitle}”:`
+        : `In „${categoryTitle}“ sind diese aktuellen Leistungen verfügbar:`;
   const question =
     locale === 'ru'
       ? 'Какую услугу выбираем?'
@@ -3022,6 +3212,72 @@ function isBookingStartIntent(
   return reentryPhrases.some((p) => value.includes(p));
 }
 
+function isContinueSelectedBookingIntent(
+  text: string,
+  locale: 'de' | 'ru' | 'en',
+): boolean {
+  const value = normalizeInput(text).replace(/ё/g, 'е');
+  if (!value) return false;
+
+  if (locale === 'ru' && /\b(не|нет)\s+(надо\s+)?запис/u.test(value)) {
+    return false;
+  }
+  if (locale === 'en' && /\b(?:do not|don't|dont|no)\s+book/u.test(value)) {
+    return false;
+  }
+  if (locale === 'de' && /\b(?:nicht|kein)\s+buchen/u.test(value)) {
+    return false;
+  }
+
+  const phrases =
+    locale === 'ru'
+      ? [
+          'запиши',
+          'записывай',
+          'да записывай',
+          'давай запишемся',
+          'давайте запишемся',
+          'продолжить запись',
+          'продолжим запись',
+          'перейти к записи',
+          'хочу записаться',
+          'подобрать время и записаться',
+        ]
+      : locale === 'en'
+        ? [
+            'book it',
+            'book me',
+            'yes book',
+            'continue booking',
+            'proceed with booking',
+            'pick time and book',
+          ]
+        : [
+            'jetzt buchen',
+            'für mich buchen',
+            'fur mich buchen',
+            'ja buchen',
+            'buchung fortsetzen',
+            'mit buchung fortfahren',
+            'zeit finden und buchen',
+          ];
+
+  return phrases.some((phrase) => value.includes(phrase));
+}
+
+function buildContinueSelectedBookingText(
+  locale: 'de' | 'ru' | 'en',
+): string {
+  const cancelOption = buildCancelBookingOption(locale);
+  if (locale === 'ru') {
+    return `Отлично, продолжим запись на выбранную услугу 🌸\n\nВыберите дату, а затем я покажу свободное время:\n\n[option] 📅 Завтра [/option]\n[option] 📅 Ближайшая дата [/option]\n${cancelOption}\n\nИли напишите желаемую дату в формате ДД.ММ.`;
+  }
+  if (locale === 'en') {
+    return `Great, let us continue booking the selected service 🌸\n\nChoose a date first, then I will show available times:\n\n[option] 📅 Tomorrow [/option]\n[option] 📅 Nearest date [/option]\n${cancelOption}\n\nOr type your preferred date in DD.MM format.`;
+  }
+  return `Sehr gern, wir setzen die Buchung der gewählten Leistung fort 🌸\n\nWählen Sie zuerst ein Datum, danach zeige ich freie Zeiten:\n\n[option] 📅 Morgen [/option]\n[option] 📅 Nächstes Datum [/option]\n${cancelOption}\n\nOder schreiben Sie Ihr Wunschdatum im Format TT.MM.`;
+}
+
 function isChangeServiceIntent(
   text: string,
   locale: 'de' | 'ru' | 'en',
@@ -3275,9 +3531,6 @@ function buildConsultationStartText(
   locale: 'de' | 'ru' | 'en',
   groups: SelectionCatalogGroup[] = [],
 ): string {
-  const intro =
-    buildKnowledgeConsultationStartText(locale).split('\n\n[option]')[0]?.trim() ?? '';
-
   const activeGroups = groups.filter((group) => group.services.length > 0);
 
   if (activeGroups.length === 0) {
@@ -3288,63 +3541,22 @@ function buildConsultationStartText(
         : 'Ich konnte den aktiven Leistungskatalog gerade nicht laden. Ich kann es erneut versuchen oder allgemeine Fragen zum Salon beantworten.';
   }
 
-  // Show only beauty-consultation-relevant categories in the consultation menu.
-  // Haircut, manicure, microneedling etc. are bookable but don't need a
-  // guided PMU/beauty consultation flow — they go straight to booking.
-  const isConsultationCategory = (title: string): boolean => {
-    const v = normalizeChoiceText(title);
-    return (
-      v.includes('перманент') || v.includes('permanent') || v.includes('pmu') ||
-      v.includes('brow') || v.includes('augenbrau') || v.includes('бров') ||
-      v.includes('ресниц') || v.includes('wimper') || v.includes('lash') ||
-      v.includes('наращ') ||
-      v.includes('hydra') || v.includes('гидра') ||
-      v.includes('микронидл') || v.includes('microneedl') || v.includes('мезо')
-    );
-  };
-
-  const consultationGroups = activeGroups.filter((g) => isConsultationCategory(g.title));
-  const otherGroups = activeGroups.filter((g) => !isConsultationCategory(g.title));
-
-  // Build options: curated consultation topics first, then a single "other services" shortcut
-  const consultationOptions = consultationGroups
+  const consultationOptions = activeGroups
     .map((group) => `[option] ${categoryEmoji(group.title)} ${group.title} [/option]`);
-
-  const bookOtherOption = otherGroups.length > 0
-    ? locale === 'ru'
-      ? `[option] 📅 Другие услуги и запись [/option]`
+  const intro =
+    locale === 'ru'
+      ? 'С удовольствием помогу 🌸 Расскажите, какого результата хотите, или выберите направление — я объясню разницу и предложу подходящий вариант без давления.'
       : locale === 'en'
-        ? `[option] 📅 Other services & booking [/option]`
-        : `[option] 📅 Andere Leistungen & Buchen [/option]`
-    : null;
-
-  const allOptions = [
-    ...consultationOptions,
-    ...(bookOtherOption ? [bookOtherOption] : []),
-  ];
-
-  if (allOptions.length === 0) {
-    // Fallback: show everything
-    const fallbackOptions = activeGroups
-      .slice(0, 8)
-      .map((group) => `[option] ${categoryEmoji(group.title)} ${group.title} [/option]`);
-    const ask =
-      locale === 'ru'
-        ? 'Выберите категорию:'
-        : locale === 'en'
-          ? 'Choose a category:'
-          : 'Wählen Sie eine Kategorie:';
-    return `${intro}\n\n${ask}\n${fallbackOptions.join('\n')}`;
-  }
-
+        ? 'I will be happy to help 🌸 Tell me what result you want, or choose a category. I will explain the differences and suggest a suitable option without pressure.'
+        : 'Sehr gern 🌸 Beschreiben Sie Ihr Wunschresultat oder wählen Sie einen Bereich. Ich erkläre die Unterschiede und empfehle eine passende Option ohne Druck.';
   const ask =
     locale === 'ru'
-      ? 'Выберите направление, и я помогу подобрать подходящую услугу:'
+      ? 'Все направления ниже загружены из актуального каталога:'
       : locale === 'en'
-        ? 'Choose a topic and I will help find the right service for you:'
-        : 'Wählen Sie ein Thema, und ich helfe bei der passenden Leistung:';
+        ? 'Every category below comes from the current catalog:'
+        : 'Alle Bereiche unten stammen aus dem aktuellen Katalog:';
 
-  return `${intro}\n\n${ask}\n${allOptions.join('\n')}`;
+  return `${intro}\n\n${ask}\n${consultationOptions.join('\n')}`;
 }
 
 function consultationTopicMatchesGroup(
@@ -3448,9 +3660,8 @@ function buildConsultationTopicText(
 
   const serviceOptions = matchedGroups.flatMap((group) =>
     group.services
-      .slice(0, 6)
       .map((service) => formatServiceOption(locale, service, group.title)),
-  ).slice(0, 8);
+  );
 
   if (serviceOptions.length === 0) {
     return buildConsultationStartText(locale, groups);
@@ -3533,10 +3744,10 @@ function buildBookingStartText(
 ): string {
   const intro =
     locale === 'ru'
-      ? 'Какую услугу вы хотели бы заказать? Вот некоторые из наших предложений:'
+      ? 'Какую услугу вы хотели бы выбрать? Ниже все актуальные направления:'
       : locale === 'en'
-        ? 'What service would you like to book? Here are some options:'
-        : 'Welche Leistung möchten Sie buchen? Hier sind einige Optionen:';
+        ? 'Which service would you like to choose? Here are all current categories:'
+        : 'Welche Leistung möchten Sie wählen? Hier sind alle aktuellen Bereiche:';
   const ask =
     locale === 'ru'
       ? 'Пожалуйста, выберите услугу!'
@@ -3549,7 +3760,6 @@ function buildBookingStartText(
   }
 
   const options = groupTitles
-    .slice(0, 8)
     .map((title) => `[option] ${categoryEmoji(title)} ${title} [/option]`)
     .join('\n');
 
@@ -3655,6 +3865,7 @@ function buildFullCatalogText(
 async function isLikelyCatalogGroupOrServiceName(
   text: string,
   locale: 'de' | 'ru' | 'en',
+  preloadedCatalog?: LiveServiceCatalog,
 ): Promise<boolean> {
   const input = normalizeChoiceText(text);
   if (!input) return false;
@@ -3662,7 +3873,7 @@ async function isLikelyCatalogGroupOrServiceName(
   if (input.length < 3) return false;
 
   try {
-    const catalog = await listServices({ locale });
+    const catalog = preloadedCatalog ?? await listServices({ locale });
     const groups = catalog.groups ?? [];
     for (const g of groups) {
       const groupNorm = normalizeChoiceText(g.title);
@@ -3688,6 +3899,7 @@ async function tryHandleCatalogSelectionFastPath(
   session: AiSession,
   sessionId: string,
   message: string,
+  preloaded?: PreloadedServiceCatalog,
 ): Promise<ChatResponse | null> {
   const input = normalizeCatalogSelectionInput(message);
   if (!input) return null;
@@ -3719,14 +3931,15 @@ async function tryHandleCatalogSelectionFastPath(
   }
 
   const startedList = Date.now();
-  const catalog = await listServices({ locale: session.locale });
-  const listDurationMs = Date.now() - startedList;
+  const catalog = preloaded?.catalog ?? await listServices({ locale: session.locale });
+  const listDurationMs = preloaded?.durationMs ?? Date.now() - startedList;
   const groups = (catalog.groups ?? []) as Array<{
     id: string;
     title: string;
     services: Array<{
       id: string;
       title: string;
+      description?: string | null;
       durationMin: number;
       priceCents: number | null;
     }>;
@@ -3821,13 +4034,44 @@ async function tryHandleCatalogSelectionFastPath(
     input,
   );
 
-  if (isServiceAvailabilityInquiry(message, session.locale)) {
-    const matchedGroupScore = matchedGroup
-      ? choiceScore(normalizeChoiceText(matchedGroup.title), input)
-      : 0;
-    const matchedServiceScore = matchedService
-      ? choiceScore(normalizeChoiceText(matchedService.title), input)
-      : 0;
+  const matchedGroupScore = matchedGroup
+    ? choiceScore(normalizeChoiceText(matchedGroup.title), input)
+    : 0;
+  const matchedServiceScore = matchedService
+    ? choiceScore(normalizeChoiceText(matchedService.title), input)
+    : 0;
+  const hasStrongCatalogMatch =
+    matchedGroupScore >= 500 || matchedServiceScore >= 500;
+  const isBareServiceMention = Boolean(
+    !session.context.consultationMode &&
+      !hasActiveServiceSelection &&
+      !explicitCatalogPayload &&
+      !hasSelectionVerb &&
+      matchedService &&
+      input === normalizeChoiceText(matchedService.title),
+  );
+  const isConsultationServiceChoice = Boolean(
+    session.context.consultationMode &&
+      !hasActiveServiceSelection &&
+      explicitCatalogPayload &&
+      matchedServiceScore >= 500,
+  );
+  const asksForServiceInformation = Boolean(
+    !hasSelectionVerb &&
+      matchedServiceScore >= 500 &&
+      isKnowledgeDetailsIntent(message, session.locale),
+  );
+  const isServiceDiscovery =
+    isBareServiceMention ||
+    isConsultationServiceChoice ||
+    asksForServiceInformation ||
+    isServiceAvailabilityInquiry(
+      message,
+      session.locale,
+      hasStrongCatalogMatch,
+    );
+
+  if (isServiceDiscovery) {
 
     if (
       matchedGroup &&
@@ -3836,7 +4080,6 @@ async function tryHandleCatalogSelectionFastPath(
       matchedGroupScore >= matchedServiceScore
     ) {
       const serviceOptions = matchedGroup.services
-        .slice(0, 8)
         .map((s) => formatServiceOption(session.locale, s, matchedGroup.title));
       const text = buildServiceAvailabilityGroupText(
         session.locale,
@@ -3845,6 +4088,17 @@ async function tryHandleCatalogSelectionFastPath(
         hasActiveServiceSelection,
       );
       appendSessionMessage(sessionId, 'assistant', text);
+      if (!hasActiveServiceSelection) {
+        upsertSession(sessionId, {
+          context: {
+            consultationMode: true,
+            consultationTopic: undefined,
+            consultationTechnique: undefined,
+            consultationServiceTitle: undefined,
+            awaitingConsultationBookingConfirmation: false,
+          },
+        });
+      }
 
       console.log(
         `[AI Chat] session=${sessionId.slice(0, 8)}... fastpath=service-availability-group group="${matchedGroup.title}"`,
@@ -3858,16 +4112,40 @@ async function tryHandleCatalogSelectionFastPath(
     }
 
     if (matchedService && matchedServiceScore >= 500) {
-      const text = buildServiceAvailabilitySingleText(
-        session.locale,
-        matchedService.title,
-        matchedService.groupTitle,
-        hasActiveServiceSelection,
-      );
+      const text = hasActiveServiceSelection
+        ? buildServiceAvailabilitySingleText(
+            session.locale,
+            matchedService.title,
+            matchedService.groupTitle,
+            true,
+          )
+        : buildServiceConsultationCard(
+            session.locale,
+            {
+              title: matchedService.title,
+              description: matchedService.description ?? null,
+              durationMin: matchedService.durationMin,
+              priceCents: matchedService.priceCents,
+            },
+            matchedService.groupTitle,
+          );
       appendSessionMessage(sessionId, 'assistant', text);
+      if (!hasActiveServiceSelection) {
+        upsertSession(sessionId, {
+          context: {
+            consultationMode: true,
+            consultationTopic: undefined,
+            consultationTechnique: undefined,
+            consultationServiceTitle: matchedService.title,
+            awaitingConsultationBookingConfirmation: false,
+            selectedServiceIds: undefined,
+            selectedMasterId: undefined,
+          },
+        });
+      }
 
       console.log(
-        `[AI Chat] session=${sessionId.slice(0, 8)}... fastpath=service-availability-service service="${matchedService.title}"`,
+        `[AI Chat] session=${sessionId.slice(0, 8)}... fastpath=service-discovery-card service="${matchedService.title}"`,
       );
 
       return {
@@ -3878,7 +4156,6 @@ async function tryHandleCatalogSelectionFastPath(
     }
 
     const groupOptions = groups
-      .slice(0, 6)
       .map((group) => `[option] ${categoryEmoji(group.title)} ${group.title} [/option]`);
     const text = buildServiceAvailabilityNotFoundText(
       session.locale,
@@ -3952,7 +4229,6 @@ async function tryHandleCatalogSelectionFastPath(
       // Continue to concrete service matching below.
     } else {
       const serviceOptions = matchedGroup.services
-        .slice(0, 12)
         .map((s) => formatServiceOption(session.locale, s, matchedGroup.title));
       const text = buildCategoryToServiceText(
         session.locale,
@@ -4212,6 +4488,10 @@ export async function POST(
   }
 
   appendSessionMessage(sessionId, 'user', message);
+  const inactivityGeneration = beginAiChatInactivityWindow(
+    sessionId,
+    session.locale,
+  );
   const turn = new TurnBuilder(sessionId, message, inputMode);
   let turnUsedGpt = false;
   let turnResponseMode: 'json' | 'sse' = 'json';
@@ -4527,6 +4807,40 @@ export async function POST(
     });
   }
 
+  // Catalog navigation has priority over the legacy "all services" reset
+  // aliases. Keep an already reserved/drafted booking protected from an
+  // accidental context switch.
+  if (
+    isFullCatalogRequest(message, session.locale) &&
+    !session.context.reservedSlot &&
+    !session.context.draftId
+  ) {
+    const startedAt = Date.now();
+    const catalog = await listServices({ locale: session.locale });
+    const durationMs = Date.now() - startedAt;
+    const groups = (catalog.groups ?? []) as Array<{
+      title: string;
+      services: Array<{
+        title: string;
+        durationMin: number;
+        priceCents: number | null;
+      }>;
+    }>;
+    const text = buildFullCatalogText(session.locale, groups);
+
+    appendSessionMessage(sessionId, 'assistant', text);
+
+    console.log(
+      `[AI Chat] session=${sessionId.slice(0, 8)}... fastpath=services-full-list groups=${groups.length} services=${catalog.matchedServices ?? 0}`,
+    );
+
+    return NextResponse.json({
+      text,
+      sessionId,
+      toolCalls: [{ name: 'list_services', durationMs }],
+    });
+  }
+
   if (isResetToMainMenuIntent(message, session.locale)) {
     const staleDraftId = session.context.draftId;
     if (staleDraftId) {
@@ -4590,6 +4904,54 @@ export async function POST(
     });
   }
 
+  if (!hasAnyInteractiveFlow && isSalonOverviewIntent(message, session.locale)) {
+    const text = buildSalonOverviewText(session.locale);
+    appendSessionMessage(sessionId, 'assistant', text);
+
+    console.log(
+      `[AI Chat] session=${sessionId.slice(0, 8)}... fastpath=salon-overview`,
+    );
+
+    return NextResponse.json({
+      text,
+      sessionId,
+      inputMode: 'text',
+    });
+  }
+
+  if (!hasAnyInteractiveFlow) {
+    const faqItem = findSalonFaqItem(message, session.locale);
+    if (faqItem) {
+      const text = buildSalonFaqAnswerText(faqItem, session.locale);
+      appendSessionMessage(sessionId, 'assistant', text);
+
+      console.log(
+        `[AI Chat] session=${sessionId.slice(0, 8)}... fastpath=salon-faq-answer`,
+      );
+
+      return NextResponse.json({
+        text,
+        sessionId,
+        inputMode: 'text',
+      });
+    }
+
+    if (isSalonFaqMenuIntent(message, session.locale)) {
+      const text = buildSalonFaqMenuText(session.locale);
+      appendSessionMessage(sessionId, 'assistant', text);
+
+      console.log(
+        `[AI Chat] session=${sessionId.slice(0, 8)}... fastpath=salon-faq-menu`,
+      );
+
+      return NextResponse.json({
+        text,
+        sessionId,
+        inputMode: 'text',
+      });
+    }
+  }
+
   if (
     (hasActiveBookingFlow || session.context.consultationMode) &&
     isChangeServiceIntent(message, session.locale)
@@ -4651,6 +5013,27 @@ export async function POST(
       text,
       sessionId,
       toolCalls: [{ name: 'list_services', durationMs }],
+      inputMode: 'text',
+    });
+  }
+
+  if (
+    selectedMasterId &&
+    selectedServiceIds.length > 0 &&
+    !session.context.reservedSlot &&
+    !session.context.draftId &&
+    isContinueSelectedBookingIntent(message, session.locale)
+  ) {
+    const text = buildContinueSelectedBookingText(session.locale);
+    appendSessionMessage(sessionId, 'assistant', text);
+
+    console.log(
+      `[AI Chat] session=${sessionId.slice(0, 8)}... fastpath=booking-continue-selected`,
+    );
+
+    return NextResponse.json({
+      text,
+      sessionId,
       inputMode: 'text',
     });
   }
@@ -4723,6 +5106,34 @@ export async function POST(
       toolCalls: [{ name: 'list_services', durationMs }],
       inputMode: 'text',
     });
+  }
+
+  // A concrete catalog name or question should be answered from the live
+  // service record before broad topic heuristics reduce it to a generic menu.
+  if (!hasActiveBookingFlow && !session.context.consultationMode) {
+    const catalogStartedAt = Date.now();
+    const directCatalog = await listServices({ locale: session.locale });
+    const directCatalogDurationMs = Date.now() - catalogStartedAt;
+    if (
+      await isLikelyCatalogGroupOrServiceName(
+        message,
+        session.locale,
+        directCatalog,
+      )
+    ) {
+      const catalogSelection = await tryHandleCatalogSelectionFastPath(
+        session,
+        sessionId,
+        message,
+        {
+          catalog: directCatalog,
+          durationMs: directCatalogDurationMs,
+        },
+      );
+      if (catalogSelection) {
+        return NextResponse.json(catalogSelection);
+      }
+    }
   }
 
   // ---------- Occasion-based recommendation ----------
@@ -4858,13 +5269,40 @@ export async function POST(
   // asks to proceed to booking.
   if (!hasActiveBookingFlow && session.context.consultationMode) {
     const activeConsultationTopic = session.context.consultationTopic;
+    let consultationCatalog: PreloadedServiceCatalog | undefined;
 
     if (!activeConsultationTopic) {
+      const catalogStartedAt = Date.now();
+      const directCatalog = await listServices({ locale: session.locale });
+      const directCatalogDurationMs = Date.now() - catalogStartedAt;
+      consultationCatalog = {
+        catalog: directCatalog,
+        durationMs: directCatalogDurationMs,
+      };
+      const isDirectCatalogMessage = await isLikelyCatalogGroupOrServiceName(
+        message,
+        session.locale,
+        directCatalog,
+      );
+      if (isDirectCatalogMessage) {
+        const catalogSelection = await tryHandleCatalogSelectionFastPath(
+          session,
+          sessionId,
+          message,
+          consultationCatalog,
+        );
+        if (catalogSelection) {
+          console.log(
+            `[AI Chat] session=${sessionId.slice(0, 8)}... fastpath=consultation-direct-catalog`,
+          );
+          return NextResponse.json(catalogSelection);
+        }
+      }
+
       const consultationTopic = detectKnowledgeConsultationTopic(message, session.locale);
       if (consultationTopic) {
-        const startedAt = Date.now();
-        const catalog = await listServices({ locale: session.locale });
-        const durationMs = Date.now() - startedAt;
+        const catalog = consultationCatalog.catalog;
+        const durationMs = consultationCatalog.durationMs;
         const groups = (catalog.groups ?? []) as SelectionCatalogGroup[];
         const text = buildConsultationTopicText(
           session.locale,
@@ -4906,9 +5344,8 @@ export async function POST(
         (looksLikePricedOptionPayload(message) || looksLikeServiceOptionPayload(message)) &&
         !detectKnowledgePmuTechnique(message, session.locale)
       ) {
-        const startedAt = Date.now();
-        const catalog = await listServices({ locale: session.locale });
-        const durationMs = Date.now() - startedAt;
+        const catalog = consultationCatalog.catalog;
+        const durationMs = consultationCatalog.durationMs;
 
         const input = normalizeChoiceText(message);
         let foundService:
@@ -4978,6 +5415,7 @@ export async function POST(
         session,
         sessionId,
         message,
+        consultationCatalog,
       );
       if (catalogSelection) {
         // Important: when the user clicks a CATEGORY name (e.g. "Микронидлинг"),
@@ -5125,7 +5563,10 @@ export async function POST(
     ) {
       const healingTechnique =
         session.context.consultationTechnique ??
-        detectKnowledgePmuTechnique(message, session.locale);
+        detectKnowledgePmuTechnique(
+          session.context.consultationServiceTitle ?? message,
+          session.locale,
+        );
       const text = healingTechnique
         ? buildKnowledgePmuTechniqueSafetyText(session.locale, healingTechnique)
         : buildKnowledgePmuHealingText(session.locale);
@@ -5197,13 +5638,34 @@ export async function POST(
       }
 
       const wantsDetails = isKnowledgeDetailsIntent(message, session.locale);
-      const text = wantsDetails
-        ? buildKnowledgePmuTechniqueDetailsText(session.locale, technique)
-        : buildKnowledgePmuTechniqueText(session.locale, technique);
+      const startedAt = Date.now();
+      const catalog = await listServices({ locale: session.locale });
+      const durationMs = Date.now() - startedAt;
+      const groups = (catalog.groups ?? []) as SelectionCatalogGroup[];
+      const resolvedService = resolveConsultationTechniqueService(
+        session.locale,
+        technique,
+        groups,
+      );
+      const text = resolvedService
+        ? buildServiceConsultationCard(
+            session.locale,
+            {
+              title: resolvedService.title,
+              description: resolvedService.description,
+              durationMin: resolvedService.durationMin,
+              priceCents: resolvedService.priceCents,
+            },
+            resolvedService.groupTitle,
+          )
+        : wantsDetails
+          ? buildKnowledgePmuTechniqueDetailsText(session.locale, technique)
+          : buildKnowledgePmuTechniqueText(session.locale, technique);
       appendSessionMessage(sessionId, 'assistant', text);
       upsertSession(sessionId, {
         context: {
           consultationTechnique: technique,
+          consultationServiceTitle: resolvedService?.title,
           awaitingConsultationBookingConfirmation: false,
         },
       });
@@ -5215,6 +5677,9 @@ export async function POST(
       return NextResponse.json({
         text,
         sessionId,
+        toolCalls: resolvedService
+          ? [{ name: 'list_services', durationMs }]
+          : undefined,
       });
     }
 
@@ -5222,10 +5687,30 @@ export async function POST(
       session.context.consultationTechnique &&
       isKnowledgeDetailsIntent(message, session.locale)
     ) {
-      const text = buildKnowledgePmuTechniqueDetailsText(
+      const startedAt = Date.now();
+      const catalog = await listServices({ locale: session.locale });
+      const durationMs = Date.now() - startedAt;
+      const groups = (catalog.groups ?? []) as SelectionCatalogGroup[];
+      const resolvedService = resolveConsultationTechniqueService(
         session.locale,
         session.context.consultationTechnique,
+        groups,
       );
+      const text = resolvedService
+        ? buildServiceConsultationCard(
+            session.locale,
+            {
+              title: resolvedService.title,
+              description: resolvedService.description,
+              durationMin: resolvedService.durationMin,
+              priceCents: resolvedService.priceCents,
+            },
+            resolvedService.groupTitle,
+          )
+        : buildKnowledgePmuTechniqueDetailsText(
+            session.locale,
+            session.context.consultationTechnique,
+          );
       appendSessionMessage(sessionId, 'assistant', text);
 
       console.log(
@@ -5235,6 +5720,9 @@ export async function POST(
       return NextResponse.json({
         text,
         sessionId,
+        toolCalls: resolvedService
+          ? [{ name: 'list_services', durationMs }]
+          : undefined,
       });
     }
 
@@ -5296,6 +5784,54 @@ export async function POST(
       });
     }
 
+    if (
+      !session.context.consultationTechnique &&
+      session.context.consultationServiceTitle &&
+      isKnowledgeDetailsIntent(message, session.locale)
+    ) {
+      let catalogSource = consultationCatalog;
+      if (!catalogSource) {
+        const startedAt = Date.now();
+        const catalog = await listServices({ locale: session.locale });
+        catalogSource = {
+          catalog,
+          durationMs: Date.now() - startedAt,
+        };
+      }
+      const service = findCatalogServiceByTitle(
+        (catalogSource.catalog.groups ?? []) as SelectionCatalogGroup[],
+        session.context.consultationServiceTitle,
+      );
+      if (service) {
+        const text = buildServiceConsultationCard(
+          session.locale,
+          {
+            title: service.title,
+            description: service.description,
+            durationMin: service.durationMin,
+            priceCents: service.priceCents,
+          },
+          service.groupTitle,
+        );
+        appendSessionMessage(sessionId, 'assistant', text);
+
+        console.log(
+          `[AI Chat] session=${sessionId.slice(0, 8)}... fastpath=consultation-service-details-followup service="${service.title}"`,
+        );
+
+        return NextResponse.json({
+          text,
+          sessionId,
+          toolCalls: [
+            {
+              name: 'list_services',
+              durationMs: catalogSource.durationMs,
+            },
+          ],
+        });
+      }
+    }
+
     // If the user already saw a non-PMU service consultation card and now
     // clicked "Подобрать время и записаться", route them through the catalog
     // selection using the stored service title.
@@ -5312,6 +5848,7 @@ export async function POST(
         session,
         sessionId,
         storedTitle,
+        consultationCatalog,
       );
       if (catalogSelection) {
         upsertSession(sessionId, {
@@ -5613,24 +6150,12 @@ export async function POST(
       });
     }
 
-    const startedAt = Date.now();
-    const catalog = await listServices({ locale: session.locale });
-    const durationMs = Date.now() - startedAt;
-    const groups = (catalog.groups ?? []) as SelectionCatalogGroup[];
-    const text = activeConsultationTopic
-      ? buildConsultationTopicText(session.locale, activeConsultationTopic, groups)
-      : buildConsultationStartText(session.locale, groups);
-    appendSessionMessage(sessionId, 'assistant', text);
-
+    // Unhandled consultation questions continue through GPT below. The model
+    // receives chat history, the shared FAQ, and a fresh live service catalog,
+    // while deterministic booking and safety actions above stay authoritative.
     console.log(
-      `[AI Chat] session=${sessionId.slice(0, 8)}... fastpath=consultation-fallback topic=${activeConsultationTopic ?? 'none'}`,
+      `[AI Chat] session=${sessionId.slice(0, 8)}... consultation=gpt-handoff topic=${activeConsultationTopic ?? 'none'}`,
     );
-
-    return NextResponse.json({
-      text,
-      sessionId,
-      toolCalls: [{ name: 'list_services', durationMs }],
-    });
   }
 
   // Deterministic handling for free-form date questions while service/master are already fixed.
@@ -5659,6 +6184,50 @@ export async function POST(
     });
   }
 
+  // Keep PMU safety/healing questions deterministic even after the service and
+  // master have already been selected. This avoids medical language drift and
+  // preserves the current booking context.
+  if (
+    hasActiveBookingFlow &&
+    selectedServiceIds.length > 0 &&
+    isKnowledgePmuHealingIntent(message, session.locale)
+  ) {
+    const startedAt = Date.now();
+    const catalog = await listServices({ locale: session.locale });
+    const durationMs = Date.now() - startedAt;
+    const groups = (catalog.groups ?? []) as SelectionCatalogGroup[];
+    const selectedService = findSelectedCatalogService(
+      groups,
+      selectedServiceIds,
+    );
+    const technique = selectedService
+      ? detectKnowledgePmuTechnique(selectedService.title, session.locale)
+      : null;
+    const isPmuService = Boolean(
+      selectedService &&
+        (technique ||
+          isLikelyPmuGroupTitle(selectedService.groupTitle) ||
+          isLikelyPmuGroupTitle(selectedService.title)),
+    );
+
+    if (isPmuService) {
+      const text = technique
+        ? buildKnowledgePmuTechniqueSafetyText(session.locale, technique)
+        : buildKnowledgePmuHealingText(session.locale);
+      appendSessionMessage(sessionId, 'assistant', text);
+
+      console.log(
+        `[AI Chat] session=${sessionId.slice(0, 8)}... fastpath=booking-selected-pmu-safety service="${selectedService?.title ?? 'unknown'}"`,
+      );
+
+      return NextResponse.json({
+        text,
+        sessionId,
+        toolCalls: [{ name: 'list_services', durationMs }],
+      });
+    }
+  }
+
   // Deterministic details response for the currently selected service in booking flow.
   // Prevents random-language fallbacks from the LLM when user asks "подробнее".
   const asksSelectedServiceDetails = isKnowledgeDetailsIntent(message, session.locale);
@@ -5674,25 +6243,11 @@ export async function POST(
     const startedAt = Date.now();
     const catalog = await listServices({ locale: session.locale });
     const durationMs = Date.now() - startedAt;
-    const groups = (catalog.groups ?? []) as Array<{
-      id: string;
-      title: string;
-      services: Array<{
-        id: string;
-        title: string;
-        durationMin: number;
-      }>;
-    }>;
-    const selectedService = groups
-      .flatMap((group) =>
-        group.services.map((service) => ({
-          id: service.id,
-          title: service.title,
-          groupTitle: group.title,
-          durationMin: service.durationMin,
-        })),
-      )
-      .find((service) => selectedServiceIds.includes(service.id));
+    const groups = (catalog.groups ?? []) as SelectionCatalogGroup[];
+    const selectedService = findSelectedCatalogService(
+      groups,
+      selectedServiceIds,
+    );
 
     if (selectedService) {
       const text = asksSelectedServiceSuitability
@@ -5701,11 +6256,16 @@ export async function POST(
             selectedService.title,
             selectedService.groupTitle,
           )
-        : buildSelectedServiceDetailsText(
+        : buildServiceConsultationCard(
             session.locale,
-            selectedService.title,
+            {
+              title: selectedService.title,
+              description: selectedService.description,
+              durationMin: selectedService.durationMin,
+              priceCents: selectedService.priceCents,
+            },
             selectedService.groupTitle,
-            selectedService.durationMin,
+            { bookingInProgress: Boolean(selectedMasterId) },
           );
       appendSessionMessage(sessionId, 'assistant', text);
 
@@ -6525,12 +7085,23 @@ export async function POST(
     const liveCatalog = await listServices({ locale: session.locale });
     if (liveCatalog.groups.length > 0) {
       const catalogLines = liveCatalog.groups.map((g) => {
-        const titles = g.services.map((s) => s.title).join(', ');
-        return `  ${g.title}: ${titles}`;
+        const services = g.services.map((service) => {
+          const price =
+            service.priceCents == null
+              ? 'price on request'
+              : `${(service.priceCents / 100).toFixed(2)} EUR`;
+          const description = service.description
+            ?.replace(/\s+/g, ' ')
+            .trim()
+            .slice(0, 220);
+          return `  - ${service.title} | ${service.durationMin} min | ${price}${description ? ` | ${description}` : ''}`;
+        });
+        return `[${g.title}]\n${services.join('\n')}`;
       }).join('\n');
       liveCatalogPrompt =
         `AKTIVER LEISTUNGSKATALOG (Stand: jetzt, ${liveCatalog.totalServices} Leistungen aktiv):\n` +
-        `KRITISCH: Empfehle AUSSCHLIESSLICH Leistungen aus dieser Liste. Alle anderen gelten als inaktiv.\n` +
+        `Dies ist eine frische list_services-Lesung. Empfehle AUSSCHLIESSLICH Leistungen aus dieser Liste. ` +
+        `Nutze exakt diese Preise und Dauern; fehlende Beschreibungen nicht erfinden.\n` +
         catalogLines;
     }
   } catch {
@@ -7819,6 +8390,11 @@ export async function POST(
         turnSaveError,
       );
     }
+
+    scheduleAiChatInactivityNotification({
+      sessionId,
+      generation: inactivityGeneration,
+    });
   }
 }
 

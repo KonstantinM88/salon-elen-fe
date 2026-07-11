@@ -338,3 +338,25 @@ Useful scripts:
 - 2026-07-10: Global `SiteFooter` includes the public sponsored attribution
   link `Werbung · Webentwicklung: SaaleWeb` to `https://saaleweb.de/` with
   `rel="sponsored noopener noreferrer"`.
+- 2026-07-11: Elen-AI consultation and discovery responses use every active
+  service category plus live `list_services` titles, descriptions, prices, and
+  durations. Informational service questions show a consultation card before
+  booking; only explicit booking intent advances to master/date selection.
+  General salon FAQ answers share `src/lib/home-faq.ts` with the homepage, and
+  unhandled consultation follow-ups reach GPT with recent history, the shared
+  FAQ, and a fresh catalog instead of repeating the consultation menu.
+- 2026-07-11: The two active Hairstroke/волосковая техника catalog offers at
+  different price and duration points are intentional commercial offerings.
+  Do not merge, rename, archive, or deduplicate them without an explicit user
+  request. Elen-AI must preserve the exact consulted service title when moving
+  from information to booking. Catalog/FAQ navigation now takes priority over
+  legacy main-menu aliases, service-information wording takes priority over a
+  priced option payload, and selected PMU safety/booking follow-ups use
+  deterministic handlers instead of unnecessary GPT turns.
+- 2026-07-11: Every accepted Elen-AI client message resets a 120-second
+  inactivity window. After the client remains silent, all configured Telegram
+  admins receive the accumulated user/assistant transcript, split into ordered
+  plain-text messages below Telegram limits. The timer/state in
+  `src/lib/ai/chat-inactivity-notifier.ts` is process-local, matching the
+  existing in-memory AI session store; PM2 restarts clear pending windows.
+  `AI_CHAT_INACTIVITY_NOTIFY_MS` may override the delay for controlled testing.

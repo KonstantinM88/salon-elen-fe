@@ -29,11 +29,11 @@ function generateSessionId(): string {
 const UI_TEXT = {
   de: {
     placeholder: 'Ihre Nachricht...',
-    welcome: 'Hallo! 👋 Ich bin Elen-AI, Ihr Buchungsassistent. Wie kann ich Ihnen helfen?\n\n[option] 📅 Termin buchen [/option]\n[option] 💬 Beratung & Auswahl [/option]\n[option] 💅 Leistungen & Preise [/option]\n[option] 📍 Anfahrt & Öffnungszeiten [/option]',
+    welcome: 'Hallo! 👋 Ich bin Elen-AI, Ihre Online-Beraterin bei Salon Elen. Ich erkläre Behandlungen verständlich, helfe ehrlich bei der Auswahl und finde direkt einen passenden Termin. Womit möchten Sie starten?\n\n[option] 📅 Termin buchen [/option]\n[option] 💬 Beratung & Auswahl [/option]\n[option] 💅 Alle Leistungen & Preise [/option]\n[option] ✨ Über Salon & FAQ [/option]\n[option] 📍 Anfahrt & Öffnungszeiten [/option]',
     autoGreeting:
       '🌸 Möchten Sie einen Termin buchen oder Preise erfahren?\n\n[option] 📅 Termin buchen [/option]\n[option] 💅 Leistungen & Preise [/option]',
     teaserDefault: '🌸 Soll ich Ihnen helfen, schnell einen Termin zu finden?',
-    teaserPrices: '🌸 Möchten Sie Preise für PMU, Brows/Lashes oder Hydrafacial?',
+    teaserPrices: '🌸 Soll ich den aktuellen Leistungskatalog mit Preisen zeigen?',
     teaserBooking: '🌸 Soll ich Ihnen bei der Terminwahl helfen?',
     error: 'Entschuldigung, etwas ist schiefgelaufen. Bitte versuchen Sie es erneut.',
     rateLimit: 'Bitte warten Sie einen Moment, bevor Sie eine neue Nachricht senden.',
@@ -41,16 +41,16 @@ const UI_TEXT = {
     offline: 'Keine Internetverbindung',
     reconnecting: 'Verbindung wird wiederhergestellt...',
     title: 'Salon Elen',
-    subtitle: 'Buchungsassistent',
+    subtitle: 'Online-Beratung & Buchung',
     newChat: 'Neuer Chat',
   },
   ru: {
     placeholder: 'Ваше сообщение...',
-    welcome: 'Привет! 👋 Я Elen-AI, ассистент записи. Чем могу помочь?\n\n[option] 📅 Записаться на приём [/option]\n[option] 💬 Консультация и подбор [/option]\n[option] 💅 Услуги и цены [/option]\n[option] 📍 Адрес и часы работы [/option]',
+    welcome: 'Здравствуйте! 👋 Я Elen-AI, онлайн-консультант Salon Elen. Объясню процедуры простыми словами, честно помогу выбрать подходящую услугу и сразу найду удобное время. С чего начнём?\n\n[option] 📅 Записаться на приём [/option]\n[option] 💬 Консультация и подбор [/option]\n[option] 💅 Все услуги и цены [/option]\n[option] ✨ О салоне и FAQ [/option]\n[option] 📍 Адрес и часы работы [/option]',
     autoGreeting:
       '🌸 Хотите записаться на приём или узнать цены?\n\n[option] 📅 Записаться на приём [/option]\n[option] 💅 Услуги и цены [/option]',
     teaserDefault: '🌸 Хотите, я помогу быстро подобрать удобный термин?',
-    teaserPrices: '🌸 Подсказать цены на PMU, брови/ресницы или Hydrafacial?',
+    teaserPrices: '🌸 Показать актуальный каталог услуг и цены?',
     teaserBooking: '🌸 Помочь выбрать дату и время?',
     error: 'Извините, произошла ошибка. Попробуйте ещё раз.',
     rateLimit: 'Пожалуйста, подождите немного перед отправкой нового сообщения.',
@@ -58,16 +58,16 @@ const UI_TEXT = {
     offline: 'Нет подключения к интернету',
     reconnecting: 'Восстанавливаю соединение...',
     title: 'Salon Elen',
-    subtitle: 'Ассистент записи',
+    subtitle: 'Консультация и запись',
     newChat: 'Новый чат',
   },
   en: {
     placeholder: 'Your message...',
-    welcome: 'Hello! 👋 I\'m Elen-AI, your booking assistant. How can I help?\n\n[option] 📅 Book an appointment [/option]\n[option] 💬 Consultation & guidance [/option]\n[option] 💅 Services & prices [/option]\n[option] 📍 Location & hours [/option]',
+    welcome: 'Hello! 👋 I\'m Elen-AI, your online consultant at Salon Elen. I explain treatments clearly, help you choose honestly, and can find a convenient appointment right away. Where shall we start?\n\n[option] 📅 Book an appointment [/option]\n[option] 💬 Consultation & guidance [/option]\n[option] 💅 All services & prices [/option]\n[option] ✨ About the salon & FAQ [/option]\n[option] 📍 Location & hours [/option]',
     autoGreeting:
       '🌸 Would you like to book an appointment or check prices?\n\n[option] 📅 Book an appointment [/option]\n[option] 💅 Services & prices [/option]',
     teaserDefault: '🌸 Would you like help finding a suitable appointment?',
-    teaserPrices: '🌸 Would you like prices for PMU, brows/lashes or Hydrafacial?',
+    teaserPrices: '🌸 Shall I show the current service catalog and prices?',
     teaserBooking: '🌸 Would you like help choosing a time?',
     error: 'Sorry, something went wrong. Please try again.',
     rateLimit: 'Please wait a moment before sending a new message.',
@@ -75,7 +75,7 @@ const UI_TEXT = {
     offline: 'No internet connection',
     reconnecting: 'Reconnecting...',
     title: 'Salon Elen',
-    subtitle: 'Booking Assistant',
+    subtitle: 'Consultation & Booking',
     newChat: 'New Chat',
   },
 } as const;
