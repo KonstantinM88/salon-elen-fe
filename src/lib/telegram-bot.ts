@@ -5,6 +5,8 @@ import { AppointmentStatus } from "@/lib/prisma-client";
 import { buildClientAppointmentActionLinks } from "@/lib/booking/client-appointment-links";
 import { ORG_TZ } from "@/lib/orgTime";
 import { buildPublicUrl } from "@/lib/public-url";
+import { getRandomReviewPrompt } from "@/lib/reviews/review-prompts";
+import { SALON_GOOGLE_REVIEW_URL } from "@/lib/structured-data";
 import { parseTelegramAdminChatIds } from "@/lib/telegram-admin-chat-ids";
 import { summarizeTelegramUpdateForLog } from "@/lib/telegram/logging";
 import { isPhoneDigitsValid, normalizePhoneDigits } from "@/lib/phone";
@@ -529,6 +531,24 @@ export async function notifyClientAppointmentStatus(
       `<b>${escapeHtml(data.customerName)}</b>`
     );
 
+    const actionLinks =
+      data.status === "PENDING" || data.status === "CONFIRMED"
+        ? buildClientAppointmentActionLinks(data.appointmentId)
+        : null;
+    const reviewUrl =
+      data.status === "DONE"
+        ? SALON_GOOGLE_REVIEW_URL
+        : null;
+    const reviewPrompt =
+      data.status === "DONE" ? getRandomReviewPrompt(resolvedLocale) : "";
+    const doneReviewMessage =
+      data.status === "DONE"
+        ? `\n\n⭐ ${escapeHtml(t("telegram_client_review_text"))}` +
+          `\n\n💬 <b>${escapeHtml(t("review_prompt_label"))}</b>` +
+          `\n<i>“${escapeHtml(reviewPrompt)}”</i>` +
+          `\n\n${escapeHtml(t("telegram_client_review_discount"))}`
+        : "";
+
     const message =
       `<b>${escapeHtml(t(statusTitle[data.status]))}</b>\n\n` +
       `${greeting}\n\n` +
@@ -537,11 +557,8 @@ export async function notifyClientAppointmentStatus(
       `✂️ ${escapeHtml(t("telegram_client_label_service"))}: ${escapeHtml(data.serviceName)}\n` +
       `👩‍💼 ${escapeHtml(t("telegram_client_label_master"))}: ${escapeHtml(data.masterName)}\n` +
       `📌 ${escapeHtml(t("telegram_client_label_status"))}: <b>${escapeHtml(t(statusText[data.status]))}</b>\n\n` +
-      `${escapeHtml(t(statusMessage[data.status]))}`;
-    const actionLinks =
-      data.status === "PENDING" || data.status === "CONFIRMED"
-        ? buildClientAppointmentActionLinks(data.appointmentId)
-        : null;
+      `${escapeHtml(t(statusMessage[data.status]))}` +
+      doneReviewMessage;
 
     const response = await fetch(
       `${TELEGRAM_API_URL}/bot${token}/sendMessage`,
@@ -554,15 +571,24 @@ export async function notifyClientAppointmentStatus(
           chat_id: chatId,
           text: message,
           parse_mode: "HTML",
-          ...(actionLinks
+          ...(actionLinks || reviewUrl
             ? {
                 reply_markup: {
-                  inline_keyboard: [
-                    [
-                      { text: "📅 Перенести", url: actionLinks.rescheduleUrl },
-                      { text: "❌ Отменить", url: actionLinks.cancelUrl },
-                    ],
-                  ],
+                  inline_keyboard: actionLinks
+                    ? [
+                        [
+                          { text: "📅 Перенести", url: actionLinks.rescheduleUrl },
+                          { text: "❌ Отменить", url: actionLinks.cancelUrl },
+                        ],
+                      ]
+                    : [
+                        [
+                          {
+                            text: t("telegram_client_review_button"),
+                            url: reviewUrl!,
+                          },
+                        ],
+                      ],
                 },
               }
             : {}),

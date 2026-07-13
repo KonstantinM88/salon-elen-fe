@@ -745,6 +745,14 @@ booking_payment_paypal_footer: string;
   email_status_review_title: string;
   email_status_review_text: string;
   email_status_review_button: string;
+  review_prompt_label: string;
+  review_prompt_1: string;
+  review_prompt_2: string;
+  review_prompt_3: string;
+  review_prompt_4: string;
+  review_prompt_5: string;
+  email_status_loyalty_title: string;
+  email_status_loyalty_text: string;
   email_status_message_canceled_intro: string;
   email_status_message_canceled_contact_intro: string;
   email_status_message_canceled_contact: string;
@@ -798,6 +806,9 @@ booking_payment_paypal_footer: string;
   telegram_client_status_message_confirmed: string;
   telegram_client_status_message_done: string;
   telegram_client_status_message_canceled: string;
+  telegram_client_review_text: string;
+  telegram_client_review_discount: string;
+  telegram_client_review_button: string;
   telegram_client_greeting: string;
   telegram_client_label_date: string;
   telegram_client_label_time: string;
@@ -1693,10 +1704,19 @@ booking_payment_paypal_footer: "Платежи обрабатываются че
   email_status_message_done_tip_title: "📅 Совет:",
   email_status_message_done_tip_text:
     "Для поддержания результата рекомендуем записаться через 3-4 недели.",
-  email_status_review_title: "Вам понравился результат?",
+  email_status_review_title: "Поделитесь впечатлением — это займёт всего минуту",
   email_status_review_text:
-    "Ваш отзыв в Google помогает другим клиентам выбрать мастера и поддерживает развитие Salon Elen.",
-  email_status_review_button: "Оставить отзыв в Google",
+    "Ваш честный отзыв помогает будущим клиентам увереннее выбрать процедуру, а нам — становиться лучше. Расскажите своими словами, как прошёл ваш визит.",
+  email_status_review_button: "Поделиться впечатлением в Google",
+  review_prompt_label: "Вопрос, который поможет начать:",
+  review_prompt_1: "Что вам запомнилось во время процедуры?",
+  review_prompt_2: "Как вы оцените результат, консультацию и атмосферу?",
+  review_prompt_3: "Что другим клиентам важно знать о вашем визите?",
+  review_prompt_4: "Как вы оцените результат и заботу мастера?",
+  review_prompt_5: "Как прошёл ваш визит в Salon Elen?",
+  email_status_loyalty_title: "Ваш подарок за визит: скидка 10%",
+  email_status_loyalty_text:
+    "На следующую процедуру в Salon Elen для вас действует скидка 10%. Она предоставляется независимо от того, оставите ли вы отзыв и каким он будет. Покажите это письмо при следующем визите.",
   email_status_message_canceled_intro:
     "К сожалению, ваша запись была отменена.",
   email_status_message_canceled_contact_intro:
@@ -1758,6 +1778,11 @@ booking_payment_paypal_footer: "Платежи обрабатываются че
     "Спасибо, что выбрали Salon Elen! Будем рады видеть вас снова.",
   telegram_client_status_message_canceled:
     "Если хотите перенести запись, пожалуйста, свяжитесь с нами.",
+  telegram_client_review_text:
+    "Ваш честный отзыв и рекомендация помогут другим клиентам сделать уверенный выбор. Поделитесь впечатлением — это займёт всего минуту.",
+  telegram_client_review_discount:
+    "🎁 Ваш подарок за визит: скидка 10% на следующую процедуру. Скидка действует независимо от публикации и содержания отзыва. Покажите это сообщение при следующем визите.",
+  telegram_client_review_button: "⭐ Поделиться впечатлением",
   telegram_client_greeting: "Здравствуйте, {name}!",
   telegram_client_label_date: "Дата",
   telegram_client_label_time: "Время",
@@ -2678,10 +2703,19 @@ const deMessages: BaseMessages = {
   email_status_message_done_tip_title: "📅 Tipp:",
   email_status_message_done_tip_text:
     "Für ein dauerhaftes Ergebnis empfehlen wir eine neue Buchung in 3-4 Wochen.",
-  email_status_review_title: "Hat Ihnen das Ergebnis gefallen?",
+  email_status_review_title: "Teilen Sie Ihre Erfahrung – es dauert nur eine Minute",
   email_status_review_text:
-    "Ihre Google-Bewertung hilft anderen Kundinnen bei der Entscheidung und unterstützt Salon Elen.",
-  email_status_review_button: "Google-Bewertung schreiben",
+    "Ihre ehrliche Bewertung hilft zukünftigen Kundinnen, sich sicherer für eine Behandlung zu entscheiden, und hilft uns, noch besser zu werden. Beschreiben Sie mit eigenen Worten, wie Sie Ihren Besuch erlebt haben.",
+  email_status_review_button: "Erfahrung auf Google teilen",
+  review_prompt_label: "Eine Frage als kleine Formulierungshilfe:",
+  review_prompt_1: "Was ist Ihnen während der Behandlung besonders aufgefallen?",
+  review_prompt_2: "Wie haben Sie Ergebnis, Beratung und Atmosphäre erlebt?",
+  review_prompt_3: "Was sollten andere Kundinnen über Ihren Besuch wissen?",
+  review_prompt_4: "Wie bewerten Sie Ergebnis und Betreuung?",
+  review_prompt_5: "Wie haben Sie Ihren Besuch bei Salon Elen erlebt?",
+  email_status_loyalty_title: "Ihr Dankeschön: 10 % Rabatt",
+  email_status_loyalty_text:
+    "Für Ihre nächste Behandlung bei Salon Elen erhalten Sie 10 % Rabatt. Dieser gilt unabhängig davon, ob Sie eine Bewertung abgeben oder welchen Inhalt sie hat. Zeigen Sie diese E-Mail bei Ihrem nächsten Besuch vor.",
   email_status_message_canceled_intro:
     "Leider wurde Ihre Buchung storniert.",
   email_status_message_canceled_contact_intro:
@@ -2743,6 +2777,11 @@ const deMessages: BaseMessages = {
     "Danke, dass Sie Salon Elen gewählt haben! Wir freuen uns auf Ihren nächsten Besuch.",
   telegram_client_status_message_canceled:
     "Wenn Sie den Termin verschieben möchten, kontaktieren Sie uns bitte.",
+  telegram_client_review_text:
+    "Ihre ehrliche Bewertung und Empfehlung helfen anderen Kundinnen bei ihrer Entscheidung. Teilen Sie Ihre Erfahrung – es dauert nur eine Minute.",
+  telegram_client_review_discount:
+    "🎁 Ihr Dankeschön: 10 % Rabatt auf Ihre nächste Behandlung. Der Rabatt gilt unabhängig von der Veröffentlichung oder dem Inhalt einer Bewertung. Zeigen Sie diese Nachricht bei Ihrem nächsten Besuch vor.",
+  telegram_client_review_button: "⭐ Erfahrung teilen",
   telegram_client_greeting: "Hallo, {name}!",
   telegram_client_label_date: "Datum",
   telegram_client_label_time: "Uhrzeit",
@@ -3641,10 +3680,19 @@ const enMessages: BaseMessages = {
   email_status_message_done_tip_title: "📅 Tip:",
   email_status_message_done_tip_text:
     "To maintain results, we recommend booking again in 3-4 weeks.",
-  email_status_review_title: "Did you love the result?",
+  email_status_review_title: "Share your experience — it only takes a minute",
   email_status_review_text:
-    "Your Google review helps other clients choose with confidence and supports Salon Elen.",
-  email_status_review_button: "Leave a Google review",
+    "Your honest review helps future clients choose their treatment with confidence and helps us keep improving. Describe your visit in your own words.",
+  email_status_review_button: "Share your experience on Google",
+  review_prompt_label: "A question to help you get started:",
+  review_prompt_1: "What stood out to you during your treatment?",
+  review_prompt_2: "How was your result, consultation, and salon experience?",
+  review_prompt_3: "What should other clients know about your visit?",
+  review_prompt_4: "How would you rate the result and care?",
+  review_prompt_5: "How did you experience your visit to Salon Elen?",
+  email_status_loyalty_title: "A thank-you gift: 10% off",
+  email_status_loyalty_text:
+    "You will receive 10% off your next treatment at Salon Elen. The discount applies whether or not you leave a review and regardless of its content. Show this email at your next visit.",
   email_status_message_canceled_intro:
     "Unfortunately, your booking was canceled.",
   email_status_message_canceled_contact_intro:
@@ -3706,6 +3754,11 @@ const enMessages: BaseMessages = {
     "Thank you for choosing Salon Elen! We'd love to see you again.",
   telegram_client_status_message_canceled:
     "If you'd like to reschedule, please contact us.",
+  telegram_client_review_text:
+    "Your honest review and recommendation help other clients choose with confidence. Share your experience — it only takes a minute.",
+  telegram_client_review_discount:
+    "🎁 A thank-you gift: 10% off your next treatment. The discount applies regardless of whether you publish a review or what it says. Show this message at your next visit.",
+  telegram_client_review_button: "⭐ Share your experience",
   telegram_client_greeting: "Hello, {name}!",
   telegram_client_label_date: "Date",
   telegram_client_label_time: "Time",

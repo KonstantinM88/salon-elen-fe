@@ -3,6 +3,7 @@ import { Resend } from 'resend';
 import { buildClientAppointmentActionLinks } from '@/lib/booking/client-appointment-links';
 import { AppointmentStatus } from '@/lib/prisma-client';
 import { getPublicBaseUrl } from '@/lib/public-url';
+import { getRandomReviewPrompt } from '@/lib/reviews/review-prompts';
 import { SALON_GOOGLE_REVIEW_URL } from '@/lib/structured-data';
 import { DEFAULT_LOCALE, LOCALES, type Locale } from '@/i18n/locales';
 import { translate, type MessageKey } from '@/i18n/messages';
@@ -222,6 +223,8 @@ function getEmailBody(
     data.status === 'PENDING' || data.status === 'CONFIRMED'
       ? buildClientAppointmentActionLinks(data.appointmentId)
       : null;
+  const reviewPrompt =
+    data.status === 'DONE' ? getRandomReviewPrompt(locale) : '';
   const reviewBlock =
     data.status === 'DONE'
       ? `
@@ -232,10 +235,31 @@ function getEmailBody(
           <p style="color: #374151; margin: 0 0 18px 0; font-size: 15px; line-height: 1.6;">
             ${t('email_status_review_text')}
           </p>
+          <div style="background: rgba(255,255,255,0.78); border: 1px solid #fed7aa; border-radius: 10px; padding: 14px 16px; margin: 0 0 18px 0; text-align: left;">
+            <p style="color: #9a3412; margin: 0 0 6px 0; font-size: 12px; font-weight: 700;">
+              💬 ${t('review_prompt_label')}
+            </p>
+            <p style="color: #431407; margin: 0; font-size: 15px; line-height: 1.55; font-weight: 600;">
+              “${reviewPrompt}”
+            </p>
+          </div>
           <a href="${SALON_GOOGLE_REVIEW_URL}"
              style="display: inline-block; background: linear-gradient(135deg, #e11d48 0%, #f59e0b 100%); color: white; text-decoration: none; padding: 13px 24px; border-radius: 999px; font-weight: 700; font-size: 15px;">
             ${t('email_status_review_button')}
           </a>
+        </div>
+      `
+      : '';
+  const loyaltyBlock =
+    data.status === 'DONE'
+      ? `
+        <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 12px; padding: 20px; margin: 25px 0; text-align: center;">
+          <h3 style="margin: 0 0 9px 0; color: #166534; font-size: 18px; font-weight: 700;">
+            🎁 ${t('email_status_loyalty_title')}
+          </h3>
+          <p style="color: #365443; margin: 0; font-size: 14px; line-height: 1.65;">
+            ${t('email_status_loyalty_text')}
+          </p>
         </div>
       `
       : '';
@@ -312,6 +336,7 @@ function getEmailBody(
           ` : ''}
 
           ${reviewBlock}
+          ${loyaltyBlock}
           
           <!-- CTA Button (for CONFIRMED status) -->
           ${data.status === 'CONFIRMED' ? `

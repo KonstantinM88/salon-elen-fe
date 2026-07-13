@@ -360,3 +360,15 @@ Useful scripts:
   `src/lib/ai/chat-inactivity-notifier.ts` is process-local, matching the
   existing in-memory AI session store; PM2 restarts clear pending windows.
   `AI_CHAT_INACTIVITY_NOTIFY_MS` may override the delay for controlled testing.
+- 2026-07-13: `DONE` email and Telegram client notifications include a
+  localized DE/EN/RU request for an honest Google review plus a separate,
+  unconditional 10% loyalty discount for the next treatment. Never make the
+  discount conditional on publishing, changing, or removing a review because
+  Google prohibits incentivized reviews. Review buttons must link directly to
+  `SALON_GOOGLE_REVIEW_URL` (`https://g.page/r/CU4PoX1xNkLdEBE/review`). A direct
+  external link cannot reliably notify Telegram admins when it is opened; do
+  not add an intermediate tracking redirect unless the user explicitly accepts
+  that the visible destination will be a Salon Elen URL first. Review requests
+  also show one randomly selected, localized neutral question from
+  `src/lib/reviews/review-prompts.ts`; prompts may help clients write in their
+  own words but must not prewrite praise or suggest a specific star rating.
