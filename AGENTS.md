@@ -372,3 +372,14 @@ Useful scripts:
   also show one randomly selected, localized neutral question from
   `src/lib/reviews/review-prompts.ts`; prompts may help clients write in their
   own words but must not prewrite praise or suggest a specific star rating.
+- 2026-07-17: Dependency security refresh updated Next.js and
+  `eslint-config-next` to 16.2.10, PostCSS to 8.5.19, and compatible lockfile
+  dependencies including `tsx` 4.23.1 / `esbuild` 0.28.1. The unused direct
+  `nodemailer` dependency and its types were removed because runtime email uses
+  Resend and NextAuth uses credentials only. Override `uuid` to 11.1.1 for
+  NextAuth's compatible `v4()` usage. Prisma packages intentionally remain
+  aligned at 7.8.0; the remaining npm audit findings are limited to Prisma's
+  development toolchain and must not be force-fixed by downgrading Prisma.
+  Keep Stripe pinned at 20.1.1 while the webhook explicitly uses API version
+  `2025-12-15.clover`; Stripe 20.4.x changes its generated API baseline and
+  requires a separate payment-contract review before upgrading.
