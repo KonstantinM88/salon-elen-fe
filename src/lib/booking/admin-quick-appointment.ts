@@ -180,6 +180,47 @@ function smsText({
   return `Salon Elen: Ihr Termin ist bestaetigt. ${when}, ${serviceName}, ${masterName}. Adresse: Lessingstr. 37, Halle.${actionText}`;
 }
 
+async function sendAdminQuickBookingConfirmationSms({
+  phoneNumber,
+  serviceName,
+  masterName,
+  startAt,
+  rescheduleUrl,
+  cancelUrl,
+}: {
+  phoneNumber: string;
+  serviceName: string;
+  masterName: string;
+  startAt: Date;
+  rescheduleUrl?: string | null;
+  cancelUrl?: string | null;
+}): Promise<void> {
+  const result = await sendCustomSms(
+    phoneNumber,
+    smsText({ serviceName, masterName, startAt, rescheduleUrl, cancelUrl }),
+  );
+
+  if (result.success) return;
+
+  const linksWereIncluded = Boolean(rescheduleUrl || cancelUrl);
+  const providerRejectedLinks = /(?:ссылк|links?|url)/i.test(result.error);
+
+  if (linksWereIncluded && providerRejectedLinks) {
+    console.warn(
+      "[Admin Quick Booking] SMS provider rejected links; retrying confirmation without links",
+    );
+    const fallback = await sendCustomSms(
+      phoneNumber,
+      smsText({ serviceName, masterName, startAt }),
+    );
+
+    if (fallback.success) return;
+    throw new Error(`SMS fallback failed: ${fallback.error}`);
+  }
+
+  throw new Error(`SMS confirmation failed: ${result.error}`);
+}
+
 export async function listAdminQuickBookingServices(): Promise<
   AdminQuickBookingServiceOption[]
 > {
@@ -555,16 +596,14 @@ export async function createAdminQuickAppointment({
         locale: "de",
       }),
       !emailStr
-        ? sendCustomSms(
-            normalizedPhone,
-            smsText({
-              serviceName,
-              masterName,
-              startAt: result.appointment.startAt,
-              rescheduleUrl: actionLinks?.rescheduleUrl,
-              cancelUrl: actionLinks?.cancelUrl,
-            }),
-          )
+        ? sendAdminQuickBookingConfirmationSms({
+            phoneNumber: normalizedPhone,
+            serviceName,
+            masterName,
+            startAt: result.appointment.startAt,
+            rescheduleUrl: actionLinks?.rescheduleUrl,
+            cancelUrl: actionLinks?.cancelUrl,
+          })
         : Promise.resolve(),
       sendAdminNotification({
         id: result.appointment.id,

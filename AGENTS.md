@@ -389,3 +389,8 @@ Useful scripts:
   but remove the legacy `*/15 ... action=alert` crontab entry because each
   query wakes Neon and resets its Scale to Zero inactivity timer. Cron bearer
   authentication is checked before resolving a NextAuth browser session.
+- 2026-08-04: Admin quick-booking SMS confirmations first retain signed client
+  reschedule/cancel links. If Zadarma rejects links for the destination, the
+  notification automatically retries without links; unsuccessful SMS results
+  now reject into the existing notification error logging instead of appearing
+  as fulfilled promises.
