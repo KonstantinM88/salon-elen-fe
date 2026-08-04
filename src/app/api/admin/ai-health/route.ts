@@ -3,7 +3,7 @@
 // Endpoints:
 //   GET /api/admin/ai-health              → real-time health status (for widget)
 //   POST /api/admin/ai-health?action=daily  → trigger daily summary to Telegram
-//   POST /api/admin/ai-health?action=alert  → check error rate and alert
+//   POST /api/admin/ai-health?action=alert  → optional error-rate check
 //
 // Daily summary can be triggered by:
 //   1. External cron (Vercel Cron, GitHub Actions, curl)
@@ -11,7 +11,8 @@
 //
 // Cron setup (crontab or Vercel):
 //   0 8 * * * curl -X POST https://permanent-halle.de/api/admin/ai-health?action=daily -H "Authorization: Bearer $CRON_SECRET"
-//   */15 * * * * curl -X POST https://permanent-halle.de/api/admin/ai-health?action=alert -H "Authorization: Bearer $CRON_SECRET"
+// Frequent alert polling is disabled by default because it prevents a
+// scale-to-zero database from remaining suspended.
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
@@ -26,13 +27,7 @@ import {
 // ─── Auth helper ────────────────────────────────────────────
 
 async function isAuthorized(req: NextRequest): Promise<boolean> {
-  // Option 1: Admin session (from browser)
-  const session = await getServerSession(authOptions);
-  if (session?.user && (session.user as { role?: string }).role === 'ADMIN') {
-    return true;
-  }
-
-  // Option 2: Bearer token (from cron)
+  // Check stateless cron credentials before resolving a browser session.
   const cronSecret = process.env.CRON_SECRET || process.env.AI_CRON_SECRET;
   if (cronSecret) {
     const auth = req.headers.get('authorization');
@@ -41,13 +36,25 @@ async function isAuthorized(req: NextRequest): Promise<boolean> {
     }
   }
 
-  // Option 3: Vercel Cron header
+  // Vercel Cron header
   const vercelCron = req.headers.get('x-vercel-cron');
   if (vercelCron && process.env.VERCEL) {
     return true;
   }
 
+  // Admin session (from browser)
+  const session = await getServerSession(authOptions);
+  if (session?.user && (session.user as { role?: string }).role === 'ADMIN') {
+    return true;
+  }
+
   return false;
+}
+
+function areRealtimeAlertsEnabled(): boolean {
+  return /^(1|true|yes)$/i.test(
+    process.env.AI_HEALTH_REALTIME_ALERTS_ENABLED?.trim() || '',
+  );
 }
 
 // ─── GET: Health status ─────────────────────────────────────
@@ -101,6 +108,16 @@ export async function POST(req: NextRequest) {
     }
 
     case 'alert': {
+      if (!areRealtimeAlertsEnabled()) {
+        return NextResponse.json({
+          ok: true,
+          action: 'error_alert_check',
+          alerted: false,
+          skipped: true,
+          message: 'Realtime DB alert checks are disabled',
+        });
+      }
+
       const alerted = await checkAndAlertErrors();
       return NextResponse.json({
         ok: true,

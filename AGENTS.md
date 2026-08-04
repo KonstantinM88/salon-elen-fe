@@ -383,3 +383,9 @@ Useful scripts:
   Keep Stripe pinned at 20.1.1 while the webhook explicitly uses API version
   `2025-12-15.clover`; Stripe 20.4.x changes its generated API baseline and
   requires a separate payment-contract review before upgrading.
+- 2026-08-04: AI Health no longer polls Prisma every minute from an open admin
+  tab, and the `action=alert` cron endpoint skips its DB query unless
+  `AI_HEALTH_REALTIME_ALERTS_ENABLED=true`. Keep the 08:00 daily summary cron,
+  but remove the legacy `*/15 ... action=alert` crontab entry because each
+  query wakes Neon and resets its Scale to Zero inactivity timer. Cron bearer
+  authentication is checked before resolving a NextAuth browser session.

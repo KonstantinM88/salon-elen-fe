@@ -104,3 +104,28 @@ pm2 logs salon-elen-fe --lines 80 --nostream
 
 1. вернуться на предыдущий commit;
 2. снова `./scripts/deploy-pm2.sh`.
+
+## 6. Neon не переходит в Scale to Zero
+
+Проверьте, не остался ли старый 15-минутный AI Health cron:
+
+```bash
+crontab -l | grep 'ai-health'
+```
+
+В production нужен только ежедневный отчёт:
+
+```cron
+0 8 * * * curl -sS -X POST 'https://permanent-halle.de/api/admin/ai-health?action=daily' -H "Authorization: Bearer $CRON_SECRET"
+```
+
+Удалите через `crontab -e` строку с
+`ai-health?action=alert`. Код также пропускает эту проверку без запроса к
+БД, если не установлено `AI_HEALTH_REALTIME_ALERTS_ENABLED=true`.
+Включать эту опцию нужно только осознанно: каждая проверка будит Neon и
+сбрасывает таймер автопаузы.
+
+После деплоя подождите 20-30 минут без трафика и проверьте Neon
+`Monitoring -> System operations`: старты ровно в `:00`, `:15`, `:30`, `:45`
+должны исчезнуть. AI-виджет в админке запрашивает метрики один раз
+при открытии; дальше они обновляются только кнопкой.

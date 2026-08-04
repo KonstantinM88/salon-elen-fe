@@ -82,11 +82,10 @@ export default function AiHealthWidget({ locale }: { locale: SeoLocale }) {
     }
   }, []);
 
-  // Auto-refresh every 60s
+  // Fetch once per page load. Further refreshes are explicit to avoid keeping
+  // a scale-to-zero database awake while an admin tab remains open.
   useEffect(() => {
     fetchHealth();
-    const interval = setInterval(fetchHealth, 60000);
-    return () => clearInterval(interval);
   }, [fetchHealth]);
 
   const handleSendSummary = async () => {
