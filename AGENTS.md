@@ -394,3 +394,15 @@ Useful scripts:
   notification automatically retries without links; unsuccessful SMS results
   now reject into the existing notification error logging instead of appearing
   as fulfilled promises.
+- 2026-08-07: Dependency baseline moved to Next.js, `@next/third-parties`, and
+  `eslint-config-next` 16.3.0; React/React DOM 19.2.8; Prisma CLI, client, and
+  PostgreSQL adapter 7.9.1; Sharp 0.35.3; and PostCSS 8.5.26. Security
+  overrides pin `js-yaml@4` to 4.3.1, `fast-uri@3` to 3.1.5, `undici@6` to
+  6.28.0 when present, and the compatible `brace-expansion` branches to
+  1.1.18 and 5.0.9. Compatible Radix UI, NextAuth, next-intl, Resend, pg-adjacent,
+  form/validation, and TypeScript tooling updates may stay within their current
+  majors. Keep server Stripe at 20.1.1, Zod on v3, OpenAI on v6, PayPal React
+  on v8, and Three.js/types on 0.181 unless their contracts are reviewed
+  separately. Recharts 3.10 requires narrowing tooltip labels before date
+  formatting, and dynamic upload paths should retain the Turbopack trace-ignore
+  annotation so production output does not include the whole project.

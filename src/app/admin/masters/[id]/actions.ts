@@ -265,7 +265,7 @@ export async function uploadAvatar(formData: FormData): Promise<void> {
   await mkdir(dir, { recursive: true });
 
   const filename = `${Date.now()}.${ext}`;
-  const abs = path.join(dir, filename);
+  const abs = path.join(/* turbopackIgnore: true */ dir, filename);
   await writeFile(abs, Buffer.from(await file.arrayBuffer()));
 
   const publicUrl = `/uploads/masters/${id}/${filename}`;

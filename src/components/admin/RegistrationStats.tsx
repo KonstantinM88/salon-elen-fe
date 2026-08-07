@@ -377,7 +377,11 @@ export function RegistrationStats({ locale = 'de' }: RegistrationStatsProps) {
                     boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
                     fontSize: '12px',
                   }}
-                  labelFormatter={(value) => new Date(value).toLocaleDateString(intlLocale)}
+                  labelFormatter={(value) =>
+                    typeof value === 'string' || typeof value === 'number'
+                      ? new Date(value).toLocaleDateString(intlLocale)
+                      : ''
+                  }
                 />
                 <Legend wrapperStyle={{ fontSize: '12px' }} />
                 <Line type="monotone" dataKey="sms" stroke={COLORS.sms} strokeWidth={2} name="SMS" />
