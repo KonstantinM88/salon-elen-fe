@@ -209,20 +209,20 @@ export async function recordSiteVisit(input: RecordSiteVisitInput): Promise<void
 }
 
 export async function getSiteVisitSummary(dateISO: string): Promise<SiteVisitSummary> {
-  const [siteVisits, pageviewAggregate, sourceGroups] = await Promise.all([
-    prisma.siteVisit.count({ where: { dateISO } }),
-    prisma.siteVisit.aggregate({
-      where: { dateISO },
-      _sum: { pageviews: true },
-    }),
-    prisma.siteVisit.groupBy({
-      by: ['trafficSource'],
-      where: { dateISO },
-      _count: { _all: true },
-      _sum: { pageviews: true },
-      orderBy: { _count: { trafficSource: 'desc' } },
-    }),
-  ]);
+  // Reports run these aggregates sequentially to avoid waking multiple Neon
+  // pooler connections at once on low-resource production hosting.
+  const siteVisits = await prisma.siteVisit.count({ where: { dateISO } });
+  const pageviewAggregate = await prisma.siteVisit.aggregate({
+    where: { dateISO },
+    _sum: { pageviews: true },
+  });
+  const sourceGroups = await prisma.siteVisit.groupBy({
+    by: ['trafficSource'],
+    where: { dateISO },
+    _count: { _all: true },
+    _sum: { pageviews: true },
+    orderBy: { _count: { trafficSource: 'desc' } },
+  });
 
   const trafficSources = sourceGroups.map((group) => ({
     source: group.trafficSource,

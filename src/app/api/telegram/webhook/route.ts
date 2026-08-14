@@ -34,7 +34,22 @@ import {
   redactTextForLog,
   summarizeTelegramUpdateForLog,
 } from '@/lib/telegram/logging';
-import { sendTelegramMessage as sendTelegramApiMessage } from '@/lib/telegram/sender';
+import {
+  sendTelegramMessage as sendTelegramApiMessage,
+  type TelegramInlineKeyboardButton,
+  type TelegramInlineKeyboardMarkup,
+  type TelegramReplyMarkup,
+} from '@/lib/telegram/sender';
+import {
+  AI_ANALYST_ACTION_PREFIX,
+  AI_ANALYST_FORCE_REPLY_MARKER,
+  answerAiAnalystQuestion,
+  buildAiAnalystButtonResponse,
+  buildAiAnalystForceReplyText,
+  buildAiAnalystMenuText,
+  isAiAnalystAction,
+} from '@/lib/telegram/ai-analyst';
+import { buildDailyTelegramReport } from '@/lib/ai/ai-health';
 import {
   conversationExpiresIn,
   deleteTelegramConversationState,
@@ -138,46 +153,31 @@ const formatDeepLinkPhone = (value: string): string | null => {
   };
   const QUICK_BOOKING_UNCATEGORIZED_KEY = '__other__';
 
-  // Отправка сообщения в Telegram (HTML)
-  type TelegramInlineKeyboardButton = {
-    text: string;
-    callback_data?: string;
-    url?: string;
-  };
-
-  type TelegramInlineKeyboardMarkup = {
-    inline_keyboard: TelegramInlineKeyboardButton[][];
-  };
-
   async function sendTelegramMessage(
     chatId: number,
     text: string,
-    replyMarkup?: TelegramInlineKeyboardMarkup,
+    replyMarkup?: TelegramReplyMarkup,
   ) {
-    try {
-      const response = await fetch(`${TELEGRAM_API_URL}/sendMessage`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          chat_id: chatId,
-          text,
-          parse_mode: 'HTML',
-          ...(replyMarkup ? { reply_markup: replyMarkup } : {}),
-        }),
+    const result = await sendTelegramApiMessage({
+      chatId,
+      text,
+      parseMode: 'HTML',
+      replyMarkup,
+      disableWebPagePreview: true,
+    });
+
+    if (!result.ok) {
+      console.error('[Telegram Webhook] Send message failed:', {
+        chatId,
+        description: result.description ?? 'unknown_error',
+        partsSent: result.partsSent ?? 0,
+        totalParts: result.totalParts ?? 1,
       });
-      
-      const data = await response.json();
-      
-      if (!data.ok) {
-        console.error('[Telegram Webhook] Send message error:', data);
-        return { success: false, error: data.description };
-      }
-      
-      return { success: true, data };
-    } catch (error) {
-      console.error('[Telegram Webhook] Send message failed:', error);
-      return { success: false, error };
     }
+
+    return result.ok
+      ? { success: true, data: result }
+      : { success: false, error: result.description };
   }
 
   /**
@@ -531,6 +531,57 @@ const formatDeepLinkPhone = (value: string): string | null => {
             callback_data: `${UPCOMING_APPOINTMENTS_ACTION_PREFIX}:30`,
           },
         ],
+        [
+          {
+            text: '🧠 AI-аналитик',
+            callback_data: `${AI_ANALYST_ACTION_PREFIX}:menu`,
+          },
+        ],
+      ],
+    };
+  }
+
+  function buildAiAnalystKeyboard(): TelegramInlineKeyboardMarkup {
+    return {
+      inline_keyboard: [
+        [
+          {
+            text: '🔎 Поисковые запросы',
+            callback_data: `${AI_ANALYST_ACTION_PREFIX}:search`,
+          },
+        ],
+        [
+          {
+            text: '📈 Трафик и каналы',
+            callback_data: `${AI_ANALYST_ACTION_PREFIX}:traffic`,
+          },
+          {
+            text: '📅 Бронирования',
+            callback_data: `${AI_ANALYST_ACTION_PREFIX}:bookings`,
+          },
+        ],
+        [
+          {
+            text: '⭐ Отзывы',
+            callback_data: `${AI_ANALYST_ACTION_PREFIX}:reviews`,
+          },
+          {
+            text: '📍 Локальная видимость',
+            callback_data: `${AI_ANALYST_ACTION_PREFIX}:local`,
+          },
+        ],
+        [
+          {
+            text: '📋 Общая сводка',
+            callback_data: `${AI_ANALYST_ACTION_PREFIX}:summary`,
+          },
+        ],
+        [
+          {
+            text: '✍️ Задать свой вопрос',
+            callback_data: `${AI_ANALYST_ACTION_PREFIX}:custom`,
+          },
+        ],
       ],
     };
   }
@@ -821,6 +872,14 @@ const formatDeepLinkPhone = (value: string): string | null => {
                 description: 'Ближайшие термины на 30 дней',
               },
               {
+                command: 'report',
+                description: 'Дневной отчёт',
+              },
+              {
+                command: 'ask',
+                description: 'AI-аналитик',
+              },
+              {
                 command: 'admin',
                 description: 'Открыть админ-меню',
               },
@@ -850,12 +909,127 @@ const formatDeepLinkPhone = (value: string): string | null => {
         '',
         'Можно быстро создать запись клиента без входа в админку.',
         'Также можно посмотреть ближайшие термины на 7, 14 или 30 дней.',
+        'AI-аналитик показывает только реальные агрегированные данные и ничего не изменяет.',
         'Услуги, даты и слоты берутся из актуального расписания.',
         '',
-        'Команды для быстрого доступа: <code>/add</code>, <code>/next7</code>, <code>/next14</code>, <code>/next30</code>.',
+        'Команды для быстрого доступа: <code>/add</code>, <code>/report</code>, <code>/ask</code>, <code>/next7</code>, <code>/next14</code>, <code>/next30</code>.',
       ].join('\n'),
       buildAdminMenuKeyboard(),
     );
+  }
+
+  async function sendPlainTelegramMessage(
+    chatId: number | string,
+    text: string,
+    replyMarkup?: TelegramReplyMarkup,
+  ): Promise<void> {
+    const result = await sendTelegramApiMessage({
+      chatId,
+      text,
+      replyMarkup,
+      disableWebPagePreview: true,
+    });
+
+    if (!result.ok) {
+      console.error('[Telegram Webhook] Plain message failed:', {
+        chatId: String(chatId),
+        description: result.description ?? 'unknown_error',
+        partsSent: result.partsSent ?? 0,
+        totalParts: result.totalParts ?? 1,
+      });
+    }
+  }
+
+  async function sendAiAnalystMenu(chatId: number | string): Promise<void> {
+    await sendPlainTelegramMessage(
+      chatId,
+      buildAiAnalystMenuText(),
+      buildAiAnalystKeyboard(),
+    );
+  }
+
+  async function sendDailyReportToChat(chatId: number | string): Promise<void> {
+    await sendPlainTelegramMessage(chatId, '⏳ Формирую дневной отчёт...');
+
+    try {
+      const { message } = await buildDailyTelegramReport();
+      const result = await sendTelegramApiMessage({
+        chatId,
+        text: message,
+        parseMode: 'Markdown',
+        disableWebPagePreview: true,
+      });
+
+      if (!result.ok) {
+        await sendPlainTelegramMessage(
+          chatId,
+          'Не удалось отправить дневной отчёт. Проверьте серверные логи.',
+        );
+      }
+    } catch (error) {
+      console.error('[Telegram Webhook] Manual daily report failed:', {
+        errorType: error instanceof Error ? error.name : 'unknown_error',
+      });
+      await sendPlainTelegramMessage(
+        chatId,
+        'Не удалось сформировать дневной отчёт. Попробуйте позже.',
+      );
+    }
+  }
+
+  async function handleAiAnalystCallback(
+    callbackQuery: TelegramCallbackQuery,
+  ): Promise<NextResponse> {
+    if (!isAdminCallback(callbackQuery)) {
+      await answerCallbackQuery(callbackQuery.id, 'Недостаточно прав', true);
+      return NextResponse.json({ ok: true });
+    }
+
+    const chatId = callbackQuery.message?.chat.id ?? callbackQuery.from.id;
+    const action = String(callbackQuery.data ?? '').split(':')[1] ?? 'menu';
+
+    if (action === 'menu') {
+      await answerCallbackQuery(callbackQuery.id, 'AI-аналитик');
+      await sendAiAnalystMenu(chatId);
+      return NextResponse.json({ ok: true });
+    }
+
+    if (action === 'custom') {
+      await answerCallbackQuery(callbackQuery.id, 'Напишите вопрос');
+      await sendPlainTelegramMessage(
+        chatId,
+        buildAiAnalystForceReplyText(),
+        {
+          force_reply: true,
+          selective: true,
+          input_field_placeholder: 'Ваш вопрос об аналитике',
+        },
+      );
+      return NextResponse.json({ ok: true });
+    }
+
+    if (!isAiAnalystAction(action) || action === 'custom') {
+      await answerCallbackQuery(callbackQuery.id, 'Неизвестный раздел', true);
+      return NextResponse.json({ ok: true });
+    }
+
+    await answerCallbackQuery(callbackQuery.id, 'Готовлю данные...');
+    try {
+      const response = await buildAiAnalystButtonResponse(action);
+      await sendPlainTelegramMessage(chatId, response, buildAiAnalystKeyboard());
+    } catch (error) {
+      console.error('[Telegram Webhook] AI analyst section failed:', {
+        action,
+        errorType: error instanceof Error ? error.name : 'unknown_error',
+      });
+      await sendPlainTelegramMessage(
+        chatId,
+        'Не удалось получить данные для этого раздела. Попробуйте позже.',
+        buildAiAnalystKeyboard(),
+      );
+    }
+
+    return NextResponse.json({ ok: true });
   }
 
   async function beginQuickBooking(
@@ -1784,6 +1958,12 @@ const formatDeepLinkPhone = (value: string): string | null => {
       // Получить сообщение
       if (update.callback_query) {
         const callbackData = String(update.callback_query.data ?? '');
+        if (callbackData.startsWith(`${AI_ANALYST_ACTION_PREFIX}:`)) {
+          return handleAiAnalystCallback(
+            update.callback_query as TelegramCallbackQuery,
+          );
+        }
+
         if (callbackData.startsWith(`${ADMIN_QUICK_BOOKING_ACTION_PREFIX}:`)) {
           return handleQuickBookingCallback(
             update.callback_query as TelegramCallbackQuery,
@@ -1833,6 +2013,43 @@ const formatDeepLinkPhone = (value: string): string | null => {
         text: redactTextForLog(text),
         from: from.username,
       });
+
+      const adminCommand = typeof text === 'string'
+        ? text.trim().split(/\s+/)[0]?.split('@')[0]
+        : null;
+
+      if (
+        typeof text === 'string' &&
+        isAdminMessage(chatId, from.id) &&
+        message.reply_to_message?.text?.includes(AI_ANALYST_FORCE_REPLY_MARKER)
+      ) {
+        await sendPlainTelegramMessage(chatId, '⏳ Анализирую агрегированные данные...');
+        try {
+          const response = await answerAiAnalystQuestion(text);
+          await sendPlainTelegramMessage(chatId, response, buildAiAnalystKeyboard());
+        } catch (error) {
+          console.error('[Telegram Webhook] Custom AI analyst question failed:', {
+            errorType: error instanceof Error ? error.name : 'unknown_error',
+          });
+          await sendPlainTelegramMessage(
+            chatId,
+            'Не удалось подготовить ответ. Попробуйте позже через /ask.',
+            buildAiAnalystKeyboard(),
+          );
+        }
+        return NextResponse.json({ ok: true });
+      }
+
+      if (isAdminMessage(chatId, from.id) && adminCommand === '/ask') {
+        await setupAdminTelegramMenu(chatId);
+        await sendAiAnalystMenu(chatId);
+        return NextResponse.json({ ok: true });
+      }
+
+      if (isAdminMessage(chatId, from.id) && adminCommand === '/report') {
+        await sendDailyReportToChat(chatId);
+        return NextResponse.json({ ok: true });
+      }
       
       // Команда /start
       if (

@@ -12,6 +12,10 @@ import { getBookingMethodLabel } from '@/lib/booking/booking-method';
 import { buildUpcomingAppointmentsMarkdownReport } from '@/lib/booking/upcoming-appointments-report';
 import { getSiteVisitSummary } from '@/lib/site-analytics';
 import {
+  buildGscInsights,
+  formatGscInsightsMarkdown,
+} from '@/lib/analytics/gsc-insights';
+import {
   assertTelegramAdminDelivery,
   sendTelegramAdminMessage,
 } from '@/lib/telegram/sender';
@@ -213,6 +217,7 @@ export interface DailySummaryData {
   sitePageviews: number;
   aiReferrals: number;
   aiTrafficSources: Array<{ source: string; label: string; visits: number; pageviews: number }>;
+  trafficSources: Array<{ source: string; label: string; visits: number; pageviews: number }>;
   appointmentCreations: number;
   bookingMethods: Array<{ method: string; label: string; count: number }>;
   totalSessions: number;
@@ -290,21 +295,20 @@ async function buildDailySummaryOnce(date?: Date | string): Promise<DailySummary
   const { start: dayStart, end: dayEnd } = orgDayRange(dateISO);
   const dateStr = displayDateISO(dateISO);
 
-  const [sessions, siteSummary, createdAppointments] = await Promise.all([
-    prisma.aiChatSession.findMany({
-      where: { startedAt: { gte: dayStart, lt: dayEnd } },
-    }),
-    getSiteVisitSummary(dateISO),
-    prisma.appointment.findMany({
-      where: {
-        createdAt: { gte: dayStart, lt: dayEnd },
-        deletedAt: null,
-      },
-      select: {
-        bookingMethod: true,
-      },
-    }),
-  ]);
+  // Keep report DB work sequential so one request cannot fan out Neon connections.
+  const sessions = await prisma.aiChatSession.findMany({
+    where: { startedAt: { gte: dayStart, lt: dayEnd } },
+  });
+  const siteSummary = await getSiteVisitSummary(dateISO);
+  const createdAppointments = await prisma.appointment.findMany({
+    where: {
+      createdAt: { gte: dayStart, lt: dayEnd },
+      deletedAt: null,
+    },
+    select: {
+      bookingMethod: true,
+    },
+  });
 
   const bookingMethodCounts = new Map<string, number>();
   for (const appointment of createdAppointments) {
@@ -329,6 +333,7 @@ async function buildDailySummaryOnce(date?: Date | string): Promise<DailySummary
       sitePageviews: siteSummary.sitePageviews,
       aiReferrals: siteSummary.aiReferrals,
       aiTrafficSources: siteSummary.aiTrafficSources,
+      trafficSources: siteSummary.trafficSources,
       appointmentCreations: createdAppointments.length,
       bookingMethods,
       totalSessions: 0, completedBookings: 0, conversionRate: 0,
@@ -387,6 +392,7 @@ async function buildDailySummaryOnce(date?: Date | string): Promise<DailySummary
     sitePageviews: siteSummary.sitePageviews,
     aiReferrals: siteSummary.aiReferrals,
     aiTrafficSources: siteSummary.aiTrafficSources,
+    trafficSources: siteSummary.trafficSources,
     appointmentCreations: createdAppointments.length,
     bookingMethods,
     totalSessions: total,
@@ -522,29 +528,55 @@ async function checkErrorRateAlertOnce(
 // ─── Send Functions ─────────────────────────────────────────
 
 /**
- * Send the daily summary to Telegram admin chat.
+ * Build the complete report. GSC/OpenAI does not touch PostgreSQL, so that
+ * pipeline starts alongside the sequential DB-backed report work.
  */
-export async function sendDailySummaryToTelegram(date?: Date | string): Promise<boolean> {
+export async function buildDailyTelegramReport(date?: Date | string): Promise<{
+  message: string;
+  summary: DailySummaryData;
+}> {
+  const gscBlockPromise = buildGscInsights()
+    .then(formatGscInsightsMarkdown)
+    .catch((error) => {
+      console.error('[AI Health] Failed to build GSC insights block:', {
+        errorType: error instanceof Error ? error.name : 'unknown_error',
+      });
+      return '🔎 *TOP\\-10 запросов Google*\n\nДанные Search Console временно недоступны\\. Основной отчёт продолжает работать\\.';
+    });
+  const summary = await buildDailySummary(date);
+  let upcomingAppointments: string;
+
   try {
-    const summary = await buildDailySummary(date);
-    let upcomingAppointments: string;
+    upcomingAppointments = await withTransientDbRetry(
+      'build upcoming appointments report',
+      () => buildUpcomingAppointmentsMarkdownReport(7, { limit: 12 }),
+    );
+  } catch (upcomingError) {
+    console.error('[AI Health] Failed to build upcoming appointments block:', upcomingError);
+    upcomingAppointments =
+      '📅 *Ближайшие термины на 7 дней*\n\nНе удалось получить список из\\-за временной ошибки БД\\. Откройте список через меню бота: /admin';
+  }
 
-    try {
-      upcomingAppointments = await withTransientDbRetry(
-        'build upcoming appointments report',
-        () => buildUpcomingAppointmentsMarkdownReport(7, { limit: 12 }),
-      );
-    } catch (upcomingError) {
-      console.error('[AI Health] Failed to build upcoming appointments block:', upcomingError);
-      upcomingAppointments =
-        '📅 *Ближайшие термины на 7 дней*\n\nНе удалось получить список из\\-за временной ошибки БД\\. Откройте список через меню бота: /admin';
-    }
+  const gscBlock = await gscBlockPromise;
+  const message = `${formatDailySummaryTelegram(summary)}
 
-    const message = `${formatDailySummaryTelegram(summary)}
+━━━━━━━━━━━━━━━━━━━━━
+
+${gscBlock}
 
 ━━━━━━━━━━━━━━━━━━━━━
 
 ${upcomingAppointments}`;
+
+  return { message, summary };
+}
+
+/**
+ * Send the daily summary to Telegram admin chat.
+ */
+export async function sendDailySummaryToTelegram(date?: Date | string): Promise<boolean> {
+  try {
+    const { message, summary } = await buildDailyTelegramReport(date);
     const results = await sendTelegramAdminMessage(message, {
       parseMode: 'Markdown',
     });

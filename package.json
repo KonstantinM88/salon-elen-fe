@@ -11,6 +11,7 @@
         "prisma:generate": "prisma generate",
         "prisma:migrate": "prisma migrate deploy",
         "typecheck": "tsc --noEmit",
+        "test:telegram-analyst": "tsx --test src/lib/telegram/sender.test.ts src/lib/analytics/gsc-insights.test.ts",
         "db:reset": "rimraf prisma/dev.db && prisma migrate reset --force",
         "vercel-build": "prisma generate && next build",
         "prisma:seed": "tsx prisma/seed.ts",

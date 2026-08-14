@@ -406,3 +406,21 @@ Useful scripts:
   separately. Recharts 3.10 requires narrowing tooltip labels before date
   formatting, and dynamic upload paths should retain the Turbopack trace-ignore
   annotation so production output does not include the whole project.
+- 2026-08-14: Telegram admin analytics now includes `/ask`, `/report`, and a
+  read-only inline AI-analyst menu. Search Console access lives in
+  `src/lib/google/search-console.ts` and uses service-account Search Analytics
+  only: no URL Inspection, no per-URL indexing checks, no PostgreSQL, a 20s
+  timeout, the latest seven-day period ending two days ago, and at most 250
+  query candidates. Daily reports rank TOP-10 queries by impressions, then
+  clicks and better average position. OpenAI receives only the exact TOP-10
+  aggregate query/impressions/clicks/CTR/position rows; server validation rejects
+  invented queries, duplicate queries, and unknown actions, and a deterministic
+  fallback keeps GSC/OpenAI failures from blocking the report. Custom analyst
+  questions use ForceReply without persistent conversation state and resolve at
+  most two aggregate sources sequentially when DB data is involved. No new
+  cron, worker, polling, Prisma client, table, or migration was added. The shared
+  `src/lib/telegram/sender.ts` splits messages at 4000 characters, preferring
+  line boundaries, sends parts sequentially, stops on failure, and attaches
+  reply markup only to the final part; a recipient is successful only after all
+  parts are delivered. Production setup and privacy constraints are documented
+  in `readme/TELEGRAM_AI_ANALYST.md`.
