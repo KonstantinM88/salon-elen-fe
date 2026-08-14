@@ -572,6 +572,12 @@ const formatDeepLinkPhone = (value: string): string | null => {
         ],
         [
           {
+            text: '🏙 Конкуренты и AI',
+            callback_data: `${AI_ANALYST_ACTION_PREFIX}:competitors`,
+          },
+        ],
+        [
+          {
             text: '📋 Общая сводка',
             callback_data: `${AI_ANALYST_ACTION_PREFIX}:summary`,
           },

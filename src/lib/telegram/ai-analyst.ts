@@ -6,8 +6,13 @@ import {
   formatGscInsightsPlainText,
   formatGscInteger,
   formatGscPosition,
+  formatGscRecommendationText,
   type GscInsights,
 } from "@/lib/analytics/gsc-insights";
+import {
+  buildLocalCompetitorAiContext,
+  formatLocalCompetitorsPlainText,
+} from "@/lib/analytics/local-competitors";
 
 export const AI_ANALYST_ACTION_PREFIX = "analyst";
 export const AI_ANALYST_FORCE_REPLY_MARKER = "Вопрос для AI-аналитика";
@@ -18,6 +23,7 @@ export const AI_ANALYST_ACTIONS = [
   "bookings",
   "reviews",
   "local",
+  "competitors",
   "summary",
   "custom",
 ] as const;
@@ -32,7 +38,7 @@ export function buildAiAnalystMenuText(): string {
   return [
     "🧠 AI-аналитик Salon Elen",
     "",
-    "Выберите раздел. Аналитик работает только на чтение и использует реальные агрегированные данные.",
+    "Выберите раздел. Аналитик работает только на чтение и использует реальные агрегированные данные и проверенный публичный контекст.",
     "Если источник не подключён или данных недостаточно, бот сообщит об этом прямо.",
   ].join("\n");
 }
@@ -134,6 +140,35 @@ function formatLocalVisibility(insights: GscInsights): string {
   return lines.join("\n");
 }
 
+function formatCompetitorAnalysis(insights: GscInsights): string {
+  const lines = [formatLocalCompetitorsPlainText(), "", "🧠 Приоритеты AI по данным GSC"];
+
+  if (insights.report.status !== "ok") {
+    lines.push(
+      insights.report.status === "not_configured"
+        ? "Search Console не настроен: конкурентный список доступен, но приоритеты запросов не рассчитаны."
+        : "Search Console временно недоступен: конкурентный список доступен без поисковых приоритетов.",
+    );
+    return lines.join("\n");
+  }
+
+  if (insights.recommendations.length === 0) {
+    lines.push("Недостаточно GSC-данных для рекомендаций.");
+  } else {
+    insights.recommendations.forEach((recommendation, index) => {
+      lines.push(
+        `${index + 1}. ${recommendation.query}: ${formatGscRecommendationText(recommendation)}`,
+      );
+    });
+  }
+
+  lines.push(
+    "",
+    "AI сравнивает только публичное позиционирование услуг. У него нет данных о рейтингах, трафике, качестве или доле рынка конкурентов.",
+  );
+  return lines.join("\n");
+}
+
 function formatGeneralSummary(summary: DailySummaryData, insights: GscInsights): string {
   const searchLine = insights.report.status === "ok"
     ? `Google за ${insights.report.startDate} — ${insights.report.endDate}: ${formatGscInteger(insights.report.totals.impressions)} показов, ${formatGscInteger(insights.report.totals.clicks)} кликов, CTR ${formatGscCtr(insights.report.totals.ctr)}, средняя позиция ${formatGscPosition(insights.report.totals.position)}.`
@@ -166,6 +201,8 @@ export async function buildAiAnalystButtonResponse(
       return formatReviewsUnavailable();
     case "local":
       return formatLocalVisibility(await buildGscInsights({ includeRecommendations: false }));
+    case "competitors":
+      return formatCompetitorAnalysis(await buildGscInsights());
     case "summary": {
       const summary = await buildDailySummary();
       const insights = await buildGscInsights({ includeRecommendations: false });
@@ -189,21 +226,28 @@ function containsSensitiveOrWriteIntent(question: string): boolean {
 function selectCustomSources(question: string): {
   daily: boolean;
   gsc: boolean;
+  competitors: boolean;
   reviewsOnly: boolean;
 } {
   const reviews = /отзыв|репутац|rating|review/i.test(question);
   const gsc = /google|поиск|запрос|показ|клик|ctr|позици|seo|локаль|видимост|halle/i.test(question);
   const daily = /трафик|канал|посещ|просмотр|бронир|запис|конверси|ассистент|сайт/i.test(question);
+  const competitors = /конкурент|сравн|рынок|market|competitor/i.test(question);
 
-  if (reviews && !gsc && !daily) {
-    return { daily: false, gsc: false, reviewsOnly: true };
+  if (reviews && !gsc && !daily && !competitors) {
+    return { daily: false, gsc: false, competitors: false, reviewsOnly: true };
   }
 
-  if (!gsc && !daily) {
-    return { daily: true, gsc: true, reviewsOnly: false };
+  if (!gsc && !daily && !competitors) {
+    return { daily: true, gsc: true, competitors: false, reviewsOnly: false };
   }
 
-  return { daily, gsc, reviewsOnly: false };
+  return {
+    daily,
+    gsc: gsc || competitors,
+    competitors,
+    reviewsOnly: false,
+  };
 }
 
 function dailyContext(summary: DailySummaryData) {
@@ -236,6 +280,13 @@ function gscContext(insights: GscInsights) {
       ctr: metric.ctr,
       averagePosition: metric.position,
     })),
+    popularQuerySignals: {
+      leaders: insights.popularQueryAnalysis.leaders.map((metric) => metric.query),
+      quickWins: insights.popularQueryAnalysis.quickWins.map((metric) => metric.query),
+      lowCtrOpportunities: insights.popularQueryAnalysis.lowCtrOpportunities.map(
+        (metric) => metric.query,
+      ),
+    },
   };
 }
 
@@ -266,6 +317,8 @@ async function askOpenAiAnalyst(
               "Не предлагай near-duplicate SEO-страницы; сначала усиливай существующий канонический контент.",
               "Не выполняй действия и не запрашивай персональные данные или секреты.",
               "Учитывай, что GSC impressions не являются общим search volume, а position является средней за период.",
+              "Конкурентный контекст является только снимком публичного позиционирования.",
+              "Не придумывай конкурентам рейтинги, трафик, качество, долю рынка, расстояние или отсутствующие услуги и не заявляй превосходство Salon Elen.",
             ].join(" "),
           },
           {
@@ -319,6 +372,9 @@ export async function answerAiAnalystQuestion(question: string): Promise<string>
     insights = await buildGscInsights({ includeRecommendations: false });
     context.searchConsole = gscContext(insights);
   }
+  if (sources.competitors) {
+    context.localMarket = buildLocalCompetitorAiContext();
+  }
 
   const answer = await askOpenAiAnalyst(normalizedQuestion, context);
   if (answer) return answer;
@@ -337,6 +393,11 @@ export async function answerAiAnalystQuestion(question: string): Promise<string>
       totals: { clicks: 0, impressions: 0, ctr: 0, position: 0 },
     },
     topQueries: [],
+    popularQueryAnalysis: {
+      leaders: [],
+      quickWins: [],
+      lowCtrOpportunities: [],
+    },
     recommendations: [],
     recommendationSource: "none",
   }));

@@ -100,6 +100,9 @@ Useful scripts:
 
 - Keep changes scoped to the requested behavior and the local project patterns.
 - Do not overwrite user changes. Check `git status --short` before larger edits.
+- Never create a commit, push a branch, open a pull request, or deploy to
+  production without the user's explicit instruction for that specific action.
+  A request to implement or verify code grants permission only for local changes.
 - Do not edit `.env`, secrets, production credentials, or uploaded content
   unless the user explicitly asks.
 - For Prisma schema changes, update `prisma/schema.prisma`, add/adjust
@@ -124,6 +127,19 @@ Useful scripts:
 
 ## Important Change Log
 
+- 2026-08-14: Telegram `/report` and `/ask` search analytics include a
+  deterministic popular-query breakdown (visibility leaders, positions 4-20,
+  and low-CTR opportunities) plus five locally relevant competitor profiles
+  maintained in `src/lib/analytics/local-competitors.ts`. Competitor data is a
+  dated public positioning reference, not a live Google Maps ranking; never
+  infer ratings, traffic, quality, distance, missing services, or market share.
+  OpenAI may prioritize up to five exact GSC queries using only constrained
+  actions and this grounded context, with a deterministic fallback. This adds
+  no database queries, migrations, cron jobs, background workers, or live
+  competitor scraping.
+- 2026-08-14: Repository operations now require explicit user authorization:
+  agents must not commit, push, open a pull request, or deploy merely because
+  implementation and verification are complete.
 - 2026-05-20: Created this `AGENTS.md` as the initial project memory. Captured
   current structure, stack, booking/auth/i18n/AI conventions, and working rules.
 - 2026-05-20: PM2 production config should bind Next.js to `127.0.0.1:3000`
@@ -406,6 +422,12 @@ Useful scripts:
   separately. Recharts 3.10 requires narrowing tooltip labels before date
   formatting, and dynamic upload paths should retain the Turbopack trace-ignore
   annotation so production output does not include the whole project.
+- 2026-08-14: Telegram GSC reports present summary totals and every TOP-query
+  metric on separate icon-led rows. Keep position, impressions, clicks, and CTR
+  visually distinct in both Markdown daily reports and plain-text bot views;
+  do not collapse these values back into a single dense line. Popular-query
+  analysis must also keep leaders, quick wins, and low-CTR opportunities in
+  separated sections with one query block per item for mobile readability.
 - 2026-08-14: Telegram admin analytics now includes `/ask`, `/report`, and a
   read-only inline AI-analyst menu. Search Console access lives in
   `src/lib/google/search-console.ts` and uses service-account Search Analytics
