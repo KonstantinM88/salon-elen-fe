@@ -116,6 +116,7 @@ export async function GET(req: Request): Promise<Response> {
       id: true,
       status: true,
       startAt: true,
+      finalPriceCents: true,
       service: { select: { id: true, name: true, priceCents: true } },
       master: { select: { id: true, name: true } },
       client: { select: { id: true, name: true, phone: true } },
@@ -157,10 +158,10 @@ export async function GET(req: Request): Promise<Response> {
       r.total += 1;
       if (a.status === AppointmentStatus.DONE) {
         r.done += 1;
-        r.revenueDone += a.service?.priceCents ?? 0;
+        r.revenueDone += a.finalPriceCents ?? a.service?.priceCents ?? 0;
       } else if (a.status === AppointmentStatus.CONFIRMED && a.startAt >= now) {
         r.futureConfirmed += 1;
-        r.revenueFutureConfirmed += a.service?.priceCents ?? 0;
+        r.revenueFutureConfirmed += a.finalPriceCents ?? a.service?.priceCents ?? 0;
       } else if (a.status === AppointmentStatus.CANCELED) {
         r.canceled += 1;
       } else if (a.status === AppointmentStatus.PENDING) {
@@ -200,10 +201,10 @@ export async function GET(req: Request): Promise<Response> {
       r.total += 1;
       if (a.status === AppointmentStatus.DONE) {
         r.done += 1;
-        r.revenueDone += a.service?.priceCents ?? 0;
+        r.revenueDone += a.finalPriceCents ?? a.service?.priceCents ?? 0;
       } else if (a.status === AppointmentStatus.CONFIRMED && a.startAt >= now) {
         r.futureConfirmed += 1;
-        r.revenueFutureConfirmed += a.service?.priceCents ?? 0;
+        r.revenueFutureConfirmed += a.finalPriceCents ?? a.service?.priceCents ?? 0;
       }
       by.set(sid, r);
     }
@@ -233,7 +234,7 @@ export async function GET(req: Request): Promise<Response> {
       const { key, start } = makeKey(a.startAt);
       const b = buckets.get(key) ?? { key, start, cnt: 0, rev: 0 };
       b.cnt += 1;
-      b.rev += a.service?.priceCents ?? 0;
+      b.rev += a.finalPriceCents ?? a.service?.priceCents ?? 0;
       buckets.set(key, b);
     }
 
@@ -260,7 +261,7 @@ export async function GET(req: Request): Promise<Response> {
         a.client?.name ?? '',
         a.client?.phone ?? '',
         a.service?.name ?? '',
-        (a.service?.priceCents || 0) / 100,
+        (a.finalPriceCents ?? a.service?.priceCents ?? 0) / 100,
       ]);
     }
     csv = toCSV(rows);

@@ -130,6 +130,10 @@ export async function POST(request: NextRequest) {
         expiresAt,
         verified: false,
         telegramUserId: matchedUser.telegramUserId,
+        originalPriceCents: draft.originalPriceCents,
+        finalPriceCents: draft.finalPriceCents,
+        promotionTitle: draft.promotionTitle,
+        promotionPercent: draft.promotionPercent,
       },
     });
 

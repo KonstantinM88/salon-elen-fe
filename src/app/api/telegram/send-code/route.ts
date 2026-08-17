@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import {
+  getServicePromotionPricing,
+  promotionPricingSnapshot,
+} from "@/lib/promotions";
 import { isPhoneDigitsValid, normalizePhoneDigits } from "@/lib/phone";
 import { maskPhoneForLog } from "@/lib/telegram/logging";
 import { sendTelegramMessage } from "@/lib/telegram/sender";
@@ -33,6 +37,30 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { error: "Missing required fields" },
         { status: 400 },
+      );
+    }
+
+    const appointmentStartAt = new Date(startAt);
+    const appointmentEndAt = new Date(endAt);
+    if (
+      Number.isNaN(appointmentStartAt.getTime()) ||
+      Number.isNaN(appointmentEndAt.getTime()) ||
+      appointmentEndAt <= appointmentStartAt
+    ) {
+      return NextResponse.json(
+        { error: "Invalid appointment interval" },
+        { status: 400 },
+      );
+    }
+
+    const servicePricing = await getServicePromotionPricing(
+      serviceId,
+      appointmentStartAt,
+    );
+    if (!servicePricing) {
+      return NextResponse.json(
+        { error: "Service not found or inactive" },
+        { status: 404 },
       );
     }
 
@@ -96,6 +124,7 @@ export async function POST(request: NextRequest) {
         expiresAt,
         verified: false,
         telegramUserId: matchedUser.telegramUserId,
+        ...promotionPricingSnapshot(servicePricing),
       },
     });
 

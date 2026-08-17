@@ -251,6 +251,10 @@ export async function POST(request: NextRequest) {
           status: 'PENDING',
           paymentStatus: 'PENDING',
           bookingMethod: BOOKING_METHOD.websiteTelegram,
+          originalPriceCents: draft.originalPriceCents,
+          finalPriceCents: draft.finalPriceCents,
+          promotionTitle: draft.promotionTitle,
+          promotionPercent: draft.promotionPercent,
         },
       });
 

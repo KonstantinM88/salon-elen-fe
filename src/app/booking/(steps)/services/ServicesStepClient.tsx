@@ -9,11 +9,12 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useRouter, useSearchParams } from "next/navigation";
 import { BookingAnimatedBackground } from "@/components/layout/BookingAnimatedBackground";
 import PremiumProgressBar from "@/components/PremiumProgressBar";
-import { Sparkles, Star, Zap, Award } from "lucide-react";
+import { Award, CalendarDays, Sparkles, Star, Zap } from "lucide-react";
 
 import type { MessageKey } from "@/i18n/messages";
 import { useI18n } from "@/i18n/I18nProvider";
 import { useTranslations } from "@/i18n/useTranslations";
+import { formatPromotionAppointmentPeriod } from "@/lib/promotion-constants";
 
 function FloatingParticles() {
   const [particles, setParticles] = React.useState<
@@ -71,6 +72,14 @@ interface ServiceDto {
   durationMin: number;
   priceCents: number | null;
   parentId: string;
+  promotion: {
+    id: string;
+    title: string;
+    percent: number;
+    from: string;
+    to: string;
+    discountedPriceCents: number;
+  } | null;
 }
 
 interface GroupDto {
@@ -190,7 +199,11 @@ export default function ServicesPage(): React.JSX.Element {
 
   const totalPrice = allServices
     .filter((s) => selectedServices.includes(s.id))
-    .reduce((sum, s) => sum + (s.priceCents ?? 0), 0);
+    .reduce(
+      (sum, s) =>
+        sum + (s.promotion?.discountedPriceCents ?? s.priceCents ?? 0),
+      0,
+    );
 
   const totalDuration = allServices
     .filter((s) => selectedServices.includes(s.id))
@@ -422,9 +435,13 @@ export default function ServicesPage(): React.JSX.Element {
                       {group.services.map((service, index) => {
                         const isSelected = selectedServices.includes(service.id);
                         const isHovered = hoveredCard === service.id;
-                        const price = service.priceCents
-                          ? formatPrice(service.priceCents)
+                        const effectivePriceCents =
+                          service.promotion?.discountedPriceCents ?? service.priceCents;
+                        const price = effectivePriceCents != null
+                          ? formatPrice(effectivePriceCents)
                           : t("booking_price_on_request");
+                        const promoLabel =
+                          locale === "ru" ? "АКЦИЯ" : locale === "en" ? "SALE" : "AKTION";
 
                         return (
                           <motion.div
@@ -566,11 +583,13 @@ export default function ServicesPage(): React.JSX.Element {
                                       }}
                                       className="relative"
                                     >
-                                      <div className="absolute inset-0 rounded-full bg-gradient-to-r from-amber-500 to-yellow-500 blur-md opacity-50" />
-                                      <div className="relative inline-flex items-center gap-1 rounded-full border border-amber-500/60 bg-black/80 px-2.5 py-1">
+                                      <div className={`absolute inset-0 rounded-full blur-md opacity-60 ${service.promotion ? "bg-gradient-to-r from-fuchsia-500 to-rose-500" : "bg-gradient-to-r from-amber-500 to-yellow-500"}`} />
+                                      <div className={`relative inline-flex items-center gap-1 rounded-full border bg-black/80 px-2.5 py-1 ${service.promotion ? "border-fuchsia-400/70" : "border-amber-500/60"}`}>
                                         <Sparkles className="h-3 w-3 text-amber-300" />
-                                        <span className="text-[10px] font-semibold uppercase tracking-wide text-amber-100">
-                                          premium
+                                        <span className={`text-[10px] font-semibold uppercase tracking-wide ${service.promotion ? "text-fuchsia-100" : "text-amber-100"}`}>
+                                          {service.promotion
+                                            ? `-${service.promotion.percent}% ${promoLabel}`
+                                            : "premium"}
                                         </span>
                                       </div>
                                     </motion.div>
@@ -594,12 +613,32 @@ export default function ServicesPage(): React.JSX.Element {
 
                                   <div className="flex items-end justify-between gap-3">
                                     <div>
+                                      {service.promotion && service.priceCents != null && (
+                                        <div className="mb-1.5">
+                                          <div className="flex items-center gap-2 text-xs font-semibold text-rose-200/70">
+                                            <span className="line-through decoration-rose-400/80 decoration-2">
+                                              {formatPrice(service.priceCents)} €
+                                            </span>
+                                            <span className="text-fuchsia-300">{service.promotion.title}</span>
+                                          </div>
+                                          <div className="mt-1 flex items-start gap-1.5 text-[10px] leading-4 text-fuchsia-100/75">
+                                            <CalendarDays className="mt-0.5 h-3 w-3 shrink-0" />
+                                            <span>
+                                              {formatPromotionAppointmentPeriod(
+                                                service.promotion.from,
+                                                service.promotion.to,
+                                                locale,
+                                              )}
+                                            </span>
+                                          </div>
+                                        </div>
+                                      )}
                                       <div className="mb-0.5 flex items-baseline gap-1.5">
-                                        <span className="bg-gradient-to-r from-amber-300 to-yellow-400 bg-clip-text text-2xl font-extrabold text-transparent italic md:text-3xl">
+                                        <span className={`bg-clip-text text-2xl font-extrabold text-transparent italic md:text-3xl ${service.promotion ? "bg-gradient-to-r from-fuchsia-300 via-rose-200 to-amber-300" : "bg-gradient-to-r from-amber-300 to-yellow-400"}`}>
                                           {price}
                                         </span>
-                                        <span className="text-lg font-bold text-amber-300 italic md:text-xl">
-                                          €
+                                        <span className={`text-lg font-bold italic md:text-xl ${service.promotion ? "text-rose-300" : "text-amber-300"}`}>
+                                          {effectivePriceCents == null ? "" : "€"}
                                         </span>
                                       </div>
                                       <div className="flex items-center gap-2 text-xs text-gray-400 italic md:text-sm">
@@ -2506,5 +2545,3 @@ export default function ServicesPage(): React.JSX.Element {
 //     </div>
 //   );
 // }
-
-

@@ -2,6 +2,7 @@
 import type { Metadata } from "next";
 import { prisma } from "@/lib/db";
 import PricesClient from "./PricesClient";
+import PromotionTicker from "@/components/promotions/PromotionTicker";
 import SeoLandingLinks from "@/components/seo/SeoLandingLinks";
 import {
   resolveUrlLocale,
@@ -12,6 +13,12 @@ import {
 } from "@/lib/seo-locale";
 import { resolveContentLocale } from "@/lib/seo-locale-server";
 import { SALON_SCHEMA_ID } from "@/lib/structured-data";
+import {
+  calculatePromotionalPriceCents,
+  distinctPromotionAnnouncements,
+  formatPromotionOrgDate,
+  getPublishedPromotionsForServices,
+} from "@/lib/promotions";
 
 export const dynamic = "force-dynamic";
 
@@ -60,6 +67,11 @@ type ServiceForLd = {
   description: string | null;
   priceCents: number | null;
   durationMin: number;
+  promotion: {
+    discountedPriceCents: number;
+    from: string;
+    to: string;
+  } | null;
 };
 
 function buildJsonLd(locale: SeoLocale, services: ServiceForLd[]) {
@@ -92,10 +104,16 @@ function buildJsonLd(locale: SeoLocale, services: ServiceForLd[]) {
           name: s.name,
           ...(s.description ? { description: s.description } : {}),
         },
-        ...(s.priceCents
+        ...((s.promotion?.discountedPriceCents ?? s.priceCents)
           ? {
-              price: (s.priceCents / 100).toFixed(2),
+              price: ((s.promotion?.discountedPriceCents ?? s.priceCents ?? 0) / 100).toFixed(2),
               priceCurrency: "EUR",
+              ...(s.promotion
+                ? {
+                    validFrom: s.promotion.from,
+                    priceValidUntil: s.promotion.to,
+                  }
+                : {}),
             }
           : {}),
       })),
@@ -138,22 +156,47 @@ async function getCategories(locale: SeoLocale) {
     },
   });
 
-  return categories
-    .filter((c) => c.children.length > 0)
-    .map((cat) => ({
+  const activeCategories = categories.filter((c) => c.children.length > 0);
+  const promotionMap = await getPublishedPromotionsForServices(
+    activeCategories.flatMap((category) => category.children.map((service) => service.id)),
+  );
+
+  const mappedCategories = activeCategories.map((cat) => ({
       id: cat.id,
       slug: cat.slug,
       name: cat.translations[0]?.name || cat.name,
-      services: cat.children.map((s) => ({
-        id: s.id,
-        slug: s.slug,
-        name: s.translations[0]?.name || s.name,
-        description: s.translations[0]?.description ?? s.description ?? null,
-        durationMin: s.durationMin,
-        priceCents: s.priceCents,
-        cover: s.cover,
-      })),
-    }));
+      services: cat.children.map((s) => {
+        const promotion = promotionMap.get(s.id) ?? null;
+        return {
+          id: s.id,
+          slug: s.slug,
+          name: s.translations[0]?.name || s.name,
+          description: s.translations[0]?.description ?? s.description ?? null,
+          durationMin: s.durationMin,
+          priceCents: s.priceCents,
+          cover: s.cover,
+          promotion:
+            promotion && s.priceCents != null
+              ? {
+                  id: promotion.id,
+                  title: promotion.title,
+                  percent: promotion.percent,
+                  from: formatPromotionOrgDate(promotion.from),
+                  to: formatPromotionOrgDate(promotion.to),
+                  discountedPriceCents: calculatePromotionalPriceCents(
+                    s.priceCents,
+                    promotion.percent,
+                  ),
+                }
+              : null,
+        };
+      }),
+  }));
+
+  return {
+    categories: mappedCategories,
+    promotionAnnouncements: distinctPromotionAnnouncements(promotionMap.values()),
+  };
 }
 
 /* ─────────────────── PAGE ─────────────────── */
@@ -164,7 +207,7 @@ export default async function PricesPage({
   searchParams?: SearchParamsPromise;
 }) {
   const locale = await resolveContentLocale(searchParams);
-  const categories = await getCategories(locale);
+  const { categories, promotionAnnouncements } = await getCategories(locale);
 
   // Flat list for JSON-LD
   const allServices = categories.flatMap((c) =>
@@ -173,11 +216,13 @@ export default async function PricesPage({
       description: s.description,
       priceCents: s.priceCents,
       durationMin: s.durationMin,
+      promotion: s.promotion,
     })),
   );
 
   return (
     <>
+      <PromotionTicker locale={locale} promotions={promotionAnnouncements} />
       <PricesClient locale={locale} categories={categories} />
       <SeoLandingLinks locale={locale} />
       <script

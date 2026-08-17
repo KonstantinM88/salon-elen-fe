@@ -4,6 +4,10 @@
 import { prisma } from "@/lib/prisma";
 import { wallMinutesToUtc } from "@/lib/orgTime";
 import { addMinutes as addMin, isBefore } from "date-fns";
+import {
+  getServicePromotionPricing,
+  promotionPricingSnapshot,
+} from "@/lib/promotions";
 
 import type {
   ActionResult,
@@ -270,6 +274,8 @@ export async function checkout(payload: {
   });
   const totalMin = services.reduce((a, s) => a + s.durationMin, 0);
   const end = addMin(start, totalMin);
+  const servicePricing = await getServicePromotionPricing(serviceIds[0], start);
+  if (!servicePricing) return { ok: false, error: "Услуга недоступна" };
 
   const overlap = await prisma.appointment.findFirst({
     where: {
@@ -292,6 +298,7 @@ export async function checkout(payload: {
       customerName: client.name,
       phone: client.phone,
       email: client.email,
+      ...promotionPricingSnapshot(servicePricing),
     },
     select: { id: true },
   });

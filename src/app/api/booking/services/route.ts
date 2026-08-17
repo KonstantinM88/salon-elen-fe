@@ -3,6 +3,20 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import {
+  calculatePromotionalPriceCents,
+  formatPromotionOrgDate,
+  getPublishedPromotionsForServices,
+} from '@/lib/promotions';
+
+type ServicePromotionDto = {
+  id: string;
+  title: string;
+  percent: number;
+  from: string;
+  to: string;
+  discountedPriceCents: number;
+};
 
 type ServiceDto = {
   id: string;
@@ -11,6 +25,7 @@ type ServiceDto = {
   durationMin: number;
   priceCents: number | null;
   parentId: string;
+  promotion: ServicePromotionDto | null;
 };
 
 type GroupDto = {
@@ -89,6 +104,10 @@ export async function POST(request: NextRequest) {
       orderBy: { name: 'asc' },
     });
 
+    const promotionMap = await getPublishedPromotionsForServices(
+      children.map((service) => service.id),
+    );
+
     // Формируем ответ с учетом переводов
     const groups: GroupDto[] = parents.map(p => {
       // Используем перевод если есть, иначе базовое название
@@ -102,6 +121,7 @@ export async function POST(request: NextRequest) {
           .filter(c => c.parentId === p.id)
           .map(c => {
             const childTranslation = c.translations[0];
+            const promotion = promotionMap.get(c.id) ?? null;
             return {
               id: c.id,
               title: childTranslation?.name || c.name,
@@ -109,19 +129,39 @@ export async function POST(request: NextRequest) {
               durationMin: c.durationMin,
               priceCents: c.priceCents ?? null,
               parentId: c.parentId!,
+              promotion:
+                promotion && c.priceCents != null
+                  ? {
+                      id: promotion.id,
+                      title: promotion.title,
+                      percent: promotion.percent,
+                      from: formatPromotionOrgDate(promotion.from),
+                      to: formatPromotionOrgDate(promotion.to),
+                      discountedPriceCents: calculatePromotionalPriceCents(
+                        c.priceCents,
+                        promotion.percent,
+                      ),
+                    }
+                  : null,
             };
           }),
       };
     });
 
-    const now = new Date();
-    const promos = await prisma.promotion.findMany({
-      where: { from: { lte: now }, to: { gte: now } },
-      select: { id: true, title: true, percent: true, isGlobal: true },
-      orderBy: [{ isGlobal: 'desc' }, { percent: 'desc' }],
-    });
+    const promotionById = new Map<string, PromotionDto>();
+    for (const promotion of promotionMap.values()) {
+      promotionById.set(promotion.id, {
+        id: promotion.id,
+        title: promotion.title,
+        percent: promotion.percent,
+        isGlobal: promotion.isGlobal,
+      });
+    }
 
-    const payload: Payload = { groups, promotions: promos };
+    const payload: Payload = {
+      groups,
+      promotions: Array.from(promotionById.values()),
+    };
     return NextResponse.json(payload);
   } catch (e) {
     console.error(e);

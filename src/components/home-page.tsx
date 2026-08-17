@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { motion, useReducedMotion } from "framer-motion";
@@ -38,6 +39,7 @@ type ArticleItem = {
 
 type Props = {
   latest: ArticleItem[];
+  promotionBanner?: ReactNode;
 };
 
 const MOBILE_HERO_COPY: Record<
@@ -515,7 +517,7 @@ function SectionHeading({
   );
 }
 
-export default function HomePage({ latest }: Props) {
+export default function HomePage({ latest, promotionBanner }: Props) {
   const { locale } = useI18n();
   const copy = COPY[locale];
   const mobileHero = MOBILE_HERO_COPY[locale];
@@ -728,6 +730,8 @@ export default function HomePage({ latest }: Props) {
           <span />
         </div>
       </section>
+
+      {promotionBanner}
 
       <section className={`border-b border-[#c79aa2]/25 bg-[#ead5d8] dark:border-white/10 dark:bg-[#432f36] ${styles.trustStrip}`}>
         <div className="mx-auto grid max-w-7xl grid-cols-2 px-5 sm:px-8 lg:grid-cols-4 lg:px-10">

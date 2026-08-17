@@ -18,7 +18,9 @@ import {
   ArrowRight,
   Images,
   Flower2,
+  CalendarDays,
 } from "lucide-react";
+import { formatPromotionAppointmentPeriod } from "@/lib/promotion-constants";
 
 type GalleryItem = { id: string; image: string; caption: string | null };
 
@@ -31,6 +33,14 @@ type ServiceChild = {
   durationMin: number;
   cover: string | null;
   gallery: GalleryItem[];
+  promotion: {
+    id: string;
+    title: string;
+    percent: number;
+    from: string;
+    to: string;
+    discountedPriceCents: number;
+  } | null;
 };
 
 type Category = {
@@ -373,9 +383,33 @@ function ServiceCard({
 
           {service.priceCents && (
             <div className="absolute top-3 right-3">
-              <span className="px-3 py-1.5 rounded-full bg-white dark:bg-white/10 backdrop-blur-sm text-rose-600 dark:text-rose-200 text-xs sm:text-sm font-bold shadow-lg border border-rose-200/50 dark:border-white/10">
-                {translations.from} {formatPrice(service.priceCents, locale)}
-              </span>
+              {service.promotion ? (
+                <div className="min-w-[112px] rounded-xl border border-white/60 bg-white/92 px-3 py-2 text-right shadow-xl backdrop-blur-md dark:border-fuchsia-300/30 dark:bg-zinc-950/88">
+                  <div className="inline-flex rounded-full bg-gradient-to-r from-fuchsia-600 to-rose-500 px-2 py-0.5 text-[10px] font-black uppercase text-white shadow-md">
+                    -{service.promotion.percent}% {locale === "ru" ? "АКЦИЯ" : locale === "en" ? "SALE" : "AKTION"}
+                  </div>
+                  <div className="mt-1 text-[11px] text-zinc-500 line-through decoration-rose-500 decoration-2 dark:text-white/45">
+                    {formatPrice(service.priceCents, locale)}
+                  </div>
+                  <div className="text-base font-black text-rose-600 dark:text-rose-300">
+                    {formatPrice(service.promotion.discountedPriceCents, locale)}
+                  </div>
+                  <div className="mt-1 flex max-w-[190px] items-start justify-end gap-1 text-[9px] font-semibold leading-3 text-rose-700/75 dark:text-rose-100/70">
+                    <CalendarDays className="mt-px h-2.5 w-2.5 shrink-0" />
+                    <span>
+                      {formatPromotionAppointmentPeriod(
+                        service.promotion.from,
+                        service.promotion.to,
+                        locale,
+                      )}
+                    </span>
+                  </div>
+                </div>
+              ) : (
+                <span className="rounded-full border border-rose-200/50 bg-white px-3 py-1.5 text-xs font-bold text-rose-600 shadow-lg backdrop-blur-sm dark:border-white/10 dark:bg-white/10 dark:text-rose-200 sm:text-sm">
+                  {translations.from} {formatPrice(service.priceCents, locale)}
+                </span>
+              )}
             </div>
           )}
 

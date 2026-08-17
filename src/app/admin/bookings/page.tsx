@@ -387,6 +387,10 @@ type BookingRow = Prisma.AppointmentGetPayload<{
     endAt: true;
     status: true;
     clientId: true;
+    originalPriceCents: true;
+    finalPriceCents: true;
+    promotionTitle: true;
+    promotionPercent: true;
     master: { select: { id: true; name: true } };
     service: {
       select: {
@@ -472,6 +476,10 @@ export default async function AdminBookingsPage({
       endAt: true,
       status: true,
       clientId: true, // ← ДОБАВЛЕНО для ссылки на клиента
+      originalPriceCents: true,
+      finalPriceCents: true,
+      promotionTitle: true,
+      promotionPercent: true,
       master: { select: { id: true, name: true } },
       service: {
         select: {
@@ -723,11 +731,21 @@ function DesktopBookingCard({
   intlLocale: string;
   locale: SeoLocale;
 }) {
-  const priceCents = booking.service?.priceCents;
+  const priceCents = booking.finalPriceCents ?? booking.service?.priceCents;
   const priceValue =
     priceCents != null ? (
-      <span className="font-semibold text-emerald-400">
-        {moneyFromCents(priceCents, intlLocale)}
+      <span className="inline-flex flex-wrap items-center gap-2 font-semibold text-emerald-400">
+        {booking.promotionPercent && booking.originalPriceCents != null && (
+          <span className="text-xs font-medium text-slate-500 line-through">
+            {moneyFromCents(booking.originalPriceCents, intlLocale)}
+          </span>
+        )}
+        <span>{moneyFromCents(priceCents, intlLocale)}</span>
+        {booking.promotionPercent && (
+          <span className="rounded-full bg-fuchsia-500/15 px-2 py-0.5 text-[10px] text-fuchsia-300">
+            -{booking.promotionPercent}%
+          </span>
+        )}
       </span>
     ) : (
       '—'
@@ -993,7 +1011,10 @@ function MobileBookingCard({
           <div className="flex items-center justify-between pt-2 border-t border-white/10">
             <span className="text-xs text-slate-400">{t.costWithColon}</span>
             <span className="text-base font-semibold text-emerald-400">
-              {moneyFromCents(booking.service?.priceCents, intlLocale)}
+              {moneyFromCents(
+                booking.finalPriceCents ?? booking.service?.priceCents,
+                intlLocale,
+              )}
             </span>
           </div>
         </div>

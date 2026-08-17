@@ -10,6 +10,10 @@ import {
 } from "@/lib/orgTime";
 import { prisma } from "@/lib/prisma";
 import { AppointmentStatus } from "@/lib/prisma-client";
+import {
+  getServicePromotionPricing,
+  promotionPricingSnapshot,
+} from "@/lib/promotions";
 import { sendAdminNotification } from "@/lib/send-admin-notification";
 import { notifyClientAppointmentStatus } from "@/lib/telegram-bot";
 import {
@@ -402,6 +406,10 @@ export async function createAdminQuickAppointment({
   }
 
   const newStartAt = wallMinutesToUtc(dateISO, startMinutes);
+  const servicePricing = await getServicePromotionPricing(serviceId, newStartAt);
+  if (!servicePricing) {
+    return { ok: false, error: "SERVICE_NOT_FOUND", message: "Service not found" };
+  }
 
   try {
     const result = await prisma.$transaction(async (tx) => {
@@ -530,6 +538,7 @@ export async function createAdminQuickAppointment({
           status: AppointmentStatus.CONFIRMED,
           paymentStatus: "PENDING",
           bookingMethod: BOOKING_METHOD.adminQuick,
+          ...promotionPricingSnapshot(servicePricing),
         },
         select: {
           id: true,

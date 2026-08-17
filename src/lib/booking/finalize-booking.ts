@@ -169,6 +169,10 @@ export async function finalizeBookingFromDraft(
           notes: draft.notes || null,
           locale: draft.locale || 'de',
           bookingMethod: draft.bookingMethod || 'website',
+          originalPriceCents: draft.originalPriceCents,
+          finalPriceCents: draft.finalPriceCents,
+          promotionTitle: draft.promotionTitle,
+          promotionPercent: draft.promotionPercent,
           status: 'PENDING',
         },
         include: {

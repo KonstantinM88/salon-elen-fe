@@ -6,6 +6,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { motion } from "framer-motion";
 import { Calendar, Clock, Euro, Heart, Images, X, ZoomIn } from "lucide-react";
+import { formatPromotionAppointmentPeriod } from "@/lib/promotion-constants";
 
 type GalleryItem = { id: string; image: string; caption: string | null };
 
@@ -18,6 +19,14 @@ type ServiceChild = {
   durationMin: number;
   cover: string | null;
   gallery: GalleryItem[];
+  promotion: {
+    id: string;
+    title: string;
+    percent: number;
+    from: string;
+    to: string;
+    discountedPriceCents: number;
+  } | null;
 };
 
 type Props = {
@@ -39,6 +48,35 @@ function formatPrice(cents: number | null, locale: string) {
       minimumFractionDigits: 0,
     },
   ).format(cents / 100);
+}
+
+function PromotionPrice({
+  service,
+  locale,
+  fromLabel,
+  compact = false,
+}: {
+  service: ServiceChild;
+  locale: string;
+  fromLabel: string;
+  compact?: boolean;
+}) {
+  if (!service.priceCents) return null;
+  if (!service.promotion) {
+    return <>{fromLabel} {formatPrice(service.priceCents, locale)}</>;
+  }
+
+  return (
+    <span className="inline-flex items-center gap-2">
+      <span className={`${compact ? "text-xs" : "text-sm"} opacity-65 line-through decoration-2`}>
+        {formatPrice(service.priceCents, locale)}
+      </span>
+      <span>{formatPrice(service.promotion.discountedPriceCents, locale)}</span>
+      <span className="rounded-full bg-white/20 px-2 py-0.5 text-[10px] font-black uppercase">
+        -{service.promotion.percent}%
+      </span>
+    </span>
+  );
 }
 
 function preloadImage(src?: string) {
@@ -178,7 +216,7 @@ export default function ServiceDetailModal({
             {service.priceCents && (
               <div className="absolute bottom-4 right-4 lg:hidden">
                 <span className="px-4 py-2 rounded-full bg-gradient-to-r from-rose-500 to-pink-500 text-white font-bold text-sm shadow-lg shadow-rose-500/30">
-                  {translations.from} {formatPrice(service.priceCents, locale)}
+                  <PromotionPrice service={service} locale={locale} fromLabel={translations.from} compact />
                 </span>
               </div>
             )}
@@ -194,8 +232,19 @@ export default function ServiceDetailModal({
                 {service.priceCents && (
                   <div className="hidden lg:block flex-shrink-0 mt-1">
                     <span className="px-5 py-2.5 rounded-full bg-gradient-to-r from-rose-500 to-pink-500 text-white font-bold text-lg shadow-lg shadow-rose-500/30">
-                      {translations.from} {formatPrice(service.priceCents, locale)}
+                      <PromotionPrice service={service} locale={locale} fromLabel={translations.from} />
                     </span>
+                  </div>
+                )}
+
+                {service.promotion && (
+                  <div className="inline-flex items-center gap-1.5 rounded-full border border-fuchsia-200 bg-fuchsia-50 px-3 py-1.5 text-xs font-semibold text-fuchsia-800 dark:border-fuchsia-400/30 dark:bg-fuchsia-500/15 dark:text-fuchsia-100 lg:px-4 lg:py-2 lg:text-sm">
+                    <Calendar className="h-4 w-4 shrink-0" />
+                    {formatPromotionAppointmentPeriod(
+                      service.promotion.from,
+                      service.promotion.to,
+                      locale,
+                    )}
                   </div>
                 )}
               </div>
@@ -209,7 +258,7 @@ export default function ServiceDetailModal({
                 {service.priceCents && (
                   <div className="inline-flex items-center gap-1.5 px-3 py-1.5 lg:px-4 lg:py-2 rounded-full bg-amber-100 border border-amber-200 text-amber-700 dark:bg-amber-500/20 dark:border-amber-400/30 dark:text-amber-200 text-sm lg:text-base lg:hidden">
                     <Euro className="w-4 h-4 lg:w-5 lg:h-5 text-amber-600 dark:text-amber-400" />
-                    {translations.from} {formatPrice(service.priceCents, locale)}
+                    <PromotionPrice service={service} locale={locale} fromLabel={translations.from} compact />
                   </div>
                 )}
               </div>

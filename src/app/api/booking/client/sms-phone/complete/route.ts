@@ -201,6 +201,10 @@ export async function POST(req: NextRequest) {
           status: 'PENDING',
           paymentStatus: 'PENDING',
           bookingMethod: BOOKING_METHOD.websiteSms,
+          originalPriceCents: registration.originalPriceCents,
+          finalPriceCents: registration.finalPriceCents,
+          promotionTitle: registration.promotionTitle,
+          promotionPercent: registration.promotionPercent,
         },
       });
 

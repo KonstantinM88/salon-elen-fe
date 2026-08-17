@@ -398,6 +398,7 @@ export default async function StatsPage({
       id: true,
       status: true,
       startAt: true,
+      finalPriceCents: true,
       service: { select: { id: true, name: true, priceCents: true } },
       master: { select: { id: true, name: true } },
     },
@@ -413,6 +414,7 @@ export default async function StatsPage({
     },
     select: {
       id: true,
+      finalPriceCents: true,
       service: { select: { priceCents: true } },
     },
   });
@@ -428,6 +430,7 @@ export default async function StatsPage({
       id: true,
       status: true,
       startAt: true,
+      finalPriceCents: true,
       service: { select: { id: true, name: true, priceCents: true } },
       master: { select: { id: true, name: true } },
     },
@@ -439,7 +442,7 @@ export default async function StatsPage({
     predicate: (a: (typeof appts)[number]) => boolean
   ) =>
     xs.reduce(
-      (acc, a) => (predicate(a) ? acc + (a.service?.priceCents ?? 0) : acc),
+      (acc, a) => (predicate(a) ? acc + (a.finalPriceCents ?? a.service?.priceCents ?? 0) : acc),
       0
     );
 
@@ -457,7 +460,7 @@ export default async function StatsPage({
   // будущие подтверждённые (из отдельного запроса)
   const futureConfirmed = futureApptsConfirmed.length;
   const revenueFutureConfirmed = futureApptsConfirmed.reduce(
-    (acc, a) => acc + (a.service?.priceCents ?? 0),
+    (acc, a) => acc + (a.finalPriceCents ?? a.service?.priceCents ?? 0),
     0
   );
 
@@ -505,11 +508,11 @@ export default async function StatsPage({
     r.total += 1;
     if (a.status === AppointmentStatus.DONE) {
       r.done += 1;
-      r.revenueDone += a.service?.priceCents ?? 0;
+      r.revenueDone += a.finalPriceCents ?? a.service?.priceCents ?? 0;
     } else if (a.status === AppointmentStatus.CONFIRMED) {
       if (a.startAt >= now) {
         r.futureConfirmed += 1;
-        r.revenueFutureConfirmed += a.service?.priceCents ?? 0;
+        r.revenueFutureConfirmed += a.finalPriceCents ?? a.service?.priceCents ?? 0;
       }
     } else if (a.status === AppointmentStatus.CANCELED) {
       r.canceled += 1;
@@ -532,7 +535,7 @@ export default async function StatsPage({
     const r = byMasterPrev.get(id) ?? { revenueDone: 0, done: 0, canceled: 0 };
     if (a.status === AppointmentStatus.DONE) {
       r.done += 1;
-      r.revenueDone += a.service?.priceCents ?? 0;
+      r.revenueDone += a.finalPriceCents ?? a.service?.priceCents ?? 0;
     } else if (a.status === AppointmentStatus.CANCELED) {
       r.canceled += 1;
     }
@@ -563,7 +566,7 @@ export default async function StatsPage({
     r.total += 1;
     if (a.status === AppointmentStatus.DONE) {
       r.done += 1;
-      r.revenueDone += a.service?.priceCents ?? 0;
+      r.revenueDone += a.finalPriceCents ?? a.service?.priceCents ?? 0;
     } else if (a.status === AppointmentStatus.CANCELED) {
       r.canceled += 1;
     }
@@ -603,11 +606,11 @@ export default async function StatsPage({
     r.total += 1;
     if (a.status === AppointmentStatus.DONE) {
       r.done += 1;
-      r.revenueDone += a.service?.priceCents ?? 0;
+      r.revenueDone += a.finalPriceCents ?? a.service?.priceCents ?? 0;
     } else if (a.status === AppointmentStatus.CANCELED) {
       r.canceled += 1;
     } else if (a.status === AppointmentStatus.CONFIRMED && a.startAt >= now) {
-      r.revenueFutureConfirmed += a.service?.priceCents ?? 0;
+      r.revenueFutureConfirmed += a.finalPriceCents ?? a.service?.priceCents ?? 0;
     }
     grouped.set(key, r);
   }

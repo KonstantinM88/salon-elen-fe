@@ -4,6 +4,10 @@
 import { prisma } from "@/lib/prisma";
 import { AppointmentStatus } from "@/lib/prisma-client";
 import { revalidatePath } from "next/cache";
+import {
+  getServicePromotionPricing,
+  promotionPricingSnapshot,
+} from "@/lib/promotions";
 
 /** Результат серверного действия */
 type ActionResult =
@@ -48,6 +52,11 @@ export async function book(form: BookForm): Promise<ActionResult> {
   const startAt = toDate(form.date, form.time);
   const endAt = new Date(startAt.getTime() + service.durationMin * 60_000);
 
+  const servicePricing = await getServicePromotionPricing(service.id, startAt);
+  if (!servicePricing) {
+    return { ok: false, error: "Услуга недоступна" };
+  }
+
   // проверяем пересечение с существующими записями
   const conflict = await prisma.appointment.findFirst({
     where: {
@@ -75,6 +84,7 @@ export async function book(form: BookForm): Promise<ActionResult> {
       email: form.email ?? null,
       notes: form.notes ?? null,
       status: AppointmentStatus.PENDING,
+      ...promotionPricingSnapshot(servicePricing),
     },
   });
 

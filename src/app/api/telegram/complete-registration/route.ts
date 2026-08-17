@@ -320,6 +320,10 @@ export async function POST(request: NextRequest) {
           status: 'PENDING',
           paymentStatus: 'PENDING',
           bookingMethod: BOOKING_METHOD.telegramBot,
+          originalPriceCents: verification.originalPriceCents,
+          finalPriceCents: verification.finalPriceCents,
+          promotionTitle: verification.promotionTitle,
+          promotionPercent: verification.promotionPercent,
         },
         include: {
           service: true,

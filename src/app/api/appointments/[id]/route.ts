@@ -46,7 +46,7 @@ export async function GET(
 
     // ✅ ВЫЧИСЛЯЕМ РЕАЛЬНУЮ СУММУ (в центах для Stripe)
     // Если priceCents null или undefined → fallback на 5000 (50€)
-    const totalPrice = appt.service.priceCents ?? 5000;
+    const totalPrice = appt.finalPriceCents ?? appt.service.priceCents ?? 5000;
     const totalPriceEur = (totalPrice / 100).toFixed(2);
 
     // Форматируем ответ для удобства использования
@@ -80,8 +80,11 @@ export async function GET(
       serviceDetails: {
         id: appt.service.id,
         name: appt.service.name,
-        price: appt.service.priceCents ?? 0, // ✅ priceCents
-        priceEur: ((appt.service.priceCents ?? 0) / 100).toFixed(2),
+        price: totalPrice,
+        priceEur: (totalPrice / 100).toFixed(2),
+        originalPrice: appt.originalPriceCents ?? appt.service.priceCents ?? 0,
+        promotionTitle: appt.promotionTitle,
+        promotionPercent: appt.promotionPercent,
         duration: appt.service.durationMin,
       },
     };

@@ -1,6 +1,11 @@
 // src/lib/ai/tools/list-services.ts
 
 import { prisma } from '@/lib/prisma';
+import {
+  calculatePromotionalPriceCents,
+  formatPromotionOrgDate,
+  getPublishedPromotionsForServices,
+} from '@/lib/promotions';
 
 interface Args {
   locale: string;
@@ -28,6 +33,11 @@ interface ServiceItem {
   description: string | null;
   durationMin: number;
   priceCents: number | null;
+  originalPriceCents: number | null;
+  promotionTitle: string | null;
+  promotionPercent: number | null;
+  promotionFrom: string | null;
+  promotionTo: string | null;
   parentId: string | null;
   groupId: string;
   groupTitle: string;
@@ -245,6 +255,10 @@ export async function listServices(args: Args) {
     }
   }
 
+  const promotionMap = await getPublishedPromotionsForServices(
+    visible.filter((row) => row.durationMin > 0).map((row) => row.id),
+  );
+
   const bookable: ServiceItem[] = visible
     .filter((row) => row.durationMin > 0)
     .map((row) => {
@@ -252,6 +266,11 @@ export async function listServices(args: Args) {
       const groupTitle = rootTitles.get(rootId) || 'Other services';
       const title = getLocalizedName(row, locale);
       const description = getLocalizedDescription(row, locale);
+      const promotion = promotionMap.get(row.id) ?? null;
+      const effectivePriceCents =
+        row.priceCents != null && promotion
+          ? calculatePromotionalPriceCents(row.priceCents, promotion.percent)
+          : row.priceCents ?? null;
       const searchText = normalizeText(
         [
           title,
@@ -267,7 +286,12 @@ export async function listServices(args: Args) {
         title,
         description,
         durationMin: row.durationMin,
-        priceCents: row.priceCents ?? null,
+        priceCents: effectivePriceCents,
+        originalPriceCents: row.priceCents ?? null,
+        promotionTitle: promotion?.title ?? null,
+        promotionPercent: promotion?.percent ?? null,
+        promotionFrom: promotion ? formatPromotionOrgDate(promotion.from) : null,
+        promotionTo: promotion ? formatPromotionOrgDate(promotion.to) : null,
         parentId: row.parentId,
         groupId: rootId,
         groupTitle,
@@ -301,6 +325,11 @@ export async function listServices(args: Args) {
         description: string | null;
         durationMin: number;
         priceCents: number | null;
+        originalPriceCents: number | null;
+        promotionTitle: string | null;
+        promotionPercent: number | null;
+        promotionFrom: string | null;
+        promotionTo: string | null;
       }>;
     }
   >();
@@ -321,6 +350,11 @@ export async function listServices(args: Args) {
       description: item.description,
       durationMin: item.durationMin,
       priceCents: item.priceCents,
+      originalPriceCents: item.originalPriceCents,
+      promotionTitle: item.promotionTitle,
+      promotionPercent: item.promotionPercent,
+      promotionFrom: item.promotionFrom,
+      promotionTo: item.promotionTo,
     });
   }
 
@@ -341,6 +375,11 @@ export async function listServices(args: Args) {
         title: item.title,
         durationMin: item.durationMin,
         priceCents: item.priceCents,
+        originalPriceCents: item.originalPriceCents,
+        promotionTitle: item.promotionTitle,
+        promotionPercent: item.promotionPercent,
+        promotionFrom: item.promotionFrom,
+        promotionTo: item.promotionTo,
         groupTitle: item.groupTitle,
       }))
     : [];

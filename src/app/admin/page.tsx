@@ -24,6 +24,7 @@ import {
   Sparkles,
   UserSquare2,
   Activity,
+  BadgePercent,
 } from "lucide-react";
 import type { ReactNode } from "react";
 import QuickBookingButton, {
@@ -61,6 +62,8 @@ type AdminCopy = {
   mastersDescription: string;
   prices: string;
   pricesDescription: string;
+  promotions: string;
+  promotionsDescription: string;
   calendar: string;
   calendarDescription: string;
   statistics: string;
@@ -115,6 +118,8 @@ const ADMIN_COPY: Record<SeoLocale, AdminCopy> = {
     mastersDescription: "Mitarbeiter, Leistungen, Fotos und Arbeitspläne.",
     prices: "Preise",
     pricesDescription: "Preisliste und Leistungen bearbeiten, inkl. Dauer und Kosten.",
+    promotions: "Aktionen",
+    promotionsDescription: "Rabatte, Aktionszeiträume und teilnehmende Leistungen steuern.",
     calendar: "Kalender",
     calendarDescription: "Salonplan, freie Slots und Ausnahmen nach Datum.",
     statistics: "Statistik",
@@ -189,6 +194,8 @@ const ADMIN_COPY: Record<SeoLocale, AdminCopy> = {
     mastersDescription: "Мастера, их услуги, фото и рабочие графики.",
     prices: "Цены",
     pricesDescription: "Редактирование страницы /prices: услуги, длительность и стоимость.",
+    promotions: "Акции",
+    promotionsDescription: "Управление скидками, сроками и услугами, участвующими в акции.",
     calendar: "Календарь",
     calendarDescription: "График салона, окна и исключения по датам.",
     statistics: "Статистика",
@@ -263,6 +270,8 @@ const ADMIN_COPY: Record<SeoLocale, AdminCopy> = {
     mastersDescription: "Masters, their services, photos and work schedules.",
     prices: "Prices",
     pricesDescription: "Edit /prices content: services, durations and pricing.",
+    promotions: "Promotions",
+    promotionsDescription: "Manage discounts, campaign dates and participating services.",
     calendar: "Calendar",
     calendarDescription: "Salon schedule, slots and date exceptions.",
     statistics: "Statistics",
@@ -835,7 +844,7 @@ export default async function AdminDashboard({
       ═══════════════════════════════════════════════════════════════════ */}
       <section>
         <h2 className="text-lg sm:text-xl font-semibold mb-4">{t.sectionQuickLinks}</h2>
-        <div className="grid gap-3 sm:gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+        <div className="grid grid-cols-1 gap-3 sm:gap-4 md:grid-cols-2 lg:grid-cols-3">
           <LinkCard
             title={t.masters}
             description={t.mastersDescription}
@@ -851,6 +860,14 @@ export default async function AdminDashboard({
             icon={<Edit3 className="h-5 w-5" />}
             color="violet"
             cta={t.edit}
+          />
+          <LinkCard
+            title={t.promotions}
+            description={t.promotionsDescription}
+            href="/admin/promotions"
+            icon={<BadgePercent className="h-5 w-5" />}
+            color="amber"
+            cta={t.openCta}
           />
           <LinkCard
             title={t.calendar}

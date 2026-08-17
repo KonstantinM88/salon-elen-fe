@@ -1,0 +1,271 @@
+.shell {
+  position: relative;
+  z-index: 20;
+  overflow: hidden;
+  contain: layout paint;
+  border-block: 1px solid rgba(151, 87, 103, 0.24);
+  background: #f1dfe2;
+  color: #4d2e37;
+  box-shadow: 0 8px 26px rgba(85, 49, 60, 0.08);
+}
+
+.shell::before {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 4px;
+  background: #ad526b;
+  content: "";
+}
+
+.link {
+  display: grid;
+  min-height: 54px;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: stretch;
+  color: inherit;
+  text-decoration: none;
+}
+
+.link:focus-visible {
+  outline: 2px solid #a1435e;
+  outline-offset: -3px;
+}
+
+.badge,
+.cta {
+  position: relative;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  background: #f8edef;
+}
+
+.badge {
+  border-right: 1px solid rgba(151, 87, 103, 0.2);
+  padding: 0 18px 0 20px;
+}
+
+.badgeIcon {
+  display: inline-flex;
+  width: 30px;
+  height: 30px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: #a94d66;
+  color: #fff;
+  box-shadow: 0 6px 16px rgba(123, 48, 69, 0.22);
+}
+
+.badgeIcon svg {
+  width: 15px;
+  height: 15px;
+}
+
+.badgeText,
+.cta {
+  font-size: 12px;
+  font-weight: 750;
+  text-transform: uppercase;
+}
+
+.badgeText {
+  color: #7d3549;
+}
+
+.viewport {
+  min-width: 0;
+  overflow: hidden;
+}
+
+.track {
+  display: flex;
+  width: max-content;
+  min-width: 100%;
+  height: 100%;
+  align-items: center;
+  will-change: transform;
+  animation: promotionTicker 34s linear infinite;
+}
+
+.link:hover .track,
+.link:focus-visible .track {
+  animation-play-state: paused;
+}
+
+.sequence {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 42px;
+  padding: 0 42px;
+}
+
+.item {
+  display: inline-flex;
+  align-items: center;
+  gap: 11px;
+  white-space: nowrap;
+}
+
+.item::after {
+  width: 4px;
+  height: 4px;
+  margin-left: 20px;
+  border-radius: 50%;
+  background: #b57182;
+  content: "";
+}
+
+.discount {
+  border: 1px solid rgba(155, 55, 82, 0.2);
+  border-radius: 6px;
+  background: #a94d66;
+  padding: 4px 8px;
+  color: #fff;
+  font-size: 12px;
+  line-height: 1;
+  box-shadow: 0 4px 12px rgba(123, 48, 69, 0.18);
+}
+
+.title {
+  font-family: var(--font-playfair), Georgia, serif;
+  font-size: 15px;
+  font-weight: 650;
+}
+
+.period {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #7c5b64;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.period svg {
+  width: 14px;
+  height: 14px;
+  color: #a94d66;
+}
+
+.cta {
+  border-left: 1px solid rgba(151, 87, 103, 0.2);
+  padding: 0 20px;
+  color: #7d3549;
+  transition: background-color 180ms ease, color 180ms ease;
+}
+
+.cta svg {
+  width: 15px;
+  height: 15px;
+  transition: transform 180ms ease;
+}
+
+.link:hover .cta {
+  background: #ead0d6;
+  color: #642538;
+}
+
+.link:hover .cta svg {
+  transform: translateX(3px);
+}
+
+:global(.dark) .shell {
+  border-color: rgba(235, 190, 200, 0.18);
+  background: #34252b;
+  color: #faebee;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.22);
+}
+
+:global(.dark) .badge,
+:global(.dark) .cta {
+  background: #422f36;
+}
+
+:global(.dark) .badge,
+:global(.dark) .cta {
+  border-color: rgba(235, 190, 200, 0.14);
+}
+
+:global(.dark) .badgeText,
+:global(.dark) .cta {
+  color: #f0c9d1;
+}
+
+:global(.dark) .period {
+  color: rgba(250, 235, 238, 0.68);
+}
+
+:global(.dark) .link:hover .cta {
+  background: #503640;
+  color: #fff;
+}
+
+@keyframes promotionTicker {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+
+@media (max-width: 700px) {
+  .link {
+    min-height: 50px;
+    grid-template-columns: 50px minmax(0, 1fr);
+  }
+
+  .badge {
+    justify-content: center;
+    padding: 0;
+  }
+
+  .badgeText,
+  .cta {
+    display: none;
+  }
+
+  .badgeIcon {
+    width: 28px;
+    height: 28px;
+  }
+
+  .sequence {
+    gap: 30px;
+    padding: 0 30px;
+  }
+
+  .item {
+    gap: 8px;
+  }
+
+  .item::after {
+    margin-left: 12px;
+  }
+
+  .title {
+    font-size: 14px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .track {
+    width: 100%;
+    min-width: 0;
+    animation: none;
+    will-change: auto;
+  }
+
+  .sequence {
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  .sequence:nth-child(2),
+  .sequence .item:not(:first-child) {
+    display: none;
+  }
+}

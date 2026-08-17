@@ -5,6 +5,10 @@ import { randomUUID } from "crypto";
 import { prisma } from "@/lib/prisma";
 import { BookingSchema } from "@/lib/validation/booking";
 import { wallMinutesToUtc } from "@/lib/orgTime";
+import {
+  getServicePromotionPricing,
+  promotionPricingSnapshot,
+} from "@/lib/promotions";
 
 // За сколько минут до начала ещё разрешаем запись (должно совпадать с /api/availability).
 const MIN_LEAD_MIN = 30;
@@ -56,6 +60,15 @@ export async function book(
       return { ok: false, formError: "Услуга не найдена или отключена." };
     }
 
+    // 4) Пересчёт времени в UTC
+    const startAt = wallMinutesToUtc(data.dateISO, data.startMin);
+    const endAt = wallMinutesToUtc(data.dateISO, data.endMin);
+
+    const servicePricing = await getServicePromotionPricing(service.id, startAt);
+    if (!servicePricing) {
+      return { ok: false, formError: "Услуга не найдена или отключена." };
+    }
+
     const master = await prisma.master.findUnique({
       where: { id: data.masterId },
       select: { id: true },
@@ -63,10 +76,6 @@ export async function book(
     if (!master) {
       return { ok: false, formError: "Мастер не найден." };
     }
-
-    // 4) Пересчёт времени в UTC
-    const startAt = wallMinutesToUtc(data.dateISO, data.startMin);
-    const endAt = wallMinutesToUtc(data.dateISO, data.endMin);
 
     // 5) Запрет на прошлое/слишком близкое время (как в /api/availability)
     const threshold = new Date(Date.now() + MIN_LEAD_MIN * 60_000);
@@ -145,6 +154,7 @@ export async function book(
         email: emailStr,
         notes: notesStr,
         status: "PENDING",
+        ...promotionPricingSnapshot(servicePricing),
       },
       select: { id: true },
     });

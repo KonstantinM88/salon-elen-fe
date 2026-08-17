@@ -181,6 +181,10 @@ export async function GET(req: NextRequest) {
         birthDate: true,
         referral: true,
         notes: true,
+        originalPriceCents: true,
+        finalPriceCents: true,
+        promotionTitle: true,
+        promotionPercent: true,
       },
     });
 
@@ -267,6 +271,10 @@ export async function GET(req: NextRequest) {
             notes: draft.notes,
             status: "PENDING",
             bookingMethod: BOOKING_METHOD.websiteGoogle,
+            originalPriceCents: draft.originalPriceCents,
+            finalPriceCents: draft.finalPriceCents,
+            promotionTitle: draft.promotionTitle,
+            promotionPercent: draft.promotionPercent,
           },
         });
 

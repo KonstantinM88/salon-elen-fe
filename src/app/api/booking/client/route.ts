@@ -2,6 +2,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { AppointmentStatus } from '@/lib/prisma-client';
+import {
+  getServicePromotionPricing,
+  promotionPricingSnapshot,
+} from '@/lib/promotions';
 
 type SubmitBody = {
   customerName: string;
@@ -114,22 +118,15 @@ export async function POST(
     // Проверка существования услуги и мастера
     const serviceId = serviceIds[0];
 
-    const [serviceExists, masterExists] = await Promise.all([
-      prisma.service.findFirst({
-        where: {
-          id: serviceId,
-          isActive: true,
-          isArchived: false,
-        },
-        select: { id: true },
-      }),
+    const [servicePricing, masterExists] = await Promise.all([
+      getServicePromotionPricing(serviceId, startAt),
       prisma.master.findFirst({
         where: { id: masterId },
         select: { id: true },
       }),
     ]);
 
-    if (!serviceExists) {
+    if (!servicePricing) {
       return NextResponse.json(
         { error: 'Услуга не найдена или недоступна' },
         { status: 404 }
@@ -156,6 +153,7 @@ export async function POST(
         birthDate: birthDateISO ? new Date(birthDateISO) : null,
         referral: referral ?? null,
         notes: notes ?? null,
+        ...promotionPricingSnapshot(servicePricing),
       },
     });
 

@@ -247,6 +247,11 @@ model Appointment {
   deletedBy            String?
   /// Язык клиента при бронировании (для email/sms уведомлений): "de", "ru", "en"
   locale               String?                @default("de")
+  /// Снимок цены на момент создания записи. Не меняется после завершения акции.
+  originalPriceCents   Int?
+  finalPriceCents      Int?
+  promotionTitle       String?
+  promotionPercent     Int?
   client               Client?                @relation(fields: [clientId], references: [id])
   master               Master?                @relation(fields: [masterId], references: [id])
   service              Service                @relation(fields: [serviceId], references: [id])
@@ -412,6 +417,11 @@ model BookingDraft {
   bookingMethod String    @default("website")
   /// Язык клиента при бронировании: "de", "ru", "en"
   locale        String?   @default("de")
+  /// Снимок цены и акции на момент создания черновика.
+  originalPriceCents Int?
+  finalPriceCents    Int?
+  promotionTitle     String?
+  promotionPercent   Int?
 
   @@index([serviceId])
   @@index([masterId])
@@ -465,6 +475,11 @@ model GoogleQuickRegistration {
   customerName  String?
   /// Язык клиента при бронировании: "de", "ru", "en"
   locale        String?   @default("de")
+  /// Снимок цены и акции на момент запуска Google-регистрации.
+  originalPriceCents Int?
+  finalPriceCents    Int?
+  promotionTitle     String?
+  promotionPercent   Int?
 
   @@index([state])
   @@index([verified])
@@ -491,6 +506,11 @@ model SmsPhoneRegistration {
   createdAt     DateTime     @default(now())
   /// Язык клиента при бронировании: "de", "ru", "en"
   locale        String?      @default("de")
+  /// Снимок цены и акции на момент отправки SMS-кода.
+  originalPriceCents Int?
+  finalPriceCents    Int?
+  promotionTitle     String?
+  promotionPercent   Int?
   appointment   Appointment? @relation(fields: [appointmentId], references: [id])
   master        Master       @relation(fields: [masterId], references: [id], onDelete: Cascade)
   service       Service      @relation(fields: [serviceId], references: [id], onDelete: Cascade)
@@ -518,6 +538,11 @@ model TelegramVerification {
   expiresAt      DateTime
   /// Язык клиента при бронировании: "de", "ru", "en"
   locale         String?      @default("de")
+  /// Снимок цены и акции на момент отправки Telegram-кода.
+  originalPriceCents Int?
+  finalPriceCents    Int?
+  promotionTitle     String?
+  promotionPercent   Int?
   appointment    Appointment? @relation(fields: [appointmentId], references: [id])
 
   @@index([sessionId])

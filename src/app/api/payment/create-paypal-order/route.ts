@@ -2,17 +2,26 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { buildPublicUrl } from '@/lib/public-url';
 import { getPayPalAccessToken, getPayPalApiUrl } from '@/lib/paypal-utils';
+import { getAppointmentPayableCents } from '@/lib/promotions';
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { appointmentId, amount } = body;
+    const { appointmentId } = body;
 
-    if (!appointmentId || !amount) {
+    if (!appointmentId) {
       return NextResponse.json(
         { error: 'Missing required fields' },
         { status: 400 }
       );
+    }
+
+    const amount = await getAppointmentPayableCents(appointmentId);
+    if (amount == null) {
+      return NextResponse.json({ error: 'Appointment not found' }, { status: 404 });
+    }
+    if (!Number.isInteger(amount) || amount <= 0) {
+      return NextResponse.json({ error: 'Appointment price is unavailable' }, { status: 422 });
     }
 
     const accessToken = await getPayPalAccessToken();

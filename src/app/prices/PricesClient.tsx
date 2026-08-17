@@ -25,8 +25,10 @@ import {
   Heart,
   ArrowUpRight,
   BadgeEuro,
+  CalendarDays,
 } from "lucide-react";
 import type { Locale } from "@/i18n/locales";
+import { formatPromotionAppointmentPeriod } from "@/lib/promotion-constants";
 
 /* ═══════════════════════ TYPES ═══════════════════════ */
 
@@ -38,6 +40,14 @@ type ServiceItem = {
   durationMin: number;
   priceCents: number | null;
   cover: string | null;
+  promotion: {
+    id: string;
+    title: string;
+    percent: number;
+    from: string;
+    to: string;
+    discountedPriceCents: number;
+  } | null;
 };
 
 type Category = {
@@ -292,6 +302,10 @@ function ServiceCard({
   const t = t_map[locale];
   const Icon = getCategoryIcon(categorySlug);
   const hasPrice = service.priceCents !== null && service.priceCents > 0;
+  const effectivePriceCents =
+    service.promotion?.discountedPriceCents ?? service.priceCents;
+  const promotionLabel =
+    locale === "ru" ? "АКЦИЯ" : locale === "en" ? "SALE" : "AKTION";
 
   return (
     <motion.div
@@ -300,6 +314,11 @@ function ServiceCard({
       whileHover={{ y: -6, transition: { duration: 0.25 } }}
       className="group relative flex flex-col rounded-2xl border border-pink-200/30 bg-white/85 p-5 shadow-md shadow-pink-100/10 backdrop-blur-sm transition-all duration-400 hover:border-pink-300/50 hover:shadow-xl hover:shadow-pink-200/20 dark:border-white/[0.06] dark:bg-white/[0.03] dark:shadow-none dark:hover:border-amber-500/15"
     >
+      {service.promotion && (
+        <div className="absolute -right-2 -top-2 z-20 rounded-full bg-gradient-to-r from-fuchsia-600 via-rose-500 to-amber-500 px-3 py-1.5 text-xs font-black text-white shadow-lg shadow-rose-500/25">
+          -{service.promotion.percent}% {promotionLabel}
+        </div>
+      )}
       {/* Hover glow */}
       <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-pink-50/30 via-transparent to-rose-50/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500 dark:from-amber-500/[0.04] dark:to-transparent" />
 
@@ -350,16 +369,40 @@ function ServiceCard({
           <p className="text-xs text-gray-500 dark:text-gray-500 mb-0.5">
             {hasPrice ? "" : ""}
           </p>
-          <p
-            className={[
-              "font-playfair font-bold",
-              hasPrice
-                ? "text-lg text-rose-700 dark:text-amber-300"
-                : "text-sm text-gray-500 dark:text-gray-400 italic",
-            ].join(" ")}
-          >
-            {formatPrice(service.priceCents, locale)}
-          </p>
+          {service.promotion && service.priceCents != null ? (
+            <div>
+              <div className="text-xs font-medium text-gray-500 line-through decoration-rose-500 decoration-2 dark:text-white/45">
+                {formatPrice(service.priceCents, locale)}
+              </div>
+              <div className="font-playfair text-xl font-black text-rose-700 dark:text-rose-300">
+                {formatPrice(service.promotion.discountedPriceCents, locale)}
+              </div>
+              <div className="mt-0.5 max-w-[170px] truncate text-[10px] font-semibold text-fuchsia-700 dark:text-fuchsia-300">
+                {service.promotion.title}
+              </div>
+              <div className="mt-1 flex max-w-[190px] items-start gap-1 text-[10px] leading-4 text-rose-700/80 dark:text-rose-200/70">
+                <CalendarDays className="mt-0.5 h-3 w-3 shrink-0" />
+                <span>
+                  {formatPromotionAppointmentPeriod(
+                    service.promotion.from,
+                    service.promotion.to,
+                    locale,
+                  )}
+                </span>
+              </div>
+            </div>
+          ) : (
+            <p
+              className={[
+                "font-playfair font-bold",
+                hasPrice
+                  ? "text-lg text-rose-700 dark:text-amber-300"
+                  : "text-sm text-gray-500 dark:text-gray-400 italic",
+              ].join(" ")}
+            >
+              {formatPrice(effectivePriceCents, locale)}
+            </p>
+          )}
         </div>
 
         <Link

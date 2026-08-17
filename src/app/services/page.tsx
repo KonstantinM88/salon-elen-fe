@@ -3,6 +3,7 @@ import { Suspense } from "react";
 import { prisma } from "@/lib/db";
 import type { Metadata } from "next";
 import ServicesClient from "./ServicesClient";
+import PromotionTicker from "@/components/promotions/PromotionTicker";
 import SeoLandingLinks from "@/components/seo/SeoLandingLinks";
 import {
   resolveUrlLocale,
@@ -13,6 +14,12 @@ import {
 } from "@/lib/seo-locale";
 import { resolveContentLocale } from "@/lib/seo-locale-server";
 import { SALON_SCHEMA_ID, buildSalonJsonLd } from "@/lib/structured-data";
+import {
+  calculatePromotionalPriceCents,
+  distinctPromotionAnnouncements,
+  formatPromotionOrgDate,
+  getPublishedPromotionsForServices,
+} from "@/lib/promotions";
 
 export const dynamic = "force-dynamic";
 
@@ -110,6 +117,11 @@ export default async function ServicesPage({
     },
   });
 
+  const promotionMap = await getPublishedPromotionsForServices(
+    categories.flatMap((category) => category.children.map((service) => service.id)),
+  );
+  const promotionAnnouncements = distinctPromotionAnnouncements(promotionMap.values());
+
   const categoriesWithTranslations = categories.map((cat) => {
     const catTranslation = cat.translations[0];
     return {
@@ -125,12 +137,27 @@ export default async function ServicesPage({
       })),
       children: cat.children.map((child) => {
         const childTranslation = child.translations[0];
+        const promotion = promotionMap.get(child.id) ?? null;
         return {
           id: child.id,
           slug: child.slug,
           name: childTranslation?.name || child.name,
           description: childTranslation?.description || child.description,
           priceCents: child.priceCents,
+          promotion:
+            promotion && child.priceCents != null
+              ? {
+                  id: promotion.id,
+                  title: promotion.title,
+                  percent: promotion.percent,
+                  from: formatPromotionOrgDate(promotion.from),
+                  to: formatPromotionOrgDate(promotion.to),
+                  discountedPriceCents: calculatePromotionalPriceCents(
+                    child.priceCents,
+                    promotion.percent,
+                  ),
+                }
+              : null,
           durationMin: child.durationMin,
           cover: child.cover,
           gallery: child.gallery.map((g) => ({
@@ -163,10 +190,19 @@ export default async function ServicesPage({
               areaServed: "Halle (Saale)",
               provider: { "@id": SALON_SCHEMA_ID },
             },
-            ...(typeof child.priceCents === "number" && child.priceCents > 0
+            ...(typeof (child.promotion?.discountedPriceCents ?? child.priceCents) === "number" &&
+            (child.promotion?.discountedPriceCents ?? child.priceCents ?? 0) > 0
               ? {
-                  price: (child.priceCents / 100).toFixed(2),
+                  price: (
+                    (child.promotion?.discountedPriceCents ?? child.priceCents ?? 0) / 100
+                  ).toFixed(2),
                   priceCurrency: "EUR",
+                  ...(child.promotion
+                    ? {
+                        validFrom: child.promotion.from,
+                        priceValidUntil: child.promotion.to,
+                      }
+                    : {}),
                 }
               : {}),
             url: `${BASE_URL}/services?service=${encodeURIComponent(child.slug)}`,
@@ -184,6 +220,7 @@ export default async function ServicesPage({
           __html: JSON.stringify(servicesJsonLd).replace(/</g, "\\u003c"),
         }}
       />
+      <PromotionTicker locale={locale} promotions={promotionAnnouncements} />
       <Suspense>
         <ServicesClient categories={categoriesWithTranslations} locale={locale} />
       </Suspense>

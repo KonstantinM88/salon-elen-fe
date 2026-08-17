@@ -127,6 +127,11 @@ Useful scripts:
 
 ## Important Change Log
 
+- 2026-08-17: Published the promotional news article
+  `/news/15-rabatt-auf-permanent-make-up-in-halle-saale` in DE/RU/EN with
+  localized SEO/OG metadata and a generated campaign cover. It advertises 15%
+  off participating Permanent Make-up services for treatment dates from
+  18.08.2026 through 18.09.2026 inclusive and expires after the campaign.
 - 2026-08-14: Telegram `/report` and `/ask` search analytics include a
   deterministic popular-query breakdown (visibility leaders, positions 4-20,
   and low-CTR opportunities) plus five locally relevant competitor profiles
@@ -422,6 +427,19 @@ Useful scripts:
   separately. Recharts 3.10 requires narrowing tooltip labels before date
   formatting, and dynamic upload paths should retain the Turbopack trace-ignore
   annotation so production output does not include the whole project.
+- 2026-08-14: Promotions are managed from `/admin/promotions` with fixed
+  discounts of 5/10/15/20/25/30%, an inclusive Europe/Berlin calendar period,
+  and either all active services or selected active leaf services. Public
+  `/services`, `/prices`, both `/booking/services` themes, and the Elen-AI live
+  catalog use `src/lib/promotions.ts`; when promotions overlap, the highest
+  applicable discount wins. Booking drafts and Google/SMS/Telegram registration
+  records snapshot the original/final price plus promotion title/percent, then
+  copy them to `Appointment` through migration
+  `20260814180000_add_promotion_price_snapshots`, so an accepted price does not
+  change when a promotion ends. Stripe and PayPal creation routes must calculate
+  payable amounts from the server-side appointment snapshot and never trust a
+  browser-supplied amount. Admin booking cards and revenue statistics use the
+  final snapshot price with the service price as a legacy fallback.
 - 2026-08-14: Telegram GSC reports present summary totals and every TOP-query
   metric on separate icon-led rows. Keep position, impressions, clicks, and CTR
   visually distinct in both Markdown daily reports and plain-text bot views;
@@ -446,3 +464,25 @@ Useful scripts:
   reply markup only to the final part; a recipient is successful only after all
   parts are delivered. Production setup and privacy constraints are documented
   in `readme/TELEGRAM_AI_ANALYST.md`.
+- 2026-08-17: Published promotion announcements use the shared server-rendered
+  `src/components/promotions/PromotionTicker.tsx` on `/`, `/services`, and
+  `/prices`. The ticker shows the promotion title, percentage, and inclusive
+  Europe/Berlin start/end dates in DE/RU/EN; it uses CSS-only motion, pauses on
+  interaction, respects `prefers-reduced-motion`, and adds no browser fetch or
+  client-side promotion state. Creating a promotion is its publication event:
+  every non-expired promotion is visible immediately, including before its
+  start date. Service catalogs prefer a currently active promotion and
+  otherwise show the nearest upcoming promotion with an explicit appointment
+  period. `/services` and `/prices` derive announcements from their promotion
+  maps, while the cached homepage performs one server query during rendering.
+  Dates crossing the homepage
+  `unstable_cache` boundary must be converted with
+  `serializePromotionAnnouncements()` because cached `Date` objects are not
+  guaranteed to retain their runtime type. Promotion create/delete actions must
+  revalidate all three public routes. `/admin/promotions` is available from
+  both the admin dashboard quick links and the primary admin navigation. Price
+  snapshots remain authoritative and must be calculated with the selected
+  appointment `startAt`, never the request time: only promotions whose inclusive
+  period contains the visit date apply, and the highest applicable discount
+  wins. Every booking channel (web, Google, Telegram, SMS, AI, and admin quick
+  booking) must pass the visit start to `getServicePromotionPricing()`.

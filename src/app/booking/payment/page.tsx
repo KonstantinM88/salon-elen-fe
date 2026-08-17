@@ -24,6 +24,7 @@ async function getInitialPaymentAmount(appointmentId: string): Promise<number> {
     const appointment = await prisma.appointment.findUnique({
       where: { id: appointmentId },
       select: {
+        finalPriceCents: true,
         service: {
           select: {
             priceCents: true,
@@ -32,7 +33,7 @@ async function getInitialPaymentAmount(appointmentId: string): Promise<number> {
       },
     });
 
-    return appointment?.service.priceCents ?? 5000;
+    return appointment?.finalPriceCents ?? appointment?.service.priceCents ?? 5000;
   } catch (error) {
     console.error("[Payment Page] Failed to preload appointment amount:", error);
     return 5000;

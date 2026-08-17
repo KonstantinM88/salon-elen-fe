@@ -1,6 +1,7 @@
 // src/app/page.tsx
 import { prisma } from "@/lib/db";
 import HomePage from "@/components/home-page";
+import PromotionTicker from "@/components/promotions/PromotionTicker";
 import type { Metadata } from "next";
 import { unstable_cache } from "next/cache";
 import {
@@ -10,13 +11,21 @@ import {
   type SeoLocale,
   type SearchParamsPromise,
 } from "@/lib/seo-locale";
-import { HOME_LATEST_ARTICLES_TAG } from "@/lib/cache-tags";
+import {
+  HOME_LATEST_ARTICLES_TAG,
+  HOME_PROMOTION_ANNOUNCEMENTS_TAG,
+} from "@/lib/cache-tags";
 import {
   SALON_SCHEMA_ID,
   WEBSITE_SCHEMA_ID,
   buildSalonJsonLd,
 } from "@/lib/structured-data";
 import { HOME_FAQ } from "@/lib/home-faq";
+import { resolveContentLocale } from "@/lib/seo-locale-server";
+import {
+  getPublishedPromotionAnnouncements,
+  serializePromotionAnnouncements,
+} from "@/lib/promotions";
 
 export const revalidate = 3600;
 
@@ -194,13 +203,27 @@ const getLatestArticles = unstable_cache(
   { revalidate, tags: [HOME_LATEST_ARTICLES_TAG] },
 );
 
+const getHomepagePromotionAnnouncements = unstable_cache(
+  async () =>
+    serializePromotionAnnouncements(await getPublishedPromotionAnnouncements()),
+  [HOME_PROMOTION_ANNOUNCEMENTS_TAG],
+  {
+    revalidate: 300,
+    tags: [HOME_PROMOTION_ANNOUNCEMENTS_TAG],
+  },
+);
+
 export default async function Page({
   searchParams,
 }: {
   searchParams?: SearchParamsPromise;
 }) {
-  const latest = await getLatestArticles();
-  const locale = await resolveUrlLocale(searchParams);
+  const [latest, locale, contentLocale, promotionAnnouncements] = await Promise.all([
+    getLatestArticles(),
+    resolveUrlLocale(searchParams),
+    resolveContentLocale(searchParams),
+    getHomepagePromotionAnnouncements(),
+  ]);
   const jsonLd = buildHomeJsonLd(locale);
 
   return (
@@ -209,7 +232,15 @@ export default async function Page({
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: jsonLd }}
       />
-      <HomePage latest={latest} />
+      <HomePage
+        latest={latest}
+        promotionBanner={
+          <PromotionTicker
+            locale={contentLocale}
+            promotions={promotionAnnouncements}
+          />
+        }
+      />
     </>
   );
 }

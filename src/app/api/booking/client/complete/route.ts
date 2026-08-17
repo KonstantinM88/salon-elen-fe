@@ -189,6 +189,10 @@ export async function POST(req: NextRequest) {
           status: "PENDING",
           locale: quickReg.locale || 'de',
           bookingMethod: BOOKING_METHOD.websiteGoogle,
+          originalPriceCents: quickReg.originalPriceCents,
+          finalPriceCents: quickReg.finalPriceCents,
+          promotionTitle: quickReg.promotionTitle,
+          promotionPercent: quickReg.promotionPercent,
         },
       });
 

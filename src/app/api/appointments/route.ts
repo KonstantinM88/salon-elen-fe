@@ -3,6 +3,10 @@ import { NextResponse } from "next/server";
 import { BOOKING_METHOD } from "@/lib/booking/booking-method";
 import { prisma } from "@/lib/prisma";
 import type { Prisma } from "@/lib/prisma-client";
+import {
+  getServicePromotionPricing,
+  promotionPricingSnapshot,
+} from "@/lib/promotions";
 
 type CreatePayload = {
   serviceId?: string; // primary для совместимости
@@ -107,6 +111,14 @@ export async function POST(req: Request) {
     }
 
     const conflictError = "SLOT_TAKEN";
+    const primaryServiceId = serviceIds[0];
+    const servicePricing = await getServicePromotionPricing(
+      primaryServiceId,
+      startAt,
+    );
+    if (!servicePricing) {
+      return NextResponse.json({ error: "service_unavailable" }, { status: 404 });
+    }
 
     const created = await prisma.$transaction(async (tx) => {
       if (masterId) {
@@ -145,8 +157,6 @@ export async function POST(req: Request) {
       }
 
       // primary service для совместимости со схемой
-      const primaryServiceId = serviceIds[0];
-
       // сохраняем состав услуг в notes
       const extraNote =
         serviceIds.length > 1 ? `Набор услуг: ${serviceIds.join(", ")}` : null;
@@ -167,6 +177,7 @@ export async function POST(req: Request) {
           notes: composedNotes || null,
           status: "PENDING",
           bookingMethod: BOOKING_METHOD.api,
+          ...promotionPricingSnapshot(servicePricing),
         },
         select: {
           id: true,

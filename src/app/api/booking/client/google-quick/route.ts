@@ -3,6 +3,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import crypto from "crypto";
 import { getGoogleAuthUrl } from "@/lib/google-oauth";
+import {
+  getServicePromotionPricing,
+  promotionPricingSnapshot,
+} from "@/lib/promotions";
 
 /**
  * POST /api/booking/client/google-quick
@@ -39,13 +43,26 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Проверка существования Service
-    const service = await prisma.service.findUnique({
-      where: { id: serviceId },
-      select: { id: true, isActive: true, isArchived: true },
-    });
+    const appointmentStartAt = new Date(startAt);
+    const appointmentEndAt = new Date(endAt);
+    if (
+      Number.isNaN(appointmentStartAt.getTime()) ||
+      Number.isNaN(appointmentEndAt.getTime()) ||
+      appointmentEndAt <= appointmentStartAt
+    ) {
+      return NextResponse.json(
+        { ok: false, error: "Некорректный интервал записи" },
+        { status: 400 },
+      );
+    }
 
-    if (!service || !service.isActive || service.isArchived) {
+    // Проверка существования Service
+    const servicePricing = await getServicePromotionPricing(
+      serviceId,
+      appointmentStartAt,
+    );
+
+    if (!servicePricing) {
       return NextResponse.json(
         {
           ok: false,
@@ -90,11 +107,12 @@ export async function POST(req: NextRequest) {
         state,
         serviceId,
         masterId,
-        startAt: new Date(startAt),
-        endAt: new Date(endAt),
+        startAt: appointmentStartAt,
+        endAt: appointmentEndAt,
         expiresAt: new Date(Date.now() + 15 * 60 * 1000), // 15 минут
         verified: false,
         locale: locale || 'de', // Сохраняем язык клиента
+        ...promotionPricingSnapshot(servicePricing),
       },
     });
 

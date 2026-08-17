@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import {
   ArrowRight,
   Award,
+  CalendarDays,
   CheckCircle2,
   Clock3,
   Sparkles,
@@ -17,6 +18,7 @@ import PremiumProgressBar from "@/components/PremiumProgressBar";
 import type { MessageKey } from "@/i18n/messages";
 import { useI18n } from "@/i18n/I18nProvider";
 import { useTranslations } from "@/i18n/useTranslations";
+import { formatPromotionAppointmentPeriod } from "@/lib/promotion-constants";
 
 interface ServiceDto {
   id: string;
@@ -25,6 +27,14 @@ interface ServiceDto {
   durationMin: number;
   priceCents: number | null;
   parentId: string;
+  promotion: {
+    id: string;
+    title: string;
+    percent: number;
+    from: string;
+    to: string;
+    discountedPriceCents: number;
+  } | null;
 }
 
 interface GroupDto {
@@ -161,7 +171,8 @@ export default function ServicesStepLightClient(): React.JSX.Element {
   );
 
   const totalPrice = selectedItems.reduce(
-    (sum, service) => sum + (service.priceCents ?? 0),
+    (sum, service) =>
+      sum + (service.promotion?.discountedPriceCents ?? service.priceCents ?? 0),
     0,
   );
 
@@ -352,10 +363,14 @@ export default function ServicesStepLightClient(): React.JSX.Element {
                     {group.services.map((service, index) => {
                       const isSelected = selectedSet.has(service.id);
                       const isHovered = hoveredCard === service.id;
+                      const effectivePriceCents =
+                        service.promotion?.discountedPriceCents ?? service.priceCents;
                       const price =
-                        service.priceCents == null
+                        effectivePriceCents == null
                           ? t("booking_price_on_request")
-                          : formatPrice(service.priceCents);
+                          : formatPrice(effectivePriceCents);
+                      const promoLabel =
+                        locale === "ru" ? "АКЦИЯ" : locale === "en" ? "SALE" : "AKTION";
 
                       return (
                         <motion.button
@@ -403,9 +418,11 @@ export default function ServicesStepLightClient(): React.JSX.Element {
                                 )}
                               </span>
 
-                              <span className="inline-flex items-center gap-1.5 rounded-full border border-rose-100 bg-rose-50/80 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-[#9b5368]">
+                              <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] ${service.promotion ? "border-[#d97891]/45 bg-gradient-to-r from-[#b85b75] to-[#e78ba2] text-white shadow-[0_8px_20px_rgba(184,91,117,0.24)]" : "border-rose-100 bg-rose-50/80 text-[#9b5368]"}`}>
                                 <Sparkles className="h-3 w-3 text-rose-500" />
-                                Salon Elen
+                                {service.promotion
+                                  ? `-${service.promotion.percent}% ${promoLabel}`
+                                  : "Salon Elen"}
                               </span>
                             </div>
 
@@ -428,12 +445,32 @@ export default function ServicesStepLightClient(): React.JSX.Element {
                             <div className="mt-auto pt-6">
                               <div className="flex items-end justify-between gap-4">
                                 <div>
+                                  {service.promotion && service.priceCents != null && (
+                                    <div className="mb-2">
+                                      <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs font-semibold">
+                                        <span className="text-[#8b737a] line-through decoration-[#c06b86] decoration-2">
+                                          {formatPrice(service.priceCents)} €
+                                        </span>
+                                        <span className="text-[#b85b75]">{service.promotion.title}</span>
+                                      </div>
+                                      <div className="mt-1 flex items-start gap-1.5 text-[10px] leading-4 text-[#7d4e5b]/78">
+                                        <CalendarDays className="mt-0.5 h-3 w-3 shrink-0 text-[#b85b75]" />
+                                        <span>
+                                          {formatPromotionAppointmentPeriod(
+                                            service.promotion.from,
+                                            service.promotion.to,
+                                            locale,
+                                          )}
+                                        </span>
+                                      </div>
+                                    </div>
+                                  )}
                                   <div className="flex items-baseline gap-1.5">
-                                    <span className="text-2xl font-bold tracking-tight text-[#9b5368] md:text-3xl">
+                                    <span className={`text-2xl font-bold tracking-tight md:text-3xl ${service.promotion ? "text-[#b23f64]" : "text-[#9b5368]"}`}>
                                       {price}
                                     </span>
-                                    <span className="text-base font-semibold text-[#9b5368]">
-                                      {service.priceCents == null ? "" : "€"}
+                                    <span className={`text-base font-semibold ${service.promotion ? "text-[#b23f64]" : "text-[#9b5368]"}`}>
+                                      {effectivePriceCents == null ? "" : "€"}
                                     </span>
                                   </div>
                                   <div className="mt-2 inline-flex items-center gap-1.5 text-xs font-medium text-[#7d4e5b]/68">

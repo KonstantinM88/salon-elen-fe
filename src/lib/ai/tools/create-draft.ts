@@ -2,6 +2,10 @@
 
 import { prisma } from '@/lib/prisma';
 import { isPhoneDigitsValid, normalizePhoneDigits } from '@/lib/phone';
+import {
+  getServicePromotionPricing,
+  promotionPricingSnapshot,
+} from '@/lib/promotions';
 
 interface Args {
   serviceId: string;
@@ -125,18 +129,43 @@ export async function createDraft(args: Args) {
       };
     }
 
+    const startAt = new Date(args.startAt);
+    const endAt = new Date(args.endAt);
+    if (
+      Number.isNaN(startAt.getTime()) ||
+      Number.isNaN(endAt.getTime()) ||
+      endAt <= startAt
+    ) {
+      return {
+        error: 'INVALID_APPOINTMENT_INTERVAL',
+        message: 'Appointment start or end time is invalid',
+      };
+    }
+
+    const servicePricing = await getServicePromotionPricing(
+      args.serviceId,
+      startAt,
+    );
+    if (!servicePricing) {
+      return {
+        error: 'SERVICE_UNAVAILABLE',
+        message: 'Service is not active or available',
+      };
+    }
+
     const draft = await prisma.bookingDraft.create({
       data: {
         serviceId: args.serviceId,
         masterId: args.masterId,
-        startAt: new Date(args.startAt),
-        endAt: new Date(args.endAt),
+        startAt,
+        endAt,
         customerName: args.customerName,
         phone,
         email: normalizedEmail,
         birthDate: args.birthDate ? new Date(args.birthDate) : null,
         notes: args.notes || null,
         locale: args.locale || 'de',
+        ...promotionPricingSnapshot(servicePricing),
       },
     });
 

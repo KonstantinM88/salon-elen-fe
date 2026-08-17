@@ -10,6 +10,10 @@ import {
 } from '@/lib/zadarma-sms';
 import crypto from 'crypto';
 import bcrypt from 'bcrypt';
+import {
+  getServicePromotionPricing,
+  promotionPricingSnapshot,
+} from '@/lib/promotions';
 
 const PIN_TTL_SECONDS = 10 * 60; // 10 минут
 const REG_TTL_MINUTES = 30; // 30 минут
@@ -49,6 +53,19 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: false, error: 'Missing required fields' }, { status: 400 });
     }
 
+    const appointmentStartAt = new Date(startAt);
+    const appointmentEndAt = new Date(endAt);
+    if (
+      Number.isNaN(appointmentStartAt.getTime()) ||
+      Number.isNaN(appointmentEndAt.getTime()) ||
+      appointmentEndAt <= appointmentStartAt
+    ) {
+      return NextResponse.json(
+        { ok: false, error: 'Invalid appointment interval' },
+        { status: 400 },
+      );
+    }
+
     // формат + валидация номера
     const formattedPhone = formatPhoneForZadarma(phone);
     const phoneValidation = validatePhoneNumber(formattedPhone);
@@ -60,14 +77,12 @@ export async function POST(req: NextRequest) {
     }
 
     // Проверка service и master
-    const [service, master] = await Promise.all([
-      prisma.service.findFirst({
-        where: { id: serviceId, isActive: true, isArchived: false },
-      }),
+    const [servicePricing, master] = await Promise.all([
+      getServicePromotionPricing(serviceId, appointmentStartAt),
       prisma.master.findUnique({ where: { id: masterId } }),
     ]);
 
-    if (!service) {
+    if (!servicePricing) {
       return NextResponse.json({ ok: false, error: 'Service not found or inactive' }, { status: 404 });
     }
     if (!master) {
@@ -93,8 +108,8 @@ export async function POST(req: NextRequest) {
         expiresAt: { gt: now },
         serviceId,
         masterId,
-        startAt: new Date(startAt),
-        endAt: new Date(endAt),
+        startAt: appointmentStartAt,
+        endAt: appointmentEndAt,
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -167,10 +182,11 @@ export async function POST(req: NextRequest) {
         pinExpiresAt,
         serviceId,
         masterId,
-        startAt: new Date(startAt),
-        endAt: new Date(endAt),
+        startAt: appointmentStartAt,
+        endAt: appointmentEndAt,
         locale, // ✅ Сохраняем язык клиента
         expiresAt,
+        ...promotionPricingSnapshot(servicePricing),
       },
     });
 
