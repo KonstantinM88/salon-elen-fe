@@ -717,16 +717,137 @@ export const seoLandingPages = [
     relatedSlugs: ["wimpernkranzverdichtung-halle", "permanent-make-up-in-der-naehe", "permanent-make-up-augenbrauen-halle"],
   },
   {
+    slug: "wimpernverlaengerung-halle",
+    category: "eyes",
+    title: "Wimpernverlängerung in Halle (Saale)",
+    eyebrow: "Lashes nach Augenform",
+    metaTitle: "Wimpernverlängerung Halle | Salon Elen im Paulusviertel",
+    metaDescription:
+      "Wimpernverlängerung in Halle (Saale): typgerechter Look, transparenter Ablauf und Pflegeberatung bei Salon Elen im Paulusviertel. Online buchen.",
+    keywords: [
+      "Wimpernverlängerung Halle",
+      "Wimpernverlaengerung Halle Saale",
+      "Lashes Halle",
+      "Wimpernstudio Halle Paulusviertel",
+    ],
+    heroText:
+      "Wimpernverlängerung in Halle für einen gepflegten Blick von natürlich bis ausdrucksstark. Im Salon Elen im Paulusviertel stimmen wir Länge, Schwung und Dichte auf Augenform, Naturwimpern und Alltag ab.",
+    heroImage: "/images/gallery/beauty_3.webp",
+    heroImageAlt: "Wimpernverlängerung bei Salon Elen in Halle",
+    serviceName: "Wimpernverlängerung",
+    price: "nach gewähltem Look",
+    priceCents: null,
+    duration: "je nach Technik und Volumen",
+    bookingHref: "/booking/services",
+    facts: [
+      "Lessingstrasse 37 im Paulusviertel",
+      "Look passend zu Augenform und Naturwimpern",
+      "Online-Termin rund um die Uhr",
+    ],
+    outcomes: [
+      "definierter Blick ohne taegliche Mascara",
+      "individuelle Wirkung von dezent bis ausdrucksstark",
+      "Laenge und Schwung passend zur Augenform",
+      "Pflegeplan fuer einen sauberen, haltbaren Look",
+    ],
+    suitableFor: [
+      "Kundinnen, die morgens Zeit beim Augen-Make-up sparen moechten",
+      "helle, kurze oder wenig betonte Naturwimpern",
+      "einen natuerlichen Alltagslook oder mehr Volumen zu einem Anlass",
+      "alle, die eine typgerechte Beratung statt eines Standard-Sets suchen",
+    ],
+    process: [
+      {
+        title: "Beratung und Wimperncheck",
+        text: "Wir besprechen Wunschlook, Augenform, Naturwimpern, Alltag und bisherige Erfahrungen.",
+      },
+      {
+        title: "Laenge, Schwung und Dichte waehlen",
+        text: "Das Styling wird so geplant, dass es zum Gesicht passt und die Naturwimpern nicht unnoetig belastet.",
+      },
+      {
+        title: "Praezise Applikation",
+        text: "Die Extensions werden bei geschlossenen Augen sauber und kontrolliert appliziert.",
+      },
+      {
+        title: "Pflege und Refill-Plan",
+        text: "Sie erhalten klare Hinweise zu Reinigung, Haltbarkeit und einem sinnvollen Auffuelltermin.",
+      },
+    ],
+    priceDetails: [
+      "Der Preis richtet sich nach Technik, Dichte und gewaehltem Look.",
+      "Den aktuellen Preis sehen Sie vor der Buchung im Online-Katalog.",
+      "Refill-Termine werden nach Zeitabstand und Zustand der Wimpern geplant.",
+    ],
+    contraindications: [
+      "akute Augenentzuendung, Gerstenkorn oder Bindehautentzuendung",
+      "stark gereizte, traenende oder frisch operierte Augen",
+      "offene oder entzuendete Haut im Augenbereich",
+      "bekannte Allergie gegen verwendete Klebstoffe oder Inhaltsstoffe",
+      "bei Unsicherheit bitte vor dem Termin aerztlich abklaeren",
+    ],
+    proof: {
+      title: "Einblicke in Beratung und Behandlung",
+      intro:
+        "Ein gutes Lash-Styling beginnt nicht mit maximaler Laenge, sondern mit einer ehrlichen Einschätzung der Naturwimpern und einem Look, der zur Augenform passt.",
+      beforeLabel: "individuelle Planung",
+      afterLabel: "praezise Applikation",
+      beforeImage: "/images/gallery/beauty_3.webp",
+      afterImage: "/images/gallery/beauty_4.webp",
+      note: "Weitere freigegebene Arbeiten und passende Stilvarianten zeigen wir gern in der Beratung.",
+    },
+    gallery: [
+      {
+        src: "/images/gallery/beauty_3.webp",
+        alt: "Beratung zur Wimpernverlaengerung in Halle",
+        label: "Beratung",
+      },
+      {
+        src: "/images/gallery/beauty_4.webp",
+        alt: "Wimpernverlaengerung Behandlung bei Salon Elen",
+        label: "Behandlung",
+      },
+    ],
+    feedback: [
+      "Viele Kundinnen schaetzen einen leichteren Blick ohne taegliche Mascara.",
+      "Die typgerechte Auswahl wirkt harmonischer als ein Standard-Look.",
+      "Klare Pflegehinweise helfen, die Wimpern sauber und gepflegt zu halten.",
+    ],
+    faq: [
+      {
+        question: "Wo kann ich Wimpernverlängerung in Halle buchen?",
+        answer:
+          "Salon Elen liegt in der Lessingstrasse 37, 06114 Halle (Saale), im Paulusviertel. Den passenden Termin koennen Sie rund um die Uhr online buchen; die Route finden Sie ueber unsere Kontaktseite.",
+      },
+      {
+        question: "Wie wird der passende Wimpern-Look ausgewaehlt?",
+        answer:
+          "Wir stimmen Laenge, Schwung und Dichte auf Augenform, Naturwimpern, Stil und Alltag ab. Ein natuerlicher Look ist genauso moeglich wie mehr Ausdruck.",
+      },
+      {
+        question: "Wie lange haelt eine Wimpernverlaengerung?",
+        answer:
+          "Die Haltbarkeit haengt vom natuerlichen Wimpernzyklus, der Pflege und dem Alltag ab. Fuer ein gleichmaessiges Ergebnis werden Refill-Termine individuell geplant.",
+      },
+      {
+        question: "Wie pflege ich Wimpernextensions?",
+        answer:
+          "Reinigen Sie die Wimpern regelmaessig und vorsichtig, vermeiden Sie starkes Reiben und befolgen Sie die Hinweise aus dem Termin.",
+      },
+    ],
+    relatedSlugs: ["wimpernkranzverdichtung-halle", "lidstrich-permanent-make-up-halle", "microneedling-halle"],
+  },
+  {
     slug: "microneedling-halle",
     category: "skin",
     title: "Microneedling in Halle (Saale)",
     eyebrow: "Hautbild und Glow",
-    metaTitle: "Microneedling Halle - Hautbild verfeinern | Salon Elen",
+    metaTitle: "Microneedling Halle | Hautanalyse im Paulusviertel",
     metaDescription:
-      "Microneedling in Halle bei Salon Elen: Beratung, Hautanalyse, Behandlungsplan, Pflegehinweise und Terminbuchung fuer ein frischeres Hautbild.",
+      "Microneedling in Halle (Saale): Hautanalyse, transparenter Ablauf und Aftercare bei Salon Elen im Paulusviertel. Online-Termin 24/7 buchen.",
     keywords: ["Microneedling Halle", "Microneedling Halle Saale", "Kosmetik Halle Haut", "Hautbild verfeinern Halle"],
     heroText:
-      "Microneedling ist eine intensive Behandlung fuer ein frischeres, ebenmaessiger wirkendes Hautbild. Wir planen die Behandlung nach Hautzustand, Ziel und Regenerationszeit.",
+      "Microneedling in Halle fuer ein frischeres, ebenmaessiger wirkendes Hautbild. Im Salon Elen im Paulusviertel planen wir Intensitaet, Zonen und Aftercare nach Hautzustand, Ziel und Regenerationszeit.",
     heroImage: "/images/gallery/injection_1.webp",
     heroImageAlt: "Microneedling Behandlung in Halle",
     serviceName: "Microneedling",
@@ -734,7 +855,11 @@ export const seoLandingPages = [
     priceCents: null,
     duration: "je nach Behandlungsplan",
     bookingHref: "/booking/services",
-    facts: ["Hautanalyse vorab", "Pflegeplan nach der Behandlung", "Preis nach Areal und Ziel"],
+    facts: [
+      "Hautanalyse vorab",
+      "Beratung auf Deutsch, Englisch oder Russisch",
+      "Online-Termin rund um die Uhr",
+    ],
     outcomes: [
       "frischer und glatter wirkendes Hautbild",
       "unterstuetzte Regeneration durch gezielte Stimulation",
@@ -817,6 +942,11 @@ export const seoLandingPages = [
         question: "Wie oft braucht man Microneedling?",
         answer:
           "Das haengt vom Hautziel ab. Manchmal reicht ein Frischetermin, bei strukturellen Zielen ist eine Serie sinnvoller.",
+      },
+      {
+        question: "Wo findet Microneedling in Halle statt?",
+        answer:
+          "Die Behandlung findet bei Salon Elen in der Lessingstrasse 37, 06114 Halle (Saale), im Paulusviertel statt. Beratung ist auf Deutsch, Englisch oder Russisch moeglich; Termine sind rund um die Uhr online buchbar.",
       },
     ],
     relatedSlugs: ["permanent-make-up-in-der-naehe", "powder-brows-halle", "lippenpigmentierung-halle"],
@@ -1981,21 +2111,223 @@ const seoLandingPageTranslations: Record<
       ],
     },
   },
+  "wimpernverlaengerung-halle": {
+    en: {
+      title: "Lash extensions in Halle (Saale)",
+      eyebrow: "lashes tailored to your eyes",
+      metaTitle: "Lash extensions Halle | Salon Elen in Paulusviertel",
+      metaDescription:
+        "Lash extensions in Halle (Saale): a personalised look, transparent process and care advice at Salon Elen in Paulusviertel. Book online.",
+      keywords: ["lash extensions Halle", "lashes Halle Saale", "lash studio Halle", "lash extensions Paulusviertel"],
+      heroText:
+        "Lash extensions in Halle for a polished look from natural to expressive. At Salon Elen in Paulusviertel, length, curl and density are tailored to your eye shape, natural lashes and daily routine.",
+      heroImageAlt: "Lash extensions at Salon Elen in Halle",
+      serviceName: "Lash extensions",
+      price: "depending on the chosen look",
+      duration: "depending on technique and volume",
+      facts: [
+        "Lessingstrasse 37 in Paulusviertel",
+        "look tailored to eye shape and natural lashes",
+        "online booking around the clock",
+      ],
+      outcomes: [
+        "a more defined look without daily mascara",
+        "individual effect from subtle to expressive",
+        "length and curl tailored to your eye shape",
+        "care plan for a clean, lasting look",
+      ],
+      suitableFor: [
+        "clients who want to save time on daily eye make-up",
+        "light, short or less defined natural lashes",
+        "a natural everyday look or more volume for an occasion",
+        "anyone looking for personal advice instead of a standard set",
+      ],
+      process: [
+        {
+          title: "Consultation and lash check",
+          text: "We discuss your desired look, eye shape, natural lashes, daily routine and previous experience.",
+        },
+        {
+          title: "Choose length, curl and density",
+          text: "The styling is planned to suit your face without placing unnecessary strain on the natural lashes.",
+        },
+        {
+          title: "Precise application",
+          text: "The extensions are applied cleanly and carefully while your eyes remain closed.",
+        },
+        {
+          title: "Care and refill plan",
+          text: "You receive clear guidance on cleansing, retention and a suitable refill appointment.",
+        },
+      ],
+      priceDetails: [
+        "The price depends on technique, density and the selected look.",
+        "You can see the current price in the online catalogue before booking.",
+        "Refill appointments are planned according to time elapsed and lash condition.",
+      ],
+      contraindications: [
+        "acute eye inflammation, stye or conjunctivitis",
+        "severely irritated, watery or recently operated eyes",
+        "open or inflamed skin around the eyes",
+        "known allergy to the adhesives or ingredients used",
+        "if you are unsure, please seek medical advice before the appointment",
+      ],
+      proof: {
+        title: "A look at consultation and treatment",
+        intro:
+          "Good lash styling does not start with maximum length. It begins with an honest assessment of the natural lashes and a look that suits the eye shape.",
+        beforeLabel: "personal planning",
+        afterLabel: "precise application",
+        note: "We are happy to show more approved work and suitable style options during consultation.",
+      },
+      gallery: [
+        { alt: "Lash extension consultation in Halle", label: "Consultation" },
+        { alt: "Lash extension treatment at Salon Elen", label: "Treatment" },
+      ],
+      feedback: [
+        "Many clients appreciate a more open look without daily mascara.",
+        "A tailored selection looks more harmonious than a standard style.",
+        "Clear care guidance helps keep the lashes clean and polished.",
+      ],
+      faq: [
+        {
+          question: "Where can I book lash extensions in Halle?",
+          answer:
+            "Salon Elen is at Lessingstrasse 37, 06114 Halle (Saale), in Paulusviertel. You can book online around the clock and find directions on our contact page.",
+        },
+        {
+          question: "How is the right lash style selected?",
+          answer:
+            "We tailor length, curl and density to your eye shape, natural lashes, style and routine. A natural look is just as possible as a more expressive one.",
+        },
+        {
+          question: "How long do lash extensions last?",
+          answer:
+            "Retention depends on the natural lash cycle, care and lifestyle. Refill appointments are planned individually for an even result.",
+        },
+        {
+          question: "How should I care for lash extensions?",
+          answer:
+            "Clean the lashes regularly and gently, avoid strong rubbing and follow the care instructions from your appointment.",
+        },
+      ],
+    },
+    ru: {
+      title: "Наращивание ресниц в Halle (Saale)",
+      eyebrow: "ресницы с учетом формы глаз",
+      metaTitle: "Наращивание ресниц Halle | Salon Elen в Paulusviertel",
+      metaDescription:
+        "Наращивание ресниц в Halle (Saale): индивидуальный эффект, понятный процесс и рекомендации по уходу в Salon Elen в Paulusviertel. Онлайн-запись.",
+      keywords: ["наращивание ресниц Halle", "ресницы Halle Saale", "lash studio Halle", "ресницы Paulusviertel"],
+      heroText:
+        "Наращивание ресниц в Halle для аккуратного взгляда от натурального до выразительного. В Salon Elen в Paulusviertel длина, изгиб и объем подбираются под форму глаз, натуральные ресницы и ваш образ жизни.",
+      heroImageAlt: "Наращивание ресниц в Salon Elen в Halle",
+      serviceName: "Наращивание ресниц",
+      price: "по выбранному эффекту",
+      duration: "зависит от техники и объема",
+      facts: [
+        "Lessingstraße 37 в Paulusviertel",
+        "эффект под форму глаз и натуральные ресницы",
+        "онлайн-запись круглосуточно",
+      ],
+      outcomes: [
+        "более выразительный взгляд без ежедневной туши",
+        "индивидуальный эффект от деликатного до яркого",
+        "длина и изгиб с учетом формы глаз",
+        "план ухода для чистого и стойкого результата",
+      ],
+      suitableFor: [
+        "клиентки, которые хотят экономить время на макияже глаз",
+        "светлые, короткие или визуально слабо выраженные ресницы",
+        "натуральный повседневный эффект или дополнительный объем к событию",
+        "те, кому нужен индивидуальный подбор, а не стандартный набор",
+      ],
+      process: [
+        {
+          title: "Консультация и оценка ресниц",
+          text: "Мы обсуждаем желаемый эффект, форму глаз, состояние натуральных ресниц, привычки и прошлый опыт.",
+        },
+        {
+          title: "Выбор длины, изгиба и объема",
+          text: "Стайлинг планируется так, чтобы подходить лицу и не создавать лишнюю нагрузку на натуральные ресницы.",
+        },
+        {
+          title: "Точная аппликация",
+          text: "Ресницы аккуратно и контролируемо наращиваются при закрытых глазах.",
+        },
+        {
+          title: "Уход и план коррекции",
+          text: "Вы получаете понятные рекомендации по очищению, носке и подходящему сроку коррекции.",
+        },
+      ],
+      priceDetails: [
+        "Цена зависит от техники, густоты и выбранного эффекта.",
+        "Актуальную цену можно увидеть в онлайн-каталоге до записи.",
+        "Коррекция планируется с учетом прошедшего времени и состояния ресниц.",
+      ],
+      contraindications: [
+        "острое воспаление глаз, ячмень или конъюнктивит",
+        "сильное раздражение, слезоточивость или недавняя операция на глазах",
+        "открытые или воспаленные участки кожи вокруг глаз",
+        "известная аллергия на используемый клей или компоненты",
+        "при сомнениях проконсультируйтесь с врачом до записи",
+      ],
+      proof: {
+        title: "Консультация и процесс процедуры",
+        intro:
+          "Хороший lash-стайлинг начинается не с максимальной длины, а с честной оценки натуральных ресниц и эффекта, подходящего форме глаз.",
+        beforeLabel: "индивидуальный план",
+        afterLabel: "точная аппликация",
+        note: "Другие разрешенные к показу работы и подходящие варианты стиля мы с удовольствием покажем на консультации.",
+      },
+      gallery: [
+        { alt: "Консультация по наращиванию ресниц в Halle", label: "Консультация" },
+        { alt: "Процедура наращивания ресниц в Salon Elen", label: "Процедура" },
+      ],
+      feedback: [
+        "Многие клиентки ценят более открытый взгляд без ежедневной туши.",
+        "Индивидуальный подбор выглядит гармоничнее стандартного эффекта.",
+        "Понятные рекомендации помогают сохранять ресницы чистыми и ухоженными.",
+      ],
+      faq: [
+        {
+          question: "Где записаться на наращивание ресниц в Halle?",
+          answer:
+            "Salon Elen находится по адресу Lessingstraße 37, 06114 Halle (Saale), в Paulusviertel. Запись доступна онлайн круглосуточно, а маршрут указан на странице контактов.",
+        },
+        {
+          question: "Как выбирается подходящий эффект?",
+          answer:
+            "Мы подбираем длину, изгиб и объем под форму глаз, натуральные ресницы, стиль и образ жизни. Возможен как натуральный, так и более выразительный эффект.",
+        },
+        {
+          question: "Сколько держится наращивание ресниц?",
+          answer:
+            "Срок носки зависит от естественного цикла ресниц, ухода и образа жизни. Для равномерного результата срок коррекции подбирается индивидуально.",
+        },
+        {
+          question: "Как ухаживать за наращенными ресницами?",
+          answer:
+            "Регулярно и бережно очищайте ресницы, не трите глаза и следуйте рекомендациям, полученным после процедуры.",
+        },
+      ],
+    },
+  },
   "microneedling-halle": {
     en: {
       title: "Microneedling in Halle (Saale)",
       eyebrow: "skin texture and glow",
-      metaTitle: "Microneedling Halle - refine skin texture | Salon Elen",
+      metaTitle: "Microneedling Halle | Skin analysis in Paulusviertel",
       metaDescription:
-        "Microneedling in Halle at Salon Elen: consultation, skin analysis, treatment plan, aftercare guidance and online booking for a fresher-looking complexion.",
+        "Microneedling in Halle (Saale): skin analysis, transparent process and aftercare at Salon Elen in Paulusviertel. Book online 24/7.",
       keywords: ["Microneedling Halle", "Microneedling Halle Saale", "cosmetics Halle skin", "refine skin texture Halle"],
       heroText:
-        "Microneedling is an intensive treatment for fresher, more even-looking skin. We plan it according to skin condition, goal and regeneration time.",
+        "Microneedling in Halle for fresher, more even-looking skin. At Salon Elen in Paulusviertel, intensity, areas and aftercare are planned around skin condition, goals and recovery time.",
       heroImageAlt: "Microneedling treatment in Halle",
       serviceName: "Microneedling",
       price: "by skin goal",
       duration: "depending on treatment plan",
-      facts: ["skin analysis beforehand", "aftercare plan after treatment", "price by area and goal"],
+      facts: ["skin analysis beforehand", "consultation in German, English or Russian", "online booking around the clock"],
       outcomes: [
         "fresher and smoother-looking complexion",
         "supported regeneration through targeted stimulation",
@@ -2050,22 +2382,27 @@ const seoLandingPageTranslations: Record<
           answer:
             "That depends on your skin goal. Sometimes one freshness appointment is enough, while structural goals often need a series.",
         },
+        {
+          question: "Where is microneedling offered in Halle?",
+          answer:
+            "The treatment takes place at Salon Elen, Lessingstrasse 37, 06114 Halle (Saale), in Paulusviertel. Consultation is available in German, English or Russian and appointments can be booked online 24/7.",
+        },
       ],
     },
     ru: {
       title: "Microneedling в Halle (Saale)",
       eyebrow: "текстура кожи и glow",
-      metaTitle: "Microneedling Halle - улучшение текстуры кожи | Salon Elen",
+      metaTitle: "Microneedling Halle | Анализ кожи в Paulusviertel",
       metaDescription:
-        "Microneedling в Halle в Salon Elen: консультация, анализ кожи, план процедуры, рекомендации по уходу и онлайн-запись для более свежего вида кожи.",
+        "Microneedling в Halle (Saale): анализ кожи, понятный процесс и уход после процедуры в Salon Elen в Paulusviertel. Онлайн-запись 24/7.",
       keywords: ["Microneedling Halle", "Microneedling Halle Saale", "косметология Halle кожа", "улучшение текстуры кожи Halle"],
       heroText:
-        "Microneedling - интенсивная процедура для более свежего и ровного вида кожи. Мы планируем ее по состоянию кожи, цели и времени восстановления.",
+        "Microneedling в Halle для более свежего и ровного вида кожи. В Salon Elen в Paulusviertel интенсивность, зоны и уход планируются по состоянию кожи, цели и времени восстановления.",
       heroImageAlt: "Процедура Microneedling в Halle",
       serviceName: "Microneedling",
       price: "по состоянию кожи",
       duration: "по плану процедуры",
-      facts: ["предварительный анализ кожи", "план ухода после процедуры", "цена по зоне и цели"],
+      facts: ["предварительный анализ кожи", "консультация на немецком, английском или русском", "онлайн-запись круглосуточно"],
       outcomes: [
         "более свежий и гладкий вид кожи",
         "поддержка восстановления через контролируемую стимуляцию",
@@ -2119,6 +2456,11 @@ const seoLandingPageTranslations: Record<
           question: "Как часто нужен microneedling?",
           answer:
             "Это зависит от цели. Иногда достаточно одной процедуры для свежести, а для работы с текстурой чаще нужен курс.",
+        },
+        {
+          question: "Где проходит microneedling в Halle?",
+          answer:
+            "Процедура проходит в Salon Elen по адресу Lessingstraße 37, 06114 Halle (Saale), в Paulusviertel. Консультация возможна на немецком, английском или русском, а запись доступна онлайн 24/7.",
         },
       ],
     },

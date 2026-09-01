@@ -24,6 +24,9 @@
 .DS_Store
 *.pem
 
+# Local Instagram content and production assets (never commit)
+/.local/instagram/
+
 # debug
 npm-debug.log*
 yarn-debug.log*

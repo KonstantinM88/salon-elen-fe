@@ -130,7 +130,7 @@ const COPY: Record<Locale, HomeCopy> = {
     heroTitle: "Salon Elen",
     heroSubtitle: "Ihre Schönheit. Ihre Handschrift.",
     heroDescription:
-      "Permanent Make-up, Wimpern, Hairstroke Augenbrauen und moderne Kosmetik in einer Atmosphäre, die Ruhe und Präzision verbindet.",
+      "Permanent Make-up in Halle (Saale), Wimpern, Hairstroke Augenbrauen und moderne Kosmetik bei Salon Elen im Paulusviertel.",
     book: "Termin buchen",
     discover: "Leistungen entdecken",
     openDaily: "Online buchbar, rund um die Uhr",
@@ -167,7 +167,7 @@ const COPY: Record<Locale, HomeCopy> = {
     signatureEyebrow: "Salon Elen Standard",
     signatureTitle: "Schönheit beginnt mit Vertrauen",
     signatureDescription:
-      "Jede Behandlung startet mit einer ehrlichen Beratung. Wir nehmen uns Zeit, erklären jeden Schritt und entwickeln ein Ergebnis, das nicht aufgesetzt wirkt, sondern selbstverständlich zu Ihnen gehört.",
+      "Salon Elen ist Ihr Kosmetikstudio in Halle (Saale) in der Lessingstraße 37 im Paulusviertel. Jede Behandlung startet mit ehrlicher Beratung, einem transparenten Ablauf und einem Ergebnis, das natürlich zu Ihnen passt.",
     reasons: [
       {
         title: "Zertifizierte Expertise",
@@ -235,7 +235,7 @@ const COPY: Record<Locale, HomeCopy> = {
     heroTitle: "Salon Elen",
     heroSubtitle: "Your beauty. Your signature.",
     heroDescription:
-      "Permanent make-up, lashes, Hairstroke Brows and modern cosmetics in an atmosphere shaped by calm and precision.",
+      "Permanent make-up in Halle (Saale), lashes, Hairstroke Brows and modern cosmetics at Salon Elen in Paulusviertel.",
     book: "Book appointment",
     discover: "Explore services",
     openDaily: "Online booking, around the clock",
@@ -272,7 +272,7 @@ const COPY: Record<Locale, HomeCopy> = {
     signatureEyebrow: "The Salon Elen standard",
     signatureTitle: "Beauty starts with trust",
     signatureDescription:
-      "Every treatment begins with honest consultation. We take our time, explain each step and create a result that feels naturally yours.",
+      "Salon Elen is your beauty studio in Halle (Saale), at Lessingstrasse 37 in Paulusviertel. Every treatment starts with honest consultation, a transparent process and a result that feels naturally yours.",
     reasons: [
       {
         title: "Certified expertise",
@@ -340,7 +340,7 @@ const COPY: Record<Locale, HomeCopy> = {
     heroTitle: "Salon Elen",
     heroSubtitle: "Ваша красота. Ваш почерк.",
     heroDescription:
-      "Перманентный макияж, ресницы, волосковая техника бровей и современная косметология в атмосфере спокойствия и точности.",
+      "Перманентный макияж в Halle (Saale), ресницы, волосковая техника бровей и современная косметология в Salon Elen в Paulusviertel.",
     book: "Записаться",
     discover: "Смотреть услуги",
     openDaily: "Онлайн-запись круглосуточно",
@@ -377,7 +377,7 @@ const COPY: Record<Locale, HomeCopy> = {
     signatureEyebrow: "Стандарт Salon Elen",
     signatureTitle: "Красота начинается с доверия",
     signatureDescription:
-      "Каждая процедура начинается с честной консультации. Мы спокойно объясняем этапы и создаем результат, который выглядит естественной частью вашего образа.",
+      "Salon Elen — косметологическая студия в Halle (Saale) по адресу Lessingstraße 37 в Paulusviertel. Каждая процедура начинается с честной консультации, понятного процесса и естественного результата.",
     reasons: [
       {
         title: "Сертифицированный опыт",
@@ -451,7 +451,7 @@ const SERVICE_IMAGES = [
 
 const SERVICE_HREFS = [
   "/permanent-make-up-in-der-naehe",
-  "/services",
+  "/wimpernverlaengerung-halle",
   "/microblading-halle",
   "/microneedling-halle",
 ];

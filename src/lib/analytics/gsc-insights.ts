@@ -359,8 +359,18 @@ export function formatGscRecommendationText(
       return `Добавить релевантные внутренние ссылки на существующую каноническую страницу и усилить тематические связи (${metricText}).`;
     case "local_proof":
       return `Усилить локальные доказательства на канонической странице: Halle/Paulusviertel, адрес, маршрут, реальные работы, этапы процедуры и прямую запись (${metricText}).`;
-    case "differentiate":
-      return `Яснее показать преимущества Salon Elen под этот интент: Hairstroke-экспертизу, консультацию DE/EN/RU, прозрачный процесс и онлайн-запись 24/7 (${metricText}).`;
+    case "differentiate": {
+      const normalizedQuery = recommendation.query.toLocaleLowerCase("de-DE");
+      const differentiators = /microneedling|needling|haut|kosmetik/.test(normalizedQuery)
+        ? "индивидуальный анализ кожи, понятный план процедуры и ухода, консультацию DE/EN/RU и онлайн-запись 24/7"
+        : /wimper|lash/.test(normalizedQuery)
+          ? "подбор длины, изгиба и объёма под форму глаз, рекомендации по уходу, консультацию DE/EN/RU и онлайн-запись 24/7"
+          : /hairstroke|microblading|powder|brow|brauen|augenbrauen/.test(normalizedQuery)
+            ? "Hairstroke- и PMU-экспертизу, предварительную прорисовку, консультацию DE/EN/RU и онлайн-запись 24/7"
+            : "индивидуальную консультацию DE/EN/RU, прозрачный процесс, локальные доказательства и онлайн-запись 24/7";
+
+      return `Яснее показать преимущества Salon Elen под этот интент: ${differentiators} (${metricText}).`;
+    }
     case "monitor":
       return `Сохранить релевантность и контролировать недельную динамику без поспешных изменений (${metricText}).`;
   }

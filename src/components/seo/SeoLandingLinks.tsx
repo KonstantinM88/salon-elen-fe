@@ -14,6 +14,8 @@ const copy: Record<
     eyebrow: string;
     title: string;
     text: string;
+    studioLink: string;
+    studioSuffix: string;
     open: string;
   }
 > = {
@@ -21,18 +23,24 @@ const copy: Record<
     eyebrow: "Passende Behandlungen",
     title: "Mehr Informationen zu unseren Behandlungen in Halle",
     text: "Hier finden Sie Details zu Ergebnis, Ablauf, Preis, Pflege und Buchung.",
+    studioLink: "Kosmetikstudio in Halle (Saale)",
+    studioSuffix: "in der Lessingstraße 37 im Paulusviertel.",
     open: "Mehr erfahren",
   },
   ru: {
     eyebrow: "\u041F\u043E\u0445\u043E\u0436\u0438\u0435 \u0443\u0441\u043B\u0443\u0433\u0438",
     title: "\u0411\u043E\u043B\u044C\u0448\u0435 \u0438\u043D\u0444\u043E\u0440\u043C\u0430\u0446\u0438\u0438 \u043E \u043D\u0430\u0448\u0438\u0445 \u043F\u0440\u043E\u0446\u0435\u0434\u0443\u0440\u0430\u0445 \u0432 Halle",
     text: "\u0417\u0434\u0435\u0441\u044C \u0435\u0441\u0442\u044C \u0434\u0435\u0442\u0430\u043B\u0438 \u043E \u0440\u0435\u0437\u0443\u043B\u044C\u0442\u0430\u0442\u0435, \u043F\u0440\u043E\u0446\u0435\u0441\u0441\u0435, \u0446\u0435\u043D\u0435, \u0443\u0445\u043E\u0434\u0435 \u0438 \u0437\u0430\u043F\u0438\u0441\u0438.",
+    studioLink: "\u041A\u043E\u0441\u043C\u0435\u0442\u043E\u043B\u043E\u0433\u0438\u0447\u0435\u0441\u043A\u0430\u044F \u0441\u0442\u0443\u0434\u0438\u044F \u0432 Halle (Saale)",
+    studioSuffix: "\u043F\u043E \u0430\u0434\u0440\u0435\u0441\u0443 Lessingstra\u00DFe 37 \u0432 Paulusviertel.",
     open: "\u041F\u043E\u0434\u0440\u043E\u0431\u043D\u0435\u0435",
   },
   en: {
     eyebrow: "Related treatments",
     title: "More information about our treatments in Halle",
     text: "Find details about results, process, pricing, aftercare and booking.",
+    studioLink: "Beauty studio in Halle (Saale)",
+    studioSuffix: "at Lessingstrasse 37 in Paulusviertel.",
     open: "Learn more",
   },
 };
@@ -64,6 +72,16 @@ export default function SeoLandingLinks({ locale }: { locale: SeoLocale }) {
           </h2>
           <p className="mt-4 text-sm leading-7 text-gray-600 dark:text-gray-300 sm:text-base">
             {t.text}
+          </p>
+          <p className="mt-2 text-sm leading-7 text-gray-600 dark:text-gray-300 sm:text-base">
+            Salon Elen: {" "}
+            <Link
+              href={localeHref("/", locale)}
+              className="font-semibold text-rose-700 underline decoration-rose-300 underline-offset-4 transition hover:text-rose-900 dark:text-amber-300 dark:decoration-amber-500/50 dark:hover:text-amber-200"
+            >
+              {t.studioLink}
+            </Link>{" "}
+            {t.studioSuffix}
           </p>
         </div>
 

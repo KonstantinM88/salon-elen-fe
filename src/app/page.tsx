@@ -41,13 +41,13 @@ type ArticleItem = {
 };
 
 const metaTitles: Record<SeoLocale, string> = {
-  de: "Permanent Make-up & Hairstroke Brows Halle — Salon Elen",
+  de: "Permanent Make-up Halle (Saale) | Salon Elen",
   ru: "Salon Elen — перманентный макияж и Hairstroke брови в Halle",
   en: "Permanent Make-up in Halle (Saale) — Salon Elen | Beauty Salon",
 };
 
 const metaDescriptions: Record<SeoLocale, string> = {
-  de: "Permanent Make-up in Halle: Hairstroke Augenbrauen, Powder Brows, Lippenpigmentierung, Wimpernkranzverdichtung und Microneedling bei Salon Elen. Online buchen!",
+  de: "Permanent Make-up in Halle (Saale) bei Salon Elen im Paulusviertel: natürliche Beratung, echte Behandlungseinblicke, klare Abläufe und Online-Termin 24/7.",
   ru: "Salon Elen в Halle: Hairstroke и Powder Brows, перманентный макияж губ, межресничка и микронидлинг. Онлайн-запись по адресу Lessingstraße 37.",
   en: "Permanent make-up in Halle: Hairstroke Brows, Powder Brows, lip pigmentation, lashline enhancement and microneedling at Salon Elen. Book online.",
 };

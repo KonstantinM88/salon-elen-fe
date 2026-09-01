@@ -54,6 +54,9 @@ Useful scripts:
 - `src/generated/prisma` - generated Prisma client output.
 - `prisma` - `schema.prisma`, migrations, and seed scripts.
 - `public` - static assets, icons, video, images, uploads, robots and manifest.
+- `.local/instagram` - local-only Instagram workspace for Reels, covers,
+  captions, source visuals, and render files. It is excluded from Git and is
+  not part of deployment artifacts.
 - `scripts`, `sql`, `ai-tests`, `ZADARMA_SMS`, `readme` - maintenance scripts,
   SQL utilities, AI test harness, SMS experiments, and operational docs.
 
@@ -105,6 +108,11 @@ Useful scripts:
   A request to implement or verify code grants permission only for local changes.
 - Do not edit `.env`, secrets, production credentials, or uploaded content
   unless the user explicitly asks.
+- Access `.local/instagram` only when the current user request explicitly
+  concerns Instagram work. Do not read, enumerate, reuse, move, or modify its
+  contents for unrelated tasks. Store Instagram-only source assets and renders
+  there, and never copy them into tracked or deployed paths unless the user
+  explicitly requests publication or deployment.
 - For Prisma schema changes, update `prisma/schema.prisma`, add/adjust
   migrations as appropriate, run `npm run prisma:generate`, and update affected
   TypeScript code.
@@ -127,6 +135,17 @@ Useful scripts:
 
 ## Important Change Log
 
+- 2026-09-01: Search Console recommendations now tailor differentiation proof
+  to the exact service intent, so skin and lash queries no longer inherit
+  Hairstroke-specific advice. Added the DE/EN/RU canonical commercial landing
+  page `/wimpernverlaengerung-halle`, strengthened local Microneedling and
+  homepage Permanent Make-up signals for Halle/Paulusviertel, and added
+  descriptive internal links to the homepage for the `kosmetikstudio halle`
+  intent. Keep `lash lifting halle` in monitoring until stronger GSC evidence
+  supports a content change.
+- 2026-08-17: Instagram-only creative assets are stored under the local
+  `.local/instagram` workspace. The directory is Git-ignored, excluded from
+  deployment, and must be accessed only for explicit Instagram tasks.
 - 2026-08-17: Published the promotional news article
   `/news/15-rabatt-auf-permanent-make-up-in-halle-saale` in DE/RU/EN with
   localized SEO/OG metadata and a generated campaign cover. It advertises 15%

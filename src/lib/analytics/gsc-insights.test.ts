@@ -6,6 +6,7 @@ import {
   formatGscCtr,
   formatGscInsightsMarkdown,
   formatGscInsightsPlainText,
+  formatGscRecommendationText,
   formatGscPosition,
   validateRecommendationLines,
 } from "@/lib/analytics/gsc-insights";
@@ -92,6 +93,23 @@ test("local competitor context contains five unique public profiles", () => {
 test("Russian metric formatting keeps one decimal place", () => {
   assert.match(formatGscPosition(8.44), /^8,4$/);
   assert.match(formatGscCtr(0.044), /^4,4 %$/);
+});
+
+test("service differentiation stays relevant to the exact query", () => {
+  const microneedlingText = formatGscRecommendationText({
+    query: "microneedling halle",
+    action: "differentiate",
+    metric: metrics[3],
+  });
+  const hairstrokeText = formatGscRecommendationText({
+    query: "hairstroke halle",
+    action: "differentiate",
+    metric: metrics[0],
+  });
+
+  assert.match(microneedlingText, /анализ кожи/);
+  assert.doesNotMatch(microneedlingText, /Hairstroke/);
+  assert.match(hairstrokeText, /Hairstroke/);
 });
 
 test("Telegram GSC report gives every query metric its own visual row", () => {
