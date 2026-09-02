@@ -11,7 +11,10 @@ import {
 } from "@/lib/promotions";
 import { isPromotionPercent } from "@/lib/promotion-constants";
 import { isYmd } from "@/lib/orgTime";
-import { HOME_PROMOTION_ANNOUNCEMENTS_TAG } from "@/lib/cache-tags";
+import {
+  HOME_PROMOTION_ANNOUNCEMENTS_TAG,
+  PUBLIC_PROMOTIONS_TAG,
+} from "@/lib/cache-tags";
 
 export interface PromotionAdminRow {
   id: string;
@@ -225,6 +228,7 @@ export async function createPromotion(
     revalidatePath("/admin/promotions");
     revalidatePath("/booking/services");
     updateTag(HOME_PROMOTION_ANNOUNCEMENTS_TAG);
+    updateTag(PUBLIC_PROMOTIONS_TAG);
     revalidatePath("/");
     revalidatePath("/prices");
     revalidatePath("/services");
@@ -249,6 +253,7 @@ export async function deletePromotion(
     revalidatePath("/admin/promotions");
     revalidatePath("/booking/services");
     updateTag(HOME_PROMOTION_ANNOUNCEMENTS_TAG);
+    updateTag(PUBLIC_PROMOTIONS_TAG);
     revalidatePath("/");
     revalidatePath("/prices");
     revalidatePath("/services");

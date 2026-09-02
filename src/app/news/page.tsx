@@ -3,6 +3,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { prisma } from "@/lib/db";
 import type { Metadata } from "next";
+import { unstable_cache } from "next/cache";
 import {
   resolveUrlLocale,
   buildAlternates,
@@ -11,8 +12,11 @@ import {
   type SearchParamsPromise,
 } from "@/lib/seo-locale";
 import { resolveContentLocale } from "@/lib/seo-locale-server";
+import { PUBLIC_NEWS_TAG } from "@/lib/cache-tags";
 
 export const dynamic = "force-dynamic";
+
+const PUBLIC_NEWS_REVALIDATE_SECONDS = 900;
 
 const metaTitles: Record<SeoLocale, string> = {
   de: "Neuigkeiten & Aktionen — Salon Elen",
@@ -80,6 +84,54 @@ const nextPageText: Record<string, string> = {
   en: "Next →",
 };
 
+const getNewsPageData = unstable_cache(
+  async (locale: SeoLocale, requestedPage: number) => {
+    const now = new Date();
+    const where = {
+      AND: [
+        { OR: [{ publishedAt: null }, { publishedAt: { lte: now } }] },
+        { OR: [{ expiresAt: null }, { expiresAt: { gte: now } }] },
+      ],
+    };
+
+    const totalItems = await prisma.article.count({ where });
+    const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+    const currentPage = Math.min(requestedPage, totalPages);
+    const skip = (currentPage - 1) * pageSize;
+
+    const items = await prisma.article.findMany({
+      where,
+      orderBy: [
+        { isPinned: "desc" },
+        { sortOrder: "desc" },
+        { publishedAt: "desc" },
+      ],
+      skip,
+      take: pageSize,
+      select: {
+        id: true,
+        slug: true,
+        title: true,
+        excerpt: true,
+        cover: true,
+        isPinned: true,
+        videoUrl: true,
+        translations: {
+          where: { locale },
+          select: { title: true, excerpt: true },
+        },
+      },
+    });
+
+    return { currentPage, items, totalPages };
+  },
+  ["public-news-page-data"],
+  {
+    revalidate: PUBLIC_NEWS_REVALIDATE_SECONDS,
+    tags: [PUBLIC_NEWS_TAG],
+  },
+);
+
 export default async function Page({
   searchParams,
 }: {
@@ -92,34 +144,10 @@ export default async function Page({
   const requestedPage =
     Number.isFinite(parsedPage) && parsedPage > 0 ? Math.floor(parsedPage) : 1;
 
-  const where = {
-    AND: [
-      { OR: [{ publishedAt: null }, { publishedAt: { lte: new Date() } }] },
-      { OR: [{ expiresAt: null }, { expiresAt: { gte: new Date() } }] },
-    ],
-  };
-
-  const totalItems = await prisma.article.count({ where });
-  const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
-  const currentPage = Math.min(requestedPage, totalPages);
-  const skip = (currentPage - 1) * pageSize;
-
-  const items = await prisma.article.findMany({
-    where,
-    orderBy: [
-      { isPinned: "desc" },       // закреплённые первыми
-      { sortOrder: "desc" },       // по приоритету среди закреплённых
-      { publishedAt: "desc" },     // затем по дате
-    ],
-    skip,
-    take: pageSize,
-    include: {
-      translations: {
-        where: { locale },
-        select: { title: true, excerpt: true },
-      },
-    },
-  });
+  const { currentPage, items, totalPages } = await getNewsPageData(
+    locale,
+    requestedPage,
+  );
 
   const baseParams = new URLSearchParams();
   for (const [key, value] of Object.entries(sp)) {

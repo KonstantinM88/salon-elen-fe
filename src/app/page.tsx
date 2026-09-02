@@ -208,7 +208,7 @@ const getHomepagePromotionAnnouncements = unstable_cache(
     serializePromotionAnnouncements(await getPublishedPromotionAnnouncements()),
   [HOME_PROMOTION_ANNOUNCEMENTS_TAG],
   {
-    revalidate: 300,
+    revalidate: 900,
     tags: [HOME_PROMOTION_ANNOUNCEMENTS_TAG],
   },
 );

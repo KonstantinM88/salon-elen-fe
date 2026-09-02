@@ -1,6 +1,7 @@
 // src/app/gallerie/page.tsx
 import type { Metadata } from "next";
 import { prisma } from "@/lib/db";
+import { unstable_cache } from "next/cache";
 import GallerieClient from "./GallerieClient";
 import {
   resolveUrlLocale,
@@ -11,8 +12,11 @@ import {
 } from "@/lib/seo-locale";
 import { resolveContentLocale } from "@/lib/seo-locale-server";
 import { SALON_SCHEMA_ID } from "@/lib/structured-data";
+import { PUBLIC_SERVICE_CATALOG_TAG } from "@/lib/cache-tags";
 
 export const dynamic = "force-dynamic";
+
+const PUBLIC_GALLERY_REVALIDATE_SECONDS = 900;
 
 const metaTitles: Record<SeoLocale, string> = {
   de: "Galerie — Salon Elen | Unsere Arbeiten in Halle (Saale)",
@@ -61,7 +65,7 @@ export async function generateMetadata({ searchParams }: { searchParams?: Search
   };
 }
 
-async function getGalleryData(locale: SeoLocale) {
+const getGalleryData = unstable_cache(async (locale: SeoLocale) => {
   const categories = await prisma.service.findMany({
     where: { parentId: null, isArchived: false, isActive: true },
     orderBy: { name: "asc" },
@@ -110,7 +114,10 @@ async function getGalleryData(locale: SeoLocale) {
       return { id: cat.id, slug: cat.slug, name: categoryName, images };
     })
     .filter((c) => c.images.length > 0);
-}
+}, ["public-gallery-page-data"], {
+  revalidate: PUBLIC_GALLERY_REVALIDATE_SECONDS,
+  tags: [PUBLIC_SERVICE_CATALOG_TAG],
+});
 
 export default async function GalleriePage({ searchParams }: { searchParams?: SearchParamsPromise }) {
   const locale = await resolveContentLocale(searchParams);

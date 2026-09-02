@@ -135,6 +135,18 @@ Useful scripts:
 
 ## Important Change Log
 
+- 2026-09-02: Public DB-backed content keeps request-aware DE/RU/EN rendering,
+  but its Prisma reads are cached to prevent crawler traffic from continuously
+  waking Neon. `/services`, `/prices`, and `/gallerie` cache serialized page
+  data for 15 minutes; `/news` and `/news/[slug]` use a 15-minute tagged cache,
+  with article metadata and body sharing the same request-level lookup; dynamic
+  `/sitemap.xml` caches its article rows for one hour. Service, gallery,
+  promotion, article, and translation admin mutations invalidate the matching
+  public tags. Homepage promotion announcements now revalidate every 15 minutes
+  instead of every 5 minutes. `SiteVisitTracker` suppresses duplicate
+  path-and-locale writes for 30 minutes per browser tab, hidden admin tabs skip
+  the one-minute deployment-version request, and the default Prisma PostgreSQL
+  idle timeout is 60 seconds (`PG_IDLE_TIMEOUT_MS` can still override it).
 - 2026-09-01: Search Console recommendations now tailor differentiation proof
   to the exact service intent, so skin and lash queries no longer inherit
   Hairstroke-specific advice. Added the DE/EN/RU canonical commercial landing

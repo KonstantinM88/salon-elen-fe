@@ -8,7 +8,7 @@ import { z } from "zod";
 import { revalidatePath, revalidateTag } from "next/cache";
 import { redirect } from "next/navigation";
 import { isSeoLocale, type SeoLocale } from "@/lib/seo-locale";
-import { HOME_LATEST_ARTICLES_TAG } from "@/lib/cache-tags";
+import { HOME_LATEST_ARTICLES_TAG, PUBLIC_NEWS_TAG } from "@/lib/cache-tags";
 
 /* =========================
  * ТИПЫ
@@ -100,6 +100,13 @@ const NEWS_ACTION_COPY: Record<SeoLocale, NewsActionCopy> = {
 };
 
 const ARTICLE_GALLERY_LIMIT = 4;
+
+function revalidatePublicNews(): void {
+  revalidateTag(HOME_LATEST_ARTICLES_TAG, "max");
+  revalidateTag(PUBLIC_NEWS_TAG, "max");
+  revalidatePath("/news");
+  revalidatePath("/sitemap.xml");
+}
 
 function localeFromFormData(fd: FormData): SeoLocale {
   const raw = fd.get("locale");
@@ -393,7 +400,7 @@ export async function createArticle(fd: FormData): Promise<ActionResult> {
       select: { id: true },
     });
 
-    revalidateTag(HOME_LATEST_ARTICLES_TAG, "max");
+    revalidatePublicNews();
     return { ok: true, id: created.id };
   } catch (e: unknown) {
     if (isKnownPrismaError(e, "P2002")) {
@@ -469,7 +476,7 @@ export async function updateArticle(
       select: { id: true },
     });
 
-    revalidateTag(HOME_LATEST_ARTICLES_TAG, "max");
+    revalidatePublicNews();
     return { ok: true, id };
   } catch (e: unknown) {
     if (isKnownPrismaError(e, "P2002")) {
@@ -508,7 +515,7 @@ export async function deleteArticle(fd: FormData): Promise<ActionResult> {
 
   try {
     await prisma.article.delete({ where: { id } });
-    revalidateTag(HOME_LATEST_ARTICLES_TAG, "max");
+    revalidatePublicNews();
     return { ok: true, id };
   } catch (e: unknown) {
     console.error("Delete article error:", e);
@@ -540,7 +547,7 @@ export async function togglePinArticle(id: string): Promise<ActionResult> {
       data: { isPinned: !article.isPinned },
     });
 
-    revalidateTag(HOME_LATEST_ARTICLES_TAG, "max");
+    revalidatePublicNews();
     revalidatePath("/admin/news");
     return { ok: true, id };
   } catch (e) {

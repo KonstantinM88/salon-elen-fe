@@ -150,7 +150,9 @@ export default function AdminDeploymentWatcher({
     }
 
     const intervalId = window.setInterval(() => {
-      void checkDeploymentVersion();
+      if (document.visibilityState === "visible") {
+        void checkDeploymentVersion();
+      }
     }, 60_000);
 
     const handleVisibilityChange = () => {

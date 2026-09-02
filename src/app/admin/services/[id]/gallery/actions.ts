@@ -1,11 +1,12 @@
 //  src/app/admin/services/[id]/gallery/actions.ts
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, updateTag } from "next/cache";
 import { prisma } from "@/lib/db";
 import { unlink } from "fs/promises";
 import { join } from "path";
 import { saveImageFile } from "@/lib/upload";
+import { PUBLIC_SERVICE_CATALOG_TAG } from "@/lib/cache-tags";
 
 function resolveUploadsDir(): string {
   const rawUploadDir = process.env.UPLOAD_DIR?.replace(/[\\/]+$/, "");
@@ -24,6 +25,14 @@ function resolveUploadsDir(): string {
 
 // Путь для удаления файлов
 const UPLOAD_DIR = resolveUploadsDir();
+
+function revalidatePublicGallery(): void {
+  updateTag(PUBLIC_SERVICE_CATALOG_TAG);
+  revalidatePath("/admin/services");
+  revalidatePath("/services");
+  revalidatePath("/prices");
+  revalidatePath("/gallerie");
+}
 
 // Удаление файла
 async function deleteFile(url: string): Promise<void> {
@@ -74,9 +83,7 @@ export async function uploadGalleryImage(formData: FormData) {
       },
     });
 
-    revalidatePath("/admin/services");
-    revalidatePath("/services");
-    revalidatePath("/gallerie");
+    revalidatePublicGallery();
 
     return { 
       success: true, 
@@ -112,9 +119,7 @@ export async function deleteGalleryImage(imageId: string) {
       where: { id: imageId },
     });
 
-    revalidatePath("/admin/services");
-    revalidatePath("/services");
-    revalidatePath("/gallerie");
+    revalidatePublicGallery();
 
     return { success: true };
   } catch (error) {
@@ -135,9 +140,7 @@ export async function updateGalleryOrder(items: { id: string; sortOrder: number 
       )
     );
 
-    revalidatePath("/admin/services");
-    revalidatePath("/services");
-    revalidatePath("/gallerie");
+    revalidatePublicGallery();
 
     return { success: true };
   } catch (error) {
@@ -183,9 +186,7 @@ export async function updateServiceCover(formData: FormData) {
       data: { cover: imageUrl },
     });
 
-    revalidatePath("/admin/services");
-    revalidatePath("/services");
-    revalidatePath("/gallerie");
+    revalidatePublicGallery();
 
     return { success: true, cover: imageUrl };
   } catch (error) {
@@ -211,9 +212,7 @@ export async function deleteServiceCover(serviceId: string) {
       data: { cover: null },
     });
 
-    revalidatePath("/admin/services");
-    revalidatePath("/services");
-    revalidatePath("/gallerie");
+    revalidatePublicGallery();
 
     return { success: true };
   } catch (error) {

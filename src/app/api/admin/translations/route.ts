@@ -2,6 +2,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { getToken } from 'next-auth/jwt';
+import { revalidateTag } from 'next/cache';
+import { PUBLIC_SERVICE_CATALOG_TAG } from '@/lib/cache-tags';
 
 type Locale = 'de' | 'ru' | 'en';
 
@@ -106,6 +108,8 @@ export async function POST(req: NextRequest) {
         }),
       ),
     );
+
+    revalidateTag(PUBLIC_SERVICE_CATALOG_TAG, { expire: 0 });
 
     return NextResponse.json({ success: true, saved: normalized.length });
   } catch (error) {

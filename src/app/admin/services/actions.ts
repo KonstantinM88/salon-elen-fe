@@ -1,9 +1,10 @@
 // src/app/admin/services/actions.ts
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, updateTag } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { isSeoLocale, type SeoLocale } from "@/lib/seo-locale";
+import { PUBLIC_SERVICE_CATALOG_TAG } from "@/lib/cache-tags";
 
 export type ActionResult =
   | { ok: true; message?: string }
@@ -90,6 +91,14 @@ function formDataHasTruthyValue(formData: FormData, key: string): boolean {
   return formData
     .getAll(key)
     .some((value) => ["1", "true", "on"].includes(value.toString().trim().toLowerCase()));
+}
+
+function revalidatePublicServiceCatalog(): void {
+  updateTag(PUBLIC_SERVICE_CATALOG_TAG);
+  revalidatePath("/admin/services");
+  revalidatePath("/services");
+  revalidatePath("/prices");
+  revalidatePath("/gallerie");
 }
 
 /* ───────────────── helpers ───────────────── */
@@ -195,7 +204,7 @@ export async function createService(formData: FormData): Promise<ActionResult> {
       });
     }
 
-    revalidatePath("/admin/services");
+    revalidatePublicServiceCatalog();
     return { ok: true, message: t.created };
   } catch {
     return { ok: false, message: t.createFailed };
@@ -228,7 +237,7 @@ export async function updateCategory(formData: FormData): Promise<ActionResult> 
       },
     });
 
-    revalidatePath("/admin/services");
+    revalidatePublicServiceCatalog();
     return { ok: true, message: t.saved };
   } catch {
     return { ok: false, message: t.updateCategoryFailed };
@@ -272,7 +281,7 @@ export async function updateSubservice(
       },
     });
 
-    revalidatePath("/admin/services");
+    revalidatePublicServiceCatalog();
     return { ok: true, message: t.saved };
   } catch {
     return { ok: false, message: t.updateServiceFailed };
@@ -304,7 +313,7 @@ export async function deleteService(formData: FormData): Promise<ActionResult> {
 
     if (used) {
       await archiveSubtree(id);
-      revalidatePath("/admin/services");
+      revalidatePublicServiceCatalog();
       return {
         ok: true,
         message: t.archivedBranch,
@@ -312,14 +321,14 @@ export async function deleteService(formData: FormData): Promise<ActionResult> {
     }
 
     await prisma.service.delete({ where: { id } });
-    revalidatePath("/admin/services");
+    revalidatePublicServiceCatalog();
     return { ok: true, message: t.deleted };
   } catch {
     // страховка: если FK помешали — архивируем
     try {
       const id = String(formData.get("id") ?? "");
       if (id) await archiveSubtree(id);
-      revalidatePath("/admin/services");
+      revalidatePublicServiceCatalog();
       return { ok: true, message: t.movedToArchive };
     } catch {
       return { ok: false, message: t.deleteOrArchiveFailed };

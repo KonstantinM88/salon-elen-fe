@@ -1,6 +1,7 @@
 // src/app/prices/page.tsx
 import type { Metadata } from "next";
 import { prisma } from "@/lib/db";
+import { unstable_cache } from "next/cache";
 import PricesClient from "./PricesClient";
 import PromotionTicker from "@/components/promotions/PromotionTicker";
 import SeoLandingLinks from "@/components/seo/SeoLandingLinks";
@@ -19,8 +20,14 @@ import {
   formatPromotionOrgDate,
   getPublishedPromotionsForServices,
 } from "@/lib/promotions";
+import {
+  PUBLIC_PROMOTIONS_TAG,
+  PUBLIC_SERVICE_CATALOG_TAG,
+} from "@/lib/cache-tags";
 
 export const dynamic = "force-dynamic";
+
+const PUBLIC_CATALOG_REVALIDATE_SECONDS = 900;
 
 /* ─────────────────── SEO metadata ─────────────────── */
 
@@ -124,7 +131,7 @@ function buildJsonLd(locale: SeoLocale, services: ServiceForLd[]) {
 
 /* ─────────────────── data fetching ─────────────────── */
 
-async function getCategories(locale: SeoLocale) {
+const getCategories = unstable_cache(async (locale: SeoLocale) => {
   const categories = await prisma.service.findMany({
     where: { parentId: null, isArchived: false, isActive: true },
     orderBy: { name: "asc" },
@@ -197,7 +204,10 @@ async function getCategories(locale: SeoLocale) {
     categories: mappedCategories,
     promotionAnnouncements: distinctPromotionAnnouncements(promotionMap.values()),
   };
-}
+}, ["public-prices-page-data"], {
+  revalidate: PUBLIC_CATALOG_REVALIDATE_SECONDS,
+  tags: [PUBLIC_SERVICE_CATALOG_TAG, PUBLIC_PROMOTIONS_TAG],
+});
 
 /* ─────────────────── PAGE ─────────────────── */
 

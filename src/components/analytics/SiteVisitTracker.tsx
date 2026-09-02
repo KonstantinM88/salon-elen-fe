@@ -6,6 +6,8 @@ import type { Locale } from "@/i18n/locales";
 
 const VISIT_ID_KEY = "salon-elen-site-visit-id-v1";
 const ATTRIBUTION_KEY = "salon-elen-site-attribution-v1";
+const TRACKED_PATHS_KEY = "salon-elen-site-tracked-paths-v1";
+const TRACKED_PATH_COOLDOWN_MS = 30 * 60 * 1000;
 
 type VisitAttribution = {
   referrer?: string;
@@ -59,6 +61,31 @@ function getAttribution(): VisitAttribution {
   }
 }
 
+function reservePageview(pathname: string, locale: Locale): boolean {
+  try {
+    const now = Date.now();
+    const key = `${locale}:${pathname}`;
+    const raw = window.sessionStorage.getItem(TRACKED_PATHS_KEY);
+    const tracked = raw ? (JSON.parse(raw) as Record<string, number>) : {};
+    const previous = tracked[key];
+
+    if (Number.isFinite(previous) && now - previous < TRACKED_PATH_COOLDOWN_MS) {
+      return false;
+    }
+
+    const cutoff = now - 24 * 60 * 60 * 1000;
+    const nextTracked = Object.fromEntries(
+      Object.entries(tracked).filter(([, timestamp]) => timestamp >= cutoff),
+    );
+    nextTracked[key] = now;
+    window.sessionStorage.setItem(TRACKED_PATHS_KEY, JSON.stringify(nextTracked));
+    return true;
+  } catch {
+    // If storage is unavailable, preserve analytics instead of blocking it.
+    return true;
+  }
+}
+
 export default function SiteVisitTracker({
   locale,
 }: {
@@ -71,6 +98,7 @@ export default function SiteVisitTracker({
 
     const visitId = getVisitId();
     if (!visitId) return;
+    if (!reservePageview(pathname, locale)) return;
     const attribution = getAttribution();
 
     const body = JSON.stringify({

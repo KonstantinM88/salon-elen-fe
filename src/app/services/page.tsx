@@ -2,6 +2,7 @@
 import { Suspense } from "react";
 import { prisma } from "@/lib/db";
 import type { Metadata } from "next";
+import { unstable_cache } from "next/cache";
 import ServicesClient from "./ServicesClient";
 import PromotionTicker from "@/components/promotions/PromotionTicker";
 import SeoLandingLinks from "@/components/seo/SeoLandingLinks";
@@ -20,8 +21,14 @@ import {
   formatPromotionOrgDate,
   getPublishedPromotionsForServices,
 } from "@/lib/promotions";
+import {
+  PUBLIC_PROMOTIONS_TAG,
+  PUBLIC_SERVICE_CATALOG_TAG,
+} from "@/lib/cache-tags";
 
 export const dynamic = "force-dynamic";
+
+const PUBLIC_CATALOG_REVALIDATE_SECONDS = 900;
 
 const metaTitles: Record<SeoLocale, string> = {
   de: "Permanent Make-up, Wimpern, Nägel & Microneedling in Halle — Salon Elen",
@@ -74,101 +81,114 @@ export async function generateMetadata({
   };
 }
 
+const getServicesPageData = unstable_cache(
+  async (locale: SeoLocale) => {
+    const categories = await prisma.service.findMany({
+      where: {
+        isActive: true,
+        isArchived: false,
+        parentId: null,
+      },
+      orderBy: { name: "asc" },
+      include: {
+        translations: {
+          where: { locale },
+          select: { name: true, description: true },
+        },
+        gallery: {
+          orderBy: { sortOrder: "asc" },
+          take: 6,
+        },
+        children: {
+          where: {
+            isActive: true,
+            isArchived: false,
+          },
+          orderBy: { name: "asc" },
+          include: {
+            translations: {
+              where: { locale },
+              select: { name: true, description: true },
+            },
+            gallery: {
+              orderBy: { sortOrder: "asc" },
+              take: 6,
+            },
+          },
+        },
+      },
+    });
+
+    const promotionMap = await getPublishedPromotionsForServices(
+      categories.flatMap((category) => category.children.map((service) => service.id)),
+    );
+    const promotionAnnouncements = distinctPromotionAnnouncements(promotionMap.values());
+
+    const categoriesWithTranslations = categories.map((cat) => {
+      const catTranslation = cat.translations[0];
+      return {
+        id: cat.id,
+        slug: cat.slug,
+        name: catTranslation?.name || cat.name,
+        description: catTranslation?.description || cat.description,
+        cover: cat.cover,
+        gallery: cat.gallery.map((g) => ({
+          id: g.id,
+          image: g.image,
+          caption: g.caption,
+        })),
+        children: cat.children.map((child) => {
+          const childTranslation = child.translations[0];
+          const promotion = promotionMap.get(child.id) ?? null;
+          return {
+            id: child.id,
+            slug: child.slug,
+            name: childTranslation?.name || child.name,
+            description: childTranslation?.description || child.description,
+            priceCents: child.priceCents,
+            promotion:
+              promotion && child.priceCents != null
+                ? {
+                    id: promotion.id,
+                    title: promotion.title,
+                    percent: promotion.percent,
+                    from: formatPromotionOrgDate(promotion.from),
+                    to: formatPromotionOrgDate(promotion.to),
+                    discountedPriceCents: calculatePromotionalPriceCents(
+                      child.priceCents,
+                      promotion.percent,
+                    ),
+                  }
+                : null,
+            durationMin: child.durationMin,
+            cover: child.cover,
+            gallery: child.gallery.map((g) => ({
+              id: g.id,
+              image: g.image,
+              caption: g.caption,
+            })),
+          };
+        }),
+      };
+    });
+
+    return { categoriesWithTranslations, promotionAnnouncements };
+  },
+  ["public-services-page-data"],
+  {
+    revalidate: PUBLIC_CATALOG_REVALIDATE_SECONDS,
+    tags: [PUBLIC_SERVICE_CATALOG_TAG, PUBLIC_PROMOTIONS_TAG],
+  },
+);
+
 export default async function ServicesPage({
   searchParams,
 }: {
   searchParams?: SearchParamsPromise;
 }) {
   const locale = await resolveContentLocale(searchParams);
-
-  const categories = await prisma.service.findMany({
-    where: {
-      isActive: true,
-      isArchived: false,
-      parentId: null,
-    },
-    orderBy: { name: "asc" },
-    include: {
-      translations: {
-        where: { locale },
-        select: { name: true, description: true },
-      },
-      gallery: {
-        orderBy: { sortOrder: "asc" },
-        take: 6,
-      },
-      children: {
-        where: {
-          isActive: true,
-          isArchived: false,
-        },
-        orderBy: { name: "asc" },
-        include: {
-          translations: {
-            where: { locale },
-            select: { name: true, description: true },
-          },
-          gallery: {
-            orderBy: { sortOrder: "asc" },
-            take: 6,
-          },
-        },
-      },
-    },
-  });
-
-  const promotionMap = await getPublishedPromotionsForServices(
-    categories.flatMap((category) => category.children.map((service) => service.id)),
-  );
-  const promotionAnnouncements = distinctPromotionAnnouncements(promotionMap.values());
-
-  const categoriesWithTranslations = categories.map((cat) => {
-    const catTranslation = cat.translations[0];
-    return {
-      id: cat.id,
-      slug: cat.slug,
-      name: catTranslation?.name || cat.name,
-      description: catTranslation?.description || cat.description,
-      cover: cat.cover,
-      gallery: cat.gallery.map((g) => ({
-        id: g.id,
-        image: g.image,
-        caption: g.caption,
-      })),
-      children: cat.children.map((child) => {
-        const childTranslation = child.translations[0];
-        const promotion = promotionMap.get(child.id) ?? null;
-        return {
-          id: child.id,
-          slug: child.slug,
-          name: childTranslation?.name || child.name,
-          description: childTranslation?.description || child.description,
-          priceCents: child.priceCents,
-          promotion:
-            promotion && child.priceCents != null
-              ? {
-                  id: promotion.id,
-                  title: promotion.title,
-                  percent: promotion.percent,
-                  from: formatPromotionOrgDate(promotion.from),
-                  to: formatPromotionOrgDate(promotion.to),
-                  discountedPriceCents: calculatePromotionalPriceCents(
-                    child.priceCents,
-                    promotion.percent,
-                  ),
-                }
-              : null,
-          durationMin: child.durationMin,
-          cover: child.cover,
-          gallery: child.gallery.map((g) => ({
-            id: g.id,
-            image: g.image,
-            caption: g.caption,
-          })),
-        };
-      }),
-    };
-  });
+  const { categoriesWithTranslations, promotionAnnouncements } =
+    await getServicesPageData(locale);
 
   const servicesJsonLd = {
     "@context": "https://schema.org",

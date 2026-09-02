@@ -1,10 +1,13 @@
 import { prisma } from "@/lib/db";
 import { seoLandingPages } from "@/lib/seo-landing-pages";
 import type { MetadataRoute } from "next";
+import { unstable_cache } from "next/cache";
+import { PUBLIC_NEWS_TAG } from "@/lib/cache-tags";
 
 export const dynamic = "force-dynamic";
 
 const BASE_URL = "https://permanent-halle.de";
+const SITEMAP_REVALIDATE_SECONDS = 3600;
 
 type SitemapEntry = MetadataRoute.Sitemap[number];
 type ChangeFrequency = NonNullable<SitemapEntry["changeFrequency"]>;
@@ -114,15 +117,8 @@ function pushSitemapEntry(
   });
 }
 
-export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const items: MetadataRoute.Sitemap = [];
-  const seenPaths = new Set<string>();
-
-  for (const page of publicPages) {
-    pushSitemapEntry(items, seenPaths, page);
-  }
-
-  try {
+const getPublicArticleSitemapRows = unstable_cache(
+  async () => {
     const now = new Date();
     const articles = await prisma.article.findMany({
       where: {
@@ -135,6 +131,29 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       select: { slug: true, updatedAt: true },
     });
 
+    return articles.map((article) => ({
+      slug: article.slug,
+      updatedAt: article.updatedAt.toISOString(),
+    }));
+  },
+  ["public-sitemap-article-rows"],
+  {
+    revalidate: SITEMAP_REVALIDATE_SECONDS,
+    tags: [PUBLIC_NEWS_TAG],
+  },
+);
+
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  const items: MetadataRoute.Sitemap = [];
+  const seenPaths = new Set<string>();
+
+  for (const page of publicPages) {
+    pushSitemapEntry(items, seenPaths, page);
+  }
+
+  try {
+    const articles = await getPublicArticleSitemapRows();
+
     for (const article of articles) {
       const path = normalizePath(`/news/${article.slug}`);
 
@@ -145,7 +164,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       seenPaths.add(path);
       items.push({
         url: absoluteUrl(path),
-        lastModified: article.updatedAt,
+        lastModified: new Date(article.updatedAt),
         changeFrequency: "weekly",
         priority: 0.5,
         alternates: {

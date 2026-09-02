@@ -1,7 +1,9 @@
 // src/app/news/[slug]/page.tsx
 import { notFound } from "next/navigation";
+import { cache } from "react";
 import { prisma } from "@/lib/db";
 import type { Metadata } from "next";
+import { unstable_cache } from "next/cache";
 import {
   resolveUrlLocale,
   buildAlternates,
@@ -17,13 +19,82 @@ import {
   WEBSITE_SCHEMA_ID,
   buildSalonJsonLd,
 } from "@/lib/structured-data";
+import { PUBLIC_NEWS_TAG } from "@/lib/cache-tags";
 
 export const dynamic = "force-dynamic";
+
+const PUBLIC_NEWS_REVALIDATE_SECONDS = 900;
 
 type PageProps = {
   params: Promise<{ slug: string }>;
   searchParams?: SearchParamsPromise;
 };
+
+const loadPublicArticle = unstable_cache(
+  async (slug: string) => {
+    const now = new Date();
+    const article = await prisma.article.findFirst({
+      where: {
+        slug,
+        AND: [
+          { OR: [{ publishedAt: null }, { publishedAt: { lte: now } }] },
+          { OR: [{ expiresAt: null }, { expiresAt: { gte: now } }] },
+        ],
+      },
+      select: {
+        id: true,
+        type: true,
+        title: true,
+        excerpt: true,
+        content: true,
+        cover: true,
+        galleryImages: true,
+        seoTitle: true,
+        seoDescription: true,
+        ogTitle: true,
+        ogDescription: true,
+        ogImage: true,
+        publishedAt: true,
+        updatedAt: true,
+        views: true,
+        videoUrl: true,
+        videoType: true,
+        translations: {
+          select: {
+            locale: true,
+            title: true,
+            excerpt: true,
+            content: true,
+            seoTitle: true,
+            seoDescription: true,
+            ogTitle: true,
+            ogDescription: true,
+            updatedAt: true,
+          },
+        },
+      },
+    });
+
+    if (!article) return null;
+
+    return {
+      ...article,
+      publishedAt: article.publishedAt?.toISOString() ?? null,
+      updatedAt: article.updatedAt.toISOString(),
+      translations: article.translations.map((translation) => ({
+        ...translation,
+        updatedAt: translation.updatedAt.toISOString(),
+      })),
+    };
+  },
+  ["public-news-article"],
+  {
+    revalidate: PUBLIC_NEWS_REVALIDATE_SECONDS,
+    tags: [PUBLIC_NEWS_TAG],
+  },
+);
+
+const getPublicArticle = cache(loadPublicArticle);
 
 /* ─────────────────── SEO METADATA ─────────────────── */
 
@@ -31,36 +102,11 @@ export async function generateMetadata({ params, searchParams }: PageProps): Pro
   const { slug } = await params;
   const locale = await resolveUrlLocale(searchParams);
 
-  const article = await prisma.article.findFirst({
-    where: { slug },
-    select: {
-      title: true,
-      excerpt: true,
-      cover: true,
-      // SEO поля базовой версии
-      seoTitle: true,
-      seoDescription: true,
-      ogTitle: true,
-      ogDescription: true,
-      ogImage: true,
-      publishedAt: true,
-      translations: {
-        where: { locale },
-        select: {
-          title: true,
-          excerpt: true,
-          seoTitle: true,
-          seoDescription: true,
-          ogTitle: true,
-          ogDescription: true,
-        },
-      },
-    },
-  });
+  const article = await getPublicArticle(slug);
 
   if (!article) return { title: "Not found" };
 
-  const t = article.translations[0];
+  const t = article.translations.find((translation) => translation.locale === locale);
   const alts = buildAlternates(`/news/${slug}`, locale);
 
   // Цепочка fallback: перевод SEO → перевод обычный → базовый SEO → базовый обычный
@@ -100,9 +146,7 @@ export async function generateMetadata({ params, searchParams }: PageProps): Pro
       ],
       siteName: "Salon Elen",
       type: "article",
-      ...(article.publishedAt
-        ? { publishedTime: article.publishedAt.toISOString() }
-        : {}),
+      ...(article.publishedAt ? { publishedTime: article.publishedAt } : {}),
     },
   };
 }
@@ -154,24 +198,12 @@ export default async function Page({
   const { slug } = await params;
   const locale = await resolveContentLocale(searchParams);
 
-  const item = await prisma.article.findFirst({
-    where: {
-      slug,
-      AND: [
-        { OR: [{ publishedAt: null }, { publishedAt: { lte: new Date() } }] },
-        { OR: [{ expiresAt: null }, { expiresAt: { gte: new Date() } }] },
-      ],
-    },
-    include: {
-      translations: {
-        where: { locale },
-        select: { title: true, excerpt: true, content: true, updatedAt: true },
-      },
-    },
-  });
+  const item = await getPublicArticle(slug);
   if (!item) return notFound();
 
-  const translation = item.translations[0];
+  const translation = item.translations.find(
+    (candidate) => candidate.locale === locale,
+  );
   const title = translation?.title || item.title;
   const excerpt = translation?.excerpt || item.excerpt;
   const content = translation?.content || item.content;
@@ -183,7 +215,8 @@ export default async function Page({
   const articleSchemaId = `${canonical}#article`;
   const webpageSchemaId = `${canonical}#webpage`;
   const dateModified =
-    translation?.updatedAt && translation.updatedAt > item.updatedAt
+    translation?.updatedAt &&
+    new Date(translation.updatedAt).getTime() > new Date(item.updatedAt).getTime()
       ? translation.updatedAt
       : item.updatedAt;
   const jsonLd = JSON.stringify({
@@ -216,8 +249,8 @@ export default async function Page({
           articleImages.length > 0
             ? articleImages.map(absoluteImageUrl)
             : [`${BASE_URL}/images/hero.webp`],
-        datePublished: item.publishedAt?.toISOString(),
-        dateModified: dateModified.toISOString(),
+        datePublished: item.publishedAt || undefined,
+        dateModified,
         articleSection: item.type,
         inLanguage: locale,
         mainEntityOfPage: { "@id": webpageSchemaId },
@@ -243,7 +276,7 @@ export default async function Page({
 
           {item.publishedAt && (
             <time
-              dateTime={item.publishedAt.toISOString()}
+              dateTime={item.publishedAt}
               className="mt-2 block text-sm opacity-60"
             >
               {new Date(item.publishedAt).toLocaleDateString(dateLocales[locale] || "de-DE", {

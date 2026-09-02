@@ -2,7 +2,8 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
+import { PUBLIC_NEWS_TAG } from "@/lib/cache-tags";
 
 type SaveTranslationInput = {
   articleId: string;
@@ -71,6 +72,8 @@ export async function saveArticleTranslation(
 
     revalidatePath(`/admin/news/${articleId}/translations`);
     revalidatePath("/news");
+    revalidateTag(PUBLIC_NEWS_TAG, "max");
+    revalidatePath("/sitemap.xml");
     
     return { ok: true };
   } catch (error) {
@@ -89,6 +92,8 @@ export async function deleteArticleTranslation(
 
     revalidatePath(`/admin/news/${translation.articleId}/translations`);
     revalidatePath("/news");
+    revalidateTag(PUBLIC_NEWS_TAG, "max");
+    revalidatePath("/sitemap.xml");
 
     return { ok: true };
   } catch (error) {

@@ -18,7 +18,7 @@ function createPrismaClient(): PrismaClient {
   const connectionString = process.env.DATABASE_URL;
   const verboseQueryLogging = process.env.PRISMA_LOG_QUERIES === "1";
   const connectionTimeoutMillis = readMillisEnv("PG_CONNECTION_TIMEOUT_MS", 15_000);
-  const idleTimeoutMillis = readMillisEnv("PG_IDLE_TIMEOUT_MS", 300_000);
+  const idleTimeoutMillis = readMillisEnv("PG_IDLE_TIMEOUT_MS", 60_000);
 
   if (!connectionString) {
     throw new Error("DATABASE_URL is not set");
