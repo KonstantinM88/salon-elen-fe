@@ -29,6 +29,18 @@ import {
 export const dynamic = "force-dynamic";
 
 const PUBLIC_CATALOG_REVALIDATE_SECONDS = 900;
+const FOOT_CARE_CATEGORY_SLUG = "fu-pflege";
+const FOOT_CARE_IMAGE_BASE_PATH = "/images/services/fusspflege";
+
+function resolveServiceCover(
+  categorySlug: string,
+  serviceSlug: string,
+  storedCover: string | null,
+): string | null {
+  if (storedCover) return storedCover;
+  if (categorySlug !== FOOT_CARE_CATEGORY_SLUG) return null;
+  return `${FOOT_CARE_IMAGE_BASE_PATH}/${serviceSlug}.webp`;
+}
 
 const metaTitles: Record<SeoLocale, string> = {
   de: "Permanent Make-up, Wimpern, Nägel & Microneedling in Halle — Salon Elen",
@@ -161,7 +173,7 @@ const getServicesPageData = unstable_cache(
                   }
                 : null,
             durationMin: child.durationMin,
-            cover: child.cover,
+            cover: resolveServiceCover(cat.slug, child.slug, child.cover),
             gallery: child.gallery.map((g) => ({
               id: g.id,
               image: g.image,

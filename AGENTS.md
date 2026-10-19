@@ -135,6 +135,29 @@ Useful scripts:
 
 ## Important Change Log
 
+- 2026-10-19: The public service detail modal is viewport-bounded on every
+  breakpoint and must not create an inner horizontal scrollbar. Its desktop
+  image/content flex children use `min-width: 0`, the content pane hides only
+  horizontal overflow while retaining vertical scrolling, long localized
+  titles/descriptions/promotion labels wrap safely, and action buttons stack
+  until an extra-wide layout has enough room for a row. Cover images remain
+  `object-cover`, so source aspect ratio does not determine modal geometry.
+- 2026-10-19: The 34 active standalone Fußpflege services have matched
+  1254x1254 WebP cover assets under `public/images/services/fusspflege`.
+  Filenames use the canonical service slugs, and
+  `scripts/import-fusspflege-services.ts` assigns those cover paths when the
+  idempotent importer is applied. Public service cards and detail modals use
+  the existing `next/image` responsive `sizes` pipeline; the four inactive
+  zero-duration add-ons intentionally have no separate cover.
+- 2026-10-19: The existing `Fußpflege` category was populated from the reviewed
+  foot-care price list through the idempotent
+  `scripts/import-fusspflege-services.ts` importer. It keeps DE/EN/RU names and
+  descriptions in sync, excludes every crossed-out proposal, applies the
+  handwritten `Herren-Pediküre` correction to 50 minutes / 55 EUR, and assigns
+  the 34 standalone active services to Elena. Four zero-duration add-ons are
+  stored inactive because the current catalog has no separately bookable add-on
+  model; do not activate them as normal appointments without adding a safe
+  add-on booking flow.
 - 2026-09-02: Public DB-backed content keeps request-aware DE/RU/EN rendering,
   but its Prisma reads are cached to prevent crawler traffic from continuously
   waking Neon. `/services`, `/prices`, and `/gallerie` cache serialized page

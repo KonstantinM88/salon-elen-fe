@@ -67,7 +67,7 @@ function PromotionPrice({
   }
 
   return (
-    <span className="inline-flex items-center gap-2">
+    <span className="inline-flex max-w-full flex-wrap items-center justify-center gap-2">
       <span className={`${compact ? "text-xs" : "text-sm"} opacity-65 line-through decoration-2`}>
         {formatPrice(service.priceCents, locale)}
       </span>
@@ -134,7 +134,7 @@ export default function ServiceDetailModal({
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-[9998] flex items-start justify-center pt-0 lg:pt-16 bg-black/70 lg:bg-black/80 backdrop-blur-sm lg:backdrop-blur-md"
+      className="fixed inset-0 z-[9998] flex items-stretch justify-center overflow-hidden bg-black/70 p-0 backdrop-blur-sm lg:items-center lg:bg-black/80 lg:p-4 lg:backdrop-blur-md xl:p-8"
       onClick={onClose}
     >
       <motion.div
@@ -142,7 +142,7 @@ export default function ServiceDetailModal({
         animate={{ y: 0, opacity: 1 }}
         exit={{ y: 100, opacity: 0 }}
         transition={{ type: "spring", damping: 25, stiffness: 300 }}
-        className="relative w-full lg:w-auto lg:max-w-5xl xl:max-w-6xl h-screen min-h-screen max-h-screen lg:h-auto lg:max-h-[85vh] lg:mx-4 overflow-hidden bg-white dark:bg-slate-950 rounded-t-3xl lg:rounded-3xl shadow-2xl border border-rose-200/50 dark:border-rose-500/30 transform-gpu will-change-transform"
+        className="relative h-[100dvh] min-h-[100dvh] max-h-[100dvh] w-full min-w-0 overflow-hidden rounded-t-3xl border border-rose-200/50 bg-white shadow-2xl transform-gpu will-change-transform dark:border-rose-500/30 dark:bg-slate-950 lg:h-auto lg:min-h-0 lg:max-h-[calc(100dvh-2rem)] lg:w-[calc(100vw-2rem)] lg:max-w-5xl lg:rounded-3xl xl:max-h-[calc(100dvh-4rem)] xl:w-[calc(100vw-4rem)] xl:max-w-6xl"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="absolute inset-0 hidden dark:block overflow-hidden rounded-t-3xl lg:rounded-3xl">
@@ -175,7 +175,7 @@ export default function ServiceDetailModal({
           ))}
         </div>
 
-        <div className="relative z-10 flex flex-col lg:flex-row h-full max-h-screen lg:max-h-[85vh]">
+        <div className="relative z-10 flex h-full min-h-0 min-w-0 max-h-[100dvh] flex-col lg:max-h-[calc(100dvh-2rem)] lg:flex-row xl:max-h-[calc(100dvh-4rem)]">
           <div className="lg:hidden flex justify-center pt-3 pb-1 flex-shrink-0">
             <div className="w-10 h-1 rounded-full bg-rose-300 dark:bg-rose-400/50" />
           </div>
@@ -187,7 +187,7 @@ export default function ServiceDetailModal({
             <X className="w-5 h-5 lg:w-6 lg:h-6" />
           </button>
 
-          <div className="relative flex-shrink-0 h-48 sm:h-64 lg:h-auto lg:w-[45%] xl:w-[50%] overflow-hidden bg-black lg:rounded-l-3xl">
+          <div className="relative h-48 min-w-0 flex-shrink-0 overflow-hidden bg-black sm:h-64 lg:h-auto lg:w-[42%] lg:rounded-l-3xl xl:w-[48%]">
             {hasImage ? (
               <Image
                 src={imageUrl!}
@@ -207,8 +207,8 @@ export default function ServiceDetailModal({
 
             <div className="absolute inset-0 bg-gradient-to-t from-white via-white/30 to-transparent lg:bg-gradient-to-r lg:from-transparent lg:via-transparent lg:to-white dark:from-slate-950 dark:via-slate-950/30 dark:to-transparent lg:dark:from-transparent lg:dark:via-transparent lg:dark:to-slate-950" />
 
-            <div className="absolute top-4 left-4">
-              <span className="px-3 py-1.5 rounded-full bg-white/95 dark:bg-black/60 backdrop-blur text-rose-600 dark:text-rose-200 text-xs sm:text-sm font-medium shadow-md border border-rose-200/50 dark:border-white/10">
+            <div className="absolute left-4 top-4 max-w-[calc(100%-2rem)]">
+              <span className="block truncate rounded-full border border-rose-200/50 bg-white/95 px-3 py-1.5 text-xs font-medium text-rose-600 shadow-md backdrop-blur dark:border-white/10 dark:bg-black/60 dark:text-rose-200 sm:text-sm">
                 {categoryName}
               </span>
             </div>
@@ -222,23 +222,23 @@ export default function ServiceDetailModal({
             )}
           </div>
 
-          <div className="flex-1 overflow-y-auto lg:overflow-y-auto">
-            <div className="p-4 sm:p-6 lg:p-8 lg:pl-6">
-              <div className="lg:flex lg:items-start lg:justify-between lg:gap-4 mb-4 lg:mb-6">
-                <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-zinc-800 dark:text-white pr-8 lg:pr-0 font-playfair">
+          <div className="min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-contain">
+            <div className="min-w-0 p-4 sm:p-6 lg:p-8 lg:pl-6">
+              <div className="mb-4 flex min-w-0 flex-col items-start gap-3 pr-12 lg:mb-6 lg:pr-14 xl:flex-row xl:flex-wrap xl:justify-between xl:gap-4">
+                <h2 className="min-w-0 max-w-full flex-1 break-words font-playfair text-2xl font-bold text-zinc-800 dark:text-white sm:text-3xl lg:text-4xl">
                   {service.name}
                 </h2>
 
                 {service.priceCents && (
-                  <div className="hidden lg:block flex-shrink-0 mt-1">
-                    <span className="px-5 py-2.5 rounded-full bg-gradient-to-r from-rose-500 to-pink-500 text-white font-bold text-lg shadow-lg shadow-rose-500/30">
+                  <div className="mt-1 hidden max-w-full flex-shrink-0 lg:block">
+                    <span className="inline-flex max-w-full rounded-full bg-gradient-to-r from-rose-500 to-pink-500 px-5 py-2.5 text-lg font-bold text-white shadow-lg shadow-rose-500/30">
                       <PromotionPrice service={service} locale={locale} fromLabel={translations.from} />
                     </span>
                   </div>
                 )}
 
                 {service.promotion && (
-                  <div className="inline-flex items-center gap-1.5 rounded-full border border-fuchsia-200 bg-fuchsia-50 px-3 py-1.5 text-xs font-semibold text-fuchsia-800 dark:border-fuchsia-400/30 dark:bg-fuchsia-500/15 dark:text-fuchsia-100 lg:px-4 lg:py-2 lg:text-sm">
+                  <div className="inline-flex max-w-full flex-wrap items-center gap-1.5 rounded-full border border-fuchsia-200 bg-fuchsia-50 px-3 py-1.5 text-xs font-semibold text-fuchsia-800 dark:border-fuchsia-400/30 dark:bg-fuchsia-500/15 dark:text-fuchsia-100 lg:px-4 lg:py-2 lg:text-sm">
                     <Calendar className="h-4 w-4 shrink-0" />
                     {formatPromotionAppointmentPeriod(
                       service.promotion.from,
@@ -265,7 +265,7 @@ export default function ServiceDetailModal({
 
               {service.description && (
                 <div className="relative mb-6 lg:mb-8 overflow-hidden">
-                  <p className="relative z-10 text-zinc-600 dark:text-rose-100/80 text-sm sm:text-base lg:text-lg leading-relaxed whitespace-pre-line font-cormorant font-medium">
+                  <p className="relative z-10 break-words whitespace-pre-line font-cormorant text-sm font-medium leading-relaxed text-zinc-600 [overflow-wrap:anywhere] dark:text-rose-100/80 sm:text-base lg:text-lg">
                     {service.description}
                   </p>
                 </div>
@@ -304,10 +304,10 @@ export default function ServiceDetailModal({
                 </div>
               )}
 
-              <div className="flex flex-col sm:flex-row gap-3 pt-2 pb-6 sm:pb-4 lg:pb-0">
+              <div className="grid min-w-0 grid-cols-1 gap-3 pb-6 pt-2 sm:pb-4 lg:pb-0 xl:grid-cols-[minmax(0,1fr)_auto]">
                 <Link
                   href={`/booking?service=${service.id}`}
-                  className="flex-1 inline-flex items-center justify-center gap-2 px-6 py-3.5 lg:px-8 lg:py-4 bg-gradient-to-r from-rose-500 via-pink-500 to-rose-500 hover:from-rose-600 hover:via-pink-600 hover:to-rose-600 rounded-xl lg:rounded-2xl text-white font-semibold lg:text-lg shadow-lg shadow-rose-500/30 transition-all active:scale-[0.98]"
+                  className="inline-flex min-w-0 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-rose-500 via-pink-500 to-rose-500 px-6 py-3.5 font-semibold text-white shadow-lg shadow-rose-500/30 transition-all hover:from-rose-600 hover:via-pink-600 hover:to-rose-600 active:scale-[0.98] lg:rounded-2xl lg:px-8 lg:py-4 lg:text-lg"
                 >
                   <Calendar className="w-5 h-5 lg:w-6 lg:h-6" />
                   {translations.bookNow}
@@ -315,7 +315,7 @@ export default function ServiceDetailModal({
 
                 <button
                   onClick={onClose}
-                  className="sm:w-auto px-6 py-3.5 lg:px-8 lg:py-4 rounded-xl lg:rounded-2xl bg-zinc-100 hover:bg-zinc-200 text-zinc-700 dark:bg-white/10 dark:hover:bg-white/20 dark:text-rose-100 dark:border dark:border-rose-500/20 font-medium lg:text-lg transition-colors"
+                  className="w-full whitespace-nowrap rounded-xl bg-zinc-100 px-6 py-3.5 font-medium text-zinc-700 transition-colors hover:bg-zinc-200 dark:border dark:border-rose-500/20 dark:bg-white/10 dark:text-rose-100 dark:hover:bg-white/20 lg:rounded-2xl lg:px-8 lg:py-4 lg:text-lg xl:w-auto"
                 >
                   {translations.close}
                 </button>
