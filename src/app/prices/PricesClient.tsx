@@ -1,36 +1,30 @@
-// src/app/prices/PricesClient.tsx
 "use client";
 
-import { useState, useRef } from "react";
+import { useMemo, useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import {
-  motion,
-  useScroll,
-  useTransform,
-  useInView,
-  AnimatePresence,
-  type Variants,
-} from "framer-motion";
-import {
-  Sparkles,
-  Clock,
-  ChevronRight,
-  Eye,
-  Hand,
-  Star,
-  Footprints,
-  Gem,
-  Flower2,
-  Scissors,
-  Heart,
-  ArrowUpRight,
+  ArrowRight,
   BadgeEuro,
   CalendarDays,
+  Clock3,
+  Eye,
+  Footprints,
+  Gem,
+  Hand,
+  MapPin,
+  Palette,
+  Scissors,
+  Search,
+  ShieldCheck,
+  Sparkles,
+  Star,
+  X,
+  type LucideIcon,
 } from "lucide-react";
+
 import type { Locale } from "@/i18n/locales";
 import { formatPromotionAppointmentPeriod } from "@/lib/promotion-constants";
-
-/* ═══════════════════════ TYPES ═══════════════════════ */
 
 type ServiceItem = {
   id: string;
@@ -62,1331 +56,637 @@ type Props = {
   categories: Category[];
 };
 
-/* ═══════════════════════ i18n ═══════════════════════ */
+type Copy = {
+  eyebrow: string;
+  title: string;
+  accent: string;
+  description: string;
+  discover: string;
+  bookAppointment: string;
+  categories: string;
+  treatments: string;
+  clarity: string;
+  clarityValue: string;
+  editorialKicker: string;
+  editorialTitle: string;
+  editorialText: string;
+  allCategories: string;
+  catalogueEyebrow: string;
+  searchLabel: string;
+  searchPlaceholder: string;
+  servicesCount: (count: number) => string;
+  minutes: string;
+  onRequest: string;
+  offer: string;
+  details: string;
+  book: string;
+  noResults: string;
+  resetFilters: string;
+  finalEyebrow: string;
+  finalTitle: string;
+  finalText: string;
+};
 
-const t_map: Record<
-  Locale,
-  {
-    heroTitle: string;
-    heroSubtitle: string;
-    heroDescription: string;
-    allCategories: string;
-    duration: string;
-    minutes: string;
-    onRequest: string;
-    bookNow: string;
-    details: string;
-    ctaTitle: string;
-    ctaText: string;
-    ctaButton: string;
-    servicesCount: (n: number) => string;
-    categoryCount: (n: number) => string;
-  }
-> = {
+const copy: Record<Locale, Copy> = {
   de: {
-    heroTitle: "Preise & Leistungen",
-    heroSubtitle: "Transparente Preise, erstklassige Qualit\u00E4t",
-    heroDescription:
-      "Alle Behandlungen werden individuell auf Sie abgestimmt. Vereinbaren Sie ein unverbindliches Beratungsgespr\u00E4ch.",
-    allCategories: "Alle",
-    duration: "Dauer",
+    eyebrow: "Salon Elen · Preisliste",
+    title: "Preise, die",
+    accent: "transparent bleiben.",
+    description:
+      "Entdecken Sie alle aktuellen Beauty-Behandlungen, Dauer und Preise auf einen Blick — klar kalkuliert und persönlich auf Sie abgestimmt.",
+    discover: "Preise entdecken",
+    bookAppointment: "Termin buchen",
+    categories: "Kategorien",
+    treatments: "Behandlungen",
+    clarity: "Preisprinzip",
+    clarityValue: "Klar & aktuell",
+    editorialKicker: "Salon Elen Price Journal",
+    editorialTitle: "Qualität beginnt mit einer ehrlichen Beratung.",
+    editorialText:
+      "Der angezeigte Preis gehört zur gewählten Behandlung. Bei Leistungen ab Preis erläutern wir den individuellen Umfang vor Beginn.",
+    allCategories: "Alle Preise",
+    catalogueEyebrow: "Aktuelle Preisliste",
+    searchLabel: "Preisliste durchsuchen",
+    searchPlaceholder: "Behandlung suchen …",
+    servicesCount: (count) => `${count} ${count === 1 ? "Leistung" : "Leistungen"}`,
     minutes: "Min.",
     onRequest: "Auf Anfrage",
-    bookNow: "Buchen",
+    offer: "Aktion",
     details: "Details",
-    ctaTitle: "Bereit f\u00FCr Ihren Termin?",
-    ctaText:
-      "Vereinbaren Sie jetzt Ihren pers\u00F6nlichen Termin und erleben Sie professionelle Sch\u00F6nheitspflege in entspannter Atmosph\u00E4re.",
-    ctaButton: "Termin vereinbaren",
-    servicesCount: (n) =>
-      n === 1 ? "1 Leistung" : `${n} Leistungen`,
-    categoryCount: (n) =>
-      n === 1 ? "1 Kategorie" : `${n} Kategorien`,
+    book: "Buchen",
+    noResults: "Keine passende Behandlung gefunden.",
+    resetFilters: "Filter zurücksetzen",
+    finalEyebrow: "Ihr Termin bei Salon Elen",
+    finalTitle: "Ihre Behandlung. Ihr Moment. Klar geplant.",
+    finalText:
+      "Wählen Sie die passende Leistung und buchen Sie Ihren Termin direkt online. Für individuelle Fragen beraten wir Sie persönlich.",
   },
   en: {
-    heroTitle: "Prices & Services",
-    heroSubtitle: "Transparent prices, first-class quality",
-    heroDescription:
-      "All treatments are individually tailored to you. Book a complimentary, no-obligation consultation.",
-    allCategories: "All",
-    duration: "Duration",
-    minutes: "min",
+    eyebrow: "Salon Elen · Price list",
+    title: "Prices, kept",
+    accent: "beautifully clear.",
+    description:
+      "Explore every current beauty treatment, duration and price at a glance — clearly presented and tailored to your needs.",
+    discover: "Explore prices",
+    bookAppointment: "Book appointment",
+    categories: "Categories",
+    treatments: "Treatments",
+    clarity: "Pricing principle",
+    clarityValue: "Clear & current",
+    editorialKicker: "Salon Elen Price Journal",
+    editorialTitle: "Quality begins with honest advice.",
+    editorialText:
+      "The displayed price applies to the selected treatment. For services priced from a starting amount, we explain the individual scope before treatment.",
+    allCategories: "All prices",
+    catalogueEyebrow: "Current price list",
+    searchLabel: "Search the price list",
+    searchPlaceholder: "Find a treatment …",
+    servicesCount: (count) => `${count} ${count === 1 ? "service" : "services"}`,
+    minutes: "min.",
     onRequest: "On request",
-    bookNow: "Book",
+    offer: "Offer",
     details: "Details",
-    ctaTitle: "Ready for your appointment?",
-    ctaText:
-      "Book your personal appointment now and experience professional beauty care in a relaxed atmosphere.",
-    ctaButton: "Book appointment",
-    servicesCount: (n) =>
-      n === 1 ? "1 service" : `${n} services`,
-    categoryCount: (n) =>
-      n === 1 ? "1 category" : `${n} categories`,
+    book: "Book",
+    noResults: "No matching treatment was found.",
+    resetFilters: "Reset filters",
+    finalEyebrow: "Your appointment at Salon Elen",
+    finalTitle: "Your treatment. Your moment. Clearly planned.",
+    finalText:
+      "Choose the right service and book directly online. We are happy to advise you personally if you have individual questions.",
   },
   ru: {
-    heroTitle: "\u0426\u0435\u043D\u044B \u0438 \u0443\u0441\u043B\u0443\u0433\u0438",
-    heroSubtitle: "\u041F\u0440\u043E\u0437\u0440\u0430\u0447\u043D\u044B\u0435 \u0446\u0435\u043D\u044B, \u043F\u0440\u0435\u043C\u0438\u0430\u043B\u044C\u043D\u043E\u0435 \u043A\u0430\u0447\u0435\u0441\u0442\u0432\u043E",
-    heroDescription:
-      "\u0412\u0441\u0435 \u043F\u0440\u043E\u0446\u0435\u0434\u0443\u0440\u044B \u043F\u043E\u0434\u0431\u0438\u0440\u0430\u044E\u0442\u0441\u044F \u0438\u043D\u0434\u0438\u0432\u0438\u0434\u0443\u0430\u043B\u044C\u043D\u043E. \u0417\u0430\u043F\u0438\u0448\u0438\u0442\u0435\u0441\u044C \u043D\u0430 \u0431\u0435\u0441\u043F\u043B\u0430\u0442\u043D\u0443\u044E \u043A\u043E\u043D\u0441\u0443\u043B\u044C\u0442\u0430\u0446\u0438\u044E \u0431\u0435\u0437 \u043E\u0431\u044F\u0437\u0430\u0442\u0435\u043B\u044C\u0441\u0442\u0432.",
-    allCategories: "\u0412\u0441\u0435",
-    duration: "\u0414\u043B\u0438\u0442\u0435\u043B\u044C\u043D\u043E\u0441\u0442\u044C",
-    minutes: "\u043C\u0438\u043D.",
-    onRequest: "\u041F\u043E \u0437\u0430\u043F\u0440\u043E\u0441\u0443",
-    bookNow: "\u0417\u0430\u043F\u0438\u0441\u0430\u0442\u044C\u0441\u044F",
-    details: "\u041F\u043E\u0434\u0440\u043E\u0431\u043D\u0435\u0435",
-    ctaTitle: "\u0413\u043E\u0442\u043E\u0432\u044B \u043A \u0432\u0438\u0437\u0438\u0442\u0443?",
-    ctaText:
-      "\u0417\u0430\u043F\u0438\u0448\u0438\u0442\u0435\u0441\u044C \u043F\u0440\u044F\u043C\u043E \u0441\u0435\u0439\u0447\u0430\u0441 \u0438 \u043E\u0449\u0443\u0442\u0438\u0442\u0435 \u043F\u0440\u043E\u0444\u0435\u0441\u0441\u0438\u043E\u043D\u0430\u043B\u044C\u043D\u044B\u0439 \u0443\u0445\u043E\u0434 \u0432 \u0440\u0430\u0441\u0441\u043B\u0430\u0431\u043B\u0435\u043D\u043D\u043E\u0439 \u0430\u0442\u043C\u043E\u0441\u0444\u0435\u0440\u0435.",
-    ctaButton: "\u0417\u0430\u043F\u0438\u0441\u0430\u0442\u044C\u0441\u044F",
-    servicesCount: (n) => {
-      if (n === 1) return "1 \u0443\u0441\u043B\u0443\u0433\u0430";
-      if (n >= 2 && n <= 4) return `${n} \u0443\u0441\u043B\u0443\u0433\u0438`;
-      return `${n} \u0443\u0441\u043B\u0443\u0433`;
+    eyebrow: "Salon Elen · Прайс-лист",
+    title: "Цены, которые",
+    accent: "всегда понятны.",
+    description:
+      "Все актуальные бьюти-процедуры, продолжительность и стоимость на одной странице — прозрачно и с учётом ваших пожеланий.",
+    discover: "Смотреть цены",
+    bookAppointment: "Записаться",
+    categories: "Категории",
+    treatments: "Процедуры",
+    clarity: "Принцип цен",
+    clarityValue: "Честно и актуально",
+    editorialKicker: "Прайс-журнал Salon Elen",
+    editorialTitle: "Качество начинается с честной консультации.",
+    editorialText:
+      "Указанная цена относится к выбранной процедуре. Для услуг с начальной стоимостью мы заранее объясняем индивидуальный объём работы.",
+    allCategories: "Все цены",
+    catalogueEyebrow: "Актуальный прайс-лист",
+    searchLabel: "Поиск по прайс-листу",
+    searchPlaceholder: "Найти процедуру …",
+    servicesCount: (count) => {
+      if (count % 10 === 1 && count % 100 !== 11) return `${count} услуга`;
+      if (
+        [2, 3, 4].includes(count % 10) &&
+        ![12, 13, 14].includes(count % 100)
+      ) return `${count} услуги`;
+      return `${count} услуг`;
     },
-    categoryCount: (n) => {
-      if (n === 1) return "1 \u043A\u0430\u0442\u0435\u0433\u043E\u0440\u0438\u044F";
-      if (n >= 2 && n <= 4) return `${n} \u043A\u0430\u0442\u0435\u0433\u043E\u0440\u0438\u0438`;
-      return `${n} \u043A\u0430\u0442\u0435\u0433\u043E\u0440\u0438\u0439`;
-    },
+    minutes: "мин.",
+    onRequest: "По запросу",
+    offer: "Акция",
+    details: "Подробнее",
+    book: "Записаться",
+    noResults: "Подходящая процедура не найдена.",
+    resetFilters: "Сбросить фильтры",
+    finalEyebrow: "Ваш визит в Salon Elen",
+    finalTitle: "Ваша процедура. Ваш момент. Всё продумано.",
+    finalText:
+      "Выберите подходящую услугу и запишитесь онлайн. По индивидуальным вопросам мы с удовольствием проконсультируем вас лично.",
   },
 };
 
-/* ═══════════════════════ helpers ═══════════════════════ */
-
-function localeHref(path: string, locale: Locale) {
+function localeHref(path: string, locale: Locale): string {
   if (locale === "de") return path;
-  const hasQuery = path.includes("?");
-  return `${path}${hasQuery ? "&" : "?"}lang=${locale}`;
+  return `${path}${path.includes("?") ? "&" : "?"}lang=${locale}`;
 }
 
 function formatPrice(cents: number | null, locale: Locale): string {
-  if (!cents) return t_map[locale].onRequest;
-  const eur = cents / 100;
+  if (cents == null || cents <= 0) return copy[locale].onRequest;
   return new Intl.NumberFormat(
     locale === "de" ? "de-DE" : locale === "ru" ? "ru-RU" : "en-GB",
-    { style: "currency", currency: "EUR", minimumFractionDigits: 0, maximumFractionDigits: 2 },
-  ).format(eur);
+    {
+      style: "currency",
+      currency: "EUR",
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 2,
+    },
+  ).format(cents / 100);
 }
 
-/* Map category slugs to Lucide icons */
-const CATEGORY_ICONS: Record<string, React.ElementType> = {
-  "permanent-make-up": Eye,
-  microneedling: Sparkles,
-  nageldesign: Hand,
-  "nail-design": Hand,
-  wimpernverlangerung: Star,
-  "eyelash-extensions": Star,
-  fusspflege: Footprints,
-  "foot-care": Footprints,
-};
-
-function getCategoryIcon(slug: string): React.ElementType {
-  const lower = slug.toLowerCase();
-  for (const [key, icon] of Object.entries(CATEGORY_ICONS)) {
-    if (lower.includes(key)) return icon;
-  }
+function getCategoryIcon(slug: string): LucideIcon {
+  const normalized = slug.toLowerCase();
+  if (normalized.includes("permanent") || normalized.includes("make")) return Eye;
+  if (normalized.includes("micro") || normalized.includes("kosmetik")) return Sparkles;
+  if (
+    normalized.includes("fu-") ||
+    normalized.includes("fuss") ||
+    normalized.includes("foot") ||
+    normalized.includes("pedik")
+  ) return Footprints;
+  if (normalized.includes("wimper") || normalized.includes("lash")) return Star;
+  if (normalized.includes("nagel") || normalized.includes("nail")) return Palette;
+  if (normalized.includes("haar") || normalized.includes("hair")) return Scissors;
+  if (normalized.includes("hand")) return Hand;
   return Gem;
 }
 
-/* ═══════════════════════ animation variants ═══════════════════════ */
-
-const fadeInUp: Variants = {
-  hidden: { opacity: 0, y: 35 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.65, ease: [0.22, 1, 0.36, 1] } },
-};
-
-const staggerContainer: Variants = {
-  hidden: { opacity: 0 },
-  visible: { opacity: 1, transition: { staggerChildren: 0.08, delayChildren: 0.1 } },
-};
-
-const staggerItem: Variants = {
-  hidden: { opacity: 0, y: 25, scale: 0.97 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    scale: 1,
-    transition: { duration: 0.5, ease: [0.22, 1, 0.36, 1] },
-  },
-};
-
-const scaleIn: Variants = {
-  hidden: { opacity: 0, scale: 0.85 },
-  visible: { opacity: 1, scale: 1, transition: { duration: 0.5, ease: [0.22, 1, 0.36, 1] } },
-};
-
-/* ═══════════════════════ sub-components ═══════════════════════ */
-
-/** Floating background particles (deterministic) */
-const PARTICLES = [
-  { w: 3.5, h: 4.2, x: 8, y: 12, dy: -40, dx: 5, dur: 9, del: 0.3 },
-  { w: 2.8, h: 3.1, x: 28, y: 25, dy: -50, dx: -7, dur: 11, del: 1.5 },
-  { w: 4.6, h: 2.4, x: 55, y: 8, dy: -35, dx: 4, dur: 8, del: 2.2 },
-  { w: 3.2, h: 5.0, x: 78, y: 32, dy: -55, dx: -3, dur: 12, del: 0.9 },
-  { w: 2.5, h: 3.8, x: 92, y: 55, dy: -42, dx: 6, dur: 7, del: 3.1 },
-  { w: 4.0, h: 2.9, x: 42, y: 70, dy: -48, dx: -5, dur: 10, del: 1.8 },
-  { w: 3.8, h: 3.5, x: 15, y: 60, dy: -38, dx: 8, dur: 9, del: 4.0 },
-  { w: 2.2, h: 4.5, x: 65, y: 42, dy: -60, dx: -4, dur: 13, del: 0.6 },
-  { w: 5.0, h: 2.7, x: 50, y: 85, dy: -45, dx: 3, dur: 8, del: 2.7 },
-  { w: 3.0, h: 3.3, x: 85, y: 15, dy: -52, dx: -6, dur: 11, del: 1.2 },
-];
-
-function FloatingParticles() {
-  return (
-    <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
-      {PARTICLES.map((p, i) => (
-        <motion.div
-          key={i}
-          className="absolute rounded-full bg-pink-400/10 dark:bg-amber-400/8"
-          style={{ width: p.w, height: p.h, left: `${p.x}%`, top: `${p.y}%` }}
-          animate={{ y: [0, p.dy, 0], x: [0, p.dx, 0], opacity: [0.08, 0.3, 0.08] }}
-          transition={{ duration: p.dur, repeat: Infinity, ease: "easeInOut", delay: p.del }}
-        />
-      ))}
-    </div>
-  );
+function isUploadImage(path: string): boolean {
+  return path.startsWith("/uploads/");
 }
 
-function DecorativeBlobs() {
-  return (
-    <>
-      <motion.div
-        className="pointer-events-none absolute -top-40 -right-40 w-[550px] h-[550px] rounded-full opacity-25 dark:opacity-0"
-        style={{ background: "radial-gradient(circle, rgba(236,72,153,0.25) 0%, rgba(244,114,182,0.08) 40%, transparent 70%)" }}
-        animate={{ scale: [1, 1.08, 1], x: [0, 12, 0] }}
-        transition={{ duration: 14, repeat: Infinity, ease: "easeInOut" }}
-      />
-      <motion.div
-        className="pointer-events-none absolute -bottom-48 -left-32 w-[500px] h-[500px] rounded-full opacity-20 dark:opacity-0"
-        style={{ background: "radial-gradient(circle, rgba(251,191,36,0.22) 0%, rgba(252,211,77,0.08) 40%, transparent 70%)" }}
-        animate={{ scale: [1, 1.12, 1], y: [0, -15, 0] }}
-        transition={{ duration: 16, repeat: Infinity, ease: "easeInOut" }}
-      />
-    </>
-  );
-}
-
-/** Animated section with intersection observer */
-function AnimatedSection({
-  children,
-  className = "",
-}: {
-  children: React.ReactNode;
-  className?: string;
-}) {
-  const ref = useRef<HTMLDivElement>(null);
-  const isInView = useInView(ref, { once: true, margin: "-60px" });
-  return (
-    <motion.section
-      ref={ref}
-      initial="hidden"
-      animate={isInView ? "visible" : "hidden"}
-      variants={staggerContainer}
-      className={className}
-    >
-      {children}
-    </motion.section>
-  );
-}
-
-/** Single service card */
-function ServiceCard({
+function PriceCard({
   service,
-  locale,
   categorySlug,
+  index,
+  locale,
 }: {
   service: ServiceItem;
-  locale: Locale;
   categorySlug: string;
+  index: number;
+  locale: Locale;
 }) {
-  const t = t_map[locale];
+  const t = copy[locale];
   const Icon = getCategoryIcon(categorySlug);
-  const hasPrice = service.priceCents !== null && service.priceCents > 0;
-  const effectivePriceCents =
-    service.promotion?.discountedPriceCents ?? service.priceCents;
-  const promotionLabel =
-    locale === "ru" ? "АКЦИЯ" : locale === "en" ? "SALE" : "AKTION";
+  const hasPrice = service.priceCents != null && service.priceCents > 0;
 
   return (
-    <motion.div
-      variants={staggerItem}
-      layout
-      whileHover={{ y: -6, transition: { duration: 0.25 } }}
-      className="group relative flex flex-col rounded-2xl border border-pink-200/30 bg-white/85 p-5 shadow-md shadow-pink-100/10 backdrop-blur-sm transition-all duration-400 hover:border-pink-300/50 hover:shadow-xl hover:shadow-pink-200/20 dark:border-white/[0.06] dark:bg-white/[0.03] dark:shadow-none dark:hover:border-amber-500/15"
+    <article
+      data-price-card
+      className="group flex h-full min-w-0 flex-col rounded-[1.6rem] border border-[#d8b8bd]/45 bg-white/92 p-5 shadow-[0_18px_65px_rgba(78,45,55,0.065)] transition duration-500 hover:-translate-y-1 hover:border-[#c27d89]/55 hover:shadow-[0_26px_80px_rgba(78,45,55,0.13)] dark:border-white/10 dark:bg-white/[0.045] dark:hover:border-[#dfa1ac]/30 sm:p-6"
     >
-      {service.promotion && (
-        <div className="absolute -right-2 -top-2 z-20 rounded-full bg-gradient-to-r from-fuchsia-600 via-rose-500 to-amber-500 px-3 py-1.5 text-xs font-black text-white shadow-lg shadow-rose-500/25">
-          -{service.promotion.percent}% {promotionLabel}
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex min-w-0 items-center gap-3">
+          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-[#cfa7ae]/50 bg-[#f7e9eb] text-[#8c4c58] dark:border-white/10 dark:bg-white/7 dark:text-[#e2a6b0]">
+            <Icon className="h-4.5 w-4.5" />
+          </span>
+          <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#866d74] dark:text-white/48">
+            <Clock3 className="h-3.5 w-3.5" />
+            {service.durationMin} {t.minutes}
+          </span>
         </div>
-      )}
-      {/* Hover glow */}
-      <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-pink-50/30 via-transparent to-rose-50/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500 dark:from-amber-500/[0.04] dark:to-transparent" />
-
-      <div className="relative flex-1">
-        {/* Top row: icon + duration */}
-        <div className="flex items-start justify-between mb-3">
-          <motion.div
-            whileHover={{ rotate: [0, -10, 10, -5, 0], scale: 1.15 }}
-            transition={{ duration: 0.4 }}
-            className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-pink-100 to-rose-50 border border-pink-200/30 dark:from-amber-500/15 dark:to-amber-600/5 dark:border-amber-500/10"
-          >
-            <Icon className="h-5 w-5 text-pink-600 dark:text-amber-400" />
-          </motion.div>
-
-          <div className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
-            <Clock className="h-3.5 w-3.5" />
-            <span>{service.durationMin} {t.minutes}</span>
-          </div>
-        </div>
-
-        {/* Name */}
-        <h3 className="font-playfair text-base font-semibold text-gray-900 dark:text-white mb-1.5 leading-snug">
-          {service.name}
-        </h3>
-
-        {/* Description */}
-        {service.description && (
-          <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed line-clamp-2 mb-2">
-            {service.description}
-          </p>
-        )}
-        {!service.description && <div className="mb-2" />}
-
-        {/* Details link */}
-        <Link
-          href={localeHref(`/services?service=${service.id}`, locale)}
-          rel="nofollow"
-          className="inline-flex items-center gap-1 text-xs font-semibold text-pink-600 hover:text-pink-700 dark:text-amber-400 dark:hover:text-amber-300 transition-colors group/detail mb-3"
-        >
-          {t.details}
-          <ArrowUpRight className="h-3 w-3 transition-transform group-hover/detail:translate-x-0.5 group-hover/detail:-translate-y-0.5" />
-        </Link>
+        <span className="font-playfair text-xl text-[#c8a3aa] dark:text-white/18" aria-hidden="true">
+          {String(index + 1).padStart(2, "0")}
+        </span>
       </div>
 
-      {/* Bottom: price + book */}
-      <div className="relative flex items-end justify-between pt-3 border-t border-pink-100/40 dark:border-white/5">
-        <div>
-          <p className="text-xs text-gray-500 dark:text-gray-500 mb-0.5">
-            {hasPrice ? "" : ""}
+      <div className="mt-5 flex-1">
+        {service.promotion ? (
+          <span className="mb-3 inline-flex rounded-full bg-[#8e4e5b] px-3 py-1 text-[10px] font-bold uppercase tracking-[0.13em] text-white dark:bg-[#ce7d8c] dark:text-[#28151b]">
+            {t.offer} · −{service.promotion.percent}%
+          </span>
+        ) : null}
+        <h3 className="break-words font-playfair text-xl font-semibold leading-tight tracking-[-0.015em] text-[#3f2930] transition group-hover:text-[#8d4d59] dark:text-white dark:group-hover:text-[#e3a3ae] sm:text-2xl">
+          {service.name}
+        </h3>
+        {service.description ? (
+          <p className="mt-3 line-clamp-3 break-words text-sm leading-6 text-[#78666b] dark:text-white/58">
+            {service.description}
           </p>
-          {service.promotion && service.priceCents != null ? (
-            <div>
-              <div className="text-xs font-medium text-gray-500 line-through decoration-rose-500 decoration-2 dark:text-white/45">
+        ) : null}
+      </div>
+
+      <div className="mt-6 border-t border-[#d9bcc1]/40 pt-5 dark:border-white/10">
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <div className="min-w-0">
+            {service.promotion && service.priceCents != null ? (
+              <>
+                <p className="text-xs font-medium text-[#9a7f85] line-through decoration-[#b75465] decoration-2 dark:text-white/38">
+                  {formatPrice(service.priceCents, locale)}
+                </p>
+                <p className="mt-0.5 font-playfair text-3xl font-semibold text-[#8a4351] dark:text-[#edaebb]">
+                  {formatPrice(service.promotion.discountedPriceCents, locale)}
+                </p>
+              </>
+            ) : (
+              <p
+                className={`font-playfair font-semibold text-[#70414b] dark:text-[#e9bac2] ${
+                  hasPrice ? "text-2xl" : "text-lg italic"
+                }`}
+              >
                 {formatPrice(service.priceCents, locale)}
+              </p>
+            )}
+          </div>
+          <Link
+            href={localeHref(
+              `/booking/services?preselect=${encodeURIComponent(service.id)}`,
+              locale,
+            )}
+            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-[#8e4e5b] px-5 py-2.5 text-sm font-semibold text-white shadow-[0_10px_26px_rgba(142,78,91,0.2)] transition hover:bg-[#743c48] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#8e4e5b] dark:bg-[#ca7988] dark:text-[#251419] dark:hover:bg-[#dc909d]"
+          >
+            {t.book}
+            <ArrowRight className="h-4 w-4" />
+          </Link>
+        </div>
+
+        {service.promotion ? (
+          <div className="mt-4 rounded-2xl border border-[#e4bbc2]/55 bg-[#fbf0f2] px-3.5 py-3 text-[#7b3e4a] dark:border-[#e4a1ad]/15 dark:bg-[#d68190]/10 dark:text-[#f0bdc6]">
+            <p className="truncate text-[11px] font-bold">{service.promotion.title}</p>
+            <p className="mt-1 flex items-start gap-1.5 text-[10px] font-medium leading-4 opacity-75">
+              <CalendarDays className="mt-px h-3 w-3 shrink-0" />
+              {formatPromotionAppointmentPeriod(
+                service.promotion.from,
+                service.promotion.to,
+                locale,
+              )}
+            </p>
+          </div>
+        ) : null}
+
+        <Link
+          href={localeHref(`/services?service=${encodeURIComponent(service.id)}`, locale)}
+          rel="nofollow"
+          className="mt-4 inline-flex items-center gap-1.5 text-xs font-bold text-[#8c4c58] transition hover:text-[#68343e] dark:text-[#e0a0ab] dark:hover:text-[#f0c3ca]"
+        >
+          {t.details}
+          <ArrowRight className="h-3.5 w-3.5" />
+        </Link>
+      </div>
+    </article>
+  );
+}
+
+export default function PricesClient({ locale, categories }: Props) {
+  const t = copy[locale];
+  const [activeCategory, setActiveCategory] = useState<string | null>(null);
+  const [query, setQuery] = useState("");
+
+  const totalServices = useMemo(
+    () => categories.reduce((total, category) => total + category.services.length, 0),
+    [categories],
+  );
+
+  const filteredCategories = useMemo(() => {
+    const normalizedQuery = query.trim().toLocaleLowerCase(locale);
+    return categories
+      .filter((category) => !activeCategory || category.id === activeCategory)
+      .map((category) => ({
+        ...category,
+        services: category.services.filter((service) => {
+          if (!normalizedQuery) return true;
+          return `${category.name} ${service.name} ${service.description ?? ""}`
+            .toLocaleLowerCase(locale)
+            .includes(normalizedQuery);
+        }),
+      }))
+      .filter((category) => category.services.length > 0);
+  }, [activeCategory, categories, locale, query]);
+
+  const visibleServices = filteredCategories.reduce(
+    (total, category) => total + category.services.length,
+    0,
+  );
+
+  const heroImages = useMemo(
+    () =>
+      categories
+        .flatMap((category) => category.services)
+        .filter((service): service is ServiceItem & { cover: string } => Boolean(service.cover))
+        .slice(0, 3),
+    [categories],
+  );
+
+  const resetFilters = () => {
+    setActiveCategory(null);
+    setQuery("");
+  };
+
+  let visibleIndex = 0;
+
+  return (
+    <main className="overflow-hidden bg-[#fdf9f7] text-[#3d2b31] dark:bg-[#0b090b] dark:text-white">
+      <section className="relative isolate overflow-hidden border-b border-[#cfadb3]/35 bg-[radial-gradient(circle_at_16%_10%,rgba(226,180,187,0.33),transparent_32%),linear-gradient(135deg,#fffaf7_0%,#f4e5e6_56%,#e8cfd3_100%)] pt-20 dark:border-white/10 dark:bg-[radial-gradient(circle_at_16%_10%,rgba(160,84,101,0.2),transparent_34%),linear-gradient(135deg,#0d0a0c_0%,#1a1015_58%,#2a171f_100%)] sm:pt-24">
+        <div aria-hidden="true" className="absolute -left-24 top-28 h-72 w-72 rounded-full border border-[#b97984]/20" />
+        <div aria-hidden="true" className="absolute -left-4 top-52 h-36 w-36 rounded-full border border-[#b97984]/25" />
+        <div aria-hidden="true" className="absolute right-[8%] top-24 h-px w-44 rotate-[-26deg] bg-[#9a5a66]/30" />
+
+        <div className="mx-auto grid min-w-0 max-w-7xl grid-cols-1 gap-12 px-5 pb-16 pt-8 sm:px-8 lg:grid-cols-[minmax(0,0.94fr)_minmax(0,1.06fr)] lg:items-center lg:gap-16 lg:px-10 lg:pb-24 lg:pt-12">
+          <div className="min-w-0">
+            <p className="flex items-center gap-3 text-xs font-bold uppercase tracking-[0.24em] text-[#985560] dark:text-[#e1a8b2]">
+              <span className="h-px w-10 bg-current opacity-60" />
+              {t.eyebrow}
+            </p>
+            <h1 className="mt-6 font-playfair text-[clamp(3.4rem,7.5vw,6.9rem)] font-medium leading-[0.88] tracking-[-0.052em] text-[#39252c] dark:text-white">
+              {t.title}
+              <span className="mt-2 block font-light italic text-[#9b5965] dark:text-[#e0a2ad]">
+                {t.accent}
+              </span>
+            </h1>
+            <p className="mt-8 max-w-xl text-base leading-8 text-[#6f5960] dark:text-white/68 sm:text-lg">
+              {t.description}
+            </p>
+            <div className="mt-9 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+              <a
+                href="#preisliste"
+                className="inline-flex min-h-13 items-center justify-center gap-2 rounded-full bg-[#854653] px-7 py-3.5 text-sm font-bold text-white shadow-[0_16px_45px_rgba(133,70,83,0.28)] transition hover:-translate-y-0.5 hover:bg-[#713946] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#854653] dark:bg-[#d18190] dark:text-[#271419]"
+              >
+                <BadgeEuro className="h-4 w-4" />
+                {t.discover}
+              </a>
+              <Link
+                href={localeHref("/booking/services", locale)}
+                className="inline-flex min-h-13 items-center justify-center gap-2 rounded-full border border-[#b98690]/55 bg-white/48 px-7 py-3.5 text-sm font-bold text-[#67404a] backdrop-blur-sm transition hover:-translate-y-0.5 hover:bg-white/78 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#854653] dark:border-white/15 dark:bg-white/5 dark:text-white"
+              >
+                <CalendarDays className="h-4 w-4" />
+                {t.bookAppointment}
+              </Link>
+            </div>
+
+            <div className="mt-10 grid min-w-0 max-w-xl grid-cols-3 border-y border-[#b78891]/30 py-5 dark:border-white/10">
+              <div className="min-w-0 pr-3">
+                <strong className="block font-playfair text-2xl font-semibold text-[#53343d] dark:text-white sm:text-3xl">
+                  {categories.length}
+                </strong>
+                <span className="mt-1 block text-[10px] font-semibold uppercase tracking-[0.12em] text-[#8a7077] dark:text-white/42 sm:text-xs">
+                  {t.categories}
+                </span>
               </div>
-              <div className="font-playfair text-xl font-black text-rose-700 dark:text-rose-300">
-                {formatPrice(service.promotion.discountedPriceCents, locale)}
+              <div className="min-w-0 border-x border-[#b78891]/25 px-3 dark:border-white/10">
+                <strong className="block font-playfair text-2xl font-semibold text-[#53343d] dark:text-white sm:text-3xl">
+                  {totalServices}
+                </strong>
+                <span className="mt-1 block text-[10px] font-semibold uppercase tracking-[0.12em] text-[#8a7077] dark:text-white/42 sm:text-xs">
+                  {t.treatments}
+                </span>
               </div>
-              <div className="mt-0.5 max-w-[170px] truncate text-[10px] font-semibold text-fuchsia-700 dark:text-fuchsia-300">
-                {service.promotion.title}
-              </div>
-              <div className="mt-1 flex max-w-[190px] items-start gap-1 text-[10px] leading-4 text-rose-700/80 dark:text-rose-200/70">
-                <CalendarDays className="mt-0.5 h-3 w-3 shrink-0" />
-                <span>
-                  {formatPromotionAppointmentPeriod(
-                    service.promotion.from,
-                    service.promotion.to,
-                    locale,
-                  )}
+              <div className="min-w-0 pl-3">
+                <strong className="block min-h-8 break-words font-playfair text-base font-semibold leading-5 text-[#53343d] dark:text-white sm:text-xl sm:leading-8">
+                  {t.clarityValue}
+                </strong>
+                <span className="mt-1 block text-[10px] font-semibold uppercase tracking-[0.12em] text-[#8a7077] dark:text-white/42 sm:text-xs">
+                  {t.clarity}
                 </span>
               </div>
             </div>
-          ) : (
-            <p
-              className={[
-                "font-playfair font-bold",
-                hasPrice
-                  ? "text-lg text-rose-700 dark:text-amber-300"
-                  : "text-sm text-gray-500 dark:text-gray-400 italic",
-              ].join(" ")}
-            >
-              {formatPrice(effectivePriceCents, locale)}
+          </div>
+
+          <div className="relative mx-auto min-w-0 w-full max-w-[680px]">
+            <div className="relative overflow-hidden rounded-[2.2rem] bg-[#4b3039] px-6 py-8 text-white shadow-[0_38px_105px_rgba(72,38,49,0.28)] dark:bg-[#2b1a21] sm:rounded-[3rem] sm:px-10 sm:py-11">
+              <div aria-hidden="true" className="absolute -right-16 -top-20 font-playfair text-[15rem] font-semibold leading-none text-white/[0.055] sm:text-[19rem]">
+                €
+              </div>
+              <div className="relative">
+                <div className="flex items-start justify-between gap-5">
+                  <p className="max-w-[65%] text-[10px] font-bold uppercase tracking-[0.2em] text-[#efc1c9] sm:text-xs">
+                    {t.editorialKicker}
+                  </p>
+                  <span className="font-playfair text-sm italic text-white/45">01 / Salon Elen</span>
+                </div>
+                <h2 className="mt-12 max-w-lg font-playfair text-3xl font-medium leading-[1.08] tracking-[-0.025em] sm:mt-16 sm:text-5xl">
+                  {t.editorialTitle}
+                </h2>
+                <p className="mt-5 max-w-xl text-sm leading-7 text-white/66 sm:text-base">
+                  {t.editorialText}
+                </p>
+
+                <div className="mt-9 flex items-center justify-between gap-4 border-t border-white/12 pt-6">
+                  <div className="flex -space-x-3">
+                    {heroImages.map((service) => (
+                      <div
+                        key={service.id}
+                        className="relative h-12 w-12 overflow-hidden rounded-full border-2 border-[#4b3039] bg-[#d6afb7] dark:border-[#2b1a21] sm:h-14 sm:w-14"
+                      >
+                        <Image
+                          src={service.cover}
+                          alt={service.name}
+                          fill
+                          unoptimized={isUploadImage(service.cover)}
+                          sizes="56px"
+                          className="object-cover"
+                        />
+                      </div>
+                    ))}
+                    {heroImages.length === 0 ? (
+                      <span className="flex h-12 w-12 items-center justify-center rounded-full border-2 border-[#4b3039] bg-[#d6afb7] text-[#603b45] dark:border-[#2b1a21]">
+                        <Sparkles className="h-5 w-5" />
+                      </span>
+                    ) : null}
+                  </div>
+                  <div className="text-right">
+                    <p className="font-playfair text-2xl font-semibold sm:text-3xl">{totalServices}</p>
+                    <p className="text-[10px] uppercase tracking-[0.15em] text-white/48 sm:text-xs">
+                      {t.treatments}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="absolute -bottom-5 left-[8%] z-10 inline-flex items-center gap-2 rounded-full border border-white/55 bg-white/90 px-4 py-2.5 text-xs font-semibold text-[#68424b] shadow-xl backdrop-blur-lg dark:border-white/10 dark:bg-[#22151a]/90 dark:text-white/75 sm:left-[12%]">
+              <MapPin className="h-4 w-4 text-[#a15c68]" />
+              Lessingstraße 37 · Halle
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="preisliste" className="scroll-mt-20 py-16 sm:py-20 lg:py-24">
+        <div className="mx-auto max-w-7xl px-5 sm:px-8 lg:px-10">
+          <div className="mb-8 flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+            <div>
+              <p className="flex items-center gap-3 text-xs font-semibold uppercase tracking-[0.24em] text-[#a15d68] dark:text-[#dda0ab]">
+                <span className="h-px w-9 bg-current opacity-55" />
+                {t.catalogueEyebrow}
+              </p>
+              <h2 className="mt-4 font-playfair text-3xl font-medium leading-[1.08] tracking-[-0.02em] text-[#3a272e] dark:text-white sm:text-4xl lg:text-5xl">
+                {t.allCategories}
+              </h2>
+            </div>
+            <p className="text-sm font-medium text-[#8b7278] dark:text-white/45">
+              {t.servicesCount(visibleServices)}
             </p>
+          </div>
+
+          <div className="z-30 mb-12 rounded-[1.6rem] border border-[#d6b6bb]/45 bg-white/82 p-3 shadow-[0_16px_55px_rgba(82,50,59,0.08)] backdrop-blur-xl dark:border-white/10 dark:bg-[#151014]/88 md:sticky md:top-20">
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
+              <label className="relative block shrink-0 lg:w-72">
+                <span className="sr-only">{t.searchLabel}</span>
+                <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#9b6d75] dark:text-white/40" />
+                <input
+                  type="search"
+                  value={query}
+                  onChange={(event) => setQuery(event.target.value)}
+                  placeholder={t.searchPlaceholder}
+                  className="h-12 w-full rounded-full border border-[#d4b4ba]/55 bg-[#fffaf8] pl-11 pr-10 text-sm text-[#4b3239] outline-none transition placeholder:text-[#a58d93] focus:border-[#a7616d] focus:ring-2 focus:ring-[#a7616d]/15 dark:border-white/10 dark:bg-white/5 dark:text-white dark:placeholder:text-white/35"
+                />
+                {query ? (
+                  <button
+                    type="button"
+                    onClick={() => setQuery("")}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-1 text-[#98737a] transition hover:bg-[#f3e3e6] hover:text-[#72414b] dark:hover:bg-white/10 dark:hover:text-white"
+                    aria-label={t.resetFilters}
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                ) : null}
+              </label>
+
+              <div className="flex min-w-0 flex-1 gap-2 overflow-x-auto pb-1 scrollbar-hide lg:pb-0">
+                <button
+                  type="button"
+                  onClick={() => setActiveCategory(null)}
+                  aria-pressed={activeCategory === null}
+                  className={`min-h-11 shrink-0 rounded-full px-4 text-xs font-semibold transition sm:px-5 sm:text-sm ${
+                    activeCategory === null
+                      ? "bg-[#8e4e5b] text-white shadow-[0_8px_22px_rgba(142,78,91,0.22)] dark:bg-[#cc7c8b] dark:text-[#271419]"
+                      : "border border-[#d7b8bd]/55 bg-white/65 text-[#73515a] hover:border-[#b77d87] hover:bg-[#fbf0f2] dark:border-white/10 dark:bg-white/5 dark:text-white/65 dark:hover:bg-white/10"
+                  }`}
+                >
+                  {t.allCategories}
+                </button>
+                {categories.map((category) => {
+                  const Icon = getCategoryIcon(category.slug);
+                  const isActive = activeCategory === category.id;
+                  return (
+                    <button
+                      key={category.id}
+                      type="button"
+                      onClick={() => setActiveCategory(isActive ? null : category.id)}
+                      aria-pressed={isActive}
+                      className={`inline-flex min-h-11 shrink-0 items-center gap-2 rounded-full px-4 text-xs font-semibold transition sm:px-5 sm:text-sm ${
+                        isActive
+                          ? "bg-[#8e4e5b] text-white shadow-[0_8px_22px_rgba(142,78,91,0.22)] dark:bg-[#cc7c8b] dark:text-[#271419]"
+                          : "border border-[#d7b8bd]/55 bg-white/65 text-[#73515a] hover:border-[#b77d87] hover:bg-[#fbf0f2] dark:border-white/10 dark:bg-white/5 dark:text-white/65 dark:hover:bg-white/10"
+                      }`}
+                    >
+                      <Icon className="h-4 w-4" />
+                      {category.name}
+                      <span className="opacity-60">{category.services.length}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+
+          {filteredCategories.length > 0 ? (
+            <div className="space-y-16 sm:space-y-20">
+              {filteredCategories.map((category) => {
+                const Icon = getCategoryIcon(category.slug);
+                return (
+                  <section key={category.id} aria-labelledby={`price-category-${category.id}`}>
+                    <div className="mb-7 grid gap-4 border-b border-[#d6b7bc]/40 pb-6 dark:border-white/10 md:grid-cols-[auto_minmax(0,1fr)_auto] md:items-center">
+                      <span className="flex h-12 w-12 items-center justify-center rounded-full border border-[#cfa7ae]/50 bg-[#f7e9eb] text-[#8c4c58] dark:border-white/10 dark:bg-white/7 dark:text-[#e2a6b0]">
+                        <Icon className="h-5 w-5" />
+                      </span>
+                      <div className="min-w-0">
+                        <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#a16973] dark:text-[#dda3ad]">
+                          {t.catalogueEyebrow}
+                        </p>
+                        <h3
+                          id={`price-category-${category.id}`}
+                          className="mt-1 break-words font-playfair text-3xl font-semibold tracking-[-0.02em] text-[#402a31] dark:text-white sm:text-4xl"
+                        >
+                          {category.name}
+                        </h3>
+                      </div>
+                      <span className="w-fit rounded-full border border-[#d1afb5]/45 px-3 py-1.5 text-xs font-semibold text-[#86626a] dark:border-white/10 dark:text-white/48">
+                        {t.servicesCount(category.services.length)}
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+                      {category.services.map((service) => (
+                        <PriceCard
+                          key={service.id}
+                          service={service}
+                          categorySlug={category.slug}
+                          index={visibleIndex++}
+                          locale={locale}
+                        />
+                      ))}
+                    </div>
+                  </section>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="rounded-[2rem] border border-[#d8b8bd]/45 bg-white/75 px-6 py-16 text-center shadow-[0_18px_70px_rgba(78,45,55,0.07)] dark:border-white/10 dark:bg-white/[0.035]">
+              <BadgeEuro className="mx-auto h-12 w-12 text-[#aa707a] dark:text-[#dda0aa]" />
+              <p className="mt-5 font-playfair text-2xl font-semibold text-[#493039] dark:text-white">
+                {t.noResults}
+              </p>
+              <button
+                type="button"
+                onClick={resetFilters}
+                className="mt-6 inline-flex min-h-11 items-center justify-center rounded-full bg-[#8e4e5b] px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-[#743c48] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#8e4e5b] dark:bg-[#ca7988] dark:text-[#251419]"
+              >
+                {t.resetFilters}
+              </button>
+            </div>
           )}
         </div>
+      </section>
 
-        <Link
-          href={localeHref(`/booking/services?preselect=${service.id}`, locale)}
-          className="inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-rose-600 to-pink-500 px-4 py-2 text-xs font-bold text-white shadow-md shadow-pink-300/15 transition-all duration-300 hover:shadow-lg hover:shadow-pink-400/25 hover:scale-[1.03] dark:from-amber-500 dark:to-amber-600 dark:text-gray-950 dark:shadow-amber-500/10"
-        >
-          {t.bookNow}
-          <ChevronRight className="h-3.5 w-3.5" />
-        </Link>
-      </div>
-    </motion.div>
-  );
-}
-
-/* ═══════════════════════ MAIN COMPONENT ═══════════════════════ */
-
-export default function PricesClient({ locale, categories }: Props) {
-  const t = t_map[locale];
-  const [activeCategory, setActiveCategory] = useState<string | null>(null);
-
-  const heroRef = useRef<HTMLDivElement>(null);
-  const { scrollYProgress } = useScroll({
-    target: heroRef,
-    offset: ["start start", "end start"],
-  });
-  const heroY = useTransform(scrollYProgress, [0, 1], [0, 120]);
-  const heroOpacity = useTransform(scrollYProgress, [0, 0.7], [1, 0]);
-
-  const totalServices = categories.reduce((acc, c) => acc + c.services.length, 0);
-
-  const filteredCategories = activeCategory
-    ? categories.filter((c) => c.id === activeCategory)
-    : categories;
-
-  return (
-    <main className="relative min-h-screen overflow-hidden bg-gradient-to-b from-pink-50/70 via-rose-50/30 to-amber-50/20 text-gray-900 dark:from-[#0a0a0f] dark:via-[#0f0f1a] dark:to-[#0a0a0f] dark:text-white">
-      <FloatingParticles />
-
-      {/* ═══════ HERO ═══════ */}
-      <div ref={heroRef} className="relative pt-8 pb-4 sm:pt-12 sm:pb-8 overflow-hidden">
-        <DecorativeBlobs />
-
-        {/* Dark radials */}
-        <div className="absolute inset-0 hidden dark:block">
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_rgba(180,150,50,0.10)_0%,_transparent_60%)]" />
+      <section className="relative overflow-hidden bg-[#4b3039] py-20 text-white dark:bg-[#28191f] sm:py-28">
+        <div aria-hidden="true" className="absolute -right-24 -top-24 h-80 w-80 rounded-full border border-white/10" />
+        <div aria-hidden="true" className="absolute -bottom-20 left-[8%] h-56 w-56 rounded-full border border-white/10" />
+        <div className="relative mx-auto grid max-w-7xl gap-10 px-5 sm:px-8 lg:grid-cols-[1fr_auto] lg:items-end lg:px-10">
+          <div className="max-w-3xl">
+            <p className="flex items-center gap-3 text-xs font-semibold uppercase tracking-[0.24em] text-[#f0c8cf]">
+              <span className="h-px w-9 bg-current opacity-60" />
+              {t.finalEyebrow}
+            </p>
+            <h2 className="mt-5 font-playfair text-4xl font-medium leading-[1.06] tracking-[-0.025em] sm:text-5xl lg:text-6xl">
+              {t.finalTitle}
+            </h2>
+            <p className="mt-6 max-w-2xl text-base leading-8 text-white/68">
+              {t.finalText}
+            </p>
+            <p className="mt-5 inline-flex items-center gap-2 text-sm text-white/62">
+              <ShieldCheck className="h-4 w-4 text-[#efbcc5]" />
+              Lessingstraße 37 · Halle (Saale)
+            </p>
+          </div>
+          <Link
+            href={localeHref("/booking/services", locale)}
+            className="inline-flex min-h-13 items-center justify-center gap-2 rounded-full bg-white px-7 py-3.5 text-sm font-bold text-[#5d3741] shadow-[0_18px_50px_rgba(25,10,15,0.2)] transition hover:-translate-y-0.5 hover:bg-[#f7e9eb] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+          >
+            <CalendarDays className="h-4 w-4" />
+            {t.bookAppointment}
+          </Link>
         </div>
-
-        {/* Decorative floating icons — light */}
-        <motion.div
-          className="pointer-events-none absolute top-16 right-12 text-pink-300/20 dark:hidden"
-          animate={{ y: [0, -10, 0], rotate: [0, 10, 0] }}
-          transition={{ duration: 7, repeat: Infinity, ease: "easeInOut" }}
-        >
-          <Flower2 className="w-10 h-10" />
-        </motion.div>
-        <motion.div
-          className="pointer-events-none absolute bottom-8 left-8 text-rose-300/15 dark:hidden"
-          animate={{ y: [0, 8, 0], rotate: [0, -8, 0] }}
-          transition={{ duration: 8, repeat: Infinity, ease: "easeInOut", delay: 3 }}
-        >
-          <Scissors className="w-8 h-8" />
-        </motion.div>
-
-        <motion.div
-          style={{ y: heroY, opacity: heroOpacity }}
-          className="relative z-10 mx-auto max-w-5xl px-4 text-center"
-        >
-          {/* Top line */}
-          <motion.div
-            initial={{ scaleX: 0 }}
-            animate={{ scaleX: 1 }}
-            transition={{ duration: 1, ease: [0.22, 1, 0.36, 1] }}
-            className="mx-auto mb-6 h-px w-20 bg-gradient-to-r from-transparent via-pink-400/50 to-transparent dark:via-amber-400/40"
-          />
-
-          {/* Badge */}
-          <motion.div
-            initial={{ opacity: 0, y: 15 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.1 }}
-            className="inline-flex items-center gap-2 rounded-full border border-pink-200/40 bg-white/70 px-4 py-1.5 text-xs font-semibold tracking-wide text-rose-700 shadow-sm backdrop-blur mb-5 dark:border-amber-500/20 dark:bg-amber-500/5 dark:text-amber-200"
-          >
-            <motion.span
-              animate={{ rotate: [0, 15, -15, 0] }}
-              transition={{ duration: 2.5, repeat: Infinity, repeatDelay: 3 }}
-            >
-              <BadgeEuro className="h-4 w-4 text-pink-500 dark:text-amber-400" />
-            </motion.span>
-            {t.categoryCount(categories.length)} &middot; {t.servicesCount(totalServices)}
-          </motion.div>
-
-          {/* Title */}
-          <motion.h1
-            initial={{ opacity: 0, y: 25 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
-            className="font-playfair text-4xl sm:text-5xl md:text-6xl font-light tracking-wide text-transparent bg-clip-text bg-gradient-to-b from-rose-800 via-pink-700 to-amber-700 dark:from-amber-200 dark:via-amber-100 dark:to-amber-300/80"
-          >
-            {t.heroTitle}
-          </motion.h1>
-
-          {/* Subtitle */}
-          <motion.p
-            initial={{ opacity: 0, y: 15 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, delay: 0.4 }}
-            className="mt-3 font-cormorant text-lg sm:text-xl text-rose-700/50 dark:text-amber-100/50 tracking-wide"
-          >
-            {t.heroSubtitle}
-          </motion.p>
-
-          {/* Description */}
-          <motion.p
-            initial={{ opacity: 0, y: 15 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, delay: 0.55 }}
-            className="mt-4 max-w-2xl mx-auto text-sm text-gray-600 dark:text-gray-400 leading-relaxed"
-          >
-            {t.heroDescription}
-          </motion.p>
-
-          {/* Bottom line */}
-          <motion.div
-            initial={{ scaleX: 0 }}
-            animate={{ scaleX: 1 }}
-            transition={{ duration: 1, delay: 0.4, ease: [0.22, 1, 0.36, 1] }}
-            className="mx-auto mt-8 h-px w-20 bg-gradient-to-r from-transparent via-pink-400/50 to-transparent dark:via-amber-400/40"
-          />
-        </motion.div>
-      </div>
-
-      {/* ═══════ CATEGORY FILTER ═══════ */}
-      <div className="relative z-10 mx-auto max-w-6xl px-4 mt-4 mb-10">
-        <motion.div
-          initial={{ opacity: 0, y: 15 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.6 }}
-          className="flex flex-wrap justify-center gap-2 sm:gap-3"
-        >
-          {/* All button */}
-          <motion.button
-            whileHover={{ scale: 1.04, y: -2 }}
-            whileTap={{ scale: 0.97 }}
-            onClick={() => setActiveCategory(null)}
-            className={[
-              "inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-sm font-semibold transition-all duration-300",
-              activeCategory === null
-                ? "bg-gradient-to-r from-rose-600 to-pink-500 text-white shadow-lg shadow-pink-300/20 dark:from-amber-500 dark:to-amber-600 dark:text-gray-950 dark:shadow-amber-500/15"
-                : "border border-pink-200/40 bg-white/70 text-gray-700 shadow-sm hover:border-pink-300/60 hover:bg-white/90 dark:border-white/10 dark:bg-white/5 dark:text-gray-300 dark:hover:border-amber-500/20",
-            ].join(" ")}
-          >
-            <Sparkles className="h-3.5 w-3.5" />
-            {t.allCategories}
-          </motion.button>
-
-          {categories.map((cat) => {
-            const Icon = getCategoryIcon(cat.slug);
-            const isActive = activeCategory === cat.id;
-            return (
-              <motion.button
-                key={cat.id}
-                whileHover={{ scale: 1.04, y: -2 }}
-                whileTap={{ scale: 0.97 }}
-                onClick={() => setActiveCategory(isActive ? null : cat.id)}
-                className={[
-                  "inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-sm font-semibold transition-all duration-300",
-                  isActive
-                    ? "bg-gradient-to-r from-rose-600 to-pink-500 text-white shadow-lg shadow-pink-300/20 dark:from-amber-500 dark:to-amber-600 dark:text-gray-950 dark:shadow-amber-500/15"
-                    : "border border-pink-200/40 bg-white/70 text-gray-700 shadow-sm hover:border-pink-300/60 hover:bg-white/90 dark:border-white/10 dark:bg-white/5 dark:text-gray-300 dark:hover:border-amber-500/20",
-                ].join(" ")}
-              >
-                <Icon className="h-3.5 w-3.5" />
-                {cat.name}
-                <span className={[
-                  "text-[10px] px-1.5 py-0.5 rounded-full font-bold",
-                  isActive
-                    ? "bg-white/25 text-white dark:bg-gray-950/20 dark:text-gray-950"
-                    : "bg-pink-100/60 text-pink-700 dark:bg-white/10 dark:text-gray-400",
-                ].join(" ")}>
-                  {cat.services.length}
-                </span>
-              </motion.button>
-            );
-          })}
-        </motion.div>
-      </div>
-
-      {/* ═══════ SERVICE CATEGORIES & CARDS ═══════ */}
-      <div className="relative z-10 mx-auto max-w-6xl px-4 pb-16">
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={activeCategory ?? "all"}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -15 }}
-            transition={{ duration: 0.35 }}
-          >
-            {filteredCategories.map((category) => (
-              <CategorySection
-                key={category.id}
-                category={category}
-                locale={locale}
-              />
-            ))}
-          </motion.div>
-        </AnimatePresence>
-      </div>
-
-      {/* ═══════ CTA ═══════ */}
-      <AnimatedSection className="relative pb-24 pt-8">
-        {/* Glow — light */}
-        <div className="absolute inset-0 flex items-center justify-center dark:hidden">
-          <div className="w-[450px] h-[250px] rounded-full bg-gradient-to-r from-pink-200/25 via-rose-200/15 to-amber-200/25 blur-3xl" />
-        </div>
-
-        <div className="relative max-w-3xl mx-auto px-4 text-center">
-          <motion.div variants={scaleIn} className="mb-6">
-            <motion.div
-              animate={{ rotate: [0, 10, -10, 0] }}
-              transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-            >
-              <Heart className="mx-auto w-7 h-7 text-pink-500/40 dark:text-amber-400/30" />
-            </motion.div>
-          </motion.div>
-
-          <motion.h2
-            variants={fadeInUp}
-            className="font-playfair text-2xl sm:text-3xl md:text-4xl font-light text-gray-900 dark:text-amber-100/90 tracking-wide mb-4"
-          >
-            {t.ctaTitle}
-          </motion.h2>
-
-          <motion.p
-            variants={fadeInUp}
-            className="font-cormorant text-base sm:text-lg text-gray-600 dark:text-gray-300/60 leading-relaxed max-w-xl mx-auto mb-8"
-          >
-            {t.ctaText}
-          </motion.p>
-
-          <motion.div variants={fadeInUp}>
-            <Link
-              href={localeHref("/booking", locale)}
-              className="group inline-flex items-center gap-3 px-8 py-4 rounded-full bg-gradient-to-r from-rose-600 to-pink-500 hover:from-rose-500 hover:to-pink-400 text-white font-cormorant text-lg tracking-wider transition-all duration-500 shadow-xl shadow-pink-400/20 hover:shadow-pink-500/35 hover:scale-[1.02] dark:from-amber-600/80 dark:to-amber-500/80 dark:hover:from-amber-500 dark:hover:to-amber-400 dark:shadow-amber-500/10 dark:hover:shadow-amber-500/20"
-            >
-              {t.ctaButton}
-              <ChevronRight className="w-5 h-5 transition-transform duration-300 group-hover:translate-x-1" />
-            </Link>
-          </motion.div>
-
-          <motion.div
-            variants={fadeInUp}
-            className="mt-14 mx-auto h-px w-28 bg-gradient-to-r from-transparent via-pink-400/25 to-transparent dark:via-amber-400/20"
-          />
-        </div>
-      </AnimatedSection>
+      </section>
     </main>
   );
 }
-
-/* ═══════════════════════ CATEGORY SECTION ═══════════════════════ */
-
-function CategorySection({
-  category,
-  locale,
-}: {
-  category: Category;
-  locale: Locale;
-}) {
-  const ref = useRef<HTMLDivElement>(null);
-  const isInView = useInView(ref, { once: true, margin: "-50px" });
-  const Icon = getCategoryIcon(category.slug);
-
-  return (
-    <div ref={ref} className="mb-14 last:mb-0">
-      {/* Category header */}
-      <motion.div
-        initial={{ opacity: 0, x: -20 }}
-        animate={isInView ? { opacity: 1, x: 0 } : {}}
-        transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-        className="flex items-center gap-3 mb-6"
-      >
-        <motion.div
-          whileHover={{ rotate: [0, -12, 12, -6, 0], scale: 1.1 }}
-          transition={{ duration: 0.4 }}
-          className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-pink-200/60 to-rose-100/40 border border-pink-200/30 dark:from-amber-500/15 dark:to-amber-600/5 dark:border-amber-500/10"
-        >
-          <Icon className="h-5 w-5 text-pink-600 dark:text-amber-400" />
-        </motion.div>
-        <div>
-          <h2 className="font-playfair text-xl sm:text-2xl font-semibold text-gray-900 dark:text-amber-100/90">
-            {category.name}
-          </h2>
-          <p className="text-xs text-gray-500 dark:text-gray-400">
-            {t_map[locale].servicesCount(category.services.length)}
-          </p>
-        </div>
-        <div className="flex-1 h-px bg-gradient-to-r from-pink-200/40 to-transparent dark:from-amber-500/10 ml-3" />
-      </motion.div>
-
-      {/* Service grid */}
-      <motion.div
-        initial="hidden"
-        animate={isInView ? "visible" : "hidden"}
-        variants={staggerContainer}
-        className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3"
-      >
-        {category.services.map((service) => (
-          <ServiceCard
-            key={service.id}
-            service={service}
-            locale={locale}
-            categorySlug={category.slug}
-          />
-        ))}
-      </motion.div>
-    </div>
-  );
-}
-
-
-//------добавляем прямую ссылку на карточку услуги в каталоге, чтобы можно было открывать ее по клику на "Подробнее" в прайс-листе. Временное решение, пока не будет реализован полноценный каталог с фильтрацией и отдельными страницами для каждой
-// // src/app/prices/PricesClient.tsx
-// "use client";
-
-// import { useState, useRef } from "react";
-// import Link from "next/link";
-// import {
-//   motion,
-//   useScroll,
-//   useTransform,
-//   useInView,
-//   AnimatePresence,
-//   type Variants,
-// } from "framer-motion";
-// import {
-//   Sparkles,
-//   Clock,
-//   ChevronRight,
-//   Eye,
-//   Hand,
-//   Star,
-//   Footprints,
-//   Gem,
-//   Flower2,
-//   Scissors,
-//   Heart,
-//   ArrowUpRight,
-//   BadgeEuro,
-// } from "lucide-react";
-// import type { Locale } from "@/i18n/locales";
-
-// /* ═══════════════════════ TYPES ═══════════════════════ */
-
-// type ServiceItem = {
-//   id: string;
-//   slug: string;
-//   name: string;
-//   description: string | null;
-//   durationMin: number;
-//   priceCents: number | null;
-//   cover: string | null;
-// };
-
-// type Category = {
-//   id: string;
-//   slug: string;
-//   name: string;
-//   services: ServiceItem[];
-// };
-
-// type Props = {
-//   locale: Locale;
-//   categories: Category[];
-// };
-
-// /* ═══════════════════════ i18n ═══════════════════════ */
-
-// const t_map: Record<
-//   Locale,
-//   {
-//     heroTitle: string;
-//     heroSubtitle: string;
-//     heroDescription: string;
-//     allCategories: string;
-//     duration: string;
-//     minutes: string;
-//     onRequest: string;
-//     bookNow: string;
-//     ctaTitle: string;
-//     ctaText: string;
-//     ctaButton: string;
-//     servicesCount: (n: number) => string;
-//     categoryCount: (n: number) => string;
-//   }
-// > = {
-//   de: {
-//     heroTitle: "Preise & Leistungen",
-//     heroSubtitle: "Transparente Preise, erstklassige Qualit\u00E4t",
-//     heroDescription:
-//       "Alle Behandlungen werden individuell auf Sie abgestimmt. Vereinbaren Sie ein unverbindliches Beratungsgespr\u00E4ch.",
-//     allCategories: "Alle",
-//     duration: "Dauer",
-//     minutes: "Min.",
-//     onRequest: "Auf Anfrage",
-//     bookNow: "Buchen",
-//     ctaTitle: "Bereit f\u00FCr Ihren Termin?",
-//     ctaText:
-//       "Vereinbaren Sie jetzt Ihren pers\u00F6nlichen Termin und erleben Sie professionelle Sch\u00F6nheitspflege in entspannter Atmosph\u00E4re.",
-//     ctaButton: "Termin vereinbaren",
-//     servicesCount: (n) =>
-//       n === 1 ? "1 Leistung" : `${n} Leistungen`,
-//     categoryCount: (n) =>
-//       n === 1 ? "1 Kategorie" : `${n} Kategorien`,
-//   },
-//   en: {
-//     heroTitle: "Prices & Services",
-//     heroSubtitle: "Transparent prices, first-class quality",
-//     heroDescription:
-//       "All treatments are individually tailored to you. Book a complimentary, no-obligation consultation.",
-//     allCategories: "All",
-//     duration: "Duration",
-//     minutes: "min",
-//     onRequest: "On request",
-//     bookNow: "Book",
-//     ctaTitle: "Ready for your appointment?",
-//     ctaText:
-//       "Book your personal appointment now and experience professional beauty care in a relaxed atmosphere.",
-//     ctaButton: "Book appointment",
-//     servicesCount: (n) =>
-//       n === 1 ? "1 service" : `${n} services`,
-//     categoryCount: (n) =>
-//       n === 1 ? "1 category" : `${n} categories`,
-//   },
-//   ru: {
-//     heroTitle: "\u0426\u0435\u043D\u044B \u0438 \u0443\u0441\u043B\u0443\u0433\u0438",
-//     heroSubtitle: "\u041F\u0440\u043E\u0437\u0440\u0430\u0447\u043D\u044B\u0435 \u0446\u0435\u043D\u044B, \u043F\u0440\u0435\u043C\u0438\u0430\u043B\u044C\u043D\u043E\u0435 \u043A\u0430\u0447\u0435\u0441\u0442\u0432\u043E",
-//     heroDescription:
-//       "\u0412\u0441\u0435 \u043F\u0440\u043E\u0446\u0435\u0434\u0443\u0440\u044B \u043F\u043E\u0434\u0431\u0438\u0440\u0430\u044E\u0442\u0441\u044F \u0438\u043D\u0434\u0438\u0432\u0438\u0434\u0443\u0430\u043B\u044C\u043D\u043E. \u0417\u0430\u043F\u0438\u0448\u0438\u0442\u0435\u0441\u044C \u043D\u0430 \u0431\u0435\u0441\u043F\u043B\u0430\u0442\u043D\u0443\u044E \u043A\u043E\u043D\u0441\u0443\u043B\u044C\u0442\u0430\u0446\u0438\u044E \u0431\u0435\u0437 \u043E\u0431\u044F\u0437\u0430\u0442\u0435\u043B\u044C\u0441\u0442\u0432.",
-//     allCategories: "\u0412\u0441\u0435",
-//     duration: "\u0414\u043B\u0438\u0442\u0435\u043B\u044C\u043D\u043E\u0441\u0442\u044C",
-//     minutes: "\u043C\u0438\u043D.",
-//     onRequest: "\u041F\u043E \u0437\u0430\u043F\u0440\u043E\u0441\u0443",
-//     bookNow: "\u0417\u0430\u043F\u0438\u0441\u0430\u0442\u044C\u0441\u044F",
-//     ctaTitle: "\u0413\u043E\u0442\u043E\u0432\u044B \u043A \u0432\u0438\u0437\u0438\u0442\u0443?",
-//     ctaText:
-//       "\u0417\u0430\u043F\u0438\u0448\u0438\u0442\u0435\u0441\u044C \u043F\u0440\u044F\u043C\u043E \u0441\u0435\u0439\u0447\u0430\u0441 \u0438 \u043E\u0449\u0443\u0442\u0438\u0442\u0435 \u043F\u0440\u043E\u0444\u0435\u0441\u0441\u0438\u043E\u043D\u0430\u043B\u044C\u043D\u044B\u0439 \u0443\u0445\u043E\u0434 \u0432 \u0440\u0430\u0441\u0441\u043B\u0430\u0431\u043B\u0435\u043D\u043D\u043E\u0439 \u0430\u0442\u043C\u043E\u0441\u0444\u0435\u0440\u0435.",
-//     ctaButton: "\u0417\u0430\u043F\u0438\u0441\u0430\u0442\u044C\u0441\u044F",
-//     servicesCount: (n) => {
-//       if (n === 1) return "1 \u0443\u0441\u043B\u0443\u0433\u0430";
-//       if (n >= 2 && n <= 4) return `${n} \u0443\u0441\u043B\u0443\u0433\u0438`;
-//       return `${n} \u0443\u0441\u043B\u0443\u0433`;
-//     },
-//     categoryCount: (n) => {
-//       if (n === 1) return "1 \u043A\u0430\u0442\u0435\u0433\u043E\u0440\u0438\u044F";
-//       if (n >= 2 && n <= 4) return `${n} \u043A\u0430\u0442\u0435\u0433\u043E\u0440\u0438\u0438`;
-//       return `${n} \u043A\u0430\u0442\u0435\u0433\u043E\u0440\u0438\u0439`;
-//     },
-//   },
-// };
-
-// /* ═══════════════════════ helpers ═══════════════════════ */
-
-// function localeHref(path: string, locale: Locale) {
-//   if (locale === "de") return path;
-//   const hasQuery = path.includes("?");
-//   return `${path}${hasQuery ? "&" : "?"}lang=${locale}`;
-// }
-
-// function formatPrice(cents: number | null, locale: Locale): string {
-//   if (!cents) return t_map[locale].onRequest;
-//   const eur = cents / 100;
-//   return new Intl.NumberFormat(
-//     locale === "de" ? "de-DE" : locale === "ru" ? "ru-RU" : "en-GB",
-//     { style: "currency", currency: "EUR", minimumFractionDigits: 0, maximumFractionDigits: 2 },
-//   ).format(eur);
-// }
-
-// /* Map category slugs to Lucide icons */
-// const CATEGORY_ICONS: Record<string, React.ElementType> = {
-//   "permanent-make-up": Eye,
-//   microneedling: Sparkles,
-//   nageldesign: Hand,
-//   "nail-design": Hand,
-//   wimpernverlangerung: Star,
-//   "eyelash-extensions": Star,
-//   fusspflege: Footprints,
-//   "foot-care": Footprints,
-// };
-
-// function getCategoryIcon(slug: string): React.ElementType {
-//   const lower = slug.toLowerCase();
-//   for (const [key, icon] of Object.entries(CATEGORY_ICONS)) {
-//     if (lower.includes(key)) return icon;
-//   }
-//   return Gem;
-// }
-
-// /* ═══════════════════════ animation variants ═══════════════════════ */
-
-// const fadeInUp: Variants = {
-//   hidden: { opacity: 0, y: 35 },
-//   visible: { opacity: 1, y: 0, transition: { duration: 0.65, ease: [0.22, 1, 0.36, 1] } },
-// };
-
-// const staggerContainer: Variants = {
-//   hidden: { opacity: 0 },
-//   visible: { opacity: 1, transition: { staggerChildren: 0.08, delayChildren: 0.1 } },
-// };
-
-// const staggerItem: Variants = {
-//   hidden: { opacity: 0, y: 25, scale: 0.97 },
-//   visible: {
-//     opacity: 1,
-//     y: 0,
-//     scale: 1,
-//     transition: { duration: 0.5, ease: [0.22, 1, 0.36, 1] },
-//   },
-// };
-
-// const scaleIn: Variants = {
-//   hidden: { opacity: 0, scale: 0.85 },
-//   visible: { opacity: 1, scale: 1, transition: { duration: 0.5, ease: [0.22, 1, 0.36, 1] } },
-// };
-
-// /* ═══════════════════════ sub-components ═══════════════════════ */
-
-// /** Floating background particles (deterministic) */
-// const PARTICLES = [
-//   { w: 3.5, h: 4.2, x: 8, y: 12, dy: -40, dx: 5, dur: 9, del: 0.3 },
-//   { w: 2.8, h: 3.1, x: 28, y: 25, dy: -50, dx: -7, dur: 11, del: 1.5 },
-//   { w: 4.6, h: 2.4, x: 55, y: 8, dy: -35, dx: 4, dur: 8, del: 2.2 },
-//   { w: 3.2, h: 5.0, x: 78, y: 32, dy: -55, dx: -3, dur: 12, del: 0.9 },
-//   { w: 2.5, h: 3.8, x: 92, y: 55, dy: -42, dx: 6, dur: 7, del: 3.1 },
-//   { w: 4.0, h: 2.9, x: 42, y: 70, dy: -48, dx: -5, dur: 10, del: 1.8 },
-//   { w: 3.8, h: 3.5, x: 15, y: 60, dy: -38, dx: 8, dur: 9, del: 4.0 },
-//   { w: 2.2, h: 4.5, x: 65, y: 42, dy: -60, dx: -4, dur: 13, del: 0.6 },
-//   { w: 5.0, h: 2.7, x: 50, y: 85, dy: -45, dx: 3, dur: 8, del: 2.7 },
-//   { w: 3.0, h: 3.3, x: 85, y: 15, dy: -52, dx: -6, dur: 11, del: 1.2 },
-// ];
-
-// function FloatingParticles() {
-//   return (
-//     <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
-//       {PARTICLES.map((p, i) => (
-//         <motion.div
-//           key={i}
-//           className="absolute rounded-full bg-pink-400/10 dark:bg-amber-400/8"
-//           style={{ width: p.w, height: p.h, left: `${p.x}%`, top: `${p.y}%` }}
-//           animate={{ y: [0, p.dy, 0], x: [0, p.dx, 0], opacity: [0.08, 0.3, 0.08] }}
-//           transition={{ duration: p.dur, repeat: Infinity, ease: "easeInOut", delay: p.del }}
-//         />
-//       ))}
-//     </div>
-//   );
-// }
-
-// function DecorativeBlobs() {
-//   return (
-//     <>
-//       <motion.div
-//         className="pointer-events-none absolute -top-40 -right-40 w-[550px] h-[550px] rounded-full opacity-25 dark:opacity-0"
-//         style={{ background: "radial-gradient(circle, rgba(236,72,153,0.25) 0%, rgba(244,114,182,0.08) 40%, transparent 70%)" }}
-//         animate={{ scale: [1, 1.08, 1], x: [0, 12, 0] }}
-//         transition={{ duration: 14, repeat: Infinity, ease: "easeInOut" }}
-//       />
-//       <motion.div
-//         className="pointer-events-none absolute -bottom-48 -left-32 w-[500px] h-[500px] rounded-full opacity-20 dark:opacity-0"
-//         style={{ background: "radial-gradient(circle, rgba(251,191,36,0.22) 0%, rgba(252,211,77,0.08) 40%, transparent 70%)" }}
-//         animate={{ scale: [1, 1.12, 1], y: [0, -15, 0] }}
-//         transition={{ duration: 16, repeat: Infinity, ease: "easeInOut" }}
-//       />
-//     </>
-//   );
-// }
-
-// /** Animated section with intersection observer */
-// function AnimatedSection({
-//   children,
-//   className = "",
-// }: {
-//   children: React.ReactNode;
-//   className?: string;
-// }) {
-//   const ref = useRef<HTMLDivElement>(null);
-//   const isInView = useInView(ref, { once: true, margin: "-60px" });
-//   return (
-//     <motion.section
-//       ref={ref}
-//       initial="hidden"
-//       animate={isInView ? "visible" : "hidden"}
-//       variants={staggerContainer}
-//       className={className}
-//     >
-//       {children}
-//     </motion.section>
-//   );
-// }
-
-// /** Single service card */
-// function ServiceCard({
-//   service,
-//   locale,
-//   categorySlug,
-// }: {
-//   service: ServiceItem;
-//   locale: Locale;
-//   categorySlug: string;
-// }) {
-//   const t = t_map[locale];
-//   const Icon = getCategoryIcon(categorySlug);
-//   const hasPrice = service.priceCents !== null && service.priceCents > 0;
-
-//   return (
-//     <motion.div
-//       variants={staggerItem}
-//       layout
-//       whileHover={{ y: -6, transition: { duration: 0.25 } }}
-//       className="group relative flex flex-col rounded-2xl border border-pink-200/30 bg-white/85 p-5 shadow-md shadow-pink-100/10 backdrop-blur-sm transition-all duration-400 hover:border-pink-300/50 hover:shadow-xl hover:shadow-pink-200/20 dark:border-white/[0.06] dark:bg-white/[0.03] dark:shadow-none dark:hover:border-amber-500/15"
-//     >
-//       {/* Hover glow */}
-//       <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-pink-50/30 via-transparent to-rose-50/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500 dark:from-amber-500/[0.04] dark:to-transparent" />
-
-//       <div className="relative flex-1">
-//         {/* Top row: icon + duration */}
-//         <div className="flex items-start justify-between mb-3">
-//           <motion.div
-//             whileHover={{ rotate: [0, -10, 10, -5, 0], scale: 1.15 }}
-//             transition={{ duration: 0.4 }}
-//             className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-pink-100 to-rose-50 border border-pink-200/30 dark:from-amber-500/15 dark:to-amber-600/5 dark:border-amber-500/10"
-//           >
-//             <Icon className="h-5 w-5 text-pink-600 dark:text-amber-400" />
-//           </motion.div>
-
-//           <div className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
-//             <Clock className="h-3.5 w-3.5" />
-//             <span>{service.durationMin} {t.minutes}</span>
-//           </div>
-//         </div>
-
-//         {/* Name */}
-//         <h3 className="font-playfair text-base font-semibold text-gray-900 dark:text-white mb-1.5 leading-snug">
-//           {service.name}
-//         </h3>
-
-//         {/* Description */}
-//         {service.description && (
-//           <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed line-clamp-2 mb-4">
-//             {service.description}
-//           </p>
-//         )}
-//         {!service.description && <div className="mb-4" />}
-//       </div>
-
-//       {/* Bottom: price + book */}
-//       <div className="relative flex items-end justify-between pt-3 border-t border-pink-100/40 dark:border-white/5">
-//         <div>
-//           <p className="text-xs text-gray-500 dark:text-gray-500 mb-0.5">
-//             {hasPrice ? "" : ""}
-//           </p>
-//           <p
-//             className={[
-//               "font-playfair font-bold",
-//               hasPrice
-//                 ? "text-lg text-rose-700 dark:text-amber-300"
-//                 : "text-sm text-gray-500 dark:text-gray-400 italic",
-//             ].join(" ")}
-//           >
-//             {formatPrice(service.priceCents, locale)}
-//           </p>
-//         </div>
-
-//         <Link
-//           href={localeHref("/booking", locale)}
-//           className="inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-rose-600 to-pink-500 px-4 py-2 text-xs font-bold text-white shadow-md shadow-pink-300/15 transition-all duration-300 hover:shadow-lg hover:shadow-pink-400/25 hover:scale-[1.03] dark:from-amber-500 dark:to-amber-600 dark:text-gray-950 dark:shadow-amber-500/10"
-//         >
-//           {t.bookNow}
-//           <ChevronRight className="h-3.5 w-3.5" />
-//         </Link>
-//       </div>
-//     </motion.div>
-//   );
-// }
-
-// /* ═══════════════════════ MAIN COMPONENT ═══════════════════════ */
-
-// export default function PricesClient({ locale, categories }: Props) {
-//   const t = t_map[locale];
-//   const [activeCategory, setActiveCategory] = useState<string | null>(null);
-
-//   const heroRef = useRef<HTMLDivElement>(null);
-//   const { scrollYProgress } = useScroll({
-//     target: heroRef,
-//     offset: ["start start", "end start"],
-//   });
-//   const heroY = useTransform(scrollYProgress, [0, 1], [0, 120]);
-//   const heroOpacity = useTransform(scrollYProgress, [0, 0.7], [1, 0]);
-
-//   const totalServices = categories.reduce((acc, c) => acc + c.services.length, 0);
-
-//   const filteredCategories = activeCategory
-//     ? categories.filter((c) => c.id === activeCategory)
-//     : categories;
-
-//   return (
-//     <main className="relative min-h-screen overflow-hidden bg-gradient-to-b from-pink-50/70 via-rose-50/30 to-amber-50/20 text-gray-900 dark:from-[#0a0a0f] dark:via-[#0f0f1a] dark:to-[#0a0a0f] dark:text-white">
-//       <FloatingParticles />
-
-//       {/* ═══════ HERO ═══════ */}
-//       <div ref={heroRef} className="relative pt-8 pb-4 sm:pt-12 sm:pb-8 overflow-hidden">
-//         <DecorativeBlobs />
-
-//         {/* Dark radials */}
-//         <div className="absolute inset-0 hidden dark:block">
-//           <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_rgba(180,150,50,0.10)_0%,_transparent_60%)]" />
-//         </div>
-
-//         {/* Decorative floating icons — light */}
-//         <motion.div
-//           className="pointer-events-none absolute top-16 right-12 text-pink-300/20 dark:hidden"
-//           animate={{ y: [0, -10, 0], rotate: [0, 10, 0] }}
-//           transition={{ duration: 7, repeat: Infinity, ease: "easeInOut" }}
-//         >
-//           <Flower2 className="w-10 h-10" />
-//         </motion.div>
-//         <motion.div
-//           className="pointer-events-none absolute bottom-8 left-8 text-rose-300/15 dark:hidden"
-//           animate={{ y: [0, 8, 0], rotate: [0, -8, 0] }}
-//           transition={{ duration: 8, repeat: Infinity, ease: "easeInOut", delay: 3 }}
-//         >
-//           <Scissors className="w-8 h-8" />
-//         </motion.div>
-
-//         <motion.div
-//           style={{ y: heroY, opacity: heroOpacity }}
-//           className="relative z-10 mx-auto max-w-5xl px-4 text-center"
-//         >
-//           {/* Top line */}
-//           <motion.div
-//             initial={{ scaleX: 0 }}
-//             animate={{ scaleX: 1 }}
-//             transition={{ duration: 1, ease: [0.22, 1, 0.36, 1] }}
-//             className="mx-auto mb-6 h-px w-20 bg-gradient-to-r from-transparent via-pink-400/50 to-transparent dark:via-amber-400/40"
-//           />
-
-//           {/* Badge */}
-//           <motion.div
-//             initial={{ opacity: 0, y: 15 }}
-//             animate={{ opacity: 1, y: 0 }}
-//             transition={{ duration: 0.6, delay: 0.1 }}
-//             className="inline-flex items-center gap-2 rounded-full border border-pink-200/40 bg-white/70 px-4 py-1.5 text-xs font-semibold tracking-wide text-rose-700 shadow-sm backdrop-blur mb-5 dark:border-amber-500/20 dark:bg-amber-500/5 dark:text-amber-200"
-//           >
-//             <motion.span
-//               animate={{ rotate: [0, 15, -15, 0] }}
-//               transition={{ duration: 2.5, repeat: Infinity, repeatDelay: 3 }}
-//             >
-//               <BadgeEuro className="h-4 w-4 text-pink-500 dark:text-amber-400" />
-//             </motion.span>
-//             {t.categoryCount(categories.length)} &middot; {t.servicesCount(totalServices)}
-//           </motion.div>
-
-//           {/* Title */}
-//           <motion.h1
-//             initial={{ opacity: 0, y: 25 }}
-//             animate={{ opacity: 1, y: 0 }}
-//             transition={{ duration: 0.8, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
-//             className="font-playfair text-4xl sm:text-5xl md:text-6xl font-light tracking-wide text-transparent bg-clip-text bg-gradient-to-b from-rose-800 via-pink-700 to-amber-700 dark:from-amber-200 dark:via-amber-100 dark:to-amber-300/80"
-//           >
-//             {t.heroTitle}
-//           </motion.h1>
-
-//           {/* Subtitle */}
-//           <motion.p
-//             initial={{ opacity: 0, y: 15 }}
-//             animate={{ opacity: 1, y: 0 }}
-//             transition={{ duration: 0.7, delay: 0.4 }}
-//             className="mt-3 font-cormorant text-lg sm:text-xl text-rose-700/50 dark:text-amber-100/50 tracking-wide"
-//           >
-//             {t.heroSubtitle}
-//           </motion.p>
-
-//           {/* Description */}
-//           <motion.p
-//             initial={{ opacity: 0, y: 15 }}
-//             animate={{ opacity: 1, y: 0 }}
-//             transition={{ duration: 0.7, delay: 0.55 }}
-//             className="mt-4 max-w-2xl mx-auto text-sm text-gray-600 dark:text-gray-400 leading-relaxed"
-//           >
-//             {t.heroDescription}
-//           </motion.p>
-
-//           {/* Bottom line */}
-//           <motion.div
-//             initial={{ scaleX: 0 }}
-//             animate={{ scaleX: 1 }}
-//             transition={{ duration: 1, delay: 0.4, ease: [0.22, 1, 0.36, 1] }}
-//             className="mx-auto mt-8 h-px w-20 bg-gradient-to-r from-transparent via-pink-400/50 to-transparent dark:via-amber-400/40"
-//           />
-//         </motion.div>
-//       </div>
-
-//       {/* ═══════ CATEGORY FILTER ═══════ */}
-//       <div className="relative z-10 mx-auto max-w-6xl px-4 mt-4 mb-10">
-//         <motion.div
-//           initial={{ opacity: 0, y: 15 }}
-//           animate={{ opacity: 1, y: 0 }}
-//           transition={{ duration: 0.6, delay: 0.6 }}
-//           className="flex flex-wrap justify-center gap-2 sm:gap-3"
-//         >
-//           {/* All button */}
-//           <motion.button
-//             whileHover={{ scale: 1.04, y: -2 }}
-//             whileTap={{ scale: 0.97 }}
-//             onClick={() => setActiveCategory(null)}
-//             className={[
-//               "inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-sm font-semibold transition-all duration-300",
-//               activeCategory === null
-//                 ? "bg-gradient-to-r from-rose-600 to-pink-500 text-white shadow-lg shadow-pink-300/20 dark:from-amber-500 dark:to-amber-600 dark:text-gray-950 dark:shadow-amber-500/15"
-//                 : "border border-pink-200/40 bg-white/70 text-gray-700 shadow-sm hover:border-pink-300/60 hover:bg-white/90 dark:border-white/10 dark:bg-white/5 dark:text-gray-300 dark:hover:border-amber-500/20",
-//             ].join(" ")}
-//           >
-//             <Sparkles className="h-3.5 w-3.5" />
-//             {t.allCategories}
-//           </motion.button>
-
-//           {categories.map((cat) => {
-//             const Icon = getCategoryIcon(cat.slug);
-//             const isActive = activeCategory === cat.id;
-//             return (
-//               <motion.button
-//                 key={cat.id}
-//                 whileHover={{ scale: 1.04, y: -2 }}
-//                 whileTap={{ scale: 0.97 }}
-//                 onClick={() => setActiveCategory(isActive ? null : cat.id)}
-//                 className={[
-//                   "inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-sm font-semibold transition-all duration-300",
-//                   isActive
-//                     ? "bg-gradient-to-r from-rose-600 to-pink-500 text-white shadow-lg shadow-pink-300/20 dark:from-amber-500 dark:to-amber-600 dark:text-gray-950 dark:shadow-amber-500/15"
-//                     : "border border-pink-200/40 bg-white/70 text-gray-700 shadow-sm hover:border-pink-300/60 hover:bg-white/90 dark:border-white/10 dark:bg-white/5 dark:text-gray-300 dark:hover:border-amber-500/20",
-//                 ].join(" ")}
-//               >
-//                 <Icon className="h-3.5 w-3.5" />
-//                 {cat.name}
-//                 <span className={[
-//                   "text-[10px] px-1.5 py-0.5 rounded-full font-bold",
-//                   isActive
-//                     ? "bg-white/25 text-white dark:bg-gray-950/20 dark:text-gray-950"
-//                     : "bg-pink-100/60 text-pink-700 dark:bg-white/10 dark:text-gray-400",
-//                 ].join(" ")}>
-//                   {cat.services.length}
-//                 </span>
-//               </motion.button>
-//             );
-//           })}
-//         </motion.div>
-//       </div>
-
-//       {/* ═══════ SERVICE CATEGORIES & CARDS ═══════ */}
-//       <div className="relative z-10 mx-auto max-w-6xl px-4 pb-16">
-//         <AnimatePresence mode="wait">
-//           <motion.div
-//             key={activeCategory ?? "all"}
-//             initial={{ opacity: 0, y: 20 }}
-//             animate={{ opacity: 1, y: 0 }}
-//             exit={{ opacity: 0, y: -15 }}
-//             transition={{ duration: 0.35 }}
-//           >
-//             {filteredCategories.map((category) => (
-//               <CategorySection
-//                 key={category.id}
-//                 category={category}
-//                 locale={locale}
-//               />
-//             ))}
-//           </motion.div>
-//         </AnimatePresence>
-//       </div>
-
-//       {/* ═══════ CTA ═══════ */}
-//       <AnimatedSection className="relative pb-24 pt-8">
-//         {/* Glow — light */}
-//         <div className="absolute inset-0 flex items-center justify-center dark:hidden">
-//           <div className="w-[450px] h-[250px] rounded-full bg-gradient-to-r from-pink-200/25 via-rose-200/15 to-amber-200/25 blur-3xl" />
-//         </div>
-
-//         <div className="relative max-w-3xl mx-auto px-4 text-center">
-//           <motion.div variants={scaleIn} className="mb-6">
-//             <motion.div
-//               animate={{ rotate: [0, 10, -10, 0] }}
-//               transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-//             >
-//               <Heart className="mx-auto w-7 h-7 text-pink-500/40 dark:text-amber-400/30" />
-//             </motion.div>
-//           </motion.div>
-
-//           <motion.h2
-//             variants={fadeInUp}
-//             className="font-playfair text-2xl sm:text-3xl md:text-4xl font-light text-gray-900 dark:text-amber-100/90 tracking-wide mb-4"
-//           >
-//             {t.ctaTitle}
-//           </motion.h2>
-
-//           <motion.p
-//             variants={fadeInUp}
-//             className="font-cormorant text-base sm:text-lg text-gray-600 dark:text-gray-300/60 leading-relaxed max-w-xl mx-auto mb-8"
-//           >
-//             {t.ctaText}
-//           </motion.p>
-
-//           <motion.div variants={fadeInUp}>
-//             <Link
-//               href={localeHref("/booking", locale)}
-//               className="group inline-flex items-center gap-3 px-8 py-4 rounded-full bg-gradient-to-r from-rose-600 to-pink-500 hover:from-rose-500 hover:to-pink-400 text-white font-cormorant text-lg tracking-wider transition-all duration-500 shadow-xl shadow-pink-400/20 hover:shadow-pink-500/35 hover:scale-[1.02] dark:from-amber-600/80 dark:to-amber-500/80 dark:hover:from-amber-500 dark:hover:to-amber-400 dark:shadow-amber-500/10 dark:hover:shadow-amber-500/20"
-//             >
-//               {t.ctaButton}
-//               <ChevronRight className="w-5 h-5 transition-transform duration-300 group-hover:translate-x-1" />
-//             </Link>
-//           </motion.div>
-
-//           <motion.div
-//             variants={fadeInUp}
-//             className="mt-14 mx-auto h-px w-28 bg-gradient-to-r from-transparent via-pink-400/25 to-transparent dark:via-amber-400/20"
-//           />
-//         </div>
-//       </AnimatedSection>
-//     </main>
-//   );
-// }
-
-// /* ═══════════════════════ CATEGORY SECTION ═══════════════════════ */
-
-// function CategorySection({
-//   category,
-//   locale,
-// }: {
-//   category: Category;
-//   locale: Locale;
-// }) {
-//   const ref = useRef<HTMLDivElement>(null);
-//   const isInView = useInView(ref, { once: true, margin: "-50px" });
-//   const Icon = getCategoryIcon(category.slug);
-
-//   return (
-//     <div ref={ref} className="mb-14 last:mb-0">
-//       {/* Category header */}
-//       <motion.div
-//         initial={{ opacity: 0, x: -20 }}
-//         animate={isInView ? { opacity: 1, x: 0 } : {}}
-//         transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-//         className="flex items-center gap-3 mb-6"
-//       >
-//         <motion.div
-//           whileHover={{ rotate: [0, -12, 12, -6, 0], scale: 1.1 }}
-//           transition={{ duration: 0.4 }}
-//           className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-pink-200/60 to-rose-100/40 border border-pink-200/30 dark:from-amber-500/15 dark:to-amber-600/5 dark:border-amber-500/10"
-//         >
-//           <Icon className="h-5 w-5 text-pink-600 dark:text-amber-400" />
-//         </motion.div>
-//         <div>
-//           <h2 className="font-playfair text-xl sm:text-2xl font-semibold text-gray-900 dark:text-amber-100/90">
-//             {category.name}
-//           </h2>
-//           <p className="text-xs text-gray-500 dark:text-gray-400">
-//             {t_map[locale].servicesCount(category.services.length)}
-//           </p>
-//         </div>
-//         <div className="flex-1 h-px bg-gradient-to-r from-pink-200/40 to-transparent dark:from-amber-500/10 ml-3" />
-//       </motion.div>
-
-//       {/* Service grid */}
-//       <motion.div
-//         initial="hidden"
-//         animate={isInView ? "visible" : "hidden"}
-//         variants={staggerContainer}
-//         className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3"
-//       >
-//         {category.services.map((service) => (
-//           <ServiceCard
-//             key={service.id}
-//             service={service}
-//             locale={locale}
-//             categorySlug={category.slug}
-//           />
-//         ))}
-//       </motion.div>
-//     </div>
-//   );
-// }

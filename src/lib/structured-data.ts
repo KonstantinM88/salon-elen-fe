@@ -89,6 +89,16 @@ const salonServiceCatalogJsonLd = {
         provider: { "@id": SALON_SCHEMA_ID },
       },
     },
+    {
+      "@type": "Offer",
+      url: `${BASE_URL}/fusspflege-halle`,
+      itemOffered: {
+        "@type": "Service",
+        name: "Fußpflege und Pediküre",
+        areaServed: "Halle (Saale)",
+        provider: { "@id": SALON_SCHEMA_ID },
+      },
+    },
   ],
 } as const;
 
@@ -127,6 +137,9 @@ export function buildSalonJsonLd(extra: Record<string, unknown> = {}) {
       "Lash extensions",
       "Microneedling",
       "Cosmetic treatments",
+      "Fußpflege",
+      "Pediküre",
+      "Mobile Fußpflege",
     ],
     hasOfferCatalog: salonServiceCatalogJsonLd,
     sameAs: [

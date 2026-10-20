@@ -38,6 +38,7 @@ const publicPages: PublicPage[] = [
     priority: 0.95,
     changeFrequency: "weekly",
   },
+  { path: "/fusspflege-halle", priority: 0.92, changeFrequency: "weekly" },
   ...seoLandingPages.map((page) => ({
     path: `/${page.slug}`,
     priority: 0.86,

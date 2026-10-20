@@ -135,6 +135,40 @@ Useful scripts:
 
 ## Important Change Log
 
+- 2026-10-20: The public `/prices` page now shares the premium editorial
+  design system used by `/services` and `/fusspflege-halle`. It keeps the
+  cached live catalog and promotion data, DE/EN/RU content, JSON-LD, service
+  detail links, and booking preselection while adding catalog search, category
+  filters, live result counts, and responsive two-column price cards. The
+  mobile hero grid must keep `min-width: 0`; verified at a 390 px CSS viewport
+  with document and body scroll widths equal to the viewport width.
+- 2026-10-20: The public `/services` catalog now uses the same premium
+  editorial visual system as `/fusspflege-halle`, with a real-service image
+  collage, localized DE/EN/RU hero and calls to action, catalog search,
+  category filters, live result counts, and responsive service cards. Preserve
+  the existing promotion pricing, gallery lightbox, service detail modal, and
+  booking preselection behavior. Service deep links accept either the stable
+  service ID or canonical slug so commercial landing-page links open the
+  correct catalog detail view.
+- 2026-10-20: Added the multilingual DE/EN/RU commercial landing page
+  `/fusspflege-halle`. It reads all 34 active Fußpflege services and current
+  prices from a 15-minute `PUBLIC_SERVICE_CATALOG_TAG` cache, groups them by
+  pedicure, focused care, medical foot/nail care, and mobile home visits, and
+  provides direct service preselection for booking. The page includes local
+  Halle/Paulusviertel content, safe medical-boundary copy, FAQ/Breadcrumb/
+  Service/OfferCatalog/BeautySalon JSON-LD, canonical/hreflang metadata, sitemap,
+  `llms.txt`, and internal links from the services and prices pages. User-facing
+  content must not use `Podologie`, `podiatry`, or their RU equivalents.
+  Five existing service names, slugs, translations, and WebP paths were migrated
+  in place from `podologisch` wording to `medizinische` wording without changing
+  service IDs, prices, master assignment, or booking history; the importer keeps
+  explicit legacy-slug migration support for other environments.
+- 2026-10-20: After all 34 Fußpflege WebP covers were verified as HTTP 200 on
+  production, `scripts/import-fusspflege-services.ts --apply --publish
+  --master=Elena` populated the corresponding `Service.cover` values in the
+  shared database. The admin service gallery now receives the same real cover
+  paths as the public catalog; the four inactive zero-duration add-ons remain
+  intentionally without covers or gallery records.
 - 2026-10-19: The public service detail modal is viewport-bounded on every
   breakpoint and must not create an inner horizontal scrollbar. Its desktop
   image/content flex children use `min-width: 0`, the content pane hides only

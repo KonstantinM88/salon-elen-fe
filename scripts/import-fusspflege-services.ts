@@ -16,6 +16,7 @@ type LocalizedText = Record<Locale, string>;
 
 type FootCareService = {
   slug: string;
+  legacySlug?: string;
   names: LocalizedText;
   durationMin: number;
   priceCents: number;
@@ -203,32 +204,36 @@ const SERVICES: FootCareService[] = [
     group: "wellness",
   },
   {
-    slug: "podologische-komplexbehandlung",
-    names: { de: "Podologische Komplexbehandlung", en: "Comprehensive Podiatry Treatment", ru: "Комплексный медицинский педикюр" },
+    slug: "medizinische-fusspflege-komplexbehandlung",
+    legacySlug: "podologische-komplexbehandlung",
+    names: { de: "Medizinische Fußpflege – Komplexbehandlung", en: "Medical Foot Care – Comprehensive Treatment", ru: "Комплексный медицинский педикюр" },
     durationMin: 55,
     priceCents: 6500,
     priceKind: "fixed",
     group: "specialist",
   },
   {
-    slug: "podologische-komplexbehandlung-erhoehter-aufwand",
-    names: { de: "Podologische Komplexbehandlung – erhöhter Aufwand", en: "Extended Podiatry Treatment", ru: "Медицинский педикюр повышенной сложности" },
+    slug: "medizinische-fusspflege-erhoehter-aufwand",
+    legacySlug: "podologische-komplexbehandlung-erhoehter-aufwand",
+    names: { de: "Medizinische Fußpflege – erhöhter Aufwand", en: "Extended Medical Foot Care", ru: "Медицинский педикюр повышенной сложности" },
     durationMin: 75,
     priceCents: 8500,
     priceKind: "from",
     group: "specialist",
   },
   {
-    slug: "podologische-nagelbehandlung",
-    names: { de: "Podologische Nagelbehandlung", en: "Podiatric Nail Care", ru: "Подологическая обработка ногтей" },
+    slug: "medizinische-nagelbehandlung",
+    legacySlug: "podologische-nagelbehandlung",
+    names: { de: "Medizinische Nagelbehandlung", en: "Medical Nail Care", ru: "Медицинская обработка ногтей" },
     durationMin: 30,
     priceCents: 3500,
     priceKind: "from",
     group: "specialist",
   },
   {
-    slug: "podologische-hornhautbehandlung",
-    names: { de: "Podologische Hornhautbehandlung", en: "Podiatric Callus Treatment", ru: "Подологическая обработка ороговевшей кожи" },
+    slug: "medizinische-hornhautbehandlung",
+    legacySlug: "podologische-hornhautbehandlung",
+    names: { de: "Medizinische Hornhautbehandlung", en: "Medical Callus Care", ru: "Медицинская обработка ороговевшей кожи" },
     durationMin: 30,
     priceCents: 3500,
     priceKind: "from",
@@ -357,8 +362,9 @@ const SERVICES: FootCareService[] = [
     group: "mobile",
   },
   {
-    slug: "mobile-podologische-komplexbehandlung",
-    names: { de: "Mobile podologische Komplexbehandlung", en: "Mobile Comprehensive Podiatry Treatment", ru: "Медицинский педикюр на дому" },
+    slug: "mobile-medizinische-fusspflege",
+    legacySlug: "mobile-podologische-komplexbehandlung",
+    names: { de: "Mobile medizinische Fußpflege", en: "Mobile Medical Foot Care", ru: "Медицинский педикюр на дому" },
     durationMin: 65,
     priceCents: 8000,
     priceKind: "fixed",
@@ -499,8 +505,11 @@ async function main(): Promise<void> {
       throw new Error(`Master "${masterSelector}" was not found.`);
     }
 
+    const knownSlugs = SERVICES.flatMap((service) =>
+      service.legacySlug ? [service.slug, service.legacySlug] : [service.slug],
+    );
     const existing = await prisma.service.findMany({
-      where: { slug: { in: SERVICES.map((service) => service.slug) } },
+      where: { slug: { in: knownSlugs } },
       select: { id: true, slug: true, parentId: true, isActive: true },
     });
     const existingBySlug = new Map(existing.map((service) => [service.slug, service]));
@@ -514,7 +523,23 @@ async function main(): Promise<void> {
 
     const standalone = SERVICES.filter((service) => service.durationMin > 0);
     const addons = SERVICES.filter((service) => service.durationMin === 0);
-    const createdCount = SERVICES.filter((service) => !existingBySlug.has(service.slug)).length;
+    const collisions = SERVICES.filter(
+      (service) =>
+        service.legacySlug &&
+        existingBySlug.has(service.slug) &&
+        existingBySlug.has(service.legacySlug),
+    );
+    if (collisions.length > 0) {
+      throw new Error(
+        `Current and legacy slugs both exist: ${collisions.map((service) => service.slug).join(", ")}`,
+      );
+    }
+
+    const createdCount = SERVICES.filter(
+      (service) =>
+        !existingBySlug.has(service.slug) &&
+        !(service.legacySlug && existingBySlug.has(service.legacySlug)),
+    ).length;
     const updatedCount = SERVICES.length - createdCount;
 
     console.log(`Mode: ${apply ? "APPLY" : "DRY RUN"}`);
@@ -523,7 +548,7 @@ async function main(): Promise<void> {
     console.log(`Planned: ${createdCount} create; ${updatedCount} update`);
     console.log(`Publication: ${publish ? `active and assigned to ${master?.name}` : "inactive until master assignment"}`);
     console.log(`Covers: ${standalone.length} responsive WebP source images from ${SERVICE_IMAGE_BASE_PATH}`);
-    console.log("Excluded because crossed out: French-Pediküre mit UV-Gellack; SPA-Pediküre; SPA-Pediküre mit UV-Gellack; Fußritual; Anti-Aging-Fußbehandlung; Entspannende Fußmassage; Fuß- und Unterschenkelmassage; Fußpeeling; Podologische Erstberatung; Nagelprothetik; Individuelle Silikonorthese; Mobile Nagelpflege; French-Design; Nageldesign; Reparatur eines Zehennagels.");
+    console.log("Excluded because crossed out: French-Pediküre mit UV-Gellack; SPA-Pediküre; SPA-Pediküre mit UV-Gellack; Fußritual; Anti-Aging-Fußbehandlung; Entspannende Fußmassage; Fuß- und Unterschenkelmassage; Fußpeeling; medizinische Erstberatung; Nagelprothetik; Individuelle Silikonorthese; Mobile Nagelpflege; French-Design; Nageldesign; Reparatur eines Zehennagels.");
     console.log("Applied handwritten corrections: Herren-Pediküre = 55 €.");
 
     if (!apply) return;
@@ -550,6 +575,17 @@ async function main(): Promise<void> {
 
       for (const service of SERVICES) {
         const isStandalone = service.durationMin > 0;
+        const legacyService = service.legacySlug
+          ? existingBySlug.get(service.legacySlug)
+          : undefined;
+
+        if (!existingBySlug.has(service.slug) && legacyService) {
+          await tx.service.update({
+            where: { id: legacyService.id },
+            data: { slug: service.slug },
+          });
+        }
+
         const saved = await tx.service.upsert({
           where: { slug: service.slug },
           create: {

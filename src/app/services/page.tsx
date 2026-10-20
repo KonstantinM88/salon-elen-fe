@@ -43,15 +43,15 @@ function resolveServiceCover(
 }
 
 const metaTitles: Record<SeoLocale, string> = {
-  de: "Permanent Make-up, Wimpern, Nägel & Microneedling in Halle — Salon Elen",
-  ru: "Перманентный макияж, ресницы, ногти и микронидлинг — Salon Elen",
-  en: "Permanent Make-up, lashes, nails & microneedling in Halle — Salon Elen",
+  de: "Permanent Make-up, Fußpflege & Beauty in Halle — Salon Elen",
+  ru: "Перманентный макияж, педикюр и бьюти-услуги — Salon Elen",
+  en: "Permanent Make-up, foot care & beauty in Halle — Salon Elen",
 };
 
 const metaDescriptions: Record<SeoLocale, string> = {
-  de: "Alle Leistungen von Salon Elen in Halle (Saale): Permanent Make-up, Powder Brows, Lippenpigmentierung, Wimpernverlängerung, Nageldesign und Microneedling.",
-  ru: "Все услуги Salon Elen в Галле: перманентный макияж, Powder Brows, пигментация губ, наращивание ресниц, ногти и микронидлинг.",
-  en: "All services at Salon Elen in Halle (Saale): permanent make-up, powder brows, lip pigmentation, eyelash extensions, nails and microneedling.",
+  de: "Alle Leistungen von Salon Elen in Halle (Saale): Permanent Make-up, Wimpern, Microneedling, professionelle Fußpflege und Pediküre im Salon oder mobil.",
+  ru: "Все услуги Salon Elen в Галле: перманентный макияж, ресницы, микронидлинг, профессиональный педикюр в салоне или с выездом на дом.",
+  en: "All Salon Elen services in Halle (Saale): permanent make-up, lashes, microneedling, professional foot care and pedicures in-salon or mobile.",
 };
 
 async function hasServiceDeepLink(searchParams?: SearchParamsPromise): Promise<boolean> {

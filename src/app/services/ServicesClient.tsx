@@ -1,25 +1,30 @@
-// src/app/services/ServicesClient.tsx
 "use client";
 
-import { useState, useCallback, useEffect, type CSSProperties } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
-import Link from "next/link";
 import Image from "next/image";
+import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { motion, AnimatePresence } from "framer-motion";
+import { AnimatePresence } from "framer-motion";
 import {
-  Sparkles,
-  Clock,
-  ChevronRight,
-  Scissors,
-  Palette,
-  Heart,
-  Star,
   ArrowRight,
-  Images,
-  Flower2,
   CalendarDays,
+  Clock3,
+  Flower2,
+  Footprints,
+  HeartHandshake,
+  Images,
+  MapPin,
+  Palette,
+  Scissors,
+  Search,
+  ShieldCheck,
+  Sparkles,
+  Star,
+  X,
+  type LucideIcon,
 } from "lucide-react";
+
 import { formatPromotionAppointmentPeriod } from "@/lib/promotion-constants";
 
 type GalleryItem = { id: string; image: string; caption: string | null };
@@ -83,3947 +88,757 @@ const ServiceDetailModal = dynamic<ServiceDetailModalProps>(
   { ssr: false },
 );
 
-const t: Record<string, Record<string, string>> = {
+const copy = {
   de: {
-    title: "Unsere Leistungen",
-    subtitle: "Verwöhnen Sie sich mit Premium-Schönheitspflege",
+    eyebrow: "Salon Elen · Halle (Saale)",
+    title: "Beauty-Behandlungen",
+    accent: "für Ihre beste Seite.",
+    subtitle:
+      "Permanent Make-up, professionelle Fußpflege und ausgewählte Beauty-Behandlungen — persönlich beraten und präzise ausgeführt.",
+    discover: "Leistungen entdecken",
     bookNow: "Termin buchen",
+    allCategories: "Alle Leistungen",
+    searchLabel: "Leistungen durchsuchen",
+    searchPlaceholder: "Behandlung suchen …",
+    categoriesLabel: "Kategorien",
+    treatmentsLabel: "Behandlungen",
+    locationLabel: "Halle (Saale)",
+    onlineLabel: "Online buchbar",
+    services: "Leistungen",
     from: "ab",
     minutes: "Min.",
-    noServices: "Keine Dienstleistungen verfügbar",
-    allCategories: "Alle",
-    photos: "Fotos",
+    details: "Details",
+    sale: "Aktion",
     close: "Schließen",
     ourWorks: "Unsere Arbeiten",
-    services: "Leistungen",
-    trustText: "Vertrauen Sie uns Ihre Schönheit an",
-    welcomeText: "Willkommen in unserem Salon",
+    noServices: "Keine passende Behandlung gefunden.",
+    resetFilters: "Filter zurücksetzen",
+    catalogEyebrow: "Behandlungskatalog",
+    finalEyebrow: "Ihr Termin bei Salon Elen",
+    finalTitle: "Zeit für ein Ergebnis, das sich nach Ihnen anfühlt.",
+    finalText:
+      "Wählen Sie Ihre Behandlung online oder lassen Sie sich persönlich beraten. Wir nehmen uns Zeit für Ihre Wünsche.",
   },
   ru: {
-    title: "Наши услуги",
-    subtitle: "Побалуйте себя премиальным уходом за красотой",
+    eyebrow: "Salon Elen · Галле (Заале)",
+    title: "Бьюти-процедуры",
+    accent: "для вашей красоты.",
+    subtitle:
+      "Перманентный макияж, профессиональный уход за стопами и тщательно подобранные бьюти-процедуры с индивидуальной консультацией.",
+    discover: "Смотреть услуги",
     bookNow: "Записаться",
+    allCategories: "Все услуги",
+    searchLabel: "Поиск услуг",
+    searchPlaceholder: "Найти процедуру …",
+    categoriesLabel: "Категории",
+    treatmentsLabel: "Процедуры",
+    locationLabel: "Галле (Заале)",
+    onlineLabel: "Онлайн-запись",
+    services: "услуг",
     from: "от",
     minutes: "мин.",
-    noServices: "Услуги не найдены",
-    allCategories: "Все",
-    photos: "фото",
+    details: "Подробнее",
+    sale: "Акция",
     close: "Закрыть",
     ourWorks: "Наши работы",
-    services: "услуг",
-    trustText: "Доверьте нам вашу красоту",
-    welcomeText: "Добро пожаловать в наш салон",
+    noServices: "Подходящая процедура не найдена.",
+    resetFilters: "Сбросить фильтры",
+    catalogEyebrow: "Каталог процедур",
+    finalEyebrow: "Ваш визит в Salon Elen",
+    finalTitle: "Время для результата, который подходит именно вам.",
+    finalText:
+      "Выберите процедуру онлайн или получите персональную консультацию. Мы внимательно относимся к вашим пожеланиям.",
   },
   en: {
-    title: "Our Services",
-    subtitle: "Indulge yourself with premium beauty care",
-    bookNow: "Book Now",
+    eyebrow: "Salon Elen · Halle (Saale)",
+    title: "Beauty treatments",
+    accent: "made for you.",
+    subtitle:
+      "Permanent make-up, professional foot care and selected beauty treatments — individually advised and precisely performed.",
+    discover: "Explore treatments",
+    bookNow: "Book appointment",
+    allCategories: "All treatments",
+    searchLabel: "Search treatments",
+    searchPlaceholder: "Find a treatment …",
+    categoriesLabel: "Categories",
+    treatmentsLabel: "Treatments",
+    locationLabel: "Halle (Saale)",
+    onlineLabel: "Online booking",
+    services: "services",
     from: "from",
     minutes: "min.",
-    noServices: "No services available",
-    allCategories: "All",
-    photos: "photos",
+    details: "Details",
+    sale: "Offer",
     close: "Close",
-    ourWorks: "Our Works",
-    services: "services",
-    trustText: "Trust us with your beauty",
-    welcomeText: "Welcome to our salon",
+    ourWorks: "Our work",
+    noServices: "No matching treatment was found.",
+    resetFilters: "Reset filters",
+    catalogEyebrow: "Treatment catalogue",
+    finalEyebrow: "Your appointment at Salon Elen",
+    finalTitle: "Time for a result that feels entirely yours.",
+    finalText:
+      "Choose your treatment online or ask for personal advice. We take the time to understand what you want.",
   },
-};
+} as const;
 
-const categoryIcons: Record<string, typeof Scissors> = {
-  haircut: Scissors,
-  haare: Scissors,
-  hair: Scissors,
-  frisur: Scissors,
-  manicure: Palette,
-  nails: Palette,
-  nagel: Palette,
-  makeup: Heart,
-  kosmetik: Heart,
-  brows: Star,
-  lashes: Star,
-  permanent: Star,
-  default: Flower2,
-};
-
-function getCategoryIcon(slug: string) {
-  const key = Object.keys(categoryIcons).find((k) =>
-    slug.toLowerCase().includes(k),
-  );
-  return categoryIcons[key || "default"];
+function getCategoryIcon(slug: string): LucideIcon {
+  const normalized = slug.toLowerCase();
+  if (
+    normalized.includes("fu-") ||
+    normalized.includes("fuss") ||
+    normalized.includes("foot") ||
+    normalized.includes("pedik")
+  ) return Footprints;
+  if (normalized.includes("haar") || normalized.includes("hair")) return Scissors;
+  if (normalized.includes("nagel") || normalized.includes("nail")) return Palette;
+  if (normalized.includes("lash") || normalized.includes("wimper")) return Star;
+  if (normalized.includes("permanent") || normalized.includes("make")) return Sparkles;
+  if (normalized.includes("massage") || normalized.includes("wellness")) {
+    return HeartHandshake;
+  }
+  return Flower2;
 }
 
-function formatPrice(cents: number | null, locale: string) {
-  if (!cents) return null;
+function formatPrice(cents: number | null, locale: string): string | null {
+  if (cents == null) return null;
   return new Intl.NumberFormat(
-    locale === "de" ? "de-DE" : locale === "ru" ? "ru-RU" : "en-US",
+    locale === "de" ? "de-DE" : locale === "ru" ? "ru-RU" : "en-GB",
     {
       style: "currency",
       currency: "EUR",
       minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
     },
   ).format(cents / 100);
 }
 
-const cardGradients = [
-  "from-rose-300/50 via-pink-200/50 to-rose-100/50",
-  "from-amber-200/50 via-orange-100/50 to-yellow-100/50",
-  "from-violet-300/50 via-purple-200/50 to-pink-100/50",
-  "from-sky-200/50 via-cyan-100/50 to-teal-100/50",
-  "from-emerald-200/50 via-teal-100/50 to-cyan-100/50",
-];
+function localeHref(path: string, locale: string): string {
+  if (locale === "de") return path;
+  return `${path}${path.includes("?") ? "&" : "?"}lang=${locale}`;
+}
 
-// тип для inline-style с CSS-переменными (без any)
-type CSSVarsStyle = CSSProperties & {
-  [key: `--${string}`]: string | number;
-};
+function getServiceImage(service: ServiceChild): string | null {
+  return service.cover || service.gallery[0]?.image || null;
+}
 
-// ====== КРАСИВЫЙ АНИМИРОВАННЫЙ ФОН ======
-function PageBackground() {
-  return (
-    <div className="fixed inset-0 -z-10 overflow-hidden">
-      <div className="absolute inset-0 bg-gradient-to-br from-rose-200/90 via-pink-100/80 to-amber-100/70 dark:from-[#080812] dark:via-[#0b0b16] dark:to-[#121227]" />
-      <div className="absolute inset-0 bg-gradient-to-t from-white/40 via-transparent to-rose-100/30 dark:from-transparent dark:to-transparent" />
-
-      <style>{`
-        @keyframes ph-float {
-          0%, 100% {
-            transform: translate3d(0, 0, 0) rotate(0deg) scale(1);
-            opacity: .35;
-          }
-          50% {
-            transform: translate3d(var(--ph-x, 0px), var(--ph-y, -35px), 0) rotate(var(--ph-r, 0deg)) scale(1.15);
-            opacity: .75;
-          }
-        }
-        .ph-float {
-          animation-name: ph-float;
-          animation-iteration-count: infinite;
-          animation-timing-function: ease-in-out;
-          will-change: transform, opacity;
-        }
-      `}</style>
-
-      <motion.div
-        className="absolute -top-32 -left-32 h-[500px] w-[500px] sm:h-[700px] sm:w-[700px] rounded-full"
-        style={{
-          background:
-            "radial-gradient(circle, rgba(251,182,206,0.7) 0%, rgba(251,207,232,0.4) 40%, transparent 70%)",
-        }}
-        animate={{ scale: [1, 1.15, 1], opacity: [0.7, 0.5, 0.7] }}
-        transition={{ duration: 12, repeat: Infinity, ease: "easeInOut" }}
-      />
-
-      <motion.div
-        className="absolute top-1/4 -right-32 h-[400px] w-[400px] sm:h-[600px] sm:w-[600px] rounded-full"
-        style={{
-          background:
-            "radial-gradient(circle, rgba(254,202,155,0.6) 0%, rgba(254,215,170,0.3) 40%, transparent 70%)",
-        }}
-        animate={{ scale: [1, 1.12, 1], opacity: [0.6, 0.35, 0.6] }}
-        transition={{
-          duration: 14,
-          repeat: Infinity,
-          ease: "easeInOut",
-          delay: 2,
-        }}
-      />
-
-      <motion.div
-        className="absolute -bottom-20 left-1/3 h-[450px] w-[450px] sm:h-[650px] sm:w-[650px] rounded-full"
-        style={{
-          background:
-            "radial-gradient(circle, rgba(216,180,254,0.5) 0%, rgba(196,181,253,0.25) 40%, transparent 70%)",
-        }}
-        animate={{ scale: [1, 1.1, 1], opacity: [0.5, 0.3, 0.5] }}
-        transition={{
-          duration: 16,
-          repeat: Infinity,
-          ease: "easeInOut",
-          delay: 4,
-        }}
-      />
-
-      {[...Array(35)].map((_, i) => {
-        const x = i % 2 === 0 ? 18 : -18;
-        const r = i % 2 === 0 ? 20 : -20;
-        const duration = 6 + (i % 5) * 1.5;
-        const delay = i * 0.15;
-
-        const style: CSSVarsStyle = {
-          left: `${(i * 2.9) % 100}%`,
-          top: `${(i * 3.1) % 95}%`,
-          animationDuration: `${duration}s`,
-          animationDelay: `${delay}s`,
-          "--ph-x": `${x}px`,
-          "--ph-y": `-35px`,
-          "--ph-r": `${r}deg`,
-        };
-
-        return (
-          <div key={i} className="absolute pointer-events-none ph-float" style={style}>
-            {i % 4 === 0 ? (
-              <Heart
-                className="h-4 w-4 sm:h-5 sm:w-5 text-rose-400/80 dark:text-rose-300/25 drop-shadow-sm"
-                fill="currentColor"
-              />
-            ) : i % 4 === 1 ? (
-              <Heart
-                className="h-3 w-3 sm:h-4 sm:w-4 text-pink-400/70 dark:text-pink-300/20 drop-shadow-sm"
-                fill="currentColor"
-              />
-            ) : i % 4 === 2 ? (
-              <Sparkles className="h-3 w-3 sm:h-4 sm:w-4 text-amber-400/70 dark:text-amber-300/20" />
-            ) : (
-              <Star
-                className="h-3 w-3 sm:h-4 sm:w-4 text-rose-300/60 dark:text-rose-300/15"
-                fill="currentColor"
-              />
-            )}
-          </div>
-        );
-      })}
-
-      <svg
-        className="absolute bottom-0 left-0 w-full h-32 sm:h-48 opacity-20 dark:opacity-10"
-        preserveAspectRatio="none"
-        viewBox="0 0 1440 120"
-      >
-        <path
-          fill="url(#wave-fill)"
-          d="M0,60 C360,100 720,20 1080,60 C1260,80 1380,40 1440,60 L1440,120 L0,120 Z"
-        />
-        <defs>
-          <linearGradient id="wave-fill" x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" stopColor="#f9a8d4" />
-            <stop offset="50%" stopColor="#fda4af" />
-            <stop offset="100%" stopColor="#fdba74" />
-          </linearGradient>
-        </defs>
-      </svg>
-
-      <div
-        className="absolute inset-0 opacity-[0.025] dark:opacity-[0.04]"
-        style={{
-          backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23000' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
-        }}
-      />
-    </div>
-  );
+function isUploadImage(path: string | null): boolean {
+  return path?.startsWith("/uploads/") ?? false;
 }
 
 function ServiceCard({
   service,
   categoryName,
   index,
+  locale,
+  translations,
+  isPriority,
   onOpenDetail,
   onOpenGallery,
   onPrefetch,
-  translations,
-  locale,
-  isPriority,
 }: {
   service: ServiceChild;
   categoryName: string;
   index: number;
+  locale: string;
+  translations: (typeof copy)[keyof typeof copy];
+  isPriority: boolean;
   onOpenDetail: () => void;
   onOpenGallery: (index: number) => void;
   onPrefetch: (imageUrl?: string | null) => void;
-  translations: Record<string, string>;
-  locale: string;
-  isPriority?: boolean;
 }) {
-  const hasImage = service.cover || service.gallery.length > 0;
-  const imageUrl = service.cover || service.gallery[0]?.image;
-  const isUploadImage = imageUrl?.startsWith("/uploads/") ?? false;
+  const imageUrl = getServiceImage(service);
+  const basePrice = formatPrice(service.priceCents, locale);
+  const promotionPrice = service.promotion
+    ? formatPrice(service.promotion.discountedPriceCents, locale)
+    : null;
 
   return (
-    <motion.div initial={false} className="group">
-      <div
-        onClick={() => {
-          onPrefetch(imageUrl);
-          onOpenDetail();
-        }}
-        onPointerEnter={() => onPrefetch(imageUrl)}
-        onFocus={() => onPrefetch(imageUrl)}
-        onTouchStart={() => onPrefetch(imageUrl)}
-        className="relative overflow-hidden rounded-2xl sm:rounded-3xl cursor-pointer bg-white dark:bg-zinc-900/80 border-2 border-rose-200/70 dark:border-white/10 shadow-[0_8px_30px_-12px_rgba(244,63,94,0.25)] dark:shadow-[0_18px_55px_-28px_rgba(0,0,0,0.75)] hover:shadow-[0_20px_50px_-15px_rgba(244,63,94,0.35)] dark:hover:shadow-[0_25px_60px_-20px_rgba(0,0,0,0.85)] hover:border-rose-300 dark:hover:border-white/20 transition-all duration-500 sm:active:scale-[0.98] sm:hover:-translate-y-2"
-      >
-        <div className="absolute top-0 right-0 w-16 h-16 overflow-hidden z-10 pointer-events-none">
-          <div className="absolute -top-8 -right-8 w-16 h-16 bg-gradient-to-br from-rose-400/20 to-pink-400/20 rotate-45" />
-        </div>
-
-        <div className="relative h-40 sm:h-48 lg:h-52 overflow-hidden bg-white dark:bg-zinc-950">
-          {hasImage ? (
+    <article
+      data-service-card
+      className="group flex h-full min-w-0 flex-col overflow-hidden rounded-[1.75rem] border border-[#d8b8bd]/45 bg-white/94 shadow-[0_20px_70px_rgba(78,45,55,0.075)] transition duration-500 hover:-translate-y-1.5 hover:border-[#c27d89]/55 hover:shadow-[0_30px_90px_rgba(78,45,55,0.15)] dark:border-white/10 dark:bg-white/[0.045] dark:hover:border-[#dfa1ac]/30"
+    >
+      <div className="relative aspect-[16/11] overflow-hidden bg-[#ead9dc] dark:bg-[#25171c]">
+        <button
+          type="button"
+          onClick={onOpenDetail}
+          onPointerEnter={() => onPrefetch(imageUrl)}
+          onFocus={() => onPrefetch(imageUrl)}
+          className="absolute inset-0 z-[1] w-full cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-[-4px] focus-visible:outline-[#8e4e5b]"
+          aria-label={`${translations.details}: ${service.name}`}
+        >
+          {imageUrl ? (
             <Image
-              src={imageUrl!}
+              src={imageUrl}
               alt={service.name}
               fill
-              className="object-cover transition-transform duration-700 group-hover:scale-105"
+              className="object-cover transition duration-700 group-hover:scale-[1.055]"
               sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-              quality={60}
-              unoptimized={isUploadImage}
+              quality={72}
+              unoptimized={isUploadImage(imageUrl)}
               priority={isPriority}
               loading={isPriority ? "eager" : "lazy"}
               fetchPriority={isPriority ? "high" : "auto"}
-              decoding="async"
             />
           ) : (
-            <div
-              className={`absolute inset-0 bg-gradient-to-br ${cardGradients[index % cardGradients.length]}`}
-            >
-              <div className="absolute inset-0 flex items-center justify-center">
-                <Flower2 className="w-16 h-16 text-rose-300/70 dark:text-rose-200/20" />
-              </div>
-            </div>
-          )}
-
-          <div className="absolute inset-0 bg-gradient-to-t from-white via-white/20 to-transparent dark:from-zinc-900 dark:via-zinc-900/40" />
-
-          {service.priceCents && (
-            <div className="absolute top-3 right-3">
-              {service.promotion ? (
-                <div className="min-w-[112px] rounded-xl border border-white/60 bg-white/92 px-3 py-2 text-right shadow-xl backdrop-blur-md dark:border-fuchsia-300/30 dark:bg-zinc-950/88">
-                  <div className="inline-flex rounded-full bg-gradient-to-r from-fuchsia-600 to-rose-500 px-2 py-0.5 text-[10px] font-black uppercase text-white shadow-md">
-                    -{service.promotion.percent}% {locale === "ru" ? "АКЦИЯ" : locale === "en" ? "SALE" : "AKTION"}
-                  </div>
-                  <div className="mt-1 text-[11px] text-zinc-500 line-through decoration-rose-500 decoration-2 dark:text-white/45">
-                    {formatPrice(service.priceCents, locale)}
-                  </div>
-                  <div className="text-base font-black text-rose-600 dark:text-rose-300">
-                    {formatPrice(service.promotion.discountedPriceCents, locale)}
-                  </div>
-                  <div className="mt-1 flex max-w-[190px] items-start justify-end gap-1 text-[9px] font-semibold leading-3 text-rose-700/75 dark:text-rose-100/70">
-                    <CalendarDays className="mt-px h-2.5 w-2.5 shrink-0" />
-                    <span>
-                      {formatPromotionAppointmentPeriod(
-                        service.promotion.from,
-                        service.promotion.to,
-                        locale,
-                      )}
-                    </span>
-                  </div>
-                </div>
-              ) : (
-                <span className="rounded-full border border-rose-200/50 bg-white px-3 py-1.5 text-xs font-bold text-rose-600 shadow-lg backdrop-blur-sm dark:border-white/10 dark:bg-white/10 dark:text-rose-200 sm:text-sm">
-                  {translations.from} {formatPrice(service.priceCents, locale)}
-                </span>
-              )}
-            </div>
-          )}
-
-          {service.gallery.length > 0 && (
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onOpenGallery(0);
-              }}
-              className="absolute top-3 left-3 px-2.5 py-1.5 rounded-full bg-white dark:bg-white/10 backdrop-blur-sm flex items-center gap-1.5 text-rose-500 dark:text-rose-200 text-xs hover:bg-rose-50 dark:hover:bg-white/15 transition-colors shadow-lg border border-rose-200/50 dark:border-white/10"
-            >
-              <Images className="w-3.5 h-3.5" />
-              {service.gallery.length}
-            </button>
-          )}
-
-          <div className="absolute bottom-3 left-3 right-3 flex items-center gap-2">
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-rose-500/90 text-white text-[11px] font-medium backdrop-blur-sm shadow-md">
-              <Heart className="h-2.5 w-2.5" fill="currentColor" />
-              {categoryName}
+            <span className="absolute inset-0 flex items-center justify-center bg-[radial-gradient(circle_at_30%_20%,rgba(255,255,255,0.72),transparent_32%),linear-gradient(135deg,#ead3d7,#d6adb5)] dark:bg-[radial-gradient(circle_at_30%_20%,rgba(255,255,255,0.08),transparent_32%),linear-gradient(135deg,#321e25,#1a1014)]">
+              <Flower2 className="h-16 w-16 text-[#9f6570]/55 dark:text-[#e2a7b1]/35" />
             </span>
-          </div>
+          )}
+          <span className="absolute inset-0 bg-gradient-to-t from-[#2b1820]/78 via-[#2b1820]/5 to-transparent" />
+        </button>
+
+        <div className="pointer-events-none absolute inset-x-4 top-4 z-10 flex items-start justify-between gap-3">
+          <span className="max-w-[62%] truncate rounded-full border border-white/20 bg-[#2b1820]/62 px-3 py-1.5 text-[11px] font-semibold text-white backdrop-blur-md sm:text-xs">
+            {categoryName}
+          </span>
+          {basePrice ? (
+            <span className="rounded-full bg-white/92 px-3 py-1.5 text-right text-xs font-bold text-[#633b45] shadow-lg backdrop-blur-md">
+              {service.promotion ? (
+                <>
+                  <span className="mr-1 text-[10px] font-medium text-[#92767d] line-through">
+                    {basePrice}
+                  </span>
+                  {promotionPrice}
+                </>
+              ) : (
+                <>{translations.from} {basePrice}</>
+              )}
+            </span>
+          ) : null}
         </div>
 
-        <div className="relative overflow-hidden p-4 sm:p-5 bg-gradient-to-b from-transparent to-rose-50/30 dark:from-rose-950/80 dark:via-slate-950/90 dark:to-purple-950/80">
-          <div className="absolute inset-0 pointer-events-none dark:hidden">
-            {[...Array(5)].map((_, i) => (
-              <motion.div
-                key={`light-heart-${i}`}
-                className="absolute"
-                style={{
-                  left: `${(i * 20) % 100}%`,
-                  top: `${(i * 22) % 100}%`,
-                }}
-                animate={{ y: [0, -12, 0], x: [0, i % 2 === 0 ? 6 : -6, 0] }}
-                transition={{
-                  duration: 7 + (i % 3) * 2,
-                  repeat: Infinity,
-                  delay: i * 0.6,
-                  ease: "easeInOut",
-                }}
-              >
-                <Heart
-                  className={`${i % 2 === 0 ? "w-3.5 h-3.5" : "w-3 h-3"} text-rose-400/60 drop-shadow-[0_1px_6px_rgba(244,63,94,0.25)]`}
-                  fill="currentColor"
-                />
-              </motion.div>
-            ))}
-          </div>
+        <div className="pointer-events-none absolute inset-x-4 bottom-4 z-10 flex items-end justify-between gap-3 text-white">
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-[#24141a]/55 px-3 py-1.5 text-xs font-medium backdrop-blur-md">
+            <Clock3 className="h-3.5 w-3.5" />
+            {service.durationMin} {translations.minutes}
+          </span>
+          <span className="font-playfair text-2xl text-white/65" aria-hidden="true">
+            {String(index + 1).padStart(2, "0")}
+          </span>
+        </div>
 
-          <div className="absolute inset-0 pointer-events-none hidden dark:block">
-            {[...Array(5)].map((_, i) => (
-              <motion.div
-                key={`dark-heart-${i}`}
-                className="absolute"
-                style={{
-                  left: `${(i * 20) % 100}%`,
-                  top: `${(i * 22) % 100}%`,
-                }}
-                animate={{ y: [0, -10, 0], x: [0, i % 2 === 0 ? 5 : -5, 0] }}
-                transition={{
-                  duration: 8 + (i % 3) * 2,
-                  repeat: Infinity,
-                  delay: i * 0.6,
-                  ease: "easeInOut",
-                }}
-              >
-                <Heart
-                  className={`${i % 2 === 0 ? "w-2.5 h-2.5" : "w-2 h-2"} text-rose-400/25`}
-                  fill="currentColor"
-                />
-              </motion.div>
-            ))}
-          </div>
+        {service.gallery.length > 0 ? (
+          <button
+            type="button"
+            onClick={() => onOpenGallery(0)}
+            className="absolute bottom-4 right-14 z-20 hidden items-center gap-1.5 rounded-full border border-white/20 bg-[#24141a]/55 px-3 py-1.5 text-xs font-medium text-white backdrop-blur-md transition hover:bg-[#24141a]/80 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white sm:inline-flex"
+            aria-label={`${translations.ourWorks}: ${service.name}`}
+          >
+            <Images className="h-3.5 w-3.5" />
+            {service.gallery.length}
+          </button>
+        ) : null}
+      </div>
 
-          <div className="relative z-10">
-            <h3 className="text-base sm:text-lg font-playfair font-semibold tracking-tight text-zinc-800 dark:text-zinc-100 mb-1.5 line-clamp-2 group-hover:text-rose-600 dark:group-hover:text-rose-200 transition-colors">
-              {service.name}
-            </h3>
-
-            
-            
-            {/* <h3 className="text-base sm:text-lg font-bold text-zinc-800 dark:text-zinc-100 mb-1.5 line-clamp-2 group-hover:text-rose-600 dark:group-hover:text-rose-200 transition-colors font-playfair">
-              {service.name}
-            </h3> */}
-
-            {service.description && (
-              <p className="font-cormorant text-sm sm:text-base leading-snug text-zinc-600 dark:text-zinc-300 line-clamp-2 mb-3">
-               {service.description}
-              </p>
-
-              // <p className="text-zinc-600 dark:text-zinc-300 text-xs sm:text-sm line-clamp-2 mb-3">
-              //   {service.description}
-              // </p>
-            )}
-
-            <div className="flex items-center gap-3 mb-4">
-              <span className="inline-flex items-center gap-1 text-zinc-500 dark:text-zinc-300 text-xs sm:text-sm">
-                <Clock className="w-3.5 h-3.5 text-rose-400 dark:text-rose-300" />
-                {service.durationMin} {translations.minutes}
-              </span>
+      <div className="flex flex-1 flex-col p-5 sm:p-6">
+        {service.promotion ? (
+          <div className="mb-4 rounded-2xl border border-[#e4bbc2]/55 bg-[#fbf0f2] px-3.5 py-3 text-[#7b3e4a] dark:border-[#e4a1ad]/15 dark:bg-[#d68190]/10 dark:text-[#f0bdc6]">
+            <div className="flex items-center justify-between gap-3 text-[11px] font-bold uppercase tracking-[0.12em]">
+              <span>{translations.sale} · −{service.promotion.percent}%</span>
+              <CalendarDays className="h-3.5 w-3.5 shrink-0" />
             </div>
-
-            <Link
-              href={`/booking/services?preselect=${service.id}`}
-              onClick={(e) => e.stopPropagation()}
-              className="flex items-center justify-center gap-2 w-full px-4 py-2.5 sm:py-3 rounded-xl bg-gradient-to-r from-rose-500 via-pink-500 to-rose-500 hover:from-rose-600 hover:via-pink-600 hover:to-rose-600 text-white font-semibold text-sm transition-all active:scale-[0.98] shadow-lg shadow-rose-300/40"
-            >
-              {translations.bookNow}
-              <ChevronRight className="w-4 h-4" />
-            </Link>
+            <p className="mt-1.5 text-[11px] font-medium leading-4 opacity-75">
+              {formatPromotionAppointmentPeriod(
+                service.promotion.from,
+                service.promotion.to,
+                locale,
+              )}
+            </p>
           </div>
+        ) : null}
+
+        <h3 className="break-words font-playfair text-xl font-semibold leading-tight tracking-[-0.015em] text-[#3f2930] transition group-hover:text-[#8d4d59] dark:text-white dark:group-hover:text-[#e3a3ae] sm:text-2xl">
+          {service.name}
+        </h3>
+        {service.description ? (
+          <p className="mt-3 line-clamp-3 break-words text-sm leading-6 text-[#78666b] dark:text-white/58">
+            {service.description}
+          </p>
+        ) : null}
+
+        <div className="mt-auto grid grid-cols-[minmax(0,1fr)_auto] gap-2.5 pt-6">
+          <Link
+            href={localeHref(
+              `/booking/services?preselect=${encodeURIComponent(service.id)}`,
+              locale,
+            )}
+            className="inline-flex min-h-11 min-w-0 items-center justify-center gap-2 rounded-full bg-[#8e4e5b] px-4 py-2.5 text-center text-sm font-semibold text-white shadow-[0_10px_26px_rgba(142,78,91,0.2)] transition hover:bg-[#743c48] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#8e4e5b] dark:bg-[#ca7988] dark:text-[#251419] dark:hover:bg-[#dc909d]"
+          >
+            {translations.bookNow}
+            <ArrowRight className="h-4 w-4 shrink-0" />
+          </Link>
+          <button
+            type="button"
+            onClick={onOpenDetail}
+            onPointerEnter={() => onPrefetch(imageUrl)}
+            onFocus={() => onPrefetch(imageUrl)}
+            className="inline-flex min-h-11 items-center justify-center rounded-full border border-[#c9a2a9]/60 px-4 py-2.5 text-sm font-semibold text-[#75434d] transition hover:border-[#9b5965] hover:bg-[#f8ecee] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#8e4e5b] dark:border-white/15 dark:text-white/75 dark:hover:bg-white/8"
+          >
+            {translations.details}
+          </button>
         </div>
       </div>
-    </motion.div>
+    </article>
   );
 }
 
 export default function ServicesClient({ categories, locale }: Props) {
+  const language = locale === "ru" || locale === "en" ? locale : "de";
+  const translations = copy[language];
+  const searchParams = useSearchParams();
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
+  const [query, setQuery] = useState("");
   const [selectedService, setSelectedService] = useState<{
     service: ServiceChild;
     categoryName: string;
   } | null>(null);
-
-  const searchParams = useSearchParams();
-
-  // Auto-open service modal from URL param (?service=ID)
-  useEffect(() => {
-    const serviceId = searchParams.get("service");
-    if (!serviceId) return;
-
-    for (const cat of categories) {
-      const found = cat.children.find((s) => s.id === serviceId);
-      if (found) {
-        setSelectedService({ service: found, categoryName: cat.name });
-        break;
-      }
-    }
-  }, [searchParams, categories]);
   const [lightbox, setLightbox] = useState<{
-    isOpen: boolean;
     images: GalleryItem[];
     currentIndex: number;
     serviceName: string;
   } | null>(null);
 
-  const translations = t[locale] || t.de;
+  useEffect(() => {
+    const serviceReference = searchParams.get("service");
+    if (!serviceReference) return;
 
-  // прогрев чанка модалки + прогрев картинки (без any)
+    for (const category of categories) {
+      const service = category.children.find(
+        (candidate) =>
+          candidate.id === serviceReference || candidate.slug === serviceReference,
+      );
+      if (service) {
+        setSelectedService({ service, categoryName: category.name });
+        return;
+      }
+    }
+  }, [categories, searchParams]);
+
   const prefetchServiceModal = useCallback((imageUrl?: string | null) => {
     void import("./ServiceDetailModal");
     void import("./GalleryLightbox");
-
     if (typeof window !== "undefined" && imageUrl) {
-      const img = new window.Image();
-      img.decoding = "async";
-      img.src = imageUrl;
+      const image = new window.Image();
+      image.decoding = "async";
+      image.src = imageUrl;
     }
   }, []);
 
-  const openServiceDetail = useCallback(
-    (service: ServiceChild, categoryName: string) =>
-      setSelectedService({ service, categoryName }),
-    [],
-  );
-
   const openLightbox = useCallback(
-    (images: GalleryItem[], index: number, serviceName: string) =>
-      setLightbox({ isOpen: true, images, currentIndex: index, serviceName }),
+    (images: GalleryItem[], index: number, serviceName: string) => {
+      setLightbox({ images, currentIndex: index, serviceName });
+    },
     [],
   );
 
-  const closeLightbox = useCallback(() => setLightbox(null), []);
+  const filteredCategories = useMemo(() => {
+    const normalizedQuery = query.trim().toLocaleLowerCase(language);
+    return categories
+      .filter((category) => !activeCategory || category.id === activeCategory)
+      .map((category) => ({
+        ...category,
+        children: category.children.filter((service) => {
+          if (!normalizedQuery) return true;
+          return `${category.name} ${service.name} ${service.description ?? ""}`
+            .toLocaleLowerCase(language)
+            .includes(normalizedQuery);
+        }),
+      }))
+      .filter((category) => category.children.length > 0);
+  }, [activeCategory, categories, language, query]);
 
-  const goToPrev = useCallback(() => {
-    if (!lightbox) return;
-    setLightbox({
-      ...lightbox,
-      currentIndex:
-        lightbox.currentIndex === 0
-          ? lightbox.images.length - 1
-          : lightbox.currentIndex - 1,
-    });
-  }, [lightbox]);
-
-  const goToNext = useCallback(() => {
-    if (!lightbox) return;
-    setLightbox({
-      ...lightbox,
-      currentIndex: (lightbox.currentIndex + 1) % lightbox.images.length,
-    });
-  }, [lightbox]);
-
-  const filteredCategories = categories.filter(
-    (cat) => !activeCategory || cat.id === activeCategory,
+  const totalServices = useMemo(
+    () => categories.reduce((total, category) => total + category.children.length, 0),
+    [categories],
   );
+  const visibleServices = filteredCategories.reduce(
+    (total, category) => total + category.children.length,
+    0,
+  );
+  const heroServices = useMemo(
+    () =>
+      categories
+        .flatMap((category) =>
+          category.children.map((service) => ({
+            service,
+            image: getServiceImage(service),
+          })),
+        )
+        .filter((item): item is { service: ServiceChild; image: string } => Boolean(item.image))
+        .slice(0, 3),
+    [categories],
+  );
+
+  const resetFilters = () => {
+    setActiveCategory(null);
+    setQuery("");
+  };
 
   let globalServiceIndex = 0;
 
   return (
-    <main className="relative min-h-screen overflow-hidden isolate">
-      <PageBackground />
-      <div className="relative z-10">
-        <AnimatePresence>
-          {lightbox?.isOpen && (
-            <GalleryLightbox
-              images={lightbox.images}
-              currentIndex={lightbox.currentIndex}
-              onClose={closeLightbox}
-              onPrev={goToPrev}
-              onNext={goToNext}
-              serviceName={lightbox.serviceName}
-            />
-          )}
-        </AnimatePresence>
+    <main className="overflow-hidden bg-[#fdf9f7] text-[#3d2b31] dark:bg-[#0b090b] dark:text-white">
+      <AnimatePresence>
+        {lightbox ? (
+          <GalleryLightbox
+            images={lightbox.images}
+            currentIndex={lightbox.currentIndex}
+            onClose={() => setLightbox(null)}
+            onPrev={() =>
+              setLightbox((current) =>
+                current
+                  ? {
+                      ...current,
+                      currentIndex:
+                        current.currentIndex === 0
+                          ? current.images.length - 1
+                          : current.currentIndex - 1,
+                    }
+                  : null,
+              )
+            }
+            onNext={() =>
+              setLightbox((current) =>
+                current
+                  ? {
+                      ...current,
+                      currentIndex: (current.currentIndex + 1) % current.images.length,
+                    }
+                  : null,
+              )
+            }
+            serviceName={lightbox.serviceName}
+          />
+        ) : null}
+      </AnimatePresence>
 
-        <AnimatePresence>
-          {selectedService && (
-            <ServiceDetailModal
-              service={selectedService.service}
-              categoryName={selectedService.categoryName}
-              onClose={() => setSelectedService(null)}
-              onOpenGallery={(index) =>
-                openLightbox(
-                  selectedService.service.gallery,
-                  index,
-                  selectedService.service.name,
-                )
-              }
-              translations={translations}
-              locale={locale}
-            />
-          )}
-        </AnimatePresence>
+      <AnimatePresence>
+        {selectedService ? (
+          <ServiceDetailModal
+            service={selectedService.service}
+            categoryName={selectedService.categoryName}
+            onClose={() => setSelectedService(null)}
+            onOpenGallery={(index) =>
+              openLightbox(
+                selectedService.service.gallery,
+                index,
+                selectedService.service.name,
+              )
+            }
+            translations={translations}
+            locale={language}
+          />
+        ) : null}
+      </AnimatePresence>
 
-        <section className="relative pt-8 pb-6 sm:pt-16 sm:pb-12">
-          <div className="container mx-auto px-4">
-            <motion.div
-              initial={{ opacity: 0, y: 16 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6 }}
-              className="text-center max-w-2xl mx-auto"
-            >
-              <motion.div
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: 0.1 }}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/90 dark:bg-white/10 backdrop-blur border border-rose-200 dark:border-white/10 shadow-lg shadow-rose-200/30 mb-4 sm:mb-6"
-              >
-                <Sparkles className="w-4 h-4 text-rose-500 dark:text-rose-200" />
-               <span className="text-sm font-medium tracking-wide text-rose-600 dark:text-rose-200">
-                 Premium Beauty Salon
-                </span>
+      <section className="relative isolate overflow-hidden border-b border-[#cfadb3]/35 bg-[radial-gradient(circle_at_16%_10%,rgba(226,180,187,0.33),transparent_32%),linear-gradient(135deg,#fffaf7_0%,#f4e5e6_56%,#e8cfd3_100%)] pt-20 dark:border-white/10 dark:bg-[radial-gradient(circle_at_16%_10%,rgba(160,84,101,0.2),transparent_34%),linear-gradient(135deg,#0d0a0c_0%,#1a1015_58%,#2a171f_100%)] sm:pt-24">
+        <div aria-hidden="true" className="absolute -left-24 top-28 h-72 w-72 rounded-full border border-[#b97984]/20" />
+        <div aria-hidden="true" className="absolute -left-4 top-52 h-36 w-36 rounded-full border border-[#b97984]/25" />
+        <div aria-hidden="true" className="absolute right-[9%] top-24 h-px w-44 rotate-[-26deg] bg-[#9a5a66]/30" />
 
-               
-               
-                {/* <span className="text-sm font-medium text-rose-600 dark:text-rose-200">
-                  Premium Beauty Salon
-                </span> */}
-              </motion.div>
-
-              <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-playfair font-semibold tracking-tight leading-[1.05] mb-4 sm:mb-5">
-            <span className="bg-gradient-to-r from-rose-500 via-pink-500 to-rose-600 bg-clip-text text-transparent drop-shadow-sm">
+        <div className="mx-auto grid max-w-7xl gap-12 px-5 pb-16 pt-8 sm:px-8 lg:grid-cols-[0.92fr_1.08fr] lg:items-center lg:gap-16 lg:px-10 lg:pb-24 lg:pt-12">
+          <div>
+            <p className="flex items-center gap-3 text-xs font-bold uppercase tracking-[0.24em] text-[#985560] dark:text-[#e1a8b2]">
+              <span className="h-px w-10 bg-current opacity-60" />
+              {translations.eyebrow}
+            </p>
+            <h1 className="mt-6 font-playfair text-[clamp(3.3rem,7.5vw,6.8rem)] font-medium leading-[0.9] tracking-[-0.05em] text-[#39252c] dark:text-white">
               {translations.title}
+              <span className="mt-2 block font-light italic text-[#9b5965] dark:text-[#e0a2ad]">
+                {translations.accent}
               </span>
             </h1>
-
-
-              {/* <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold mb-4 sm:mb-5 font-playfair">
-                <span className="bg-gradient-to-r from-rose-500 via-pink-500 to-rose-600 bg-clip-text text-transparent drop-shadow-sm">
-                  {translations.title}
-                </span>
-              </h1> */}
-
-              <div className="flex justify-center items-center gap-3 mb-4">
-                <div className="w-12 h-px bg-gradient-to-r from-transparent via-rose-400 to-transparent" />
-                <Heart
-                  className="w-5 h-5 text-rose-500 dark:text-rose-300"
-                  fill="currentColor"
-                />
-                <div className="w-12 h-px bg-gradient-to-r from-transparent via-rose-400 to-transparent" />
-              </div>
-
-                <p className="font-cormorant text-base sm:text-lg md:text-xl leading-relaxed text-zinc-700 dark:text-zinc-200/90 mb-6 sm:mb-8 px-4 font-medium">
-                 {translations.subtitle}
-                </p>
-                
-              {/* <p className="text-sm sm:text-base md:text-lg text-zinc-600 dark:text-zinc-200/90 mb-6 sm:mb-8 px-4 font-cormorant font-medium">
-                {translations.subtitle}
-              </p> */}
-
-              <Link
-                href="/booking"
-                className="inline-flex items-center gap-2 px-6 py-3 sm:px-8 sm:py-4 bg-gradient-to-r from-rose-500 via-pink-500 to-rose-500 hover:from-rose-600 hover:via-pink-600 hover:to-rose-600 rounded-full text-white font-semibold text-sm sm:text-base shadow-xl shadow-rose-300/50 transition-all active:scale-95 hover:scale-105"
+            <p className="mt-8 max-w-xl text-base leading-8 text-[#6f5960] dark:text-white/68 sm:text-lg">
+              {translations.subtitle}
+            </p>
+            <div className="mt-9 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+              <a
+                href="#leistungen"
+                className="inline-flex min-h-13 items-center justify-center gap-2 rounded-full bg-[#854653] px-7 py-3.5 text-sm font-bold text-white shadow-[0_16px_45px_rgba(133,70,83,0.28)] transition hover:-translate-y-0.5 hover:bg-[#713946] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#854653] dark:bg-[#d18190] dark:text-[#271419]"
               >
+                {translations.discover}
+                <ArrowRight className="h-4 w-4" />
+              </a>
+              <Link
+                href={localeHref("/booking/services", language)}
+                className="inline-flex min-h-13 items-center justify-center gap-2 rounded-full border border-[#b98690]/55 bg-white/48 px-7 py-3.5 text-sm font-bold text-[#67404a] backdrop-blur-sm transition hover:-translate-y-0.5 hover:bg-white/78 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#854653] dark:border-white/15 dark:bg-white/5 dark:text-white"
+              >
+                <CalendarDays className="h-4 w-4" />
                 {translations.bookNow}
-                <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5" />
               </Link>
-            </motion.div>
-          </div>
-        </section>
+            </div>
 
-        <section className="sticky top-16 z-40">
-          <div className="bg-white/80 dark:bg-zinc-950/70 backdrop-blur-xl border-y border-rose-200/50 dark:border-white/10">
-            <div className="container mx-auto px-4">
-              <div className="flex gap-2 py-3 sm:py-4 overflow-x-auto scrollbar-hide -mx-4 px-4">
+            <div className="mt-10 grid max-w-xl grid-cols-3 border-y border-[#b78891]/30 py-5 dark:border-white/10">
+              <div className="pr-3">
+                <strong className="block font-playfair text-2xl font-semibold text-[#53343d] dark:text-white sm:text-3xl">
+                  {categories.length}
+                </strong>
+                <span className="mt-1 block text-[10px] font-semibold uppercase tracking-[0.12em] text-[#8a7077] dark:text-white/42 sm:text-xs">
+                  {translations.categoriesLabel}
+                </span>
+              </div>
+              <div className="border-x border-[#b78891]/25 px-3 dark:border-white/10">
+                <strong className="block font-playfair text-2xl font-semibold text-[#53343d] dark:text-white sm:text-3xl">
+                  {totalServices}
+                </strong>
+                <span className="mt-1 block text-[10px] font-semibold uppercase tracking-[0.12em] text-[#8a7077] dark:text-white/42 sm:text-xs">
+                  {translations.treatmentsLabel}
+                </span>
+              </div>
+              <div className="pl-3">
+                <strong className="flex h-8 items-center font-playfair text-lg font-semibold text-[#53343d] dark:text-white sm:text-xl">
+                  24/7
+                </strong>
+                <span className="mt-1 block text-[10px] font-semibold uppercase tracking-[0.12em] text-[#8a7077] dark:text-white/42 sm:text-xs">
+                  {translations.onlineLabel}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div className="relative mx-auto w-full max-w-[700px]">
+            <div className="grid grid-cols-[minmax(0,1fr)_0.42fr] gap-3 sm:gap-5">
+              <div className="relative aspect-[4/5] overflow-hidden rounded-[2rem] bg-[#d8bbc0] shadow-[0_36px_100px_rgba(72,38,49,0.23)] sm:rounded-[2.8rem]">
+                {heroServices[0] ? (
+                  <Image
+                    src={heroServices[0].image}
+                    alt={heroServices[0].service.name}
+                    fill
+                    priority
+                    unoptimized={isUploadImage(heroServices[0].image)}
+                    sizes="(max-width: 1024px) 68vw, 38vw"
+                    className="object-cover"
+                  />
+                ) : (
+                  <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-[#ead2d6] to-[#bd828d]">
+                    <Sparkles className="h-20 w-20 text-white/60" />
+                  </div>
+                )}
+                <div className="absolute inset-0 bg-gradient-to-t from-[#29171e]/72 via-transparent to-transparent" />
+                <div className="absolute inset-x-6 bottom-6 text-white sm:inset-x-8 sm:bottom-8">
+                  <p className="text-xs font-bold uppercase tracking-[0.18em] text-white/65">
+                    Salon Elen
+                  </p>
+                  <p className="mt-2 max-w-sm font-playfair text-2xl leading-tight sm:text-3xl">
+                    {heroServices[0]?.service.name ?? translations.title}
+                  </p>
+                </div>
+              </div>
+              <div className="grid gap-3 pt-10 sm:gap-5 sm:pt-16">
+                {[heroServices[1], heroServices[2]].map((item, index) => (
+                  <div
+                    key={item?.service.id ?? `hero-placeholder-${index}`}
+                    className="relative aspect-[4/5] overflow-hidden rounded-[1.4rem] bg-[#d9bdc2] shadow-[0_18px_55px_rgba(72,38,49,0.16)] sm:rounded-[2rem]"
+                  >
+                    {item ? (
+                      <Image
+                        src={item.image}
+                        alt={item.service.name}
+                        fill
+                        unoptimized={isUploadImage(item.image)}
+                        sizes="(max-width: 1024px) 28vw, 16vw"
+                        className="object-cover"
+                      />
+                    ) : (
+                      <div className="absolute inset-0 bg-gradient-to-br from-[#eedde0] to-[#c7969f]" />
+                    )}
+                    <div className="absolute inset-0 bg-gradient-to-t from-[#29171e]/52 to-transparent" />
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="absolute -bottom-5 left-[8%] z-10 inline-flex items-center gap-2 rounded-full border border-white/55 bg-white/88 px-4 py-2.5 text-xs font-semibold text-[#68424b] shadow-xl backdrop-blur-lg dark:border-white/10 dark:bg-[#22151a]/88 dark:text-white/75 sm:left-[12%]">
+              <MapPin className="h-4 w-4 text-[#a15c68]" />
+              {translations.locationLabel}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="leistungen" className="scroll-mt-20 py-16 sm:py-20 lg:py-24">
+        <div className="mx-auto max-w-7xl px-5 sm:px-8 lg:px-10">
+          <div className="mb-8 flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+            <div>
+              <p className="flex items-center gap-3 text-xs font-semibold uppercase tracking-[0.24em] text-[#a15d68] dark:text-[#dda0ab]">
+                <span className="h-px w-9 bg-current opacity-55" />
+                {translations.catalogEyebrow}
+              </p>
+              <h2 className="mt-4 max-w-3xl font-playfair text-3xl font-medium leading-[1.08] tracking-[-0.02em] text-[#3a272e] dark:text-white sm:text-4xl lg:text-5xl">
+                {translations.allCategories}
+              </h2>
+            </div>
+            <p className="text-sm font-medium text-[#8b7278] dark:text-white/45">
+              {visibleServices} {translations.services}
+            </p>
+          </div>
+
+          <div className="z-30 mb-12 rounded-[1.6rem] border border-[#d6b6bb]/45 bg-white/82 p-3 shadow-[0_16px_55px_rgba(82,50,59,0.08)] backdrop-blur-xl dark:border-white/10 dark:bg-[#151014]/88 md:sticky md:top-20">
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
+              <label className="relative block shrink-0 lg:w-72">
+                <span className="sr-only">{translations.searchLabel}</span>
+                <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#9b6d75] dark:text-white/40" />
+                <input
+                  type="search"
+                  value={query}
+                  onChange={(event) => setQuery(event.target.value)}
+                  placeholder={translations.searchPlaceholder}
+                  className="h-12 w-full rounded-full border border-[#d4b4ba]/55 bg-[#fffaf8] pl-11 pr-10 text-sm text-[#4b3239] outline-none transition placeholder:text-[#a58d93] focus:border-[#a7616d] focus:ring-2 focus:ring-[#a7616d]/15 dark:border-white/10 dark:bg-white/5 dark:text-white dark:placeholder:text-white/35"
+                />
+                {query ? (
+                  <button
+                    type="button"
+                    onClick={() => setQuery("")}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-1 text-[#98737a] transition hover:bg-[#f3e3e6] hover:text-[#72414b] dark:hover:bg-white/10 dark:hover:text-white"
+                    aria-label={translations.resetFilters}
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                ) : null}
+              </label>
+
+              <div className="flex min-w-0 flex-1 gap-2 overflow-x-auto pb-1 scrollbar-hide lg:pb-0">
                 <button
+                  type="button"
                   onClick={() => setActiveCategory(null)}
-                  className={`flex-shrink-0 px-4 py-2 sm:px-5 sm:py-2.5 rounded-full text-xs sm:text-sm font-medium transition-all ${
+                  aria-pressed={activeCategory === null}
+                  className={`min-h-11 shrink-0 rounded-full px-4 text-xs font-semibold transition sm:px-5 sm:text-sm ${
                     activeCategory === null
-                      ? "bg-gradient-to-r from-rose-500 to-pink-500 text-white shadow-lg shadow-rose-300/40"
-                      : "bg-white dark:bg-white/8 text-zinc-600 dark:text-zinc-200 hover:bg-rose-50 dark:hover:bg-white/12 border border-rose-200 dark:border-white/10"
+                      ? "bg-[#8e4e5b] text-white shadow-[0_8px_22px_rgba(142,78,91,0.22)] dark:bg-[#cc7c8b] dark:text-[#271419]"
+                      : "border border-[#d7b8bd]/55 bg-white/65 text-[#73515a] hover:border-[#b77d87] hover:bg-[#fbf0f2] dark:border-white/10 dark:bg-white/5 dark:text-white/65 dark:hover:bg-white/10"
                   }`}
                 >
                   {translations.allCategories}
                 </button>
-
-                {categories.map((cat) => {
-                  const Icon = getCategoryIcon(cat.slug);
+                {categories.map((category) => {
+                  const Icon = getCategoryIcon(category.slug);
+                  const isActive = activeCategory === category.id;
                   return (
                     <button
-                      key={cat.id}
-                      onClick={() =>
-                        setActiveCategory(cat.id === activeCategory ? null : cat.id)
-                      }
-                      className={`flex-shrink-0 inline-flex items-center gap-1.5 sm:gap-2 px-4 py-2 sm:px-5 sm:py-2.5 rounded-full text-xs sm:text-sm font-medium transition-all ${
-                        activeCategory === cat.id
-                          ? "bg-gradient-to-r from-rose-500 to-pink-500 text-white shadow-lg shadow-rose-300/40"
-                          : "bg-white dark:bg-white/8 text-zinc-600 dark:text-zinc-200 hover:bg-rose-50 dark:hover:bg-white/12 border border-rose-200 dark:border-white/10"
+                      key={category.id}
+                      type="button"
+                      onClick={() => setActiveCategory(isActive ? null : category.id)}
+                      aria-pressed={isActive}
+                      className={`inline-flex min-h-11 shrink-0 items-center gap-2 rounded-full px-4 text-xs font-semibold transition sm:px-5 sm:text-sm ${
+                        isActive
+                          ? "bg-[#8e4e5b] text-white shadow-[0_8px_22px_rgba(142,78,91,0.22)] dark:bg-[#cc7c8b] dark:text-[#271419]"
+                          : "border border-[#d7b8bd]/55 bg-white/65 text-[#73515a] hover:border-[#b77d87] hover:bg-[#fbf0f2] dark:border-white/10 dark:bg-white/5 dark:text-white/65 dark:hover:bg-white/10"
                       }`}
                     >
-                      <Icon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                      <span className="whitespace-nowrap">{cat.name}</span>
+                      <Icon className="h-4 w-4" />
+                      {category.name}
+                      <span className="opacity-60">{category.children.length}</span>
                     </button>
                   );
                 })}
               </div>
             </div>
           </div>
-        </section>
 
-        <section className="py-8 sm:py-12 lg:py-16 relative">
-          <div className="container mx-auto px-4">
-            {filteredCategories.map((category) => (
-              <motion.div
-                key={category.id}
-                initial={false}
-                className="mb-12 sm:mb-16 last:mb-0"
-              >
-                <div className="flex items-center gap-3 sm:gap-4 mb-6 sm:mb-8">
-                  <div className="p-2.5 sm:p-3 rounded-xl sm:rounded-2xl bg-white dark:bg-white/7 border border-rose-200 dark:border-white/10 shadow-lg shadow-rose-200/20 backdrop-blur">
-                    {(() => {
-                      const Icon = getCategoryIcon(category.slug);
-                      return (
-                        <Icon className="w-5 h-5 sm:w-6 sm:h-6 text-rose-500 dark:text-rose-200" />
-                      );
-                    })()}
-                  </div>
+          {filteredCategories.length > 0 ? (
+            <div className="space-y-16 sm:space-y-20">
+              {filteredCategories.map((category) => {
+                const Icon = getCategoryIcon(category.slug);
+                return (
+                  <section key={category.id} aria-labelledby={`category-${category.id}`}>
+                    <div className="mb-7 grid gap-4 border-b border-[#d6b7bc]/40 pb-6 dark:border-white/10 md:grid-cols-[auto_minmax(0,1fr)_auto] md:items-center">
+                      <span className="flex h-12 w-12 items-center justify-center rounded-full border border-[#cfa7ae]/50 bg-[#f7e9eb] text-[#8c4c58] dark:border-white/10 dark:bg-white/7 dark:text-[#e2a6b0]">
+                        <Icon className="h-5 w-5" />
+                      </span>
+                      <div className="min-w-0">
+                        <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#a16973] dark:text-[#dda3ad]">
+                          {translations.catalogEyebrow}
+                        </p>
+                        <h3
+                          id={`category-${category.id}`}
+                          className="mt-1 break-words font-playfair text-3xl font-semibold tracking-[-0.02em] text-[#402a31] dark:text-white sm:text-4xl"
+                        >
+                          {category.name}
+                        </h3>
+                        {category.description ? (
+                          <p className="mt-2 max-w-2xl text-sm leading-6 text-[#7d686e] dark:text-white/52">
+                            {category.description}
+                          </p>
+                        ) : null}
+                      </div>
+                      <span className="w-fit rounded-full border border-[#d1afb5]/45 px-3 py-1.5 text-xs font-semibold text-[#86626a] dark:border-white/10 dark:text-white/48">
+                        {category.children.length} {translations.services}
+                      </span>
+                    </div>
 
-                  <div className="flex-1 min-w-0">
-                    <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-zinc-800 dark:text-zinc-100 truncate font-playfair">
-                      {category.name}
-                    </h2>
-                    <span className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-300">
-                      {category.children.length} {translations.services}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6">
-                  {category.children.map((service, index) => {
-                    const currentGlobalIndex = globalServiceIndex++;
-                    return (
-                      <ServiceCard
-                        key={service.id}
-                        service={service}
-                        categoryName={category.name}
-                        index={index}
-                        onOpenDetail={() => openServiceDetail(service, category.name)}
-                        onOpenGallery={(idx) =>
-                          openLightbox(service.gallery, idx, service.name)
-                        }
-                        onPrefetch={prefetchServiceModal}
-                        translations={translations}
-                        locale={locale}
-                        isPriority={currentGlobalIndex < 2}
-                      />
-                    );
-                  })}
-                </div>
-              </motion.div>
-            ))}
-
-            {categories.length === 0 && (
-              <div className="text-center py-16 sm:py-20">
-                <div className="w-16 h-16 sm:w-20 sm:h-20 mx-auto mb-4 rounded-full bg-white dark:bg-white/8 flex items-center justify-center border border-rose-200 dark:border-white/10 shadow-lg">
-                  <Flower2 className="w-8 h-8 sm:w-10 sm:h-10 text-rose-400 dark:text-rose-200" />
-                </div>
-                <p className="text-lg sm:text-xl text-zinc-500 dark:text-zinc-300">
-                  {translations.noServices}
-                </p>
-              </div>
-            )}
-          </div>
-        </section>
-
-        <section className="py-12 sm:py-20 relative overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-r from-rose-100/70 via-pink-50/70 to-amber-50/70 dark:from-black/25 dark:via-black/20 dark:to-black/25" />
-          <div className="relative container mx-auto px-4 text-center">
-            <motion.div
-              initial={{ opacity: 0, y: 18 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-            >
-              <div className="flex justify-center mb-4">
-                <div className="flex items-center gap-3">
-                  <Heart className="w-4 h-4 text-rose-400" fill="currentColor" />
-                  <div className="w-10 h-px bg-gradient-to-r from-rose-400 to-transparent" />
-                  <Heart
-                    className="w-5 h-5 text-rose-500 dark:text-rose-300"
-                    fill="currentColor"
-                  />
-                  <div className="w-10 h-px bg-gradient-to-l from-rose-400 to-transparent" />
-                  <Heart className="w-4 h-4 text-rose-400" fill="currentColor" />
-                </div>
-              </div>
-
-              <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-zinc-800 dark:text-zinc-100 mb-3 sm:mb-4 font-playfair">
-                {translations.trustText}
-              </h2>
-
-              <p className="text-zinc-600 dark:text-zinc-200 mb-6 sm:mb-8 max-w-md mx-auto font-cormorant font-medium">
-                {translations.welcomeText}
+                    <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                      {category.children.map((service, index) => {
+                        const currentGlobalIndex = globalServiceIndex++;
+                        return (
+                          <ServiceCard
+                            key={service.id}
+                            service={service}
+                            categoryName={category.name}
+                            index={index}
+                            locale={language}
+                            translations={translations}
+                            isPriority={currentGlobalIndex < 2}
+                            onOpenDetail={() =>
+                              setSelectedService({ service, categoryName: category.name })
+                            }
+                            onOpenGallery={(galleryIndex) =>
+                              openLightbox(service.gallery, galleryIndex, service.name)
+                            }
+                            onPrefetch={prefetchServiceModal}
+                          />
+                        );
+                      })}
+                    </div>
+                  </section>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="rounded-[2rem] border border-[#d8b8bd]/45 bg-white/75 px-6 py-16 text-center shadow-[0_18px_70px_rgba(78,45,55,0.07)] dark:border-white/10 dark:bg-white/[0.035]">
+              <Flower2 className="mx-auto h-12 w-12 text-[#aa707a] dark:text-[#dda0aa]" />
+              <p className="mt-5 font-playfair text-2xl font-semibold text-[#493039] dark:text-white">
+                {translations.noServices}
               </p>
-
-              <Link
-                href="/booking"
-                className="inline-flex items-center gap-2 px-8 py-4 sm:px-10 sm:py-5 bg-gradient-to-r from-rose-500 via-pink-500 to-rose-500 hover:from-rose-600 hover:via-pink-600 hover:to-rose-600 text-white rounded-full font-bold text-base sm:text-lg shadow-xl shadow-rose-300/50 transition-all active:scale-95 hover:scale-105"
+              <button
+                type="button"
+                onClick={resetFilters}
+                className="mt-6 inline-flex min-h-11 items-center justify-center rounded-full bg-[#8e4e5b] px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-[#743c48] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#8e4e5b] dark:bg-[#ca7988] dark:text-[#251419]"
               >
-                {translations.bookNow}
-                <ArrowRight className="w-5 h-5" />
-              </Link>
-            </motion.div>
+                {translations.resetFilters}
+              </button>
+            </div>
+          )}
+        </div>
+      </section>
+
+      <section className="relative overflow-hidden bg-[#4b3039] py-20 text-white dark:bg-[#28191f] sm:py-28">
+        <div aria-hidden="true" className="absolute -right-24 -top-24 h-80 w-80 rounded-full border border-white/10" />
+        <div aria-hidden="true" className="absolute -bottom-20 left-[8%] h-56 w-56 rounded-full border border-white/10" />
+        <div className="relative mx-auto grid max-w-7xl gap-10 px-5 sm:px-8 lg:grid-cols-[1fr_auto] lg:items-end lg:px-10">
+          <div className="max-w-3xl">
+            <p className="flex items-center gap-3 text-xs font-semibold uppercase tracking-[0.24em] text-[#f0c8cf]">
+              <span className="h-px w-9 bg-current opacity-60" />
+              {translations.finalEyebrow}
+            </p>
+            <h2 className="mt-5 font-playfair text-4xl font-medium leading-[1.06] tracking-[-0.025em] sm:text-5xl lg:text-6xl">
+              {translations.finalTitle}
+            </h2>
+            <p className="mt-6 max-w-2xl text-base leading-8 text-white/68">
+              {translations.finalText}
+            </p>
+            <p className="mt-5 inline-flex items-center gap-2 text-sm text-white/62">
+              <ShieldCheck className="h-4 w-4 text-[#efbcc5]" />
+              {translations.locationLabel}
+            </p>
           </div>
-        </section>
-      </div>
+          <Link
+            href={localeHref("/booking/services", language)}
+            className="inline-flex min-h-13 items-center justify-center gap-2 rounded-full bg-white px-7 py-3.5 text-sm font-bold text-[#5d3741] shadow-[0_18px_50px_rgba(25,10,15,0.2)] transition hover:-translate-y-0.5 hover:bg-[#f7e9eb] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+          >
+            <CalendarDays className="h-4 w-4" />
+            {translations.bookNow}
+          </Link>
+        </div>
+      </section>
     </main>
   );
 }
-
-
-
-
-//-------работало теперь добавляем переход на букинг с выбранной услугой
-// // src/app/services/ServicesClient.tsx
-// "use client";
-
-// import { useState, useCallback, useEffect, type CSSProperties } from "react";
-// import dynamic from "next/dynamic";
-// import Link from "next/link";
-// import Image from "next/image";
-// import { useSearchParams } from "next/navigation";
-// import { motion, AnimatePresence } from "framer-motion";
-// import {
-//   Sparkles,
-//   Clock,
-//   ChevronRight,
-//   Scissors,
-//   Palette,
-//   Heart,
-//   Star,
-//   ArrowRight,
-//   Images,
-//   Flower2,
-// } from "lucide-react";
-
-// type GalleryItem = { id: string; image: string; caption: string | null };
-
-// type ServiceChild = {
-//   id: string;
-//   slug: string;
-//   name: string;
-//   description: string | null;
-//   priceCents: number | null;
-//   durationMin: number;
-//   cover: string | null;
-//   gallery: GalleryItem[];
-// };
-
-// type Category = {
-//   id: string;
-//   slug: string;
-//   name: string;
-//   description: string | null;
-//   cover: string | null;
-//   gallery: GalleryItem[];
-//   children: ServiceChild[];
-// };
-
-// type Props = { categories: Category[]; locale: string };
-
-// type GalleryLightboxProps = {
-//   images: GalleryItem[];
-//   currentIndex: number;
-//   onClose: () => void;
-//   onPrev: () => void;
-//   onNext: () => void;
-//   serviceName: string;
-// };
-
-// type ServiceDetailModalProps = {
-//   service: ServiceChild;
-//   categoryName: string;
-//   onClose: () => void;
-//   onOpenGallery: (index: number) => void;
-//   translations: Record<string, string>;
-//   locale: string;
-// };
-
-// const GalleryLightbox = dynamic<GalleryLightboxProps>(
-//   () => import("./GalleryLightbox"),
-//   { ssr: false },
-// );
-
-// const ServiceDetailModal = dynamic<ServiceDetailModalProps>(
-//   () => import("./ServiceDetailModal"),
-//   { ssr: false },
-// );
-
-// const t: Record<string, Record<string, string>> = {
-//   de: {
-//     title: "Unsere Leistungen",
-//     subtitle: "Verwöhnen Sie sich mit Premium-Schönheitspflege",
-//     bookNow: "Termin buchen",
-//     from: "ab",
-//     minutes: "Min.",
-//     noServices: "Keine Dienstleistungen verfügbar",
-//     allCategories: "Alle",
-//     photos: "Fotos",
-//     close: "Schließen",
-//     ourWorks: "Unsere Arbeiten",
-//     services: "Leistungen",
-//     trustText: "Vertrauen Sie uns Ihre Schönheit an",
-//     welcomeText: "Willkommen in unserem Salon",
-//   },
-//   ru: {
-//     title: "Наши услуги",
-//     subtitle: "Побалуйте себя премиальным уходом за красотой",
-//     bookNow: "Записаться",
-//     from: "от",
-//     minutes: "мин.",
-//     noServices: "Услуги не найдены",
-//     allCategories: "Все",
-//     photos: "фото",
-//     close: "Закрыть",
-//     ourWorks: "Наши работы",
-//     services: "услуг",
-//     trustText: "Доверьте нам вашу красоту",
-//     welcomeText: "Добро пожаловать в наш салон",
-//   },
-//   en: {
-//     title: "Our Services",
-//     subtitle: "Indulge yourself with premium beauty care",
-//     bookNow: "Book Now",
-//     from: "from",
-//     minutes: "min.",
-//     noServices: "No services available",
-//     allCategories: "All",
-//     photos: "photos",
-//     close: "Close",
-//     ourWorks: "Our Works",
-//     services: "services",
-//     trustText: "Trust us with your beauty",
-//     welcomeText: "Welcome to our salon",
-//   },
-// };
-
-// const categoryIcons: Record<string, typeof Scissors> = {
-//   haircut: Scissors,
-//   haare: Scissors,
-//   hair: Scissors,
-//   frisur: Scissors,
-//   manicure: Palette,
-//   nails: Palette,
-//   nagel: Palette,
-//   makeup: Heart,
-//   kosmetik: Heart,
-//   brows: Star,
-//   lashes: Star,
-//   permanent: Star,
-//   default: Flower2,
-// };
-
-// function getCategoryIcon(slug: string) {
-//   const key = Object.keys(categoryIcons).find((k) =>
-//     slug.toLowerCase().includes(k),
-//   );
-//   return categoryIcons[key || "default"];
-// }
-
-// function formatPrice(cents: number | null, locale: string) {
-//   if (!cents) return null;
-//   return new Intl.NumberFormat(
-//     locale === "de" ? "de-DE" : locale === "ru" ? "ru-RU" : "en-US",
-//     {
-//       style: "currency",
-//       currency: "EUR",
-//       minimumFractionDigits: 0,
-//     },
-//   ).format(cents / 100);
-// }
-
-// const cardGradients = [
-//   "from-rose-300/50 via-pink-200/50 to-rose-100/50",
-//   "from-amber-200/50 via-orange-100/50 to-yellow-100/50",
-//   "from-violet-300/50 via-purple-200/50 to-pink-100/50",
-//   "from-sky-200/50 via-cyan-100/50 to-teal-100/50",
-//   "from-emerald-200/50 via-teal-100/50 to-cyan-100/50",
-// ];
-
-// // тип для inline-style с CSS-переменными (без any)
-// type CSSVarsStyle = CSSProperties & {
-//   [key: `--${string}`]: string | number;
-// };
-
-// // ====== КРАСИВЫЙ АНИМИРОВАННЫЙ ФОН ======
-// function PageBackground() {
-//   return (
-//     <div className="fixed inset-0 -z-10 overflow-hidden">
-//       <div className="absolute inset-0 bg-gradient-to-br from-rose-200/90 via-pink-100/80 to-amber-100/70 dark:from-[#080812] dark:via-[#0b0b16] dark:to-[#121227]" />
-//       <div className="absolute inset-0 bg-gradient-to-t from-white/40 via-transparent to-rose-100/30 dark:from-transparent dark:to-transparent" />
-
-//       <style>{`
-//         @keyframes ph-float {
-//           0%, 100% {
-//             transform: translate3d(0, 0, 0) rotate(0deg) scale(1);
-//             opacity: .35;
-//           }
-//           50% {
-//             transform: translate3d(var(--ph-x, 0px), var(--ph-y, -35px), 0) rotate(var(--ph-r, 0deg)) scale(1.15);
-//             opacity: .75;
-//           }
-//         }
-//         .ph-float {
-//           animation-name: ph-float;
-//           animation-iteration-count: infinite;
-//           animation-timing-function: ease-in-out;
-//           will-change: transform, opacity;
-//         }
-//       `}</style>
-
-//       <motion.div
-//         className="absolute -top-32 -left-32 h-[500px] w-[500px] sm:h-[700px] sm:w-[700px] rounded-full"
-//         style={{
-//           background:
-//             "radial-gradient(circle, rgba(251,182,206,0.7) 0%, rgba(251,207,232,0.4) 40%, transparent 70%)",
-//         }}
-//         animate={{ scale: [1, 1.15, 1], opacity: [0.7, 0.5, 0.7] }}
-//         transition={{ duration: 12, repeat: Infinity, ease: "easeInOut" }}
-//       />
-
-//       <motion.div
-//         className="absolute top-1/4 -right-32 h-[400px] w-[400px] sm:h-[600px] sm:w-[600px] rounded-full"
-//         style={{
-//           background:
-//             "radial-gradient(circle, rgba(254,202,155,0.6) 0%, rgba(254,215,170,0.3) 40%, transparent 70%)",
-//         }}
-//         animate={{ scale: [1, 1.12, 1], opacity: [0.6, 0.35, 0.6] }}
-//         transition={{
-//           duration: 14,
-//           repeat: Infinity,
-//           ease: "easeInOut",
-//           delay: 2,
-//         }}
-//       />
-
-//       <motion.div
-//         className="absolute -bottom-20 left-1/3 h-[450px] w-[450px] sm:h-[650px] sm:w-[650px] rounded-full"
-//         style={{
-//           background:
-//             "radial-gradient(circle, rgba(216,180,254,0.5) 0%, rgba(196,181,253,0.25) 40%, transparent 70%)",
-//         }}
-//         animate={{ scale: [1, 1.1, 1], opacity: [0.5, 0.3, 0.5] }}
-//         transition={{
-//           duration: 16,
-//           repeat: Infinity,
-//           ease: "easeInOut",
-//           delay: 4,
-//         }}
-//       />
-
-//       {[...Array(35)].map((_, i) => {
-//         const x = i % 2 === 0 ? 18 : -18;
-//         const r = i % 2 === 0 ? 20 : -20;
-//         const duration = 6 + (i % 5) * 1.5;
-//         const delay = i * 0.15;
-
-//         const style: CSSVarsStyle = {
-//           left: `${(i * 2.9) % 100}%`,
-//           top: `${(i * 3.1) % 95}%`,
-//           animationDuration: `${duration}s`,
-//           animationDelay: `${delay}s`,
-//           "--ph-x": `${x}px`,
-//           "--ph-y": `-35px`,
-//           "--ph-r": `${r}deg`,
-//         };
-
-//         return (
-//           <div key={i} className="absolute pointer-events-none ph-float" style={style}>
-//             {i % 4 === 0 ? (
-//               <Heart
-//                 className="h-4 w-4 sm:h-5 sm:w-5 text-rose-400/80 dark:text-rose-300/25 drop-shadow-sm"
-//                 fill="currentColor"
-//               />
-//             ) : i % 4 === 1 ? (
-//               <Heart
-//                 className="h-3 w-3 sm:h-4 sm:w-4 text-pink-400/70 dark:text-pink-300/20 drop-shadow-sm"
-//                 fill="currentColor"
-//               />
-//             ) : i % 4 === 2 ? (
-//               <Sparkles className="h-3 w-3 sm:h-4 sm:w-4 text-amber-400/70 dark:text-amber-300/20" />
-//             ) : (
-//               <Star
-//                 className="h-3 w-3 sm:h-4 sm:w-4 text-rose-300/60 dark:text-rose-300/15"
-//                 fill="currentColor"
-//               />
-//             )}
-//           </div>
-//         );
-//       })}
-
-//       <svg
-//         className="absolute bottom-0 left-0 w-full h-32 sm:h-48 opacity-20 dark:opacity-10"
-//         preserveAspectRatio="none"
-//         viewBox="0 0 1440 120"
-//       >
-//         <motion.path
-//           fill="url(#wave-fill)"
-//           animate={{
-//             d: [
-//               "M0,60 C360,100 720,20 1080,60 C1260,80 1380,40 1440,60 L1440,120 L0,120 Z",
-//               "M0,40 C360,80 720,40 1080,80 C1260,60 1380,80 1440,40 L1440,120 L0,120 Z",
-//               "M0,60 C360,100 720,20 1080,60 C1260,80 1380,40 1440,60 L1440,120 L0,120 Z",
-//             ],
-//           }}
-//           transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
-//         />
-//         <defs>
-//           <linearGradient id="wave-fill" x1="0%" y1="0%" x2="100%" y2="0%">
-//             <stop offset="0%" stopColor="#f9a8d4" />
-//             <stop offset="50%" stopColor="#fda4af" />
-//             <stop offset="100%" stopColor="#fdba74" />
-//           </linearGradient>
-//         </defs>
-//       </svg>
-
-//       <div
-//         className="absolute inset-0 opacity-[0.025] dark:opacity-[0.04]"
-//         style={{
-//           backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23000' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
-//         }}
-//       />
-//     </div>
-//   );
-// }
-
-// function ServiceCard({
-//   service,
-//   categoryName,
-//   index,
-//   onOpenDetail,
-//   onOpenGallery,
-//   onPrefetch,
-//   translations,
-//   locale,
-//   isPriority,
-// }: {
-//   service: ServiceChild;
-//   categoryName: string;
-//   index: number;
-//   onOpenDetail: () => void;
-//   onOpenGallery: (index: number) => void;
-//   onPrefetch: (imageUrl?: string | null) => void;
-//   translations: Record<string, string>;
-//   locale: string;
-//   isPriority?: boolean;
-// }) {
-//   const hasImage = service.cover || service.gallery.length > 0;
-//   const imageUrl = service.cover || service.gallery[0]?.image;
-
-//   return (
-//     <motion.div initial={false} className="group">
-//       <div
-//         onClick={() => {
-//           onPrefetch(imageUrl);
-//           onOpenDetail();
-//         }}
-//         onPointerEnter={() => onPrefetch(imageUrl)}
-//         onFocus={() => onPrefetch(imageUrl)}
-//         onTouchStart={() => onPrefetch(imageUrl)}
-//         className="relative overflow-hidden rounded-2xl sm:rounded-3xl cursor-pointer bg-white dark:bg-zinc-900/80 border-2 border-rose-200/70 dark:border-white/10 shadow-[0_8px_30px_-12px_rgba(244,63,94,0.25)] dark:shadow-[0_18px_55px_-28px_rgba(0,0,0,0.75)] hover:shadow-[0_20px_50px_-15px_rgba(244,63,94,0.35)] dark:hover:shadow-[0_25px_60px_-20px_rgba(0,0,0,0.85)] hover:border-rose-300 dark:hover:border-white/20 transition-all duration-500 sm:active:scale-[0.98] sm:hover:-translate-y-2"
-//       >
-//         <div className="absolute top-0 right-0 w-16 h-16 overflow-hidden z-10 pointer-events-none">
-//           <div className="absolute -top-8 -right-8 w-16 h-16 bg-gradient-to-br from-rose-400/20 to-pink-400/20 rotate-45" />
-//         </div>
-
-//         <div className="relative h-40 sm:h-48 lg:h-52 overflow-hidden bg-white dark:bg-zinc-950">
-//           {hasImage ? (
-//             <Image
-//               src={imageUrl!}
-//               alt={service.name}
-//               fill
-//               className="object-cover transition-transform duration-700 group-hover:scale-105"
-//               sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-//               quality={60}
-//               priority={isPriority}
-//               loading={isPriority ? "eager" : "lazy"}
-//               fetchPriority={isPriority ? "high" : "auto"}
-//               decoding="async"
-//             />
-//           ) : (
-//             <div
-//               className={`absolute inset-0 bg-gradient-to-br ${cardGradients[index % cardGradients.length]}`}
-//             >
-//               <div className="absolute inset-0 flex items-center justify-center">
-//                 <Flower2 className="w-16 h-16 text-rose-300/70 dark:text-rose-200/20" />
-//               </div>
-//             </div>
-//           )}
-
-//           <div className="absolute inset-0 bg-gradient-to-t from-white via-white/20 to-transparent dark:from-zinc-900 dark:via-zinc-900/40" />
-
-//           {service.priceCents && (
-//             <div className="absolute top-3 right-3">
-//               <span className="px-3 py-1.5 rounded-full bg-white dark:bg-white/10 backdrop-blur-sm text-rose-600 dark:text-rose-200 text-xs sm:text-sm font-bold shadow-lg border border-rose-200/50 dark:border-white/10">
-//                 {translations.from} {formatPrice(service.priceCents, locale)}
-//               </span>
-//             </div>
-//           )}
-
-//           {service.gallery.length > 0 && (
-//             <button
-//               onClick={(e) => {
-//                 e.stopPropagation();
-//                 onOpenGallery(0);
-//               }}
-//               className="absolute top-3 left-3 px-2.5 py-1.5 rounded-full bg-white dark:bg-white/10 backdrop-blur-sm flex items-center gap-1.5 text-rose-500 dark:text-rose-200 text-xs hover:bg-rose-50 dark:hover:bg-white/15 transition-colors shadow-lg border border-rose-200/50 dark:border-white/10"
-//             >
-//               <Images className="w-3.5 h-3.5" />
-//               {service.gallery.length}
-//             </button>
-//           )}
-
-//           <div className="absolute bottom-3 left-3 right-3 flex items-center gap-2">
-//             <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-rose-500/90 text-white text-[11px] font-medium backdrop-blur-sm shadow-md">
-//               <Heart className="h-2.5 w-2.5" fill="currentColor" />
-//               {categoryName}
-//             </span>
-//           </div>
-//         </div>
-
-//         <div className="relative overflow-hidden p-4 sm:p-5 bg-gradient-to-b from-transparent to-rose-50/30 dark:from-rose-950/80 dark:via-slate-950/90 dark:to-purple-950/80">
-//           <div className="absolute inset-0 pointer-events-none dark:hidden">
-//             {[...Array(5)].map((_, i) => (
-//               <motion.div
-//                 key={`light-heart-${i}`}
-//                 className="absolute"
-//                 style={{
-//                   left: `${(i * 20) % 100}%`,
-//                   top: `${(i * 22) % 100}%`,
-//                 }}
-//                 animate={{ y: [0, -12, 0], x: [0, i % 2 === 0 ? 6 : -6, 0] }}
-//                 transition={{
-//                   duration: 7 + (i % 3) * 2,
-//                   repeat: Infinity,
-//                   delay: i * 0.6,
-//                   ease: "easeInOut",
-//                 }}
-//               >
-//                 <Heart
-//                   className={`${i % 2 === 0 ? "w-3.5 h-3.5" : "w-3 h-3"} text-rose-400/60 drop-shadow-[0_1px_6px_rgba(244,63,94,0.25)]`}
-//                   fill="currentColor"
-//                 />
-//               </motion.div>
-//             ))}
-//           </div>
-
-//           <div className="absolute inset-0 pointer-events-none hidden dark:block">
-//             {[...Array(5)].map((_, i) => (
-//               <motion.div
-//                 key={`dark-heart-${i}`}
-//                 className="absolute"
-//                 style={{
-//                   left: `${(i * 20) % 100}%`,
-//                   top: `${(i * 22) % 100}%`,
-//                 }}
-//                 animate={{ y: [0, -10, 0], x: [0, i % 2 === 0 ? 5 : -5, 0] }}
-//                 transition={{
-//                   duration: 8 + (i % 3) * 2,
-//                   repeat: Infinity,
-//                   delay: i * 0.6,
-//                   ease: "easeInOut",
-//                 }}
-//               >
-//                 <Heart
-//                   className={`${i % 2 === 0 ? "w-2.5 h-2.5" : "w-2 h-2"} text-rose-400/25`}
-//                   fill="currentColor"
-//                 />
-//               </motion.div>
-//             ))}
-//           </div>
-
-//           <div className="relative z-10">
-//             <h3 className="text-base sm:text-lg font-playfair font-semibold tracking-tight text-zinc-800 dark:text-zinc-100 mb-1.5 line-clamp-2 group-hover:text-rose-600 dark:group-hover:text-rose-200 transition-colors">
-//               {service.name}
-//             </h3>
-
-            
-            
-//             {/* <h3 className="text-base sm:text-lg font-bold text-zinc-800 dark:text-zinc-100 mb-1.5 line-clamp-2 group-hover:text-rose-600 dark:group-hover:text-rose-200 transition-colors font-playfair">
-//               {service.name}
-//             </h3> */}
-
-//             {service.description && (
-//               <p className="font-cormorant text-sm sm:text-base leading-snug text-zinc-600 dark:text-zinc-300 line-clamp-2 mb-3">
-//                {service.description}
-//               </p>
-
-//               // <p className="text-zinc-600 dark:text-zinc-300 text-xs sm:text-sm line-clamp-2 mb-3">
-//               //   {service.description}
-//               // </p>
-//             )}
-
-//             <div className="flex items-center gap-3 mb-4">
-//               <span className="inline-flex items-center gap-1 text-zinc-500 dark:text-zinc-300 text-xs sm:text-sm">
-//                 <Clock className="w-3.5 h-3.5 text-rose-400 dark:text-rose-300" />
-//                 {service.durationMin} {translations.minutes}
-//               </span>
-//             </div>
-
-//             <Link
-//               href={`/booking?service=${service.id}`}
-//               onClick={(e) => e.stopPropagation()}
-//               className="flex items-center justify-center gap-2 w-full px-4 py-2.5 sm:py-3 rounded-xl bg-gradient-to-r from-rose-500 via-pink-500 to-rose-500 hover:from-rose-600 hover:via-pink-600 hover:to-rose-600 text-white font-semibold text-sm transition-all active:scale-[0.98] shadow-lg shadow-rose-300/40"
-//             >
-//               {translations.bookNow}
-//               <ChevronRight className="w-4 h-4" />
-//             </Link>
-//           </div>
-//         </div>
-//       </div>
-//     </motion.div>
-//   );
-// }
-
-// export default function ServicesClient({ categories, locale }: Props) {
-//   const [activeCategory, setActiveCategory] = useState<string | null>(null);
-//   const [selectedService, setSelectedService] = useState<{
-//     service: ServiceChild;
-//     categoryName: string;
-//   } | null>(null);
-
-//   const searchParams = useSearchParams();
-
-//   // Auto-open service modal from URL param (?service=ID)
-//   useEffect(() => {
-//     const serviceId = searchParams.get("service");
-//     if (!serviceId) return;
-
-//     for (const cat of categories) {
-//       const found = cat.children.find((s) => s.id === serviceId);
-//       if (found) {
-//         setSelectedService({ service: found, categoryName: cat.name });
-//         break;
-//       }
-//     }
-//   }, [searchParams, categories]);
-//   const [lightbox, setLightbox] = useState<{
-//     isOpen: boolean;
-//     images: GalleryItem[];
-//     currentIndex: number;
-//     serviceName: string;
-//   } | null>(null);
-
-//   const translations = t[locale] || t.de;
-
-//   // прогрев чанка модалки + прогрев картинки (без any)
-//   const prefetchServiceModal = useCallback((imageUrl?: string | null) => {
-//     void import("./ServiceDetailModal");
-//     void import("./GalleryLightbox");
-
-//     if (typeof window !== "undefined" && imageUrl) {
-//       const img = new window.Image();
-//       img.decoding = "async";
-//       img.src = imageUrl;
-//     }
-//   }, []);
-
-//   const openServiceDetail = useCallback(
-//     (service: ServiceChild, categoryName: string) =>
-//       setSelectedService({ service, categoryName }),
-//     [],
-//   );
-
-//   const openLightbox = useCallback(
-//     (images: GalleryItem[], index: number, serviceName: string) =>
-//       setLightbox({ isOpen: true, images, currentIndex: index, serviceName }),
-//     [],
-//   );
-
-//   const closeLightbox = useCallback(() => setLightbox(null), []);
-
-//   const goToPrev = useCallback(() => {
-//     if (!lightbox) return;
-//     setLightbox({
-//       ...lightbox,
-//       currentIndex:
-//         lightbox.currentIndex === 0
-//           ? lightbox.images.length - 1
-//           : lightbox.currentIndex - 1,
-//     });
-//   }, [lightbox]);
-
-//   const goToNext = useCallback(() => {
-//     if (!lightbox) return;
-//     setLightbox({
-//       ...lightbox,
-//       currentIndex: (lightbox.currentIndex + 1) % lightbox.images.length,
-//     });
-//   }, [lightbox]);
-
-//   const filteredCategories = categories.filter(
-//     (cat) => !activeCategory || cat.id === activeCategory,
-//   );
-
-//   let globalServiceIndex = 0;
-
-//   return (
-//     <main className="relative min-h-screen overflow-hidden isolate">
-//       <PageBackground />
-//       <div className="relative z-10">
-//         <AnimatePresence>
-//           {lightbox?.isOpen && (
-//             <GalleryLightbox
-//               images={lightbox.images}
-//               currentIndex={lightbox.currentIndex}
-//               onClose={closeLightbox}
-//               onPrev={goToPrev}
-//               onNext={goToNext}
-//               serviceName={lightbox.serviceName}
-//             />
-//           )}
-//         </AnimatePresence>
-
-//         <AnimatePresence>
-//           {selectedService && (
-//             <ServiceDetailModal
-//               service={selectedService.service}
-//               categoryName={selectedService.categoryName}
-//               onClose={() => setSelectedService(null)}
-//               onOpenGallery={(index) =>
-//                 openLightbox(
-//                   selectedService.service.gallery,
-//                   index,
-//                   selectedService.service.name,
-//                 )
-//               }
-//               translations={translations}
-//               locale={locale}
-//             />
-//           )}
-//         </AnimatePresence>
-
-//         <section className="relative pt-8 pb-6 sm:pt-16 sm:pb-12">
-//           <div className="container mx-auto px-4">
-//             <motion.div
-//               initial={{ opacity: 0, y: 16 }}
-//               animate={{ opacity: 1, y: 0 }}
-//               transition={{ duration: 0.6 }}
-//               className="text-center max-w-2xl mx-auto"
-//             >
-//               <motion.div
-//                 initial={{ opacity: 0, scale: 0.95 }}
-//                 animate={{ opacity: 1, scale: 1 }}
-//                 transition={{ delay: 0.1 }}
-//                 className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/90 dark:bg-white/10 backdrop-blur border border-rose-200 dark:border-white/10 shadow-lg shadow-rose-200/30 mb-4 sm:mb-6"
-//               >
-//                 <Sparkles className="w-4 h-4 text-rose-500 dark:text-rose-200" />
-//                <span className="text-sm font-medium tracking-wide text-rose-600 dark:text-rose-200">
-//                  Premium Beauty Salon
-//                 </span>
-
-               
-               
-//                 {/* <span className="text-sm font-medium text-rose-600 dark:text-rose-200">
-//                   Premium Beauty Salon
-//                 </span> */}
-//               </motion.div>
-
-//               <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-playfair font-semibold tracking-tight leading-[1.05] mb-4 sm:mb-5">
-//             <span className="bg-gradient-to-r from-rose-500 via-pink-500 to-rose-600 bg-clip-text text-transparent drop-shadow-sm">
-//               {translations.title}
-//               </span>
-//             </h1>
-
-
-//               {/* <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold mb-4 sm:mb-5 font-playfair">
-//                 <span className="bg-gradient-to-r from-rose-500 via-pink-500 to-rose-600 bg-clip-text text-transparent drop-shadow-sm">
-//                   {translations.title}
-//                 </span>
-//               </h1> */}
-
-//               <div className="flex justify-center items-center gap-3 mb-4">
-//                 <div className="w-12 h-px bg-gradient-to-r from-transparent via-rose-400 to-transparent" />
-//                 <Heart
-//                   className="w-5 h-5 text-rose-500 dark:text-rose-300"
-//                   fill="currentColor"
-//                 />
-//                 <div className="w-12 h-px bg-gradient-to-r from-transparent via-rose-400 to-transparent" />
-//               </div>
-
-//                 <p className="font-cormorant text-base sm:text-lg md:text-xl leading-relaxed text-zinc-700 dark:text-zinc-200/90 mb-6 sm:mb-8 px-4 font-medium">
-//                  {translations.subtitle}
-//                 </p>
-                
-//               {/* <p className="text-sm sm:text-base md:text-lg text-zinc-600 dark:text-zinc-200/90 mb-6 sm:mb-8 px-4 font-cormorant font-medium">
-//                 {translations.subtitle}
-//               </p> */}
-
-//               <Link
-//                 href="/booking"
-//                 className="inline-flex items-center gap-2 px-6 py-3 sm:px-8 sm:py-4 bg-gradient-to-r from-rose-500 via-pink-500 to-rose-500 hover:from-rose-600 hover:via-pink-600 hover:to-rose-600 rounded-full text-white font-semibold text-sm sm:text-base shadow-xl shadow-rose-300/50 transition-all active:scale-95 hover:scale-105"
-//               >
-//                 {translations.bookNow}
-//                 <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5" />
-//               </Link>
-//             </motion.div>
-//           </div>
-//         </section>
-
-//         <section className="sticky top-16 z-40">
-//           <div className="bg-white/80 dark:bg-zinc-950/70 backdrop-blur-xl border-y border-rose-200/50 dark:border-white/10">
-//             <div className="container mx-auto px-4">
-//               <div className="flex gap-2 py-3 sm:py-4 overflow-x-auto scrollbar-hide -mx-4 px-4">
-//                 <button
-//                   onClick={() => setActiveCategory(null)}
-//                   className={`flex-shrink-0 px-4 py-2 sm:px-5 sm:py-2.5 rounded-full text-xs sm:text-sm font-medium transition-all ${
-//                     activeCategory === null
-//                       ? "bg-gradient-to-r from-rose-500 to-pink-500 text-white shadow-lg shadow-rose-300/40"
-//                       : "bg-white dark:bg-white/8 text-zinc-600 dark:text-zinc-200 hover:bg-rose-50 dark:hover:bg-white/12 border border-rose-200 dark:border-white/10"
-//                   }`}
-//                 >
-//                   {translations.allCategories}
-//                 </button>
-
-//                 {categories.map((cat) => {
-//                   const Icon = getCategoryIcon(cat.slug);
-//                   return (
-//                     <button
-//                       key={cat.id}
-//                       onClick={() =>
-//                         setActiveCategory(cat.id === activeCategory ? null : cat.id)
-//                       }
-//                       className={`flex-shrink-0 inline-flex items-center gap-1.5 sm:gap-2 px-4 py-2 sm:px-5 sm:py-2.5 rounded-full text-xs sm:text-sm font-medium transition-all ${
-//                         activeCategory === cat.id
-//                           ? "bg-gradient-to-r from-rose-500 to-pink-500 text-white shadow-lg shadow-rose-300/40"
-//                           : "bg-white dark:bg-white/8 text-zinc-600 dark:text-zinc-200 hover:bg-rose-50 dark:hover:bg-white/12 border border-rose-200 dark:border-white/10"
-//                       }`}
-//                     >
-//                       <Icon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-//                       <span className="whitespace-nowrap">{cat.name}</span>
-//                     </button>
-//                   );
-//                 })}
-//               </div>
-//             </div>
-//           </div>
-//         </section>
-
-//         <section className="py-8 sm:py-12 lg:py-16 relative">
-//           <div className="container mx-auto px-4">
-//             {filteredCategories.map((category) => (
-//               <motion.div
-//                 key={category.id}
-//                 initial={false}
-//                 className="mb-12 sm:mb-16 last:mb-0"
-//               >
-//                 <div className="flex items-center gap-3 sm:gap-4 mb-6 sm:mb-8">
-//                   <div className="p-2.5 sm:p-3 rounded-xl sm:rounded-2xl bg-white dark:bg-white/7 border border-rose-200 dark:border-white/10 shadow-lg shadow-rose-200/20 backdrop-blur">
-//                     {(() => {
-//                       const Icon = getCategoryIcon(category.slug);
-//                       return (
-//                         <Icon className="w-5 h-5 sm:w-6 sm:h-6 text-rose-500 dark:text-rose-200" />
-//                       );
-//                     })()}
-//                   </div>
-
-//                   <div className="flex-1 min-w-0">
-//                     <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-zinc-800 dark:text-zinc-100 truncate font-playfair">
-//                       {category.name}
-//                     </h2>
-//                     <span className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-300">
-//                       {category.children.length} {translations.services}
-//                     </span>
-//                   </div>
-//                 </div>
-
-//                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6">
-//                   {category.children.map((service, index) => {
-//                     const currentGlobalIndex = globalServiceIndex++;
-//                     return (
-//                       <ServiceCard
-//                         key={service.id}
-//                         service={service}
-//                         categoryName={category.name}
-//                         index={index}
-//                         onOpenDetail={() => openServiceDetail(service, category.name)}
-//                         onOpenGallery={(idx) =>
-//                           openLightbox(service.gallery, idx, service.name)
-//                         }
-//                         onPrefetch={prefetchServiceModal}
-//                         translations={translations}
-//                         locale={locale}
-//                         isPriority={currentGlobalIndex < 2}
-//                       />
-//                     );
-//                   })}
-//                 </div>
-//               </motion.div>
-//             ))}
-
-//             {categories.length === 0 && (
-//               <div className="text-center py-16 sm:py-20">
-//                 <div className="w-16 h-16 sm:w-20 sm:h-20 mx-auto mb-4 rounded-full bg-white dark:bg-white/8 flex items-center justify-center border border-rose-200 dark:border-white/10 shadow-lg">
-//                   <Flower2 className="w-8 h-8 sm:w-10 sm:h-10 text-rose-400 dark:text-rose-200" />
-//                 </div>
-//                 <p className="text-lg sm:text-xl text-zinc-500 dark:text-zinc-300">
-//                   {translations.noServices}
-//                 </p>
-//               </div>
-//             )}
-//           </div>
-//         </section>
-
-//         <section className="py-12 sm:py-20 relative overflow-hidden">
-//           <div className="absolute inset-0 bg-gradient-to-r from-rose-100/70 via-pink-50/70 to-amber-50/70 dark:from-black/25 dark:via-black/20 dark:to-black/25" />
-//           <div className="relative container mx-auto px-4 text-center">
-//             <motion.div
-//               initial={{ opacity: 0, y: 18 }}
-//               whileInView={{ opacity: 1, y: 0 }}
-//               viewport={{ once: true }}
-//             >
-//               <div className="flex justify-center mb-4">
-//                 <div className="flex items-center gap-3">
-//                   <Heart className="w-4 h-4 text-rose-400" fill="currentColor" />
-//                   <div className="w-10 h-px bg-gradient-to-r from-rose-400 to-transparent" />
-//                   <Heart
-//                     className="w-5 h-5 text-rose-500 dark:text-rose-300"
-//                     fill="currentColor"
-//                   />
-//                   <div className="w-10 h-px bg-gradient-to-l from-rose-400 to-transparent" />
-//                   <Heart className="w-4 h-4 text-rose-400" fill="currentColor" />
-//                 </div>
-//               </div>
-
-//               <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-zinc-800 dark:text-zinc-100 mb-3 sm:mb-4 font-playfair">
-//                 {translations.trustText}
-//               </h2>
-
-//               <p className="text-zinc-600 dark:text-zinc-200 mb-6 sm:mb-8 max-w-md mx-auto font-cormorant font-medium">
-//                 {translations.welcomeText}
-//               </p>
-
-//               <Link
-//                 href="/booking"
-//                 className="inline-flex items-center gap-2 px-8 py-4 sm:px-10 sm:py-5 bg-gradient-to-r from-rose-500 via-pink-500 to-rose-500 hover:from-rose-600 hover:via-pink-600 hover:to-rose-600 text-white rounded-full font-bold text-base sm:text-lg shadow-xl shadow-rose-300/50 transition-all active:scale-95 hover:scale-105"
-//               >
-//                 {translations.bookNow}
-//                 <ArrowRight className="w-5 h-5" />
-//               </Link>
-//             </motion.div>
-//           </div>
-//         </section>
-//       </div>
-//     </main>
-//   );
-// }
-
-
-
-
-//-------добавляем переход на букинг
-// // src/app/services/ServicesClient.tsx
-// "use client";
-
-// import { useState, useCallback, type CSSProperties } from "react";
-// import dynamic from "next/dynamic";
-// import Link from "next/link";
-// import Image from "next/image";
-// import { motion, AnimatePresence } from "framer-motion";
-// import {
-//   Sparkles,
-//   Clock,
-//   ChevronRight,
-//   Scissors,
-//   Palette,
-//   Heart,
-//   Star,
-//   ArrowRight,
-//   Images,
-//   Flower2,
-// } from "lucide-react";
-
-// type GalleryItem = { id: string; image: string; caption: string | null };
-
-// type ServiceChild = {
-//   id: string;
-//   slug: string;
-//   name: string;
-//   description: string | null;
-//   priceCents: number | null;
-//   durationMin: number;
-//   cover: string | null;
-//   gallery: GalleryItem[];
-// };
-
-// type Category = {
-//   id: string;
-//   slug: string;
-//   name: string;
-//   description: string | null;
-//   cover: string | null;
-//   gallery: GalleryItem[];
-//   children: ServiceChild[];
-// };
-
-// type Props = { categories: Category[]; locale: string };
-
-// type GalleryLightboxProps = {
-//   images: GalleryItem[];
-//   currentIndex: number;
-//   onClose: () => void;
-//   onPrev: () => void;
-//   onNext: () => void;
-//   serviceName: string;
-// };
-
-// type ServiceDetailModalProps = {
-//   service: ServiceChild;
-//   categoryName: string;
-//   onClose: () => void;
-//   onOpenGallery: (index: number) => void;
-//   translations: Record<string, string>;
-//   locale: string;
-// };
-
-// const GalleryLightbox = dynamic<GalleryLightboxProps>(
-//   () => import("./GalleryLightbox"),
-//   { ssr: false },
-// );
-
-// const ServiceDetailModal = dynamic<ServiceDetailModalProps>(
-//   () => import("./ServiceDetailModal"),
-//   { ssr: false },
-// );
-
-// const t: Record<string, Record<string, string>> = {
-//   de: {
-//     title: "Unsere Leistungen",
-//     subtitle: "Verwöhnen Sie sich mit Premium-Schönheitspflege",
-//     bookNow: "Termin buchen",
-//     from: "ab",
-//     minutes: "Min.",
-//     noServices: "Keine Dienstleistungen verfügbar",
-//     allCategories: "Alle",
-//     photos: "Fotos",
-//     close: "Schließen",
-//     ourWorks: "Unsere Arbeiten",
-//     services: "Leistungen",
-//     trustText: "Vertrauen Sie uns Ihre Schönheit an",
-//     welcomeText: "Willkommen in unserem Salon",
-//   },
-//   ru: {
-//     title: "Наши услуги",
-//     subtitle: "Побалуйте себя премиальным уходом за красотой",
-//     bookNow: "Записаться",
-//     from: "от",
-//     minutes: "мин.",
-//     noServices: "Услуги не найдены",
-//     allCategories: "Все",
-//     photos: "фото",
-//     close: "Закрыть",
-//     ourWorks: "Наши работы",
-//     services: "услуг",
-//     trustText: "Доверьте нам вашу красоту",
-//     welcomeText: "Добро пожаловать в наш салон",
-//   },
-//   en: {
-//     title: "Our Services",
-//     subtitle: "Indulge yourself with premium beauty care",
-//     bookNow: "Book Now",
-//     from: "from",
-//     minutes: "min.",
-//     noServices: "No services available",
-//     allCategories: "All",
-//     photos: "photos",
-//     close: "Close",
-//     ourWorks: "Our Works",
-//     services: "services",
-//     trustText: "Trust us with your beauty",
-//     welcomeText: "Welcome to our salon",
-//   },
-// };
-
-// const categoryIcons: Record<string, typeof Scissors> = {
-//   haircut: Scissors,
-//   haare: Scissors,
-//   hair: Scissors,
-//   frisur: Scissors,
-//   manicure: Palette,
-//   nails: Palette,
-//   nagel: Palette,
-//   makeup: Heart,
-//   kosmetik: Heart,
-//   brows: Star,
-//   lashes: Star,
-//   permanent: Star,
-//   default: Flower2,
-// };
-
-// function getCategoryIcon(slug: string) {
-//   const key = Object.keys(categoryIcons).find((k) =>
-//     slug.toLowerCase().includes(k),
-//   );
-//   return categoryIcons[key || "default"];
-// }
-
-// function formatPrice(cents: number | null, locale: string) {
-//   if (!cents) return null;
-//   return new Intl.NumberFormat(
-//     locale === "de" ? "de-DE" : locale === "ru" ? "ru-RU" : "en-US",
-//     {
-//       style: "currency",
-//       currency: "EUR",
-//       minimumFractionDigits: 0,
-//     },
-//   ).format(cents / 100);
-// }
-
-// const cardGradients = [
-//   "from-rose-300/50 via-pink-200/50 to-rose-100/50",
-//   "from-amber-200/50 via-orange-100/50 to-yellow-100/50",
-//   "from-violet-300/50 via-purple-200/50 to-pink-100/50",
-//   "from-sky-200/50 via-cyan-100/50 to-teal-100/50",
-//   "from-emerald-200/50 via-teal-100/50 to-cyan-100/50",
-// ];
-
-// // тип для inline-style с CSS-переменными (без any)
-// type CSSVarsStyle = CSSProperties & {
-//   [key: `--${string}`]: string | number;
-// };
-
-// // ====== КРАСИВЫЙ АНИМИРОВАННЫЙ ФОН ======
-// function PageBackground() {
-//   return (
-//     <div className="fixed inset-0 -z-10 overflow-hidden">
-//       <div className="absolute inset-0 bg-gradient-to-br from-rose-200/90 via-pink-100/80 to-amber-100/70 dark:from-[#080812] dark:via-[#0b0b16] dark:to-[#121227]" />
-//       <div className="absolute inset-0 bg-gradient-to-t from-white/40 via-transparent to-rose-100/30 dark:from-transparent dark:to-transparent" />
-
-//       <style>{`
-//         @keyframes ph-float {
-//           0%, 100% {
-//             transform: translate3d(0, 0, 0) rotate(0deg) scale(1);
-//             opacity: .35;
-//           }
-//           50% {
-//             transform: translate3d(var(--ph-x, 0px), var(--ph-y, -35px), 0) rotate(var(--ph-r, 0deg)) scale(1.15);
-//             opacity: .75;
-//           }
-//         }
-//         .ph-float {
-//           animation-name: ph-float;
-//           animation-iteration-count: infinite;
-//           animation-timing-function: ease-in-out;
-//           will-change: transform, opacity;
-//         }
-//       `}</style>
-
-//       <motion.div
-//         className="absolute -top-32 -left-32 h-[500px] w-[500px] sm:h-[700px] sm:w-[700px] rounded-full"
-//         style={{
-//           background:
-//             "radial-gradient(circle, rgba(251,182,206,0.7) 0%, rgba(251,207,232,0.4) 40%, transparent 70%)",
-//         }}
-//         animate={{ scale: [1, 1.15, 1], opacity: [0.7, 0.5, 0.7] }}
-//         transition={{ duration: 12, repeat: Infinity, ease: "easeInOut" }}
-//       />
-
-//       <motion.div
-//         className="absolute top-1/4 -right-32 h-[400px] w-[400px] sm:h-[600px] sm:w-[600px] rounded-full"
-//         style={{
-//           background:
-//             "radial-gradient(circle, rgba(254,202,155,0.6) 0%, rgba(254,215,170,0.3) 40%, transparent 70%)",
-//         }}
-//         animate={{ scale: [1, 1.12, 1], opacity: [0.6, 0.35, 0.6] }}
-//         transition={{
-//           duration: 14,
-//           repeat: Infinity,
-//           ease: "easeInOut",
-//           delay: 2,
-//         }}
-//       />
-
-//       <motion.div
-//         className="absolute -bottom-20 left-1/3 h-[450px] w-[450px] sm:h-[650px] sm:w-[650px] rounded-full"
-//         style={{
-//           background:
-//             "radial-gradient(circle, rgba(216,180,254,0.5) 0%, rgba(196,181,253,0.25) 40%, transparent 70%)",
-//         }}
-//         animate={{ scale: [1, 1.1, 1], opacity: [0.5, 0.3, 0.5] }}
-//         transition={{
-//           duration: 16,
-//           repeat: Infinity,
-//           ease: "easeInOut",
-//           delay: 4,
-//         }}
-//       />
-
-//       {[...Array(35)].map((_, i) => {
-//         const x = i % 2 === 0 ? 18 : -18;
-//         const r = i % 2 === 0 ? 20 : -20;
-//         const duration = 6 + (i % 5) * 1.5;
-//         const delay = i * 0.15;
-
-//         const style: CSSVarsStyle = {
-//           left: `${(i * 2.9) % 100}%`,
-//           top: `${(i * 3.1) % 95}%`,
-//           animationDuration: `${duration}s`,
-//           animationDelay: `${delay}s`,
-//           "--ph-x": `${x}px`,
-//           "--ph-y": `-35px`,
-//           "--ph-r": `${r}deg`,
-//         };
-
-//         return (
-//           <div key={i} className="absolute pointer-events-none ph-float" style={style}>
-//             {i % 4 === 0 ? (
-//               <Heart
-//                 className="h-4 w-4 sm:h-5 sm:w-5 text-rose-400/80 dark:text-rose-300/25 drop-shadow-sm"
-//                 fill="currentColor"
-//               />
-//             ) : i % 4 === 1 ? (
-//               <Heart
-//                 className="h-3 w-3 sm:h-4 sm:w-4 text-pink-400/70 dark:text-pink-300/20 drop-shadow-sm"
-//                 fill="currentColor"
-//               />
-//             ) : i % 4 === 2 ? (
-//               <Sparkles className="h-3 w-3 sm:h-4 sm:w-4 text-amber-400/70 dark:text-amber-300/20" />
-//             ) : (
-//               <Star
-//                 className="h-3 w-3 sm:h-4 sm:w-4 text-rose-300/60 dark:text-rose-300/15"
-//                 fill="currentColor"
-//               />
-//             )}
-//           </div>
-//         );
-//       })}
-
-//       <svg
-//         className="absolute bottom-0 left-0 w-full h-32 sm:h-48 opacity-20 dark:opacity-10"
-//         preserveAspectRatio="none"
-//         viewBox="0 0 1440 120"
-//       >
-//         <motion.path
-//           fill="url(#wave-fill)"
-//           animate={{
-//             d: [
-//               "M0,60 C360,100 720,20 1080,60 C1260,80 1380,40 1440,60 L1440,120 L0,120 Z",
-//               "M0,40 C360,80 720,40 1080,80 C1260,60 1380,80 1440,40 L1440,120 L0,120 Z",
-//               "M0,60 C360,100 720,20 1080,60 C1260,80 1380,40 1440,60 L1440,120 L0,120 Z",
-//             ],
-//           }}
-//           transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
-//         />
-//         <defs>
-//           <linearGradient id="wave-fill" x1="0%" y1="0%" x2="100%" y2="0%">
-//             <stop offset="0%" stopColor="#f9a8d4" />
-//             <stop offset="50%" stopColor="#fda4af" />
-//             <stop offset="100%" stopColor="#fdba74" />
-//           </linearGradient>
-//         </defs>
-//       </svg>
-
-//       <div
-//         className="absolute inset-0 opacity-[0.025] dark:opacity-[0.04]"
-//         style={{
-//           backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23000' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
-//         }}
-//       />
-//     </div>
-//   );
-// }
-
-// function ServiceCard({
-//   service,
-//   categoryName,
-//   index,
-//   onOpenDetail,
-//   onOpenGallery,
-//   onPrefetch,
-//   translations,
-//   locale,
-//   isPriority,
-// }: {
-//   service: ServiceChild;
-//   categoryName: string;
-//   index: number;
-//   onOpenDetail: () => void;
-//   onOpenGallery: (index: number) => void;
-//   onPrefetch: (imageUrl?: string | null) => void;
-//   translations: Record<string, string>;
-//   locale: string;
-//   isPriority?: boolean;
-// }) {
-//   const hasImage = service.cover || service.gallery.length > 0;
-//   const imageUrl = service.cover || service.gallery[0]?.image;
-
-//   return (
-//     <motion.div initial={false} className="group">
-//       <div
-//         onClick={() => {
-//           onPrefetch(imageUrl);
-//           onOpenDetail();
-//         }}
-//         onPointerEnter={() => onPrefetch(imageUrl)}
-//         onFocus={() => onPrefetch(imageUrl)}
-//         onTouchStart={() => onPrefetch(imageUrl)}
-//         className="relative overflow-hidden rounded-2xl sm:rounded-3xl cursor-pointer bg-white dark:bg-zinc-900/80 border-2 border-rose-200/70 dark:border-white/10 shadow-[0_8px_30px_-12px_rgba(244,63,94,0.25)] dark:shadow-[0_18px_55px_-28px_rgba(0,0,0,0.75)] hover:shadow-[0_20px_50px_-15px_rgba(244,63,94,0.35)] dark:hover:shadow-[0_25px_60px_-20px_rgba(0,0,0,0.85)] hover:border-rose-300 dark:hover:border-white/20 transition-all duration-500 sm:active:scale-[0.98] sm:hover:-translate-y-2"
-//       >
-//         <div className="absolute top-0 right-0 w-16 h-16 overflow-hidden z-10 pointer-events-none">
-//           <div className="absolute -top-8 -right-8 w-16 h-16 bg-gradient-to-br from-rose-400/20 to-pink-400/20 rotate-45" />
-//         </div>
-
-//         <div className="relative h-40 sm:h-48 lg:h-52 overflow-hidden bg-white dark:bg-zinc-950">
-//           {hasImage ? (
-//             <Image
-//               src={imageUrl!}
-//               alt={service.name}
-//               fill
-//               className="object-cover transition-transform duration-700 group-hover:scale-105"
-//               sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-//               quality={60}
-//               priority={isPriority}
-//               loading={isPriority ? "eager" : "lazy"}
-//               fetchPriority={isPriority ? "high" : "auto"}
-//               decoding="async"
-//             />
-//           ) : (
-//             <div
-//               className={`absolute inset-0 bg-gradient-to-br ${cardGradients[index % cardGradients.length]}`}
-//             >
-//               <div className="absolute inset-0 flex items-center justify-center">
-//                 <Flower2 className="w-16 h-16 text-rose-300/70 dark:text-rose-200/20" />
-//               </div>
-//             </div>
-//           )}
-
-//           <div className="absolute inset-0 bg-gradient-to-t from-white via-white/20 to-transparent dark:from-zinc-900 dark:via-zinc-900/40" />
-
-//           {service.priceCents && (
-//             <div className="absolute top-3 right-3">
-//               <span className="px-3 py-1.5 rounded-full bg-white dark:bg-white/10 backdrop-blur-sm text-rose-600 dark:text-rose-200 text-xs sm:text-sm font-bold shadow-lg border border-rose-200/50 dark:border-white/10">
-//                 {translations.from} {formatPrice(service.priceCents, locale)}
-//               </span>
-//             </div>
-//           )}
-
-//           {service.gallery.length > 0 && (
-//             <button
-//               onClick={(e) => {
-//                 e.stopPropagation();
-//                 onOpenGallery(0);
-//               }}
-//               className="absolute top-3 left-3 px-2.5 py-1.5 rounded-full bg-white dark:bg-white/10 backdrop-blur-sm flex items-center gap-1.5 text-rose-500 dark:text-rose-200 text-xs hover:bg-rose-50 dark:hover:bg-white/15 transition-colors shadow-lg border border-rose-200/50 dark:border-white/10"
-//             >
-//               <Images className="w-3.5 h-3.5" />
-//               {service.gallery.length}
-//             </button>
-//           )}
-
-//           <div className="absolute bottom-3 left-3 right-3 flex items-center gap-2">
-//             <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-rose-500/90 text-white text-[11px] font-medium backdrop-blur-sm shadow-md">
-//               <Heart className="h-2.5 w-2.5" fill="currentColor" />
-//               {categoryName}
-//             </span>
-//           </div>
-//         </div>
-
-//         <div className="relative overflow-hidden p-4 sm:p-5 bg-gradient-to-b from-transparent to-rose-50/30 dark:from-rose-950/80 dark:via-slate-950/90 dark:to-purple-950/80">
-//           <div className="absolute inset-0 pointer-events-none dark:hidden">
-//             {[...Array(5)].map((_, i) => (
-//               <motion.div
-//                 key={`light-heart-${i}`}
-//                 className="absolute"
-//                 style={{
-//                   left: `${(i * 20) % 100}%`,
-//                   top: `${(i * 22) % 100}%`,
-//                 }}
-//                 animate={{ y: [0, -12, 0], x: [0, i % 2 === 0 ? 6 : -6, 0] }}
-//                 transition={{
-//                   duration: 7 + (i % 3) * 2,
-//                   repeat: Infinity,
-//                   delay: i * 0.6,
-//                   ease: "easeInOut",
-//                 }}
-//               >
-//                 <Heart
-//                   className={`${i % 2 === 0 ? "w-3.5 h-3.5" : "w-3 h-3"} text-rose-400/60 drop-shadow-[0_1px_6px_rgba(244,63,94,0.25)]`}
-//                   fill="currentColor"
-//                 />
-//               </motion.div>
-//             ))}
-//           </div>
-
-//           <div className="absolute inset-0 pointer-events-none hidden dark:block">
-//             {[...Array(5)].map((_, i) => (
-//               <motion.div
-//                 key={`dark-heart-${i}`}
-//                 className="absolute"
-//                 style={{
-//                   left: `${(i * 20) % 100}%`,
-//                   top: `${(i * 22) % 100}%`,
-//                 }}
-//                 animate={{ y: [0, -10, 0], x: [0, i % 2 === 0 ? 5 : -5, 0] }}
-//                 transition={{
-//                   duration: 8 + (i % 3) * 2,
-//                   repeat: Infinity,
-//                   delay: i * 0.6,
-//                   ease: "easeInOut",
-//                 }}
-//               >
-//                 <Heart
-//                   className={`${i % 2 === 0 ? "w-2.5 h-2.5" : "w-2 h-2"} text-rose-400/25`}
-//                   fill="currentColor"
-//                 />
-//               </motion.div>
-//             ))}
-//           </div>
-
-//           <div className="relative z-10">
-//             <h3 className="text-base sm:text-lg font-playfair font-semibold tracking-tight text-zinc-800 dark:text-zinc-100 mb-1.5 line-clamp-2 group-hover:text-rose-600 dark:group-hover:text-rose-200 transition-colors">
-//               {service.name}
-//             </h3>
-
-            
-            
-//             {/* <h3 className="text-base sm:text-lg font-bold text-zinc-800 dark:text-zinc-100 mb-1.5 line-clamp-2 group-hover:text-rose-600 dark:group-hover:text-rose-200 transition-colors font-playfair">
-//               {service.name}
-//             </h3> */}
-
-//             {service.description && (
-//               <p className="font-cormorant text-sm sm:text-base leading-snug text-zinc-600 dark:text-zinc-300 line-clamp-2 mb-3">
-//                {service.description}
-//               </p>
-
-//               // <p className="text-zinc-600 dark:text-zinc-300 text-xs sm:text-sm line-clamp-2 mb-3">
-//               //   {service.description}
-//               // </p>
-//             )}
-
-//             <div className="flex items-center gap-3 mb-4">
-//               <span className="inline-flex items-center gap-1 text-zinc-500 dark:text-zinc-300 text-xs sm:text-sm">
-//                 <Clock className="w-3.5 h-3.5 text-rose-400 dark:text-rose-300" />
-//                 {service.durationMin} {translations.minutes}
-//               </span>
-//             </div>
-
-//             <Link
-//               href={`/booking?service=${service.id}`}
-//               onClick={(e) => e.stopPropagation()}
-//               className="flex items-center justify-center gap-2 w-full px-4 py-2.5 sm:py-3 rounded-xl bg-gradient-to-r from-rose-500 via-pink-500 to-rose-500 hover:from-rose-600 hover:via-pink-600 hover:to-rose-600 text-white font-semibold text-sm transition-all active:scale-[0.98] shadow-lg shadow-rose-300/40"
-//             >
-//               {translations.bookNow}
-//               <ChevronRight className="w-4 h-4" />
-//             </Link>
-//           </div>
-//         </div>
-//       </div>
-//     </motion.div>
-//   );
-// }
-
-// export default function ServicesClient({ categories, locale }: Props) {
-//   const [activeCategory, setActiveCategory] = useState<string | null>(null);
-//   const [selectedService, setSelectedService] = useState<{
-//     service: ServiceChild;
-//     categoryName: string;
-//   } | null>(null);
-//   const [lightbox, setLightbox] = useState<{
-//     isOpen: boolean;
-//     images: GalleryItem[];
-//     currentIndex: number;
-//     serviceName: string;
-//   } | null>(null);
-
-//   const translations = t[locale] || t.de;
-
-//   // прогрев чанка модалки + прогрев картинки (без any)
-//   const prefetchServiceModal = useCallback((imageUrl?: string | null) => {
-//     void import("./ServiceDetailModal");
-//     void import("./GalleryLightbox");
-
-//     if (typeof window !== "undefined" && imageUrl) {
-//       const img = new window.Image();
-//       img.decoding = "async";
-//       img.src = imageUrl;
-//     }
-//   }, []);
-
-//   const openServiceDetail = useCallback(
-//     (service: ServiceChild, categoryName: string) =>
-//       setSelectedService({ service, categoryName }),
-//     [],
-//   );
-
-//   const openLightbox = useCallback(
-//     (images: GalleryItem[], index: number, serviceName: string) =>
-//       setLightbox({ isOpen: true, images, currentIndex: index, serviceName }),
-//     [],
-//   );
-
-//   const closeLightbox = useCallback(() => setLightbox(null), []);
-
-//   const goToPrev = useCallback(() => {
-//     if (!lightbox) return;
-//     setLightbox({
-//       ...lightbox,
-//       currentIndex:
-//         lightbox.currentIndex === 0
-//           ? lightbox.images.length - 1
-//           : lightbox.currentIndex - 1,
-//     });
-//   }, [lightbox]);
-
-//   const goToNext = useCallback(() => {
-//     if (!lightbox) return;
-//     setLightbox({
-//       ...lightbox,
-//       currentIndex: (lightbox.currentIndex + 1) % lightbox.images.length,
-//     });
-//   }, [lightbox]);
-
-//   const filteredCategories = categories.filter(
-//     (cat) => !activeCategory || cat.id === activeCategory,
-//   );
-
-//   let globalServiceIndex = 0;
-
-//   return (
-//     <main className="relative min-h-screen overflow-hidden isolate">
-//       <PageBackground />
-//       <div className="relative z-10">
-//         <AnimatePresence>
-//           {lightbox?.isOpen && (
-//             <GalleryLightbox
-//               images={lightbox.images}
-//               currentIndex={lightbox.currentIndex}
-//               onClose={closeLightbox}
-//               onPrev={goToPrev}
-//               onNext={goToNext}
-//               serviceName={lightbox.serviceName}
-//             />
-//           )}
-//         </AnimatePresence>
-
-//         <AnimatePresence>
-//           {selectedService && (
-//             <ServiceDetailModal
-//               service={selectedService.service}
-//               categoryName={selectedService.categoryName}
-//               onClose={() => setSelectedService(null)}
-//               onOpenGallery={(index) =>
-//                 openLightbox(
-//                   selectedService.service.gallery,
-//                   index,
-//                   selectedService.service.name,
-//                 )
-//               }
-//               translations={translations}
-//               locale={locale}
-//             />
-//           )}
-//         </AnimatePresence>
-
-//         <section className="relative pt-8 pb-6 sm:pt-16 sm:pb-12">
-//           <div className="container mx-auto px-4">
-//             <motion.div
-//               initial={{ opacity: 0, y: 16 }}
-//               animate={{ opacity: 1, y: 0 }}
-//               transition={{ duration: 0.6 }}
-//               className="text-center max-w-2xl mx-auto"
-//             >
-//               <motion.div
-//                 initial={{ opacity: 0, scale: 0.95 }}
-//                 animate={{ opacity: 1, scale: 1 }}
-//                 transition={{ delay: 0.1 }}
-//                 className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/90 dark:bg-white/10 backdrop-blur border border-rose-200 dark:border-white/10 shadow-lg shadow-rose-200/30 mb-4 sm:mb-6"
-//               >
-//                 <Sparkles className="w-4 h-4 text-rose-500 dark:text-rose-200" />
-//                <span className="text-sm font-medium tracking-wide text-rose-600 dark:text-rose-200">
-//                  Premium Beauty Salon
-//                 </span>
-
-               
-               
-//                 {/* <span className="text-sm font-medium text-rose-600 dark:text-rose-200">
-//                   Premium Beauty Salon
-//                 </span> */}
-//               </motion.div>
-
-//               <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-playfair font-semibold tracking-tight leading-[1.05] mb-4 sm:mb-5">
-//             <span className="bg-gradient-to-r from-rose-500 via-pink-500 to-rose-600 bg-clip-text text-transparent drop-shadow-sm">
-//               {translations.title}
-//               </span>
-//             </h1>
-
-
-//               {/* <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold mb-4 sm:mb-5 font-playfair">
-//                 <span className="bg-gradient-to-r from-rose-500 via-pink-500 to-rose-600 bg-clip-text text-transparent drop-shadow-sm">
-//                   {translations.title}
-//                 </span>
-//               </h1> */}
-
-//               <div className="flex justify-center items-center gap-3 mb-4">
-//                 <div className="w-12 h-px bg-gradient-to-r from-transparent via-rose-400 to-transparent" />
-//                 <Heart
-//                   className="w-5 h-5 text-rose-500 dark:text-rose-300"
-//                   fill="currentColor"
-//                 />
-//                 <div className="w-12 h-px bg-gradient-to-r from-transparent via-rose-400 to-transparent" />
-//               </div>
-
-//                 <p className="font-cormorant text-base sm:text-lg md:text-xl leading-relaxed text-zinc-700 dark:text-zinc-200/90 mb-6 sm:mb-8 px-4 font-medium">
-//                  {translations.subtitle}
-//                 </p>
-                
-//               {/* <p className="text-sm sm:text-base md:text-lg text-zinc-600 dark:text-zinc-200/90 mb-6 sm:mb-8 px-4 font-cormorant font-medium">
-//                 {translations.subtitle}
-//               </p> */}
-
-//               <Link
-//                 href="/booking"
-//                 className="inline-flex items-center gap-2 px-6 py-3 sm:px-8 sm:py-4 bg-gradient-to-r from-rose-500 via-pink-500 to-rose-500 hover:from-rose-600 hover:via-pink-600 hover:to-rose-600 rounded-full text-white font-semibold text-sm sm:text-base shadow-xl shadow-rose-300/50 transition-all active:scale-95 hover:scale-105"
-//               >
-//                 {translations.bookNow}
-//                 <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5" />
-//               </Link>
-//             </motion.div>
-//           </div>
-//         </section>
-
-//         <section className="sticky top-16 z-40">
-//           <div className="bg-white/80 dark:bg-zinc-950/70 backdrop-blur-xl border-y border-rose-200/50 dark:border-white/10">
-//             <div className="container mx-auto px-4">
-//               <div className="flex gap-2 py-3 sm:py-4 overflow-x-auto scrollbar-hide -mx-4 px-4">
-//                 <button
-//                   onClick={() => setActiveCategory(null)}
-//                   className={`flex-shrink-0 px-4 py-2 sm:px-5 sm:py-2.5 rounded-full text-xs sm:text-sm font-medium transition-all ${
-//                     activeCategory === null
-//                       ? "bg-gradient-to-r from-rose-500 to-pink-500 text-white shadow-lg shadow-rose-300/40"
-//                       : "bg-white dark:bg-white/8 text-zinc-600 dark:text-zinc-200 hover:bg-rose-50 dark:hover:bg-white/12 border border-rose-200 dark:border-white/10"
-//                   }`}
-//                 >
-//                   {translations.allCategories}
-//                 </button>
-
-//                 {categories.map((cat) => {
-//                   const Icon = getCategoryIcon(cat.slug);
-//                   return (
-//                     <button
-//                       key={cat.id}
-//                       onClick={() =>
-//                         setActiveCategory(cat.id === activeCategory ? null : cat.id)
-//                       }
-//                       className={`flex-shrink-0 inline-flex items-center gap-1.5 sm:gap-2 px-4 py-2 sm:px-5 sm:py-2.5 rounded-full text-xs sm:text-sm font-medium transition-all ${
-//                         activeCategory === cat.id
-//                           ? "bg-gradient-to-r from-rose-500 to-pink-500 text-white shadow-lg shadow-rose-300/40"
-//                           : "bg-white dark:bg-white/8 text-zinc-600 dark:text-zinc-200 hover:bg-rose-50 dark:hover:bg-white/12 border border-rose-200 dark:border-white/10"
-//                       }`}
-//                     >
-//                       <Icon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-//                       <span className="whitespace-nowrap">{cat.name}</span>
-//                     </button>
-//                   );
-//                 })}
-//               </div>
-//             </div>
-//           </div>
-//         </section>
-
-//         <section className="py-8 sm:py-12 lg:py-16 relative">
-//           <div className="container mx-auto px-4">
-//             {filteredCategories.map((category) => (
-//               <motion.div
-//                 key={category.id}
-//                 initial={false}
-//                 className="mb-12 sm:mb-16 last:mb-0"
-//               >
-//                 <div className="flex items-center gap-3 sm:gap-4 mb-6 sm:mb-8">
-//                   <div className="p-2.5 sm:p-3 rounded-xl sm:rounded-2xl bg-white dark:bg-white/7 border border-rose-200 dark:border-white/10 shadow-lg shadow-rose-200/20 backdrop-blur">
-//                     {(() => {
-//                       const Icon = getCategoryIcon(category.slug);
-//                       return (
-//                         <Icon className="w-5 h-5 sm:w-6 sm:h-6 text-rose-500 dark:text-rose-200" />
-//                       );
-//                     })()}
-//                   </div>
-
-//                   <div className="flex-1 min-w-0">
-//                     <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-zinc-800 dark:text-zinc-100 truncate font-playfair">
-//                       {category.name}
-//                     </h2>
-//                     <span className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-300">
-//                       {category.children.length} {translations.services}
-//                     </span>
-//                   </div>
-//                 </div>
-
-//                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6">
-//                   {category.children.map((service, index) => {
-//                     const currentGlobalIndex = globalServiceIndex++;
-//                     return (
-//                       <ServiceCard
-//                         key={service.id}
-//                         service={service}
-//                         categoryName={category.name}
-//                         index={index}
-//                         onOpenDetail={() => openServiceDetail(service, category.name)}
-//                         onOpenGallery={(idx) =>
-//                           openLightbox(service.gallery, idx, service.name)
-//                         }
-//                         onPrefetch={prefetchServiceModal}
-//                         translations={translations}
-//                         locale={locale}
-//                         isPriority={currentGlobalIndex < 2}
-//                       />
-//                     );
-//                   })}
-//                 </div>
-//               </motion.div>
-//             ))}
-
-//             {categories.length === 0 && (
-//               <div className="text-center py-16 sm:py-20">
-//                 <div className="w-16 h-16 sm:w-20 sm:h-20 mx-auto mb-4 rounded-full bg-white dark:bg-white/8 flex items-center justify-center border border-rose-200 dark:border-white/10 shadow-lg">
-//                   <Flower2 className="w-8 h-8 sm:w-10 sm:h-10 text-rose-400 dark:text-rose-200" />
-//                 </div>
-//                 <p className="text-lg sm:text-xl text-zinc-500 dark:text-zinc-300">
-//                   {translations.noServices}
-//                 </p>
-//               </div>
-//             )}
-//           </div>
-//         </section>
-
-//         <section className="py-12 sm:py-20 relative overflow-hidden">
-//           <div className="absolute inset-0 bg-gradient-to-r from-rose-100/70 via-pink-50/70 to-amber-50/70 dark:from-black/25 dark:via-black/20 dark:to-black/25" />
-//           <div className="relative container mx-auto px-4 text-center">
-//             <motion.div
-//               initial={{ opacity: 0, y: 18 }}
-//               whileInView={{ opacity: 1, y: 0 }}
-//               viewport={{ once: true }}
-//             >
-//               <div className="flex justify-center mb-4">
-//                 <div className="flex items-center gap-3">
-//                   <Heart className="w-4 h-4 text-rose-400" fill="currentColor" />
-//                   <div className="w-10 h-px bg-gradient-to-r from-rose-400 to-transparent" />
-//                   <Heart
-//                     className="w-5 h-5 text-rose-500 dark:text-rose-300"
-//                     fill="currentColor"
-//                   />
-//                   <div className="w-10 h-px bg-gradient-to-l from-rose-400 to-transparent" />
-//                   <Heart className="w-4 h-4 text-rose-400" fill="currentColor" />
-//                 </div>
-//               </div>
-
-//               <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-zinc-800 dark:text-zinc-100 mb-3 sm:mb-4 font-playfair">
-//                 {translations.trustText}
-//               </h2>
-
-//               <p className="text-zinc-600 dark:text-zinc-200 mb-6 sm:mb-8 max-w-md mx-auto font-cormorant font-medium">
-//                 {translations.welcomeText}
-//               </p>
-
-//               <Link
-//                 href="/booking"
-//                 className="inline-flex items-center gap-2 px-8 py-4 sm:px-10 sm:py-5 bg-gradient-to-r from-rose-500 via-pink-500 to-rose-500 hover:from-rose-600 hover:via-pink-600 hover:to-rose-600 text-white rounded-full font-bold text-base sm:text-lg shadow-xl shadow-rose-300/50 transition-all active:scale-95 hover:scale-105"
-//               >
-//                 {translations.bookNow}
-//                 <ArrowRight className="w-5 h-5" />
-//               </Link>
-//             </motion.div>
-//           </div>
-//         </section>
-//       </div>
-//     </main>
-//   );
-// }
-
-
-
-
-
-//----------уже хорошая скорость, улучшаем загрузку для модального окна с полным описанием услуги и галереей изображений----------
-// // src/app/services/ServicesClient.tsx
-// "use client";
-
-// import { useState, useCallback, type CSSProperties } from "react";
-// import dynamic from "next/dynamic";
-// import Link from "next/link";
-// import Image from "next/image";
-// import { motion, AnimatePresence } from "framer-motion";
-// import {
-//   Sparkles,
-//   Clock,
-//   ChevronRight,
-//   Scissors,
-//   Palette,
-//   Heart,
-//   Star,
-//   ArrowRight,
-//   Images,
-//   Flower2,
-// } from "lucide-react";
-
-// type GalleryItem = { id: string; image: string; caption: string | null };
-
-// type ServiceChild = {
-//   id: string;
-//   slug: string;
-//   name: string;
-//   description: string | null;
-//   priceCents: number | null;
-//   durationMin: number;
-//   cover: string | null;
-//   gallery: GalleryItem[];
-// };
-
-// type Category = {
-//   id: string;
-//   slug: string;
-//   name: string;
-//   description: string | null;
-//   cover: string | null;
-//   gallery: GalleryItem[];
-//   children: ServiceChild[];
-// };
-
-// type Props = { categories: Category[]; locale: string };
-
-// type GalleryLightboxProps = {
-//   images: GalleryItem[];
-//   currentIndex: number;
-//   onClose: () => void;
-//   onPrev: () => void;
-//   onNext: () => void;
-//   serviceName: string;
-// };
-
-// type ServiceDetailModalProps = {
-//   service: ServiceChild;
-//   categoryName: string;
-//   onClose: () => void;
-//   onOpenGallery: (index: number) => void;
-//   translations: Record<string, string>;
-//   locale: string;
-// };
-
-// const GalleryLightbox = dynamic<GalleryLightboxProps>(
-//   () => import("./GalleryLightbox"),
-//   { ssr: false },
-// );
-
-// const ServiceDetailModal = dynamic<ServiceDetailModalProps>(
-//   () => import("./ServiceDetailModal"),
-//   { ssr: false },
-// );
-
-// const t: Record<string, Record<string, string>> = {
-//   de: {
-//     title: "Unsere Leistungen",
-//     subtitle: "Verwöhnen Sie sich mit Premium-Schönheitspflege",
-//     bookNow: "Termin buchen",
-//     from: "ab",
-//     minutes: "Min.",
-//     noServices: "Keine Dienstleistungen verfügbar",
-//     allCategories: "Alle",
-//     photos: "Fotos",
-//     close: "Schließen",
-//     ourWorks: "Unsere Arbeiten",
-//     services: "Leistungen",
-//     trustText: "Vertrauen Sie uns Ihre Schönheit an",
-//     welcomeText: "Willkommen in unserem Salon",
-//   },
-//   ru: {
-//     title: "Наши услуги",
-//     subtitle: "Побалуйте себя премиальным уходом за красотой",
-//     bookNow: "Записаться",
-//     from: "от",
-//     minutes: "мин.",
-//     noServices: "Услуги не найдены",
-//     allCategories: "Все",
-//     photos: "фото",
-//     close: "Закрыть",
-//     ourWorks: "Наши работы",
-//     services: "услуг",
-//     trustText: "Доверьте нам вашу красоту",
-//     welcomeText: "Добро пожаловать в наш салон",
-//   },
-//   en: {
-//     title: "Our Services",
-//     subtitle: "Indulge yourself with premium beauty care",
-//     bookNow: "Book Now",
-//     from: "from",
-//     minutes: "min.",
-//     noServices: "No services available",
-//     allCategories: "All",
-//     photos: "photos",
-//     close: "Close",
-//     ourWorks: "Our Works",
-//     services: "services",
-//     trustText: "Trust us with your beauty",
-//     welcomeText: "Welcome to our salon",
-//   },
-// };
-
-// const categoryIcons: Record<string, typeof Scissors> = {
-//   haircut: Scissors,
-//   haare: Scissors,
-//   hair: Scissors,
-//   frisur: Scissors,
-//   manicure: Palette,
-//   nails: Palette,
-//   nagel: Palette,
-//   makeup: Heart,
-//   kosmetik: Heart,
-//   brows: Star,
-//   lashes: Star,
-//   permanent: Star,
-//   default: Flower2,
-// };
-
-// function getCategoryIcon(slug: string) {
-//   const key = Object.keys(categoryIcons).find((k) =>
-//     slug.toLowerCase().includes(k),
-//   );
-//   return categoryIcons[key || "default"];
-// }
-
-// function formatPrice(cents: number | null, locale: string) {
-//   if (!cents) return null;
-//   return new Intl.NumberFormat(
-//     locale === "de" ? "de-DE" : locale === "ru" ? "ru-RU" : "en-US",
-//     {
-//       style: "currency",
-//       currency: "EUR",
-//       minimumFractionDigits: 0,
-//     },
-//   ).format(cents / 100);
-// }
-
-// const cardGradients = [
-//   "from-rose-300/50 via-pink-200/50 to-rose-100/50",
-//   "from-amber-200/50 via-orange-100/50 to-yellow-100/50",
-//   "from-violet-300/50 via-purple-200/50 to-pink-100/50",
-//   "from-sky-200/50 via-cyan-100/50 to-teal-100/50",
-//   "from-emerald-200/50 via-teal-100/50 to-cyan-100/50",
-// ];
-
-// // Тип для inline-style с CSS-переменными (без any)
-// type CSSVarsStyle = CSSProperties & {
-//   [key: `--${string}`]: string | number;
-// };
-
-// // ====== КРАСИВЫЙ АНИМИРОВАННЫЙ ФОН ======
-// function PageBackground() {
-//   return (
-//     <div className="fixed inset-0 -z-10 overflow-hidden">
-//       <style>{`
-//         @keyframes ph-float {
-//           0%, 100% {
-//             transform: translate3d(0, 0, 0) rotate(0deg) scale(1);
-//             opacity: .35;
-//           }
-//           50% {
-//             transform: translate3d(var(--ph-x, 0px), -35px, 0) rotate(var(--ph-r, 0deg)) scale(1.15);
-//             opacity: .75;
-//           }
-//         }
-//         .ph-float {
-//           animation-name: ph-float;
-//           animation-iteration-count: infinite;
-//           animation-timing-function: ease-in-out;
-//           will-change: transform, opacity;
-//         }
-//       `}</style>
-
-//       <div className="absolute inset-0 bg-gradient-to-br from-rose-200/90 via-pink-100/80 to-amber-100/70 dark:from-[#080812] dark:via-[#0b0b16] dark:to-[#121227]" />
-//       <div className="absolute inset-0 bg-gradient-to-t from-white/40 via-transparent to-rose-100/30 dark:from-transparent dark:to-transparent" />
-
-//       <motion.div
-//         className="absolute -top-32 -left-32 h-[500px] w-[500px] sm:h-[700px] sm:w-[700px] rounded-full"
-//         style={{
-//           background:
-//             "radial-gradient(circle, rgba(251,182,206,0.7) 0%, rgba(251,207,232,0.4) 40%, transparent 70%)",
-//         }}
-//         animate={{ scale: [1, 1.15, 1], opacity: [0.7, 0.5, 0.7] }}
-//         transition={{ duration: 12, repeat: Infinity, ease: "easeInOut" }}
-//       />
-
-//       <motion.div
-//         className="absolute top-1/4 -right-32 h-[400px] w-[400px] sm:h-[600px] sm:w-[600px] rounded-full"
-//         style={{
-//           background:
-//             "radial-gradient(circle, rgba(254,202,155,0.6) 0%, rgba(254,215,170,0.3) 40%, transparent 70%)",
-//         }}
-//         animate={{ scale: [1, 1.12, 1], opacity: [0.6, 0.35, 0.6] }}
-//         transition={{
-//           duration: 14,
-//           repeat: Infinity,
-//           ease: "easeInOut",
-//           delay: 2,
-//         }}
-//       />
-
-//       <motion.div
-//         className="absolute -bottom-20 left-1/3 h-[450px] w-[450px] sm:h-[650px] sm:w-[650px] rounded-full"
-//         style={{
-//           background:
-//             "radial-gradient(circle, rgba(216,180,254,0.5) 0%, rgba(196,181,253,0.25) 40%, transparent 70%)",
-//         }}
-//         animate={{ scale: [1, 1.1, 1], opacity: [0.5, 0.3, 0.5] }}
-//         transition={{
-//           duration: 16,
-//           repeat: Infinity,
-//           ease: "easeInOut",
-//           delay: 4,
-//         }}
-//       />
-
-//       {[...Array(35)].map((_, i) => {
-//         const x = i % 2 === 0 ? 18 : -18;
-//         const r = i % 2 === 0 ? 20 : -20;
-//         const duration = 6 + (i % 5) * 1.5;
-//         const delay = i * 0.15;
-
-//         const style: CSSVarsStyle = {
-//           left: `${(i * 2.9) % 100}%`,
-//           top: `${(i * 3.1) % 95}%`,
-//           animationDuration: `${duration}s`,
-//           animationDelay: `${delay}s`,
-//           "--ph-x": `${x}px`,
-//           "--ph-r": `${r}deg`,
-//         };
-
-//         return (
-//           <div
-//             key={i}
-//             className="absolute pointer-events-none ph-float"
-//             style={style}
-//           >
-//             {i % 4 === 0 ? (
-//               <Heart
-//                 className="h-4 w-4 sm:h-5 sm:w-5 text-rose-400/80 dark:text-rose-300/25 drop-shadow-sm"
-//                 fill="currentColor"
-//               />
-//             ) : i % 4 === 1 ? (
-//               <Heart
-//                 className="h-3 w-3 sm:h-4 sm:w-4 text-pink-400/70 dark:text-pink-300/20 drop-shadow-sm"
-//                 fill="currentColor"
-//               />
-//             ) : i % 4 === 2 ? (
-//               <Sparkles className="h-3 w-3 sm:h-4 sm:w-4 text-amber-400/70 dark:text-amber-300/20" />
-//             ) : (
-//               <Star
-//                 className="h-3 w-3 sm:h-4 sm:w-4 text-rose-300/60 dark:text-rose-300/15"
-//                 fill="currentColor"
-//               />
-//             )}
-//           </div>
-//         );
-//       })}
-
-//       <svg
-//         className="absolute bottom-0 left-0 w-full h-32 sm:h-48 opacity-20 dark:opacity-10"
-//         preserveAspectRatio="none"
-//         viewBox="0 0 1440 120"
-//       >
-//         <motion.path
-//           fill="url(#wave-fill)"
-//           animate={{
-//             d: [
-//               "M0,60 C360,100 720,20 1080,60 C1260,80 1380,40 1440,60 L1440,120 L0,120 Z",
-//               "M0,40 C360,80 720,40 1080,80 C1260,60 1380,80 1440,40 L1440,120 L0,120 Z",
-//               "M0,60 C360,100 720,20 1080,60 C1260,80 1380,40 1440,60 L1440,120 L0,120 Z",
-//             ],
-//           }}
-//           transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
-//         />
-//         <defs>
-//           <linearGradient id="wave-fill" x1="0%" y1="0%" x2="100%" y2="0%">
-//             <stop offset="0%" stopColor="#f9a8d4" />
-//             <stop offset="50%" stopColor="#fda4af" />
-//             <stop offset="100%" stopColor="#fdba74" />
-//           </linearGradient>
-//         </defs>
-//       </svg>
-
-//       <div
-//         className="absolute inset-0 opacity-[0.025] dark:opacity-[0.04]"
-//         style={{
-//           backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23000' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
-//         }}
-//       />
-//     </div>
-//   );
-// }
-
-// function ServiceCard({
-//   service,
-//   categoryName,
-//   index,
-//   onOpenDetail,
-//   onOpenGallery,
-//   translations,
-//   locale,
-//   isPriority,
-// }: {
-//   service: ServiceChild;
-//   categoryName: string;
-//   index: number;
-//   onOpenDetail: () => void;
-//   onOpenGallery: (index: number) => void;
-//   translations: Record<string, string>;
-//   locale: string;
-//   isPriority?: boolean;
-// }) {
-//   const hasImage = service.cover || service.gallery.length > 0;
-//   const imageUrl = service.cover || service.gallery[0]?.image;
-
-//   return (
-//     <motion.div initial={false} className="group">
-//       <div
-//         onClick={onOpenDetail}
-//         className="relative overflow-hidden rounded-2xl sm:rounded-3xl cursor-pointer bg-white dark:bg-zinc-900/80 border-2 border-rose-200/70 dark:border-white/10 shadow-[0_8px_30px_-12px_rgba(244,63,94,0.25)] dark:shadow-[0_18px_55px_-28px_rgba(0,0,0,0.75)] hover:shadow-[0_20px_50px_-15px_rgba(244,63,94,0.35)] dark:hover:shadow-[0_25px_60px_-20px_rgba(0,0,0,0.85)] hover:border-rose-300 dark:hover:border-white/20 transition-all duration-500 sm:active:scale-[0.98] sm:hover:-translate-y-2"
-//       >
-//         <div className="absolute top-0 right-0 w-16 h-16 overflow-hidden z-10 pointer-events-none">
-//           <div className="absolute -top-8 -right-8 w-16 h-16 bg-gradient-to-br from-rose-400/20 to-pink-400/20 rotate-45" />
-//         </div>
-
-//         <div className="relative h-40 sm:h-48 lg:h-52 overflow-hidden bg-white dark:bg-zinc-950">
-//           {hasImage ? (
-//             <Image
-//               src={imageUrl!}
-//               alt={service.name}
-//               fill
-//               className="object-cover transition-transform duration-700 group-hover:scale-105"
-//               sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-//               quality={60}
-//               priority={isPriority}
-//               loading={isPriority ? "eager" : "lazy"}
-//               fetchPriority={isPriority ? "high" : "auto"}
-//               decoding="async"
-//             />
-//           ) : (
-//             <div
-//               className={`absolute inset-0 bg-gradient-to-br ${cardGradients[index % cardGradients.length]}`}
-//             >
-//               <div className="absolute inset-0 flex items-center justify-center">
-//                 <Flower2 className="w-16 h-16 text-rose-300/70 dark:text-rose-200/20" />
-//               </div>
-//             </div>
-//           )}
-
-//           <div className="absolute inset-0 bg-gradient-to-t from-white via-white/20 to-transparent dark:from-zinc-900 dark:via-zinc-900/40" />
-
-//           {service.priceCents && (
-//             <div className="absolute top-3 right-3">
-//               <span className="px-3 py-1.5 rounded-full bg-white dark:bg-white/10 backdrop-blur-sm text-rose-600 dark:text-rose-200 text-xs sm:text-sm font-bold shadow-lg border border-rose-200/50 dark:border-white/10">
-//                 {translations.from} {formatPrice(service.priceCents, locale)}
-//               </span>
-//             </div>
-//           )}
-
-//           {service.gallery.length > 0 && (
-//             <button
-//               onClick={(e) => {
-//                 e.stopPropagation();
-//                 onOpenGallery(0);
-//               }}
-//               className="absolute top-3 left-3 px-2.5 py-1.5 rounded-full bg-white dark:bg-white/10 backdrop-blur-sm flex items-center gap-1.5 text-rose-500 dark:text-rose-200 text-xs hover:bg-rose-50 dark:hover:bg-white/15 transition-colors shadow-lg border border-rose-200/50 dark:border-white/10"
-//             >
-//               <Images className="w-3.5 h-3.5" />
-//               {service.gallery.length}
-//             </button>
-//           )}
-
-//           <div className="absolute bottom-3 left-3 right-3 flex items-center gap-2">
-//             <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-rose-500/90 text-white text-[11px] font-medium backdrop-blur-sm shadow-md">
-//               <Heart className="h-2.5 w-2.5" fill="currentColor" />
-//               {categoryName}
-//             </span>
-//           </div>
-//         </div>
-
-//         <div className="relative overflow-hidden p-4 sm:p-5 bg-gradient-to-b from-transparent to-rose-50/30 dark:from-rose-950/80 dark:via-slate-950/90 dark:to-purple-950/80">
-//           <div className="absolute inset-0 pointer-events-none dark:hidden">
-//             {[...Array(5)].map((_, i) => (
-//               <motion.div
-//                 key={`light-heart-${i}`}
-//                 className="absolute"
-//                 style={{
-//                   left: `${(i * 20) % 100}%`,
-//                   top: `${(i * 22) % 100}%`,
-//                 }}
-//                 animate={{ y: [0, -12, 0], x: [0, i % 2 === 0 ? 6 : -6, 0] }}
-//                 transition={{
-//                   duration: 7 + (i % 3) * 2,
-//                   repeat: Infinity,
-//                   delay: i * 0.6,
-//                   ease: "easeInOut",
-//                 }}
-//               >
-//                 <Heart
-//                   className={`${i % 2 === 0 ? "w-3.5 h-3.5" : "w-3 h-3"} text-rose-400/60 drop-shadow-[0_1px_6px_rgba(244,63,94,0.25)]`}
-//                   fill="currentColor"
-//                 />
-//               </motion.div>
-//             ))}
-//           </div>
-
-//           <div className="absolute inset-0 pointer-events-none hidden dark:block">
-//             {[...Array(5)].map((_, i) => (
-//               <motion.div
-//                 key={`dark-heart-${i}`}
-//                 className="absolute"
-//                 style={{
-//                   left: `${(i * 20) % 100}%`,
-//                   top: `${(i * 22) % 100}%`,
-//                 }}
-//                 animate={{ y: [0, -10, 0], x: [0, i % 2 === 0 ? 5 : -5, 0] }}
-//                 transition={{
-//                   duration: 8 + (i % 3) * 2,
-//                   repeat: Infinity,
-//                   delay: i * 0.6,
-//                   ease: "easeInOut",
-//                 }}
-//               >
-//                 <Heart
-//                   className={`${i % 2 === 0 ? "w-2.5 h-2.5" : "w-2 h-2"} text-rose-400/25`}
-//                   fill="currentColor"
-//                 />
-//               </motion.div>
-//             ))}
-//           </div>
-
-//           <div className="relative z-10">
-//             <h3 className="text-base sm:text-lg font-bold text-zinc-800 dark:text-zinc-100 mb-1.5 line-clamp-2 group-hover:text-rose-600 dark:group-hover:text-rose-200 transition-colors font-playfair">
-//               {service.name}
-//             </h3>
-
-//             {service.description && (
-//               <p className="text-zinc-600 dark:text-zinc-300 text-xs sm:text-sm line-clamp-2 mb-3">
-//                 {service.description}
-//               </p>
-//             )}
-
-//             <div className="flex items-center gap-3 mb-4">
-//               <span className="inline-flex items-center gap-1 text-zinc-500 dark:text-zinc-300 text-xs sm:text-sm">
-//                 <Clock className="w-3.5 h-3.5 text-rose-400 dark:text-rose-300" />
-//                 {service.durationMin} {translations.minutes}
-//               </span>
-//             </div>
-
-//             <Link
-//               href={`/booking?service=${service.id}`}
-//               onClick={(e) => e.stopPropagation()}
-//               className="flex items-center justify-center gap-2 w-full px-4 py-2.5 sm:py-3 rounded-xl bg-gradient-to-r from-rose-500 via-pink-500 to-rose-500 hover:from-rose-600 hover:via-pink-600 hover:to-rose-600 text-white font-semibold text-sm transition-all active:scale-[0.98] shadow-lg shadow-rose-300/40"
-//             >
-//               {translations.bookNow}
-//               <ChevronRight className="w-4 h-4" />
-//             </Link>
-//           </div>
-//         </div>
-//       </div>
-//     </motion.div>
-//   );
-// }
-
-// export default function ServicesClient({ categories, locale }: Props) {
-//   const [activeCategory, setActiveCategory] = useState<string | null>(null);
-//   const [selectedService, setSelectedService] = useState<{
-//     service: ServiceChild;
-//     categoryName: string;
-//   } | null>(null);
-//   const [lightbox, setLightbox] = useState<{
-//     isOpen: boolean;
-//     images: GalleryItem[];
-//     currentIndex: number;
-//     serviceName: string;
-//   } | null>(null);
-
-//   const translations = t[locale] || t.de;
-
-//   const openServiceDetail = useCallback(
-//     (service: ServiceChild, categoryName: string) =>
-//       setSelectedService({ service, categoryName }),
-//     [],
-//   );
-
-//   const openLightbox = useCallback(
-//     (images: GalleryItem[], index: number, serviceName: string) =>
-//       setLightbox({ isOpen: true, images, currentIndex: index, serviceName }),
-//     [],
-//   );
-
-//   const closeLightbox = useCallback(() => setLightbox(null), []);
-
-//   const goToPrev = useCallback(() => {
-//     if (!lightbox) return;
-//     setLightbox({
-//       ...lightbox,
-//       currentIndex:
-//         lightbox.currentIndex === 0
-//           ? lightbox.images.length - 1
-//           : lightbox.currentIndex - 1,
-//     });
-//   }, [lightbox]);
-
-//   const goToNext = useCallback(() => {
-//     if (!lightbox) return;
-//     setLightbox({
-//       ...lightbox,
-//       currentIndex: (lightbox.currentIndex + 1) % lightbox.images.length,
-//     });
-//   }, [lightbox]);
-
-//   const filteredCategories = categories.filter(
-//     (cat) => !activeCategory || cat.id === activeCategory,
-//   );
-
-//   let globalServiceIndex = 0;
-
-//   return (
-//     <main className="relative min-h-screen overflow-hidden isolate">
-//       <PageBackground />
-//       <div className="relative z-10">
-//         <AnimatePresence>
-//           {lightbox?.isOpen && (
-//             <GalleryLightbox
-//               images={lightbox.images}
-//               currentIndex={lightbox.currentIndex}
-//               onClose={closeLightbox}
-//               onPrev={goToPrev}
-//               onNext={goToNext}
-//               serviceName={lightbox.serviceName}
-//             />
-//           )}
-//         </AnimatePresence>
-
-//         <AnimatePresence>
-//           {selectedService && (
-//             <ServiceDetailModal
-//               service={selectedService.service}
-//               categoryName={selectedService.categoryName}
-//               onClose={() => setSelectedService(null)}
-//               onOpenGallery={(index) =>
-//                 openLightbox(
-//                   selectedService.service.gallery,
-//                   index,
-//                   selectedService.service.name,
-//                 )
-//               }
-//               translations={translations}
-//               locale={locale}
-//             />
-//           )}
-//         </AnimatePresence>
-
-//         <section className="relative pt-8 pb-6 sm:pt-16 sm:pb-12">
-//           <div className="container mx-auto px-4">
-//             <motion.div
-//               initial={{ opacity: 0, y: 16 }}
-//               animate={{ opacity: 1, y: 0 }}
-//               transition={{ duration: 0.6 }}
-//               className="text-center max-w-2xl mx-auto"
-//             >
-//               <motion.div
-//                 initial={{ opacity: 0, scale: 0.95 }}
-//                 animate={{ opacity: 1, scale: 1 }}
-//                 transition={{ delay: 0.1 }}
-//                 className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/90 dark:bg-white/10 backdrop-blur border border-rose-200 dark:border-white/10 shadow-lg shadow-rose-200/30 mb-4 sm:mb-6"
-//               >
-//                 <Sparkles className="w-4 h-4 text-rose-500 dark:text-rose-200" />
-//                 <span className="text-sm font-medium text-rose-600 dark:text-rose-200">
-//                   Premium Beauty Salon
-//                 </span>
-//               </motion.div>
-
-//               <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold mb-4 sm:mb-5 font-playfair">
-//                 <span className="bg-gradient-to-r from-rose-500 via-pink-500 to-rose-600 bg-clip-text text-transparent drop-shadow-sm">
-//                   {translations.title}
-//                 </span>
-//               </h1>
-
-//               <div className="flex justify-center items-center gap-3 mb-4">
-//                 <div className="w-12 h-px bg-gradient-to-r from-transparent via-rose-400 to-transparent" />
-//                 <Heart
-//                   className="w-5 h-5 text-rose-500 dark:text-rose-300"
-//                   fill="currentColor"
-//                 />
-//                 <div className="w-12 h-px bg-gradient-to-r from-transparent via-rose-400 to-transparent" />
-//               </div>
-
-//               <p className="text-sm sm:text-base md:text-lg text-zinc-600 dark:text-zinc-200/90 mb-6 sm:mb-8 px-4 font-cormorant font-medium">
-//                 {translations.subtitle}
-//               </p>
-
-//               <Link
-//                 href="/booking"
-//                 className="inline-flex items-center gap-2 px-6 py-3 sm:px-8 sm:py-4 bg-gradient-to-r from-rose-500 via-pink-500 to-rose-500 hover:from-rose-600 hover:via-pink-600 hover:to-rose-600 rounded-full text-white font-semibold text-sm sm:text-base shadow-xl shadow-rose-300/50 transition-all active:scale-95 hover:scale-105"
-//               >
-//                 {translations.bookNow}
-//                 <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5" />
-//               </Link>
-//             </motion.div>
-//           </div>
-//         </section>
-
-//         <section className="sticky top-16 z-40">
-//           <div className="bg-white/80 dark:bg-zinc-950/70 backdrop-blur-xl border-y border-rose-200/50 dark:border-white/10">
-//             <div className="container mx-auto px-4">
-//               <div className="flex gap-2 py-3 sm:py-4 overflow-x-auto scrollbar-hide -mx-4 px-4">
-//                 <button
-//                   onClick={() => setActiveCategory(null)}
-//                   className={`flex-shrink-0 px-4 py-2 sm:px-5 sm:py-2.5 rounded-full text-xs sm:text-sm font-medium transition-all ${
-//                     activeCategory === null
-//                       ? "bg-gradient-to-r from-rose-500 to-pink-500 text-white shadow-lg shadow-rose-300/40"
-//                       : "bg-white dark:bg-white/8 text-zinc-600 dark:text-zinc-200 hover:bg-rose-50 dark:hover:bg-white/12 border border-rose-200 dark:border-white/10"
-//                   }`}
-//                 >
-//                   {translations.allCategories}
-//                 </button>
-
-//                 {categories.map((cat) => {
-//                   const Icon = getCategoryIcon(cat.slug);
-//                   return (
-//                     <button
-//                       key={cat.id}
-//                       onClick={() =>
-//                         setActiveCategory(
-//                           cat.id === activeCategory ? null : cat.id,
-//                         )
-//                       }
-//                       className={`flex-shrink-0 inline-flex items-center gap-1.5 sm:gap-2 px-4 py-2 sm:px-5 sm:py-2.5 rounded-full text-xs sm:text-sm font-medium transition-all ${
-//                         activeCategory === cat.id
-//                           ? "bg-gradient-to-r from-rose-500 to-pink-500 text-white shadow-lg shadow-rose-300/40"
-//                           : "bg-white dark:bg-white/8 text-zinc-600 dark:text-zinc-200 hover:bg-rose-50 dark:hover:bg-white/12 border border-rose-200 dark:border-white/10"
-//                       }`}
-//                     >
-//                       <Icon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-//                       <span className="whitespace-nowrap">{cat.name}</span>
-//                     </button>
-//                   );
-//                 })}
-//               </div>
-//             </div>
-//           </div>
-//         </section>
-
-//         <section className="py-8 sm:py-12 lg:py-16 relative">
-//           <div className="container mx-auto px-4">
-//             {filteredCategories.map((category) => (
-//               <motion.div
-//                 key={category.id}
-//                 initial={false}
-//                 className="mb-12 sm:mb-16 last:mb-0"
-//               >
-//                 <div className="flex items-center gap-3 sm:gap-4 mb-6 sm:mb-8">
-//                   <div className="p-2.5 sm:p-3 rounded-xl sm:rounded-2xl bg-white dark:bg-white/7 border border-rose-200 dark:border-white/10 shadow-lg shadow-rose-200/20 backdrop-blur">
-//                     {(() => {
-//                       const Icon = getCategoryIcon(category.slug);
-//                       return (
-//                         <Icon className="w-5 h-5 sm:w-6 sm:h-6 text-rose-500 dark:text-rose-200" />
-//                       );
-//                     })()}
-//                   </div>
-
-//                   <div className="flex-1 min-w-0">
-//                     <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-zinc-800 dark:text-zinc-100 truncate font-playfair">
-//                       {category.name}
-//                     </h2>
-//                     <span className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-300">
-//                       {category.children.length} {translations.services}
-//                     </span>
-//                   </div>
-//                 </div>
-
-//                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6">
-//                   {category.children.map((service, index) => {
-//                     const currentGlobalIndex = globalServiceIndex++;
-//                     return (
-//                       <ServiceCard
-//                         key={service.id}
-//                         service={service}
-//                         categoryName={category.name}
-//                         index={index}
-//                         onOpenDetail={() =>
-//                           openServiceDetail(service, category.name)
-//                         }
-//                         onOpenGallery={(idx) =>
-//                           openLightbox(service.gallery, idx, service.name)
-//                         }
-//                         translations={translations}
-//                         locale={locale}
-//                         isPriority={currentGlobalIndex < 6}
-//                       />
-//                     );
-//                   })}
-//                 </div>
-//               </motion.div>
-//             ))}
-
-//             {categories.length === 0 && (
-//               <div className="text-center py-16 sm:py-20">
-//                 <div className="w-16 h-16 sm:w-20 sm:h-20 mx-auto mb-4 rounded-full bg-white dark:bg-white/8 flex items-center justify-center border border-rose-200 dark:border-white/10 shadow-lg">
-//                   <Flower2 className="w-8 h-8 sm:w-10 sm:h-10 text-rose-400 dark:text-rose-200" />
-//                 </div>
-//                 <p className="text-lg sm:text-xl text-zinc-500 dark:text-zinc-300">
-//                   {translations.noServices}
-//                 </p>
-//               </div>
-//             )}
-//           </div>
-//         </section>
-
-//         <section className="py-12 sm:py-20 relative overflow-hidden">
-//           <div className="absolute inset-0 bg-gradient-to-r from-rose-100/70 via-pink-50/70 to-amber-50/70 dark:from-black/25 dark:via-black/20 dark:to-black/25" />
-//           <div className="relative container mx-auto px-4 text-center">
-//             <motion.div
-//               initial={{ opacity: 0, y: 18 }}
-//               whileInView={{ opacity: 1, y: 0 }}
-//               viewport={{ once: true }}
-//             >
-//               <div className="flex justify-center mb-4">
-//                 <div className="flex items-center gap-3">
-//                   <Heart className="w-4 h-4 text-rose-400" fill="currentColor" />
-//                   <div className="w-10 h-px bg-gradient-to-r from-rose-400 to-transparent" />
-//                   <Heart
-//                     className="w-5 h-5 text-rose-500 dark:text-rose-300"
-//                     fill="currentColor"
-//                   />
-//                   <div className="w-10 h-px bg-gradient-to-l from-rose-400 to-transparent" />
-//                   <Heart className="w-4 h-4 text-rose-400" fill="currentColor" />
-//                 </div>
-//               </div>
-
-//               <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-zinc-800 dark:text-zinc-100 mb-3 sm:mb-4 font-playfair">
-//                 {translations.trustText}
-//               </h2>
-
-//               <p className="text-zinc-600 dark:text-zinc-200 mb-6 sm:mb-8 max-w-md mx-auto font-cormorant font-medium">
-//                 {translations.welcomeText}
-//               </p>
-
-//               <Link
-//                 href="/booking"
-//                 className="inline-flex items-center gap-2 px-8 py-4 sm:px-10 sm:py-5 bg-gradient-to-r from-rose-500 via-pink-500 to-rose-500 hover:from-rose-600 hover:via-pink-600 hover:to-rose-600 text-white rounded-full font-bold text-base sm:text-lg shadow-xl shadow-rose-300/50 transition-all active:scale-95 hover:scale-105"
-//               >
-//                 {translations.bookNow}
-//                 <ArrowRight className="w-5 h-5" />
-//               </Link>
-//             </motion.div>
-//           </div>
-//         </section>
-//       </div>
-//     </main>
-//   );
-// }
-
-
-
-
-
-
-//--------пробуем ускорить загрузку картинок------
-// // src/app/services/ServicesClient.tsx
-// "use client";
-
-// import { useState, useCallback } from "react";
-// import dynamic from "next/dynamic";
-// import Link from "next/link";
-// import Image from "next/image";
-// import { motion, AnimatePresence } from "framer-motion";
-// import {
-//   Sparkles,
-//   Clock,
-//   ChevronRight,
-//   Scissors,
-//   Palette,
-//   Heart,
-//   Star,
-//   ArrowRight,
-//   Images,
-//   Flower2,
-// } from "lucide-react";
-
-// type GalleryItem = { id: string; image: string; caption: string | null };
-
-// type ServiceChild = {
-//   id: string;
-//   slug: string;
-//   name: string;
-//   description: string | null;
-//   priceCents: number | null;
-//   durationMin: number;
-//   cover: string | null;
-//   gallery: GalleryItem[];
-// };
-
-// type Category = {
-//   id: string;
-//   slug: string;
-//   name: string;
-//   description: string | null;
-//   cover: string | null;
-//   gallery: GalleryItem[];
-//   children: ServiceChild[];
-// };
-
-// type Props = { categories: Category[]; locale: string };
-
-// type GalleryLightboxProps = {
-//   images: GalleryItem[];
-//   currentIndex: number;
-//   onClose: () => void;
-//   onPrev: () => void;
-//   onNext: () => void;
-//   serviceName: string;
-// };
-
-// type ServiceDetailModalProps = {
-//   service: ServiceChild;
-//   categoryName: string;
-//   onClose: () => void;
-//   onOpenGallery: (index: number) => void;
-//   translations: Record<string, string>;
-//   locale: string;
-// };
-
-// const GalleryLightbox = dynamic<GalleryLightboxProps>(
-//   () => import("./GalleryLightbox"),
-//   { ssr: false },
-// );
-
-// const ServiceDetailModal = dynamic<ServiceDetailModalProps>(
-//   () => import("./ServiceDetailModal"),
-//   { ssr: false },
-// );
-
-// const t: Record<string, Record<string, string>> = {
-//   de: {
-//     title: "Unsere Leistungen",
-//     subtitle: "Verwöhnen Sie sich mit Premium-Schönheitspflege",
-//     bookNow: "Termin buchen",
-//     from: "ab",
-//     minutes: "Min.",
-//     noServices: "Keine Dienstleistungen verfügbar",
-//     allCategories: "Alle",
-//     photos: "Fotos",
-//     close: "Schließen",
-//     ourWorks: "Unsere Arbeiten",
-//     services: "Leistungen",
-//     trustText: "Vertrauen Sie uns Ihre Schönheit an",
-//     welcomeText: "Willkommen in unserem Salon",
-//   },
-//   ru: {
-//     title: "Наши услуги",
-//     subtitle: "Побалуйте себя премиальным уходом за красотой",
-//     bookNow: "Записаться",
-//     from: "от",
-//     minutes: "мин.",
-//     noServices: "Услуги не найдены",
-//     allCategories: "Все",
-//     photos: "фото",
-//     close: "Закрыть",
-//     ourWorks: "Наши работы",
-//     services: "услуг",
-//     trustText: "Доверьте нам вашу красоту",
-//     welcomeText: "Добро пожаловать в наш салон",
-//   },
-//   en: {
-//     title: "Our Services",
-//     subtitle: "Indulge yourself with premium beauty care",
-//     bookNow: "Book Now",
-//     from: "from",
-//     minutes: "min.",
-//     noServices: "No services available",
-//     allCategories: "All",
-//     photos: "photos",
-//     close: "Close",
-//     ourWorks: "Our Works",
-//     services: "services",
-//     trustText: "Trust us with your beauty",
-//     welcomeText: "Welcome to our salon",
-//   },
-// };
-
-// const categoryIcons: Record<string, typeof Scissors> = {
-//   haircut: Scissors,
-//   haare: Scissors,
-//   hair: Scissors,
-//   frisur: Scissors,
-//   manicure: Palette,
-//   nails: Palette,
-//   nagel: Palette,
-//   makeup: Heart,
-//   kosmetik: Heart,
-//   brows: Star,
-//   lashes: Star,
-//   permanent: Star,
-//   default: Flower2,
-// };
-
-// function getCategoryIcon(slug: string) {
-//   const key = Object.keys(categoryIcons).find((k) =>
-//     slug.toLowerCase().includes(k),
-//   );
-//   return categoryIcons[key || "default"];
-// }
-
-// function formatPrice(cents: number | null, locale: string) {
-//   if (!cents) return null;
-//   return new Intl.NumberFormat(
-//     locale === "de" ? "de-DE" : locale === "ru" ? "ru-RU" : "en-US",
-//     {
-//       style: "currency",
-//       currency: "EUR",
-//       minimumFractionDigits: 0,
-//     },
-//   ).format(cents / 100);
-// }
-
-// const cardGradients = [
-//   "from-rose-300/50 via-pink-200/50 to-rose-100/50",
-//   "from-amber-200/50 via-orange-100/50 to-yellow-100/50",
-//   "from-violet-300/50 via-purple-200/50 to-pink-100/50",
-//   "from-sky-200/50 via-cyan-100/50 to-teal-100/50",
-//   "from-emerald-200/50 via-teal-100/50 to-cyan-100/50",
-// ];
-
-// // ====== КРАСИВЫЙ АНИМИРОВАННЫЙ ФОН ======
-// function PageBackground() {
-//   return (
-//     <div className="fixed inset-0 -z-10 overflow-hidden">
-//       <div className="absolute inset-0 bg-gradient-to-br from-rose-200/90 via-pink-100/80 to-amber-100/70 dark:from-[#080812] dark:via-[#0b0b16] dark:to-[#121227]" />
-//       <div className="absolute inset-0 bg-gradient-to-t from-white/40 via-transparent to-rose-100/30 dark:from-transparent dark:to-transparent" />
-
-//       <motion.div
-//         className="absolute -top-32 -left-32 h-[500px] w-[500px] sm:h-[700px] sm:w-[700px] rounded-full"
-//         style={{
-//           background:
-//             "radial-gradient(circle, rgba(251,182,206,0.7) 0%, rgba(251,207,232,0.4) 40%, transparent 70%)",
-//         }}
-//         animate={{ scale: [1, 1.15, 1], opacity: [0.7, 0.5, 0.7] }}
-//         transition={{ duration: 12, repeat: Infinity, ease: "easeInOut" }}
-//       />
-//       <motion.div
-//         className="absolute top-1/4 -right-32 h-[400px] w-[400px] sm:h-[600px] sm:w-[600px] rounded-full"
-//         style={{
-//           background:
-//             "radial-gradient(circle, rgba(254,202,155,0.6) 0%, rgba(254,215,170,0.3) 40%, transparent 70%)",
-//         }}
-//         animate={{ scale: [1, 1.12, 1], opacity: [0.6, 0.35, 0.6] }}
-//         transition={{
-//           duration: 14,
-//           repeat: Infinity,
-//           ease: "easeInOut",
-//           delay: 2,
-//         }}
-//       />
-//       <motion.div
-//         className="absolute -bottom-20 left-1/3 h-[450px] w-[450px] sm:h-[650px] sm:w-[650px] rounded-full"
-//         style={{
-//           background:
-//             "radial-gradient(circle, rgba(216,180,254,0.5) 0%, rgba(196,181,253,0.25) 40%, transparent 70%)",
-//         }}
-//         animate={{ scale: [1, 1.1, 1], opacity: [0.5, 0.3, 0.5] }}
-//         transition={{
-//           duration: 16,
-//           repeat: Infinity,
-//           ease: "easeInOut",
-//           delay: 4,
-//         }}
-//       />
-
-//       {[...Array(35)].map((_, i) => (
-//         <motion.div
-//           key={i}
-//           className="absolute pointer-events-none"
-//           style={{ left: `${(i * 2.9) % 100}%`, top: `${(i * 3.1) % 95}%` }}
-//           animate={{
-//             y: [0, -35, 0],
-//             x: [0, i % 2 === 0 ? 18 : -18, 0],
-//             rotate: [0, i % 2 === 0 ? 20 : -20, 0],
-//             opacity: [0.35, 0.75, 0.35],
-//             scale: [1, 1.15, 1],
-//           }}
-//           transition={{
-//             duration: 6 + (i % 5) * 1.5,
-//             repeat: Infinity,
-//             delay: i * 0.15,
-//             ease: "easeInOut",
-//           }}
-//         >
-//           {i % 4 === 0 ? (
-//             <Heart
-//               className="h-4 w-4 sm:h-5 sm:w-5 text-rose-400/80 dark:text-rose-300/25 drop-shadow-sm"
-//               fill="currentColor"
-//             />
-//           ) : i % 4 === 1 ? (
-//             <Heart
-//               className="h-3 w-3 sm:h-4 sm:w-4 text-pink-400/70 dark:text-pink-300/20 drop-shadow-sm"
-//               fill="currentColor"
-//             />
-//           ) : i % 4 === 2 ? (
-//             <Sparkles className="h-3 w-3 sm:h-4 sm:w-4 text-amber-400/70 dark:text-amber-300/20" />
-//           ) : (
-//             <Star
-//               className="h-3 w-3 sm:h-4 sm:w-4 text-rose-300/60 dark:text-rose-300/15"
-//               fill="currentColor"
-//             />
-//           )}
-//         </motion.div>
-//       ))}
-
-//       <svg
-//         className="absolute bottom-0 left-0 w-full h-32 sm:h-48 opacity-20 dark:opacity-10"
-//         preserveAspectRatio="none"
-//         viewBox="0 0 1440 120"
-//       >
-//         <motion.path
-//           fill="url(#wave-fill)"
-//           animate={{
-//             d: [
-//               "M0,60 C360,100 720,20 1080,60 C1260,80 1380,40 1440,60 L1440,120 L0,120 Z",
-//               "M0,40 C360,80 720,40 1080,80 C1260,60 1380,80 1440,40 L1440,120 L0,120 Z",
-//               "M0,60 C360,100 720,20 1080,60 C1260,80 1380,40 1440,60 L1440,120 L0,120 Z",
-//             ],
-//           }}
-//           transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
-//         />
-//         <defs>
-//           <linearGradient id="wave-fill" x1="0%" y1="0%" x2="100%" y2="0%">
-//             <stop offset="0%" stopColor="#f9a8d4" />
-//             <stop offset="50%" stopColor="#fda4af" />
-//             <stop offset="100%" stopColor="#fdba74" />
-//           </linearGradient>
-//         </defs>
-//       </svg>
-
-//       <div
-//         className="absolute inset-0 opacity-[0.025] dark:opacity-[0.04]"
-//         style={{
-//           backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23000' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
-//         }}
-//       />
-//     </div>
-//   );
-// }
-
-// function ServiceCard({
-//   service,
-//   categoryName,
-//   index,
-//   onOpenDetail,
-//   onOpenGallery,
-//   translations,
-//   locale,
-//   isPriority,
-// }: {
-//   service: ServiceChild;
-//   categoryName: string;
-//   index: number;
-//   onOpenDetail: () => void;
-//   onOpenGallery: (index: number) => void;
-//   translations: Record<string, string>;
-//   locale: string;
-//   isPriority?: boolean;
-// }) {
-//   const hasImage = service.cover || service.gallery.length > 0;
-//   const imageUrl = service.cover || service.gallery[0]?.image;
-
-//   return (
-//     <motion.div initial={false} className="group">
-//       <div
-//         onClick={onOpenDetail}
-//         className="relative overflow-hidden rounded-2xl sm:rounded-3xl cursor-pointer bg-white dark:bg-zinc-900/80 border-2 border-rose-200/70 dark:border-white/10 shadow-[0_8px_30px_-12px_rgba(244,63,94,0.25)] dark:shadow-[0_18px_55px_-28px_rgba(0,0,0,0.75)] hover:shadow-[0_20px_50px_-15px_rgba(244,63,94,0.35)] dark:hover:shadow-[0_25px_60px_-20px_rgba(0,0,0,0.85)] hover:border-rose-300 dark:hover:border-white/20 transition-all duration-500 sm:active:scale-[0.98] sm:hover:-translate-y-2"
-//       >
-//         <div className="absolute top-0 right-0 w-16 h-16 overflow-hidden z-10 pointer-events-none">
-//           <div className="absolute -top-8 -right-8 w-16 h-16 bg-gradient-to-br from-rose-400/20 to-pink-400/20 rotate-45" />
-//         </div>
-//         <div className="relative h-40 sm:h-48 lg:h-52 overflow-hidden bg-white dark:bg-zinc-950">
-//           {hasImage ? (
-//             <Image
-//               src={imageUrl!}
-//               alt={service.name}
-//               fill
-//               className="object-cover transition-transform duration-700 group-hover:scale-105"
-//               sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-//               quality={60}
-//               priority={isPriority}
-//               loading={isPriority ? "eager" : "lazy"}
-//               fetchPriority={isPriority ? "high" : "auto"}
-//             />
-//           ) : (
-//             <div
-//               className={`absolute inset-0 bg-gradient-to-br ${cardGradients[index % cardGradients.length]}`}
-//             >
-//               <div className="absolute inset-0 flex items-center justify-center">
-//                 <Flower2 className="w-16 h-16 text-rose-300/70 dark:text-rose-200/20" />
-//               </div>
-//             </div>
-//           )}
-//           <div className="absolute inset-0 bg-gradient-to-t from-white via-white/20 to-transparent dark:from-zinc-900 dark:via-zinc-900/40" />
-//           {service.priceCents && (
-//             <div className="absolute top-3 right-3">
-//               <span className="px-3 py-1.5 rounded-full bg-white dark:bg-white/10 backdrop-blur-sm text-rose-600 dark:text-rose-200 text-xs sm:text-sm font-bold shadow-lg border border-rose-200/50 dark:border-white/10">
-//                 {translations.from} {formatPrice(service.priceCents, locale)}
-//               </span>
-//             </div>
-//           )}
-//           {service.gallery.length > 0 && (
-//             <button
-//               onClick={(e) => {
-//                 e.stopPropagation();
-//                 onOpenGallery(0);
-//               }}
-//               className="absolute top-3 left-3 px-2.5 py-1.5 rounded-full bg-white dark:bg-white/10 backdrop-blur-sm flex items-center gap-1.5 text-rose-500 dark:text-rose-200 text-xs hover:bg-rose-50 dark:hover:bg-white/15 transition-colors shadow-lg border border-rose-200/50 dark:border-white/10"
-//             >
-//               <Images className="w-3.5 h-3.5" />
-//               {service.gallery.length}
-//             </button>
-//           )}
-//           <div className="absolute bottom-3 left-3 right-3 flex items-center gap-2">
-//             <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-rose-500/90 text-white text-[11px] font-medium backdrop-blur-sm shadow-md">
-//               <Heart className="h-2.5 w-2.5" fill="currentColor" />
-//               {categoryName}
-//             </span>
-//           </div>
-//         </div>
-//         {/* НИЖНЯЯ ЧАСТЬ С АНИМИРОВАННЫМИ СЕРДЕЧКАМИ */}
-//         <div className="relative overflow-hidden p-4 sm:p-5 bg-gradient-to-b from-transparent to-rose-50/30 dark:from-rose-950/80 dark:via-slate-950/90 dark:to-purple-950/80">
-//           {/* Анимированные сердечки для светлой темы */}
-//           <div className="absolute inset-0 pointer-events-none dark:hidden">
-//             {[...Array(5)].map((_, i) => (
-//               <motion.div
-//                 key={`light-heart-${i}`}
-//                 className="absolute"
-//                 style={{
-//                   left: `${(i * 20) % 100}%`,
-//                   top: `${(i * 22) % 100}%`,
-//                 }}
-//                 animate={{ y: [0, -12, 0], x: [0, i % 2 === 0 ? 6 : -6, 0] }}
-//                 transition={{
-//                   duration: 7 + (i % 3) * 2,
-//                   repeat: Infinity,
-//                   delay: i * 0.6,
-//                   ease: "easeInOut",
-//                 }}
-//               >
-//                 <Heart
-//                   className={`${i % 2 === 0 ? "w-3.5 h-3.5" : "w-3 h-3"} text-rose-400/60 drop-shadow-[0_1px_6px_rgba(244,63,94,0.25)]`}
-//                   fill="currentColor"
-//                 />
-//               </motion.div>
-//             ))}
-//           </div>
-//           {/* Анимированные сердечки для тёмной темы */}
-//           <div className="absolute inset-0 pointer-events-none hidden dark:block">
-//             {[...Array(5)].map((_, i) => (
-//               <motion.div
-//                 key={`dark-heart-${i}`}
-//                 className="absolute"
-//                 style={{
-//                   left: `${(i * 20) % 100}%`,
-//                   top: `${(i * 22) % 100}%`,
-//                 }}
-//                 animate={{ y: [0, -10, 0], x: [0, i % 2 === 0 ? 5 : -5, 0] }}
-//                 transition={{
-//                   duration: 8 + (i % 3) * 2,
-//                   repeat: Infinity,
-//                   delay: i * 0.6,
-//                   ease: "easeInOut",
-//                 }}
-//               >
-//                 <Heart
-//                   className={`${i % 2 === 0 ? "w-2.5 h-2.5" : "w-2 h-2"} text-rose-400/25`}
-//                   fill="currentColor"
-//                 />
-//               </motion.div>
-//             ))}
-//           </div>
-//           <div className="relative z-10">
-//             <h3 className="text-base sm:text-lg font-bold text-zinc-800 dark:text-zinc-100 mb-1.5 line-clamp-2 group-hover:text-rose-600 dark:group-hover:text-rose-200 transition-colors font-playfair">
-//               {service.name}
-//             </h3>
-//             {service.description && (
-//               <p className="text-zinc-600 dark:text-zinc-300 text-xs sm:text-sm line-clamp-2 mb-3">
-//                 {service.description}
-//               </p>
-//             )}
-//             <div className="flex items-center gap-3 mb-4">
-//               <span className="inline-flex items-center gap-1 text-zinc-500 dark:text-zinc-300 text-xs sm:text-sm">
-//                 <Clock className="w-3.5 h-3.5 text-rose-400 dark:text-rose-300" />
-//                 {service.durationMin} {translations.minutes}
-//               </span>
-//             </div>
-//             <Link
-//               href={`/booking?service=${service.id}`}
-//               onClick={(e) => e.stopPropagation()}
-//               className="flex items-center justify-center gap-2 w-full px-4 py-2.5 sm:py-3 rounded-xl bg-gradient-to-r from-rose-500 via-pink-500 to-rose-500 hover:from-rose-600 hover:via-pink-600 hover:to-rose-600 text-white font-semibold text-sm transition-all active:scale-[0.98] shadow-lg shadow-rose-300/40"
-//             >
-//               {translations.bookNow}
-//               <ChevronRight className="w-4 h-4" />
-//             </Link>
-//           </div>
-//         </div>
-//       </div>
-//     </motion.div>
-//   );
-// }
-
-// export default function ServicesClient({ categories, locale }: Props) {
-//   const [activeCategory, setActiveCategory] = useState<string | null>(null);
-//   const [selectedService, setSelectedService] = useState<{
-//     service: ServiceChild;
-//     categoryName: string;
-//   } | null>(null);
-//   const [lightbox, setLightbox] = useState<{
-//     isOpen: boolean;
-//     images: GalleryItem[];
-//     currentIndex: number;
-//     serviceName: string;
-//   } | null>(null);
-//   const translations = t[locale] || t.de;
-
-//   const openServiceDetail = useCallback(
-//     (service: ServiceChild, categoryName: string) =>
-//       setSelectedService({ service, categoryName }),
-//     [],
-//   );
-//   const openLightbox = useCallback(
-//     (images: GalleryItem[], index: number, serviceName: string) =>
-//       setLightbox({ isOpen: true, images, currentIndex: index, serviceName }),
-//     [],
-//   );
-//   const closeLightbox = useCallback(() => setLightbox(null), []);
-//   const goToPrev = useCallback(() => {
-//     if (!lightbox) return;
-//     setLightbox({
-//       ...lightbox,
-//       currentIndex:
-//         lightbox.currentIndex === 0
-//           ? lightbox.images.length - 1
-//           : lightbox.currentIndex - 1,
-//     });
-//   }, [lightbox]);
-//   const goToNext = useCallback(() => {
-//     if (!lightbox) return;
-//     setLightbox({
-//       ...lightbox,
-//       currentIndex: (lightbox.currentIndex + 1) % lightbox.images.length,
-//     });
-//   }, [lightbox]);
-
-//   const filteredCategories = categories.filter(
-//     (cat) => !activeCategory || cat.id === activeCategory,
-//   );
-//   let globalServiceIndex = 0;
-
-//   return (
-//     <main className="relative min-h-screen overflow-hidden isolate">
-//       <PageBackground />
-//       <div className="relative z-10">
-//         <AnimatePresence>
-//           {lightbox?.isOpen && (
-//             <GalleryLightbox
-//               images={lightbox.images}
-//               currentIndex={lightbox.currentIndex}
-//               onClose={closeLightbox}
-//               onPrev={goToPrev}
-//               onNext={goToNext}
-//               serviceName={lightbox.serviceName}
-//             />
-//           )}
-//         </AnimatePresence>
-//         <AnimatePresence>
-//           {selectedService && (
-//             <ServiceDetailModal
-//               service={selectedService.service}
-//               categoryName={selectedService.categoryName}
-//               onClose={() => setSelectedService(null)}
-//               onOpenGallery={(index) =>
-//                 openLightbox(
-//                   selectedService.service.gallery,
-//                   index,
-//                   selectedService.service.name,
-//                 )
-//               }
-//               translations={translations}
-//               locale={locale}
-//             />
-//           )}
-//         </AnimatePresence>
-
-//         <section className="relative pt-8 pb-6 sm:pt-16 sm:pb-12">
-//           <div className="container mx-auto px-4">
-//             <motion.div
-//               initial={{ opacity: 0, y: 16 }}
-//               animate={{ opacity: 1, y: 0 }}
-//               transition={{ duration: 0.6 }}
-//               className="text-center max-w-2xl mx-auto"
-//             >
-//               <motion.div
-//                 initial={{ opacity: 0, scale: 0.95 }}
-//                 animate={{ opacity: 1, scale: 1 }}
-//                 transition={{ delay: 0.1 }}
-//                 className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/90 dark:bg-white/10 backdrop-blur border border-rose-200 dark:border-white/10 shadow-lg shadow-rose-200/30 mb-4 sm:mb-6"
-//               >
-//                 <Sparkles className="w-4 h-4 text-rose-500 dark:text-rose-200" />
-//                 <span className="text-sm font-medium text-rose-600 dark:text-rose-200">
-//                   Premium Beauty Salon
-//                 </span>
-//               </motion.div>
-//               <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold mb-4 sm:mb-5 font-playfair">
-//                 <span className="bg-gradient-to-r from-rose-500 via-pink-500 to-rose-600 bg-clip-text text-transparent drop-shadow-sm">
-//                   {translations.title}
-//                 </span>
-//               </h1>
-//               <div className="flex justify-center items-center gap-3 mb-4">
-//                 <div className="w-12 h-px bg-gradient-to-r from-transparent via-rose-400 to-transparent" />
-//                 <Heart
-//                   className="w-5 h-5 text-rose-500 dark:text-rose-300"
-//                   fill="currentColor"
-//                 />
-//                 <div className="w-12 h-px bg-gradient-to-r from-transparent via-rose-400 to-transparent" />
-//               </div>
-//               <p className="text-sm sm:text-base md:text-lg text-zinc-600 dark:text-zinc-200/90 mb-6 sm:mb-8 px-4 font-cormorant font-medium">
-//                 {translations.subtitle}
-//               </p>
-//               <Link
-//                 href="/booking"
-//                 className="inline-flex items-center gap-2 px-6 py-3 sm:px-8 sm:py-4 bg-gradient-to-r from-rose-500 via-pink-500 to-rose-500 hover:from-rose-600 hover:via-pink-600 hover:to-rose-600 rounded-full text-white font-semibold text-sm sm:text-base shadow-xl shadow-rose-300/50 transition-all active:scale-95 hover:scale-105"
-//               >
-//                 {translations.bookNow}
-//                 <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5" />
-//               </Link>
-//             </motion.div>
-//           </div>
-//         </section>
-
-//         <section className="sticky top-16 z-40">
-//           <div className="bg-white/80 dark:bg-zinc-950/70 backdrop-blur-xl border-y border-rose-200/50 dark:border-white/10">
-//             <div className="container mx-auto px-4">
-//               <div className="flex gap-2 py-3 sm:py-4 overflow-x-auto scrollbar-hide -mx-4 px-4">
-//                 <button
-//                   onClick={() => setActiveCategory(null)}
-//                   className={`flex-shrink-0 px-4 py-2 sm:px-5 sm:py-2.5 rounded-full text-xs sm:text-sm font-medium transition-all ${activeCategory === null ? "bg-gradient-to-r from-rose-500 to-pink-500 text-white shadow-lg shadow-rose-300/40" : "bg-white dark:bg-white/8 text-zinc-600 dark:text-zinc-200 hover:bg-rose-50 dark:hover:bg-white/12 border border-rose-200 dark:border-white/10"}`}
-//                 >
-//                   {translations.allCategories}
-//                 </button>
-//                 {categories.map((cat) => {
-//                   const Icon = getCategoryIcon(cat.slug);
-//                   return (
-//                     <button
-//                       key={cat.id}
-//                       onClick={() =>
-//                         setActiveCategory(
-//                           cat.id === activeCategory ? null : cat.id,
-//                         )
-//                       }
-//                       className={`flex-shrink-0 inline-flex items-center gap-1.5 sm:gap-2 px-4 py-2 sm:px-5 sm:py-2.5 rounded-full text-xs sm:text-sm font-medium transition-all ${activeCategory === cat.id ? "bg-gradient-to-r from-rose-500 to-pink-500 text-white shadow-lg shadow-rose-300/40" : "bg-white dark:bg-white/8 text-zinc-600 dark:text-zinc-200 hover:bg-rose-50 dark:hover:bg-white/12 border border-rose-200 dark:border-white/10"}`}
-//                     >
-//                       <Icon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-//                       <span className="whitespace-nowrap">{cat.name}</span>
-//                     </button>
-//                   );
-//                 })}
-//               </div>
-//             </div>
-//           </div>
-//         </section>
-
-//         <section className="py-8 sm:py-12 lg:py-16 relative">
-//           <div className="container mx-auto px-4">
-//             {filteredCategories.map((category, catIndex) => (
-//               <motion.div
-//                 key={category.id}
-//                 initial={false}
-//                 className="mb-12 sm:mb-16 last:mb-0"
-//               >
-//                 <div className="flex items-center gap-3 sm:gap-4 mb-6 sm:mb-8">
-//                   <div className="p-2.5 sm:p-3 rounded-xl sm:rounded-2xl bg-white dark:bg-white/7 border border-rose-200 dark:border-white/10 shadow-lg shadow-rose-200/20 backdrop-blur">
-//                     {(() => {
-//                       const Icon = getCategoryIcon(category.slug);
-//                       return (
-//                         <Icon className="w-5 h-5 sm:w-6 sm:h-6 text-rose-500 dark:text-rose-200" />
-//                       );
-//                     })()}
-//                   </div>
-//                   <div className="flex-1 min-w-0">
-//                     <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-zinc-800 dark:text-zinc-100 truncate font-playfair">
-//                       {category.name}
-//                     </h2>
-//                     <span className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-300">
-//                       {category.children.length} {translations.services}
-//                     </span>
-//                   </div>
-//                 </div>
-//                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6">
-//                   {category.children.map((service, index) => {
-//                     const currentGlobalIndex = globalServiceIndex++;
-//                     return (
-//                       <ServiceCard
-//                         key={service.id}
-//                         service={service}
-//                         categoryName={category.name}
-//                         index={index}
-//                         onOpenDetail={() =>
-//                           openServiceDetail(service, category.name)
-//                         }
-//                         onOpenGallery={(idx) =>
-//                           openLightbox(service.gallery, idx, service.name)
-//                         }
-//                         translations={translations}
-//                         locale={locale}
-//                         isPriority={currentGlobalIndex < 1}
-//                       />
-//                     );
-//                   })}
-//                 </div>
-//               </motion.div>
-//             ))}
-//             {categories.length === 0 && (
-//               <div className="text-center py-16 sm:py-20">
-//                 <div className="w-16 h-16 sm:w-20 sm:h-20 mx-auto mb-4 rounded-full bg-white dark:bg-white/8 flex items-center justify-center border border-rose-200 dark:border-white/10 shadow-lg">
-//                   <Flower2 className="w-8 h-8 sm:w-10 sm:h-10 text-rose-400 dark:text-rose-200" />
-//                 </div>
-//                 <p className="text-lg sm:text-xl text-zinc-500 dark:text-zinc-300">
-//                   {translations.noServices}
-//                 </p>
-//               </div>
-//             )}
-//           </div>
-//         </section>
-
-//         <section className="py-12 sm:py-20 relative overflow-hidden">
-//           <div className="absolute inset-0 bg-gradient-to-r from-rose-100/70 via-pink-50/70 to-amber-50/70 dark:from-black/25 dark:via-black/20 dark:to-black/25" />
-//           <div className="relative container mx-auto px-4 text-center">
-//             <motion.div
-//               initial={{ opacity: 0, y: 18 }}
-//               whileInView={{ opacity: 1, y: 0 }}
-//               viewport={{ once: true }}
-//             >
-//               <div className="flex justify-center mb-4">
-//                 <div className="flex items-center gap-3">
-//                   <Heart
-//                     className="w-4 h-4 text-rose-400"
-//                     fill="currentColor"
-//                   />
-//                   <div className="w-10 h-px bg-gradient-to-r from-rose-400 to-transparent" />
-//                   <Heart
-//                     className="w-5 h-5 text-rose-500 dark:text-rose-300"
-//                     fill="currentColor"
-//                   />
-//                   <div className="w-10 h-px bg-gradient-to-l from-rose-400 to-transparent" />
-//                   <Heart
-//                     className="w-4 h-4 text-rose-400"
-//                     fill="currentColor"
-//                   />
-//                 </div>
-//               </div>
-//               <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-zinc-800 dark:text-zinc-100 mb-3 sm:mb-4 font-playfair">
-//                 {translations.trustText}
-//               </h2>
-//               <p className="text-zinc-600 dark:text-zinc-200 mb-6 sm:mb-8 max-w-md mx-auto font-cormorant font-medium">
-//                 {translations.welcomeText}
-//               </p>
-//               <Link
-//                 href="/booking"
-//                 className="inline-flex items-center gap-2 px-8 py-4 sm:px-10 sm:py-5 bg-gradient-to-r from-rose-500 via-pink-500 to-rose-500 hover:from-rose-600 hover:via-pink-600 hover:to-rose-600 text-white rounded-full font-bold text-base sm:text-lg shadow-xl shadow-rose-300/50 transition-all active:scale-95 hover:scale-105"
-//               >
-//                 {translations.bookNow}
-//                 <ArrowRight className="w-5 h-5" />
-//               </Link>
-//             </motion.div>
-//           </div>
-//         </section>
-//       </div>
-//     </main>
-//   );
-// }
-
-
-

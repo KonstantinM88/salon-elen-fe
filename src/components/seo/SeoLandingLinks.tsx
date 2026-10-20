@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, Eye, Heart, ShieldCheck, Sparkles, type LucideIcon } from "lucide-react";
+import { ArrowRight, Eye, Footprints, Heart, ShieldCheck, Sparkles, type LucideIcon } from "lucide-react";
 
 import {
   localizeSeoLandingPage,
@@ -7,6 +7,7 @@ import {
   type SeoLandingCategory,
 } from "@/lib/seo-landing-pages";
 import type { SeoLocale } from "@/lib/seo-locale";
+import { FOOT_CARE_PATH, getFootCareLandingCopy } from "@/lib/foot-care-landing";
 
 const copy: Record<
   SeoLocale,
@@ -59,6 +60,7 @@ function localeHref(path: string, locale: SeoLocale) {
 
 export default function SeoLandingLinks({ locale }: { locale: SeoLocale }) {
   const t = copy[locale] ?? copy.de;
+  const footCarePage = getFootCareLandingCopy(locale);
 
   return (
     <section className="relative isolate overflow-hidden border-t border-rose-200/50 bg-gradient-to-b from-white via-rose-50/50 to-amber-50/40 px-4 py-14 dark:border-white/10 dark:from-[#09090d] dark:via-[#101018] dark:to-[#09090d] sm:py-20">
@@ -85,7 +87,7 @@ export default function SeoLandingLinks({ locale }: { locale: SeoLocale }) {
           </p>
         </div>
 
-        <div className="mt-9 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="mt-9 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
           {seoLandingPages.map((page) => {
             const Icon = categoryIcons[page.category];
             const localizedPage = localizeSeoLandingPage(page, locale);
@@ -119,6 +121,31 @@ export default function SeoLandingLinks({ locale }: { locale: SeoLocale }) {
               </Link>
             );
           })}
+          <Link
+            href={localeHref(FOOT_CARE_PATH, locale)}
+            className="group rounded-2xl border border-rose-200/70 bg-white/88 p-5 shadow-sm transition duration-300 hover:-translate-y-1 hover:border-rose-300 hover:shadow-xl hover:shadow-rose-200/25 dark:border-white/10 dark:bg-white/[0.04] dark:hover:border-amber-300/25 dark:hover:shadow-none"
+          >
+            <div className="flex items-start justify-between gap-4">
+              <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-rose-50 text-rose-700 dark:bg-amber-500/10 dark:text-amber-300">
+                <Footprints className="h-5 w-5" />
+              </span>
+              <ArrowRight className="mt-3 h-4 w-4 text-rose-500 transition group-hover:translate-x-1 dark:text-amber-300" />
+            </div>
+            <h3 className="mt-5 text-base font-semibold leading-6 text-gray-950 dark:text-white">
+              {footCarePage.breadcrumbCurrent}
+            </h3>
+            <p className="mt-3 line-clamp-3 text-sm leading-6 text-gray-600 dark:text-gray-300">
+              {footCarePage.metaDescription}
+            </p>
+            <div className="mt-5 flex items-center justify-between gap-3 border-t border-rose-100 pt-4 text-sm dark:border-white/10">
+              <span className="font-semibold text-rose-700 dark:text-amber-300">
+                {footCarePage.facts[1].value}
+              </span>
+              <span className="text-xs font-semibold uppercase tracking-[0.16em] text-gray-400">
+                {t.open}
+              </span>
+            </div>
+          </Link>
         </div>
       </div>
     </section>
