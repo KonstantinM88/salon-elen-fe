@@ -135,6 +135,14 @@ Useful scripts:
 
 ## Important Change Log
 
+- 2026-10-20: Added an idempotent DE/EN/RU long-form Fußpflege news article
+  package for `/news/fusspflege-halle-ratgeber`, including answer-first
+  SEO/GEO/AIO content, local Halle and Paulusviertel context, a treatment
+  selection table, safety boundaries, internal booking/service links, FAQ, and
+  dedicated responsive WebP/OG covers. Deploy the static image assets before
+  publishing with `npm run import:fusspflege-news -- --apply --publish`;
+  public news treats a null `publishedAt` as visible, so the importer refuses
+  `--apply` without `--publish`.
 - 2026-10-20: SEO landing-page reveal animations must never gate public
   content behind zero opacity or blur. `SeoStagger` uses a low intersection
   threshold so tall mobile service groups can enter the viewport state; its
