@@ -856,13 +856,10 @@ function CalendarInner() {
     return diff > 0 ? diff : 0;
   }, [state.slots]);
 
-  const displaySlots = React.useMemo(() => {
-    if (!state.slots.length || !durationMin) return state.slots;
-    const base = state.slots[0].startMinutes;
-    return state.slots.filter(
-      (s) => (s.startMinutes - base) % durationMin === 0
-    );
-  }, [state.slots, durationMin]);
+  // The availability API already validates every 15-minute candidate against
+  // the complete service duration and all busy windows. Re-sampling those
+  // results by duration creates false gaps for durations not divisible by 15.
+  const displaySlots = state.slots;
 
   /* ===================== RENDER ===================== */
 

@@ -135,6 +135,11 @@ Useful scripts:
 
 ## Important Change Log
 
+- 2026-10-21: Both light and dark booking calendars display every slot returned
+  by the shared availability API. Do not re-sample valid starts by
+  `durationMin`: the server already checks the full treatment interval at a
+  15-minute start step, while client-side duration modulo filtering creates
+  false gaps for 20/25/50/55/65/70/80/130-minute services.
 - 2026-10-21: The light booking calendar no longer overlays raw free-slot
   counts on mobile day numbers. Available capacity is shown by a separate
   high-contrast three-segment indicator with DE/EN/RU labels for many, some,
