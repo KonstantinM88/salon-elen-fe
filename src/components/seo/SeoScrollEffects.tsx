@@ -17,18 +17,18 @@ const easeOut = [0.22, 1, 0.36, 1] as const;
 function hiddenState(direction: RevealDirection) {
   switch (direction) {
     case "down":
-      return { opacity: 0, y: -34, filter: "blur(8px)" };
+      return { opacity: 1, y: -34 };
     case "left":
-      return { opacity: 0, x: -42, filter: "blur(8px)" };
+      return { opacity: 1, x: -42 };
     case "right":
-      return { opacity: 0, x: 42, filter: "blur(8px)" };
+      return { opacity: 1, x: 42 };
     case "scale":
-      return { opacity: 0, scale: 0.96, filter: "blur(8px)" };
+      return { opacity: 1, scale: 0.96 };
     case "none":
-      return { opacity: 0, filter: "blur(6px)" };
+      return { opacity: 1 };
     case "up":
     default:
-      return { opacity: 0, y: 34, filter: "blur(8px)" };
+      return { opacity: 1, y: 34 };
   }
 }
 
@@ -117,7 +117,7 @@ export function SeoStagger({
   children,
   className,
   delay = 0,
-  amount = 0.16,
+  amount = 0.01,
 }: {
   children: ReactNode;
   className?: string;

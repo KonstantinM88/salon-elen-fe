@@ -135,6 +135,12 @@ Useful scripts:
 
 ## Important Change Log
 
+- 2026-10-20: SEO landing-page reveal animations must never gate public
+  content behind zero opacity or blur. `SeoStagger` uses a low intersection
+  threshold so tall mobile service groups can enter the viewport state; its
+  hidden variants keep content readable if IntersectionObserver is delayed or
+  unavailable. This prevents long `/fusspflege-halle` groups from rendering as
+  empty vertical space on mobile browsers.
 - 2026-10-20: The public `/prices` page now shares the premium editorial
   design system used by `/services` and `/fusspflege-halle`. It keeps the
   cached live catalog and promotion data, DE/EN/RU content, JSON-LD, service
