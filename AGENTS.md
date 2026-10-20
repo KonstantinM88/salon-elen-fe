@@ -135,6 +135,17 @@ Useful scripts:
 
 ## Important Change Log
 
+- 2026-10-20: Homepage latest-news selection now follows article visibility
+  dates: only already-published articles whose `expiresAt` is empty or still in
+  the future may appear. Keep this aligned with `/news` so expired promotions
+  cannot remain on the homepage after disappearing from the news archive; the
+  existing one-hour cache remains to protect Neon from frequent reads.
+- 2026-10-20: The repository-owned `ThemeProvider` keeps the executable
+  `next-themes` bootstrap script during SSR, but marks the redundant
+  client-rendered copy as `application/json`. This is a compatibility
+  workaround for the React 19.2 / Next.js 16 dev overlay triggered by
+  `next-themes@0.4.6`; retain it until an upstream release no longer renders a
+  client-side script element.
 - 2026-10-20: Added an idempotent DE/EN/RU long-form Fußpflege news article
   package for `/news/fusspflege-halle-ratgeber`, including answer-first
   SEO/GEO/AIO content, local Halle and Paulusviertel context, a treatment

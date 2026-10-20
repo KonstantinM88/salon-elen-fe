@@ -184,8 +184,12 @@ export async function generateMetadata({
 
 const getLatestArticles = unstable_cache(
   async (): Promise<ArticleItem[]> => {
+    const now = new Date();
     const rows = await prisma.article.findMany({
-      where: { publishedAt: { not: null } },
+      where: {
+        publishedAt: { lte: now },
+        OR: [{ expiresAt: null }, { expiresAt: { gte: now } }],
+      },
       orderBy: [{ createdAt: "desc" }],
       take: 3,
     });
