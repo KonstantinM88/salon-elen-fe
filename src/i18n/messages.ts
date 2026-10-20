@@ -185,6 +185,13 @@ export type BaseMessages = {
   booking_calendar_legend_title: string;
   booking_calendar_legend_loading: string;
   booking_calendar_legend_subtitle: string;
+  booking_calendar_availability_label: string;
+  booking_calendar_availability_many: string;
+  booking_calendar_availability_some: string;
+  booking_calendar_availability_few: string;
+  booking_calendar_availability_none: string;
+  booking_calendar_today_label: string;
+  booking_calendar_selected_label: string;
 
   // Smart Tips
   booking_calendar_smart_tip_label: string;
@@ -1124,6 +1131,13 @@ const ruMessages: BaseMessages = {
   booking_calendar_legend_title: "Золотая заливка показывает занятость дня",
   booking_calendar_legend_loading: "Загрузка данных...",
   booking_calendar_legend_subtitle: "Чем выше заливка — тем больше записей",
+  booking_calendar_availability_label: "Свободное время",
+  booking_calendar_availability_many: "Много мест",
+  booking_calendar_availability_some: "Есть места",
+  booking_calendar_availability_few: "Мало мест",
+  booking_calendar_availability_none: "Мест нет",
+  booking_calendar_today_label: "Сегодня",
+  booking_calendar_selected_label: "Выбрано",
 
   // CALENDAR PAGE – Smart Tips
   booking_calendar_smart_tip_label: "💡 Умный совет",
@@ -1157,8 +1171,8 @@ const ruMessages: BaseMessages = {
 
   booking_client_google_title: "Быстрая регистрация",
   booking_client_google_description:
-    "Войдите через Google и сразу перейдите к оплате",
-  booking_client_google_benefit_1: "Один клик до оплаты",
+    "Быстро зарегистрируйтесь с помощью Google",
+  booking_client_google_benefit_1: "Регистрация в один клик",
   booking_client_google_benefit_2: "Автозаполнение данных",
   booking_client_google_benefit_3: "Безопасно и надёжно",
   booking_client_google_benefit_4: "Экономия времени",
@@ -2103,6 +2117,13 @@ const deMessages: BaseMessages = {
   booking_calendar_legend_loading: "Daten werden geladen...",
   booking_calendar_legend_subtitle:
     "Je höher die Füllung, desto mehr Buchungen",
+  booking_calendar_availability_label: "Freie Zeiten",
+  booking_calendar_availability_many: "Viele Termine",
+  booking_calendar_availability_some: "Termine verfügbar",
+  booking_calendar_availability_few: "Wenige Termine",
+  booking_calendar_availability_none: "Ausgebucht",
+  booking_calendar_today_label: "Heute",
+  booking_calendar_selected_label: "Ausgewählt",
 
   // CALENDAR PAGE – Smart Tips
   booking_calendar_smart_tip_label: "💡 Intelligenter Tipp",
@@ -2139,8 +2160,8 @@ const deMessages: BaseMessages = {
 
   booking_client_google_title: "Schnelle Registrierung",
   booking_client_google_description:
-    "Melden Sie sich über Google an und gehen Sie direkt zur Zahlung",
-  booking_client_google_benefit_1: "Ein Klick zur Zahlung",
+    "Registrieren Sie sich schnell und sicher mit Google",
+  booking_client_google_benefit_1: "Registrierung mit einem Klick",
   booking_client_google_benefit_2: "Automatisches Ausfüllen",
   booking_client_google_benefit_3: "Sicher und zuverlässig",
   booking_client_google_benefit_4: "Zeitersparnis",
@@ -3083,6 +3104,13 @@ const enMessages: BaseMessages = {
   booking_calendar_legend_title: "Golden fill shows day availability",
   booking_calendar_legend_loading: "Loading data...",
   booking_calendar_legend_subtitle: "The higher the fill, the more bookings",
+  booking_calendar_availability_label: "Available times",
+  booking_calendar_availability_many: "Many slots",
+  booking_calendar_availability_some: "Slots available",
+  booking_calendar_availability_few: "Few slots",
+  booking_calendar_availability_none: "Fully booked",
+  booking_calendar_today_label: "Today",
+  booking_calendar_selected_label: "Selected",
 
   // CALENDAR PAGE – Smart Tips
   booking_calendar_smart_tip_label: "💡 Smart Tip",
@@ -3116,8 +3144,8 @@ const enMessages: BaseMessages = {
 
   booking_client_google_title: "Quick Registration",
   booking_client_google_description:
-    "Sign in with Google and go straight to payment",
-  booking_client_google_benefit_1: "One click to payment",
+    "Register quickly and securely with Google",
+  booking_client_google_benefit_1: "One-click registration",
   booking_client_google_benefit_2: "Auto-fill data",
   booking_client_google_benefit_3: "Safe and secure",
   booking_client_google_benefit_4: "Save time",

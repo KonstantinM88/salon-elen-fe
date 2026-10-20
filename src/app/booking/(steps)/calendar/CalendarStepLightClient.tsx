@@ -762,9 +762,54 @@ function CalendarInnerLight(): React.JSX.Element {
                 const selected = isSameDay(date, dateISO);
                 const today = isTodayDate(date);
                 const disabled = isDisabledDay(date);
+                const availabilityKnown =
+                  !loadingMonthData && monthBusyData[iso] !== undefined;
                 const slotCount = monthBusyData[iso] ?? 0;
-                const fill = loadingMonthData ? 0 : Math.min(slotCount / maxSlotsInMonth, 1);
-                const hasSlots = slotCount > 0;
+                const availabilityRatio = availabilityKnown
+                  ? Math.min(slotCount / maxSlotsInMonth, 1)
+                  : 0;
+                const availabilitySegments =
+                  availabilityKnown && slotCount > 0
+                    ? Math.max(1, Math.ceil(availabilityRatio * 3))
+                    : 0;
+                const hasSlots = availabilityKnown && slotCount > 0;
+                const availabilityTone = !availabilityKnown
+                  ? {
+                      cell: "border-rose-200 bg-white text-[#3c2830]",
+                      segment: "bg-rose-300",
+                    }
+                  : availabilitySegments === 3
+                    ? {
+                        cell:
+                          "border-emerald-400 bg-emerald-50 text-emerald-950 shadow-[0_8px_22px_rgba(16,185,129,0.12)] hover:border-emerald-500",
+                        segment: "bg-emerald-500",
+                      }
+                    : availabilitySegments === 2
+                      ? {
+                          cell:
+                            "border-amber-400 bg-amber-50 text-amber-950 shadow-[0_8px_22px_rgba(245,158,11,0.12)] hover:border-amber-500",
+                          segment: "bg-amber-500",
+                        }
+                      : availabilitySegments === 1
+                        ? {
+                            cell:
+                              "border-rose-400 bg-rose-50 text-rose-950 shadow-[0_8px_22px_rgba(225,29,72,0.12)] hover:border-rose-500",
+                            segment: "bg-rose-500",
+                          }
+                        : {
+                            cell:
+                              "border-[#a95c70] bg-[#f3e4e8] text-[#713246] shadow-none",
+                            segment: "bg-[#a95c70]",
+                          };
+                const availabilityLabel = !availabilityKnown
+                  ? t("booking_calendar_legend_loading")
+                  : availabilitySegments === 3
+                    ? t("booking_calendar_availability_many")
+                    : availabilitySegments === 2
+                      ? t("booking_calendar_availability_some")
+                      : availabilitySegments === 1
+                        ? t("booking_calendar_availability_few")
+                        : t("booking_calendar_availability_none");
 
                 return (
                   <motion.button
@@ -779,26 +824,45 @@ function CalendarInnerLight(): React.JSX.Element {
                         ? "border-[#7d4e5b] bg-[#7d4e5b] text-white shadow-[0_18px_38px_rgba(126,76,91,0.28)]"
                         : disabled
                           ? "border-rose-200 bg-white/60 text-[#9b5368]/46"
-                          : "border-rose-300/80 bg-white text-[#3c2830] shadow-sm hover:border-[#d97891] hover:bg-white"
+                          : availabilityTone.cell
+                    }`}
+                    title={
+                      disabled
+                        ? t("booking_calendar_weekend")
+                        : hasSlots
+                          ? `${availabilityLabel}: ${slotCount} ${t("booking_calendar_slots_tooltip")}`
+                          : availabilityLabel
+                    }
+                    aria-label={`${date.toLocaleDateString(localeCode)}: ${
+                      disabled ? t("booking_calendar_weekend") : availabilityLabel
                     }`}
                   >
-                    {!selected && !disabled && hasSlots && (
-                      <span
-                        className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-[#e996aa]/56 to-transparent"
-                        style={{ height: `${Math.max(22, fill * 100)}%` }}
-                      />
-                    )}
                     {today && (
                       <span
-                        className={`absolute left-1/2 top-2 h-2 w-2 -translate-x-1/2 rounded-full ${
+                        className={`absolute left-1/2 top-1.5 h-1.5 w-1.5 -translate-x-1/2 rounded-full ${
                           selected ? "bg-white" : "bg-[#d97891]"
                         }`}
                       />
                     )}
                     <span className="relative z-10">{date.getDate()}</span>
-                    {!disabled && hasSlots && !selected && (
-                      <span className="absolute bottom-1.5 left-1/2 z-10 -translate-x-1/2 rounded-full bg-white/82 px-1.5 text-[10px] font-bold text-[#9b5368] shadow-sm">
-                        {slotCount}
+                    {!disabled && (
+                      <span className="pointer-events-none absolute inset-x-1.5 bottom-1.5 z-10 flex gap-0.5">
+                        {[1, 2, 3].map((segment) => (
+                          <span
+                            key={segment}
+                            className={`h-1 flex-1 rounded-full transition-colors ${
+                              segment <= availabilitySegments
+                                ? selected
+                                  ? "bg-white"
+                                  : availabilityTone.segment
+                                : availabilityKnown && availabilitySegments === 0
+                                  ? "bg-[#a95c70]/35"
+                                  : selected
+                                    ? "bg-white/28"
+                                    : "bg-[#dfd0d5]"
+                            }`}
+                          />
+                        ))}
                       </span>
                     )}
                   </motion.button>
@@ -806,18 +870,66 @@ function CalendarInnerLight(): React.JSX.Element {
               })}
             </div>
 
-            <div className="mt-6 grid gap-3 rounded-2xl border border-rose-200 bg-rose-50/76 p-4 text-sm font-semibold text-[#6f5860] sm:grid-cols-3">
-              <div className="inline-flex items-center gap-2">
-                <span className="h-3 w-3 rounded-full bg-[#d97891]" />
-                {t("booking_calendar_today_slots")}
+            <div className="mt-6 rounded-2xl border border-rose-200 bg-rose-50/76 p-4 text-sm font-semibold text-[#6f5860]">
+              <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#7d4e5b]">
+                {t("booking_calendar_availability_label")}
+              </p>
+              <div className="mt-3 grid grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-4">
+                {[
+                  {
+                    label: t("booking_calendar_availability_many"),
+                    active: 3,
+                    color: "bg-emerald-500",
+                  },
+                  {
+                    label: t("booking_calendar_availability_some"),
+                    active: 2,
+                    color: "bg-amber-500",
+                  },
+                  {
+                    label: t("booking_calendar_availability_few"),
+                    active: 1,
+                    color: "bg-rose-500",
+                  },
+                  {
+                    label: t("booking_calendar_availability_none"),
+                    active: 0,
+                    color: "bg-[#a95c70]",
+                  },
+                ].map((item) => (
+                  <div key={item.label} className="flex min-w-0 items-center gap-2">
+                    <span className="flex w-8 shrink-0 gap-0.5">
+                      {[1, 2, 3].map((segment) => (
+                        <span
+                          key={segment}
+                          className={`h-1.5 flex-1 rounded-full ${
+                            segment <= item.active
+                              ? item.color
+                              : item.active === 0
+                                ? "bg-[#a95c70]/35"
+                                : "bg-[#dfd0d5]"
+                          }`}
+                        />
+                      ))}
+                    </span>
+                    <span className="text-xs leading-tight">{item.label}</span>
+                  </div>
+                ))}
               </div>
-              <div className="inline-flex items-center gap-2">
-                <span className="h-3 w-3 rounded-full bg-[#7d4e5b]" />
-                {t("booking_calendar_selected_date_label")}
-              </div>
-              <div className="inline-flex items-center gap-2">
-                <span className="h-3 w-3 rounded-full border border-rose-200 bg-white/70" />
-                {t("booking_calendar_weekend")}
+
+              <div className="mt-4 grid gap-3 border-t border-rose-200 pt-4 sm:grid-cols-3">
+                <div className="inline-flex items-center gap-2">
+                  <span className="h-3 w-3 rounded-full bg-[#d97891]" />
+                  {t("booking_calendar_today_label")}
+                </div>
+                <div className="inline-flex items-center gap-2">
+                  <span className="h-3 w-3 rounded-full bg-[#7d4e5b]" />
+                  {t("booking_calendar_selected_label")}
+                </div>
+                <div className="inline-flex items-center gap-2">
+                  <span className="h-3 w-3 rounded-full border border-rose-200 bg-white/70" />
+                  {t("booking_calendar_weekend")}
+                </div>
               </div>
             </div>
           </motion.section>

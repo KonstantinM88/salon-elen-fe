@@ -135,6 +135,16 @@ Useful scripts:
 
 ## Important Change Log
 
+- 2026-10-21: The light booking calendar no longer overlays raw free-slot
+  counts on mobile day numbers. Available capacity is shown by a separate
+  high-contrast three-segment indicator with DE/EN/RU labels for many, some,
+  few, or no free times; exact counts remain available only in the desktop
+  tooltip. Keep calendar dates visually unobstructed and keep availability
+  styling derived from the live month API without changing slot selection.
+- 2026-10-21: The DE/EN/RU Google quick-registration card in the customer
+  booking flow describes registration only and no longer promises a direct
+  transition to payment. Keep payment wording out of this pre-registration
+  choice so Google OAuth cannot be mistaken for a charge or payment consent.
 - 2026-10-20: Homepage latest-news selection now follows article visibility
   dates: only already-published articles whose `expiresAt` is empty or still in
   the future may appear. Keep this aligned with `/news` so expired promotions
