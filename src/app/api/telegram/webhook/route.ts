@@ -35,6 +35,7 @@ import {
   summarizeTelegramUpdateForLog,
 } from '@/lib/telegram/logging';
 import {
+  sendTelegramPhoto as sendTelegramApiPhoto,
   sendTelegramMessage as sendTelegramApiMessage,
   type TelegramInlineKeyboardButton,
   type TelegramInlineKeyboardMarkup,
@@ -50,6 +51,10 @@ import {
   isAiAnalystAction,
 } from '@/lib/telegram/ai-analyst';
 import { buildDailyTelegramReport } from '@/lib/ai/ai-health';
+import {
+  formatDailyReportChartCaption,
+  renderDailyReportChart,
+} from '@/lib/ai/daily-report-chart';
 import {
   conversationExpiresIn,
   deleteTelegramConversationState,
@@ -958,7 +963,26 @@ const formatDeepLinkPhone = (value: string): string | null => {
     await sendPlainTelegramMessage(chatId, '⏳ Формирую дневной отчёт...');
 
     try {
-      const { message } = await buildDailyTelegramReport();
+      const { message, comparison } = await buildDailyTelegramReport();
+      try {
+        const chart = await renderDailyReportChart(comparison);
+        const photoResult = await sendTelegramApiPhoto({
+          chatId,
+          photo: chart,
+          caption: formatDailyReportChartCaption(comparison),
+        });
+        if (!photoResult.ok) {
+          console.warn('[Telegram Webhook] Manual daily chart failed:', {
+            chatId: String(chatId),
+            description: photoResult.description ?? 'unknown_error',
+          });
+        }
+      } catch (chartError) {
+        console.error('[Telegram Webhook] Manual daily chart rendering failed:', {
+          errorType: chartError instanceof Error ? chartError.name : 'unknown_error',
+        });
+      }
+
       const result = await sendTelegramApiMessage({
         chatId,
         text: message,

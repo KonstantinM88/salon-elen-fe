@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   sendTelegramMessage,
+  sendTelegramPhoto,
   splitTelegramText,
 } from "@/lib/telegram/sender";
 
@@ -93,6 +94,40 @@ test("sendTelegramMessage stops after a failed part", async () => {
     assert.equal(result.partsSent, 1);
     assert.equal(result.totalParts, 3);
     assert.equal(calls, 2);
+  } finally {
+    globalThis.fetch = originalFetch;
+    if (originalToken === undefined) delete process.env.TELEGRAM_BOT_TOKEN;
+    else process.env.TELEGRAM_BOT_TOKEN = originalToken;
+  }
+});
+
+test("sendTelegramPhoto uploads a PNG with its caption", async () => {
+  const originalFetch = globalThis.fetch;
+  const originalToken = process.env.TELEGRAM_BOT_TOKEN;
+  let requestUrl = "";
+  const requestBodies: FormData[] = [];
+  process.env.TELEGRAM_BOT_TOKEN = "test-token";
+  globalThis.fetch = (async (input: string | URL | Request, init?: RequestInit) => {
+    requestUrl = String(input);
+    requestBodies.push(init?.body as FormData);
+    return new Response(JSON.stringify({ ok: true }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
+  }) as typeof fetch;
+
+  try {
+    const result = await sendTelegramPhoto({
+      chatId: "123",
+      photo: Buffer.from([137, 80, 78, 71]),
+      caption: "Daily chart",
+    });
+
+    assert.equal(result.ok, true);
+    assert.match(requestUrl, /sendPhoto$/);
+    assert.equal(requestBodies[0]?.get("chat_id"), "123");
+    assert.equal(requestBodies[0]?.get("caption"), "Daily chart");
+    assert.ok(requestBodies[0]?.get("photo") instanceof Blob);
   } finally {
     globalThis.fetch = originalFetch;
     if (originalToken === undefined) delete process.env.TELEGRAM_BOT_TOKEN;

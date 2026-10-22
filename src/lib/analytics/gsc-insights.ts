@@ -454,7 +454,14 @@ function formatPopularQueryAnalysisLines(
   ];
 }
 
-export function formatGscInsightsMarkdown(insights: GscInsights): string {
+interface FormatGscInsightsOptions {
+  includeRecommendations?: boolean;
+}
+
+export function formatGscInsightsMarkdown(
+  insights: GscInsights,
+  options: FormatGscInsightsOptions = {},
+): string {
   const { report, topQueries, popularQueryAnalysis, recommendations } = insights;
   const heading = "🔎 *TOP\-10 запросов Google*";
 
@@ -497,18 +504,20 @@ export function formatGscInsightsMarkdown(insights: GscInsights): string {
     ...formatPopularQueryAnalysisLines(popularQueryAnalysis, true),
     "",
     formatLocalCompetitorsMarkdown(),
-    "",
-    "🧠 *Рекомендации AI*",
   );
 
-  if (recommendations.length === 0) {
-    lines.push("Недостаточно данных для рекомендаций\.");
-  } else {
-    recommendations.forEach((recommendation, index) => {
-      lines.push(
-        `${index + 1}\. *${escapeMarkdown(recommendation.query)}* — ${escapeMarkdown(formatGscRecommendationText(recommendation))}`,
-      );
-    });
+  if (options.includeRecommendations !== false) {
+    lines.push("", "🧠 *Рекомендации AI*");
+
+    if (recommendations.length === 0) {
+      lines.push("Недостаточно данных для рекомендаций\.");
+    } else {
+      recommendations.forEach((recommendation, index) => {
+        lines.push(
+          `${index + 1}\. *${escapeMarkdown(recommendation.query)}* — ${escapeMarkdown(formatGscRecommendationText(recommendation))}`,
+        );
+      });
+    }
   }
 
   return lines.join("\n");

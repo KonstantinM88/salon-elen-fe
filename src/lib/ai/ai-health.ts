@@ -17,8 +17,17 @@ import {
 } from '@/lib/analytics/gsc-insights';
 import {
   assertTelegramAdminDelivery,
+  sendTelegramAdminPhoto,
   sendTelegramAdminMessage,
 } from '@/lib/telegram/sender';
+import {
+  buildDailyReportComparison,
+  type DailyReportComparison,
+} from '@/lib/ai/daily-report-comparison';
+import {
+  formatDailyReportChartCaption,
+  renderDailyReportChart,
+} from '@/lib/ai/daily-report-chart';
 
 const AI_HEALTH_DB_RETRY_DELAY_MS = 750;
 const AI_HEALTH_DB_MAX_ATTEMPTS = Math.max(
@@ -528,15 +537,19 @@ async function checkErrorRateAlertOnce(
 // ─── Send Functions ─────────────────────────────────────────
 
 /**
- * Build the complete report. GSC/OpenAI does not touch PostgreSQL, so that
- * pipeline starts alongside the sequential DB-backed report work.
+ * Build the complete report. GSC does not touch PostgreSQL, so that pipeline
+ * starts alongside the sequential DB-backed report work. AI recommendations
+ * are intentionally reserved for the on-demand Telegram analyst menu.
  */
 export async function buildDailyTelegramReport(date?: Date | string): Promise<{
   message: string;
   summary: DailySummaryData;
+  comparison: DailyReportComparison;
 }> {
-  const gscBlockPromise = buildGscInsights()
-    .then(formatGscInsightsMarkdown)
+  const gscBlockPromise = buildGscInsights({ includeRecommendations: false })
+    .then((insights) => formatGscInsightsMarkdown(insights, {
+      includeRecommendations: false,
+    }))
     .catch((error) => {
       console.error('[AI Health] Failed to build GSC insights block:', {
         errorType: error instanceof Error ? error.name : 'unknown_error',
@@ -544,6 +557,10 @@ export async function buildDailyTelegramReport(date?: Date | string): Promise<{
       return '🔎 *TOP\\-10 запросов Google*\n\nДанные Search Console временно недоступны\\. Основной отчёт продолжает работать\\.';
     });
   const summary = await buildDailySummary(date);
+  const comparison = await withTransientDbRetry(
+    'build daily report comparison',
+    () => buildDailyReportComparison(summary),
+  );
   let upcomingAppointments: string;
 
   try {
@@ -568,7 +585,7 @@ ${gscBlock}
 
 ${upcomingAppointments}`;
 
-  return { message, summary };
+  return { message, summary, comparison };
 }
 
 /**
@@ -576,7 +593,22 @@ ${upcomingAppointments}`;
  */
 export async function sendDailySummaryToTelegram(date?: Date | string): Promise<boolean> {
   try {
-    const { message, summary } = await buildDailyTelegramReport(date);
+    const { message, summary, comparison } = await buildDailyTelegramReport(date);
+
+    try {
+      const chart = await renderDailyReportChart(comparison);
+      const photoResults = await sendTelegramAdminPhoto(chart, {
+        caption: formatDailyReportChartCaption(comparison),
+      });
+      if (photoResults.length === 0 || photoResults.every((result) => !result.ok)) {
+        console.warn('[AI Health] Daily chart was not delivered; continuing with text report');
+      }
+    } catch (chartError) {
+      console.error('[AI Health] Failed to render or send daily chart:', {
+        errorType: chartError instanceof Error ? chartError.name : 'unknown_error',
+      });
+    }
+
     const results = await sendTelegramAdminMessage(message, {
       parseMode: 'Markdown',
     });

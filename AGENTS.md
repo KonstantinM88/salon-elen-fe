@@ -135,6 +135,24 @@ Useful scripts:
 
 ## Important Change Log
 
+- 2026-10-22: Daily Telegram reports now send a 1080x1350 PNG comparison
+  chart before the existing text report. The chart compares the completed
+  reporting day, the preceding day, and the average of the seven complete
+  baseline days for visits, pageviews, appointments, AI sessions, AI bookings,
+  and AI conversion. Baseline data is loaded with three sequential range
+  queries rather than rebuilding seven daily reports; chart/photo failures must
+  never prevent the text fallback from being delivered. Weekly comparison rows
+  are labeled `Среднее/день` and also show the seven-day `Σ` total so the daily
+  bar remains comparable without hiding the weekly volume. A second chart
+  section compares two equal rolling seven-day windows ending on the reporting
+  day, avoiding misleading partial calendar-week comparisons. The thirteen
+  historical days required for both windows still use only three sequential
+  range queries. Manual `/report` uses the same chart and period semantics.
+- 2026-10-22: Daily Telegram reports, including scheduled sends and the manual
+  `/report` command, omit the AI recommendation section and skip its OpenAI
+  generation. Recommendations remain available on demand through the
+  Telegram AI analyst menu, where the search and competitor sections continue
+  to build the full GSC recommendation set.
 - 2026-10-21: Both light and dark booking calendars display every slot returned
   by the shared availability API. Do not re-sample valid starts by
   `durationMin`: the server already checks the full treatment interval at a

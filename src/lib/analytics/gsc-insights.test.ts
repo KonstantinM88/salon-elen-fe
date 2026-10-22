@@ -151,3 +151,42 @@ test("Telegram GSC report gives every query metric its own visual row", () => {
   assert.match(markdown, /────────────\n\n\*🚀 БЫСТРЫЕ ВОЗМОЖНОСТИ\*/);
   assert.match(plainText, /1\. hairstroke halle\n   🎯 ПОЗИЦИЯ: 11,2/);
 });
+
+test("daily Telegram formatting can omit AI recommendations without changing on-demand output", () => {
+  const insights = {
+    report: {
+      status: "ok" as const,
+      startDate: "2026-08-06",
+      endDate: "2026-08-12",
+      siteUrl: "https://permanent-halle.de/",
+      rows: metrics,
+      totals: {
+        impressions: 375,
+        clicks: 14,
+        ctr: 14 / 375,
+        position: 12.3,
+      },
+    },
+    topQueries: metrics.slice(0, 1),
+    popularQueryAnalysis: buildPopularQueryAnalysis(metrics),
+    recommendations: [
+      {
+        query: metrics[0].query,
+        action: "content" as const,
+        metric: metrics[0],
+      },
+    ],
+    recommendationSource: "fallback" as const,
+  };
+
+  const onDemand = formatGscInsightsMarkdown(insights);
+  const daily = formatGscInsightsMarkdown(insights, {
+    includeRecommendations: false,
+  });
+
+  assert.match(onDemand, /Рекомендации AI/);
+  assert.match(onDemand, /hairstroke halle/);
+  assert.doesNotMatch(daily, /Рекомендации AI/);
+  assert.match(daily, /TOP-10 запросов Google/);
+  assert.match(daily, /Анализ популярных запросов/);
+});

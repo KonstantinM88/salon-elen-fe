@@ -39,6 +39,14 @@ export interface TelegramSendResult {
   totalParts?: number;
 }
 
+export interface TelegramPhotoSendOptions {
+  chatId: string | number;
+  photo: Buffer;
+  caption?: string;
+  parseMode?: TelegramParseMode;
+  filename?: string;
+}
+
 interface TelegramApiResponse {
   ok?: boolean;
   description?: string;
@@ -190,6 +198,62 @@ export async function sendTelegramMessage({
   }
 }
 
+export async function sendTelegramPhoto({
+  chatId: rawChatId,
+  photo,
+  caption,
+  parseMode,
+  filename = 'salon-elen-report.png',
+}: TelegramPhotoSendOptions): Promise<TelegramSendResult> {
+  const token = getBotToken();
+  const chatId = normalizeChatId(rawChatId);
+
+  if (!token) {
+    return {
+      ok: false,
+      chatId,
+      description: 'TELEGRAM_BOT_TOKEN is not configured',
+    };
+  }
+
+  try {
+    const form = new FormData();
+    form.set('chat_id', chatId);
+    form.set(
+      'photo',
+      new Blob([new Uint8Array(photo)], { type: 'image/png' }),
+      filename,
+    );
+    if (caption) form.set('caption', caption);
+    if (parseMode) form.set('parse_mode', parseMode);
+
+    const response = await fetch(`https://api.telegram.org/bot${token}/sendPhoto`, {
+      method: 'POST',
+      body: form,
+    });
+    const result = (await response.json().catch(() => null)) as TelegramApiResponse | null;
+
+    if (!response.ok || !result?.ok) {
+      return {
+        ok: false,
+        chatId,
+        description: result?.description ?? 'Telegram photo upload failed',
+        partsSent: 0,
+        totalParts: 1,
+      };
+    }
+
+    return { ok: true, chatId, partsSent: 1, totalParts: 1 };
+  } catch (error) {
+    return {
+      ok: false,
+      chatId,
+      description: error instanceof Error ? error.message : 'Telegram photo upload failed',
+      totalParts: 1,
+    };
+  }
+}
+
 export async function sendTelegramAdminMessage(
   text: string,
   options: Omit<TelegramSendOptions, "chatId" | "text"> = {},
@@ -219,6 +283,36 @@ export async function sendTelegramAdminMessage(
     if (!result.ok) {
       console.error(
         `[Telegram Sender] Failed for ${result.chatId}: ${result.description ?? "unknown error"}`,
+      );
+    }
+  }
+
+  return results;
+}
+
+export async function sendTelegramAdminPhoto(
+  photo: Buffer,
+  options: Omit<TelegramPhotoSendOptions, 'chatId' | 'photo'> = {},
+): Promise<TelegramSendResult[]> {
+  const adminChatIds = parseTelegramAdminChatIds();
+
+  if (adminChatIds.length === 0) {
+    console.warn('[Telegram Sender] TELEGRAM_ADMIN_CHAT_ID is not configured');
+    return [];
+  }
+
+  const results = await Promise.all(
+    adminChatIds.map((chatId) => sendTelegramPhoto({
+      chatId,
+      photo,
+      ...options,
+    })),
+  );
+
+  for (const result of results) {
+    if (!result.ok) {
+      console.error(
+        `[Telegram Sender] Photo failed for ${result.chatId}: ${result.description ?? 'unknown error'}`,
       );
     }
   }
