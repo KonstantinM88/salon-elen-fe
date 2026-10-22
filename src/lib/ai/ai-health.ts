@@ -602,10 +602,15 @@ export async function sendDailySummaryToTelegram(date?: Date | string): Promise<
       });
       if (photoResults.length === 0 || photoResults.every((result) => !result.ok)) {
         console.warn('[AI Health] Daily chart was not delivered; continuing with text report');
+      } else {
+        console.log(
+          `[AI Health] Daily chart sent for ${summary.dateISO}: ${chart.length} bytes, ${photoResults.filter((result) => result.ok).length}/${photoResults.length} recipient(s)`,
+        );
       }
     } catch (chartError) {
       console.error('[AI Health] Failed to render or send daily chart:', {
         errorType: chartError instanceof Error ? chartError.name : 'unknown_error',
+        errorMessage: chartError instanceof Error ? chartError.message : String(chartError),
       });
     }
 

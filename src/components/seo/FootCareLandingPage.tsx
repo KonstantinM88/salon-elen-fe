@@ -256,6 +256,7 @@ export default function FootCareLandingPage({ locale, copy, services }: Props) {
                   alt={`${copy.breadcrumbCurrent} – apparative Pediküre bei Salon Elen`}
                   fill
                   priority
+                  unoptimized
                   sizes="(max-width: 1024px) 65vw, 38vw"
                   className="object-cover"
                 />

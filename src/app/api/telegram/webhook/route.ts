@@ -976,10 +976,16 @@ const formatDeepLinkPhone = (value: string): string | null => {
             chatId: String(chatId),
             description: photoResult.description ?? 'unknown_error',
           });
+        } else {
+          console.log('[Telegram Webhook] Manual daily chart sent:', {
+            chatId: String(chatId),
+            bytes: chart.length,
+          });
         }
       } catch (chartError) {
         console.error('[Telegram Webhook] Manual daily chart rendering failed:', {
           errorType: chartError instanceof Error ? chartError.name : 'unknown_error',
+          errorMessage: chartError instanceof Error ? chartError.message : String(chartError),
         });
       }
 

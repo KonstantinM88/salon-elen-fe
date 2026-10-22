@@ -1,4 +1,3 @@
-import sharp from 'sharp';
 import type {
   DailyHeadlineMetrics,
   DailyReportComparison,
@@ -206,6 +205,11 @@ export function buildDailyReportChartSvg(comparison: DailyReportComparison): str
 export async function renderDailyReportChart(
   comparison: DailyReportComparison,
 ): Promise<Buffer> {
+  // Keep Sharp external to the Next.js server bundle. Other runtime image
+  // handlers in this project use the same lazy import so the native Linux
+  // binary is resolved from node_modules after deployment.
+  const sharp = (await import('sharp')).default;
+
   return sharp(Buffer.from(buildDailyReportChartSvg(comparison)))
     .png({ compressionLevel: 9, adaptiveFiltering: true })
     .toBuffer();

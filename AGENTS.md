@@ -135,6 +135,17 @@ Useful scripts:
 
 ## Important Change Log
 
+- 2026-10-22: Daily-report chart rendering lazy-loads Sharp at runtime, matching
+  the established upload/image handlers, so the deployed Next.js/Turbopack
+  server resolves the native Linux module instead of bundling its static
+  import. Scheduled and manual Telegram chart paths log successful PNG byte
+  counts and sanitized error messages while preserving the text-report
+  fallback.
+- 2026-10-22: The primary `/fusspflege-halle` hero image bypasses the
+  Next.js image optimizer and serves its verified 1254x1254 WebP directly.
+  This keeps the mobile LCP image reliable on high-density Android devices
+  while the two smaller hero images and service-card images retain responsive
+  optimization.
 - 2026-10-22: Daily Telegram reports now send a 1080x1350 PNG comparison
   chart before the existing text report. The chart compares the completed
   reporting day, the preceding day, and the average of the seven complete
