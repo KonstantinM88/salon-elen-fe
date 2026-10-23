@@ -135,6 +135,15 @@ Useful scripts:
 
 ## Important Change Log
 
+- 2026-10-23: Daily Telegram report chart rasterization is isolated from the
+  long-running Next.js/PM2 process through
+  `scripts/render-daily-report-chart.mjs`. The generated SVG is passed over
+  stdin to the project Node executable, the result is size-limited and checked
+  for a PNG signature, and the existing in-process Sharp renderer remains a
+  fallback. Keep this boundary: production Sharp could render SVG directly on
+  the host but intermittently returned `Input buffer contains unsupported image
+  format` only inside the restarted Next.js process, while text reports still
+  delivered normally.
 - 2026-10-22: Daily-report chart rendering lazy-loads Sharp at runtime, matching
   the established upload/image handlers, so the deployed Next.js/Turbopack
   server resolves the native Linux module instead of bundling its static

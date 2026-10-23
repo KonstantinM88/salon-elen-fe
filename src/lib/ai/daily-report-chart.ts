@@ -1,3 +1,5 @@
+import { spawn } from 'node:child_process';
+import path from 'node:path';
 import type {
   DailyHeadlineMetrics,
   DailyReportComparison,
@@ -5,6 +7,9 @@ import type {
 
 const WIDTH = 1080;
 const HEIGHT = 2040;
+const MAX_RENDERED_PNG_BYTES = 12 * 1024 * 1024;
+const RENDER_TIMEOUT_MS = 15_000;
+const PNG_SIGNATURE = Buffer.from('89504e470d0a1a0a', 'hex');
 const numberFormat = new Intl.NumberFormat('ru-RU', {
   maximumFractionDigits: 1,
 });
@@ -202,17 +207,113 @@ export function buildDailyReportChartSvg(comparison: DailyReportComparison): str
   </svg>`;
 }
 
+function hasPngSignature(buffer: Buffer): boolean {
+  return buffer.length >= PNG_SIGNATURE.length
+    && buffer.subarray(0, PNG_SIGNATURE.length).equals(PNG_SIGNATURE);
+}
+
+/**
+ * Rasterize outside the Next.js server module graph. Sharp works reliably as a
+ * standalone Node dependency on the production host, while the long-running
+ * Next/PM2 process has intermittently stopped recognising otherwise valid SVG
+ * buffers after a restart.
+ */
+async function renderWithIsolatedSharp(svg: Buffer): Promise<Buffer> {
+  const rendererPath = path.join(
+    process.cwd(),
+    'scripts',
+    'render-daily-report-chart.mjs',
+  );
+
+  return new Promise<Buffer>((resolve, reject) => {
+    const child = spawn(process.execPath, [rendererPath], {
+      cwd: process.cwd(),
+      env: process.env,
+      stdio: ['pipe', 'pipe', 'pipe'],
+      windowsHide: true,
+    });
+    const stdoutChunks: Buffer[] = [];
+    const stderrChunks: Buffer[] = [];
+    let stdoutBytes = 0;
+    let stderrBytes = 0;
+    let settled = false;
+
+    const finish = (error?: Error, png?: Buffer) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timeout);
+      if (error) reject(error);
+      else resolve(png!);
+    };
+
+    const timeout = setTimeout(() => {
+      child.kill();
+      finish(new Error(`Isolated chart renderer timed out after ${RENDER_TIMEOUT_MS}ms`));
+    }, RENDER_TIMEOUT_MS);
+
+    child.on('error', (error) => finish(error));
+    child.stdout.on('data', (chunk: Buffer) => {
+      stdoutBytes += chunk.length;
+      if (stdoutBytes > MAX_RENDERED_PNG_BYTES) {
+        child.kill();
+        finish(new Error('Isolated chart renderer exceeded the PNG size limit'));
+        return;
+      }
+      stdoutChunks.push(chunk);
+    });
+    child.stderr.on('data', (chunk: Buffer) => {
+      if (stderrBytes >= 16_384) return;
+      stderrBytes += chunk.length;
+      stderrChunks.push(chunk);
+    });
+    child.on('close', (code, signal) => {
+      if (settled) return;
+      const stderr = Buffer.concat(stderrChunks).toString('utf8').trim();
+      if (code !== 0) {
+        const exitReason = signal || (code === null ? 'unknown' : String(code));
+        finish(new Error(
+          `Isolated chart renderer failed (${exitReason}): ${stderr || 'no error output'}`,
+        ));
+        return;
+      }
+
+      const png = Buffer.concat(stdoutChunks);
+      if (!hasPngSignature(png)) {
+        finish(new Error('Isolated chart renderer returned an invalid PNG'));
+        return;
+      }
+      finish(undefined, png);
+    });
+    child.stdin.on('error', (error) => finish(error));
+    child.stdin.end(svg);
+  });
+}
+
 export async function renderDailyReportChart(
   comparison: DailyReportComparison,
 ): Promise<Buffer> {
-  // Keep Sharp external to the Next.js server bundle. Other runtime image
-  // handlers in this project use the same lazy import so the native Linux
-  // binary is resolved from node_modules after deployment.
-  const sharp = (await import('sharp')).default;
+  const svg = Buffer.from(buildDailyReportChartSvg(comparison), 'utf8');
 
-  return sharp(Buffer.from(buildDailyReportChartSvg(comparison)))
+  try {
+    return await renderWithIsolatedSharp(svg);
+  } catch (isolatedError) {
+    console.warn('[Daily Report Chart] Isolated renderer failed; using in-process fallback:', {
+      errorType: isolatedError instanceof Error ? isolatedError.name : 'unknown_error',
+      errorMessage: isolatedError instanceof Error
+        ? isolatedError.message
+        : String(isolatedError),
+    });
+  }
+
+  const sharp = (await import('sharp')).default;
+  const png = await sharp(svg)
     .png({ compressionLevel: 9, adaptiveFiltering: true })
     .toBuffer();
+
+  if (!hasPngSignature(png)) {
+    throw new Error('In-process chart renderer returned an invalid PNG');
+  }
+  return png;
 }
 
 export function formatDailyReportChartCaption(

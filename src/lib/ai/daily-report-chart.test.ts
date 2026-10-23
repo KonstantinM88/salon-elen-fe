@@ -86,3 +86,29 @@ test('daily report chart renders to a Telegram-ready PNG', async () => {
   assert.equal(metadata.width, 1080);
   assert.equal(metadata.height, 2040);
 });
+
+test('daily report chart renders when all measured values are zero', async () => {
+  const zeroMetrics = {
+    siteVisits: 0,
+    sitePageviews: 0,
+    appointmentCreations: 0,
+    totalSessions: 0,
+    completedBookings: 0,
+    conversionRate: 0,
+  };
+  const zeroComparison: DailyReportComparison = {
+    ...comparison,
+    current: { ...zeroMetrics },
+    previous: { ...zeroMetrics },
+    weeklyAverage: { ...zeroMetrics },
+    weeklyTotals: { ...zeroMetrics },
+    currentWeekTotals: { ...zeroMetrics },
+    previousWeekTotals: { ...zeroMetrics },
+  };
+
+  const png = await renderDailyReportChart(zeroComparison);
+  const metadata = await sharp(png).metadata();
+  assert.equal(metadata.format, 'png');
+  assert.equal(metadata.width, 1080);
+  assert.equal(metadata.height, 2040);
+});
