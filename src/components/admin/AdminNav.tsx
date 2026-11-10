@@ -18,6 +18,7 @@ import {
   UserSquare2,
   User,
   BadgePercent,
+  Gift,
 } from "lucide-react";
 import type { Role } from "@/lib/prisma-client";
 import { IconGlow, type GlowTone } from "./IconGlow";
@@ -30,6 +31,7 @@ type NavItem = {
     | "news"
     | "services"
     | "promotions"
+    | "gifts"
     | "bookings"
     | "clients"
     | "masters"
@@ -48,6 +50,7 @@ const NAV_ALL: NavItem[] = [
   { key: "news", href: "/admin/news", icon: <Newspaper className="h-5 w-5" /> },
   { key: "services", href: "/admin/services", icon: <Scissors className="h-5 w-5" /> },
   { key: "promotions", href: "/admin/promotions", icon: <BadgePercent className="h-5 w-5" /> },
+  { key: "gifts", href: "/admin/gutscheine", icon: <Gift className="h-5 w-5" /> },
   { key: "bookings", href: "/admin/bookings", icon: <ClipboardList className="h-5 w-5" /> },
   { key: "clients", href: "/admin/clients", icon: <Users className="h-5 w-5" /> },
   { key: "masters", href: "/admin/masters", icon: <UserSquare2 className="h-5 w-5" /> },
@@ -65,6 +68,7 @@ const NAV_LABELS: Record<SeoLocale, Record<NavItem["key"], string>> = {
     news: "News",
     services: "Leistungen",
     promotions: "Aktionen",
+    gifts: "Gutscheine",
     bookings: "Buchungen",
     clients: "Kunden",
     masters: "Mitarbeiter",
@@ -80,6 +84,7 @@ const NAV_LABELS: Record<SeoLocale, Record<NavItem["key"], string>> = {
     news: "Новости",
     services: "Услуги",
     promotions: "Акции",
+    gifts: "Сертификаты",
     bookings: "Заявки",
     clients: "Клиенты",
     masters: "Мастера",
@@ -95,6 +100,7 @@ const NAV_LABELS: Record<SeoLocale, Record<NavItem["key"], string>> = {
     news: "News",
     services: "Services",
     promotions: "Promotions",
+    gifts: "Gift vouchers",
     bookings: "Bookings",
     clients: "Clients",
     masters: "Staff",
@@ -108,7 +114,7 @@ const NAV_LABELS: Record<SeoLocale, Record<NavItem["key"], string>> = {
 
 const VISIBLE_BY_ROLE: Record<Role, NavItem["key"][]> = {
   ADMIN: [
-    "dashboard", "profile", "news", "services", "promotions", "bookings",
+    "dashboard", "profile", "news", "services", "promotions", "gifts", "bookings",
     "clients", "masters", "calendar", "users", "stats", "ai", "monitoring",
   ],
   MASTER: ["dashboard", "profile", "bookings", "clients", "calendar"],
@@ -171,6 +177,11 @@ const COLORS: Record<
     chipTo: "to-rose-500/25",
     itemGlow: "shadow-[0_0_30px_-8px_rgba(245,158,11,0.45)]",
     glow: "amber",
+  },
+  gifts: {
+    iconLight: "text-rose-600", iconDark: "text-rose-300", ring: "ring-rose-400/30",
+    chipFrom: "from-rose-600/25", chipTo: "to-amber-500/25",
+    itemGlow: "shadow-[0_0_30px_-8px_rgba(244,63,94,0.45)]", glow: "rose",
   },
   bookings: {
     iconLight: "text-emerald-600",

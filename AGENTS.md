@@ -135,6 +135,24 @@ Useful scripts:
 
 ## Important Change Log
 
+- 2026-11-10: Added `/gutschein` in DE/EN/RU with a live gift preview and
+  non-binding voucher requests. `GiftVoucherRequest` is additive migration
+  `20261110120000_add_gift_voucher_requests`; deploy its table before exposing
+  submission. Requests save before Telegram/admin fan-out and Resend receipts;
+  UUIDs deduplicate retries and buyer emails have a persisted hourly limit.
+  Admin-only `/admin/gutscheine` manages processing status and internal notes.
+  These records are requests, not paid vouchers, redeemable codes or balances;
+  payment, issue and redemption terms must be agreed with the salon. See
+  `readme/GUTSCHEIN.md`. No live migration or real notification test is implied
+  by local verification. Header navigation switches to the compact menu below
+  1440px so the new localized link does not overlap the logo or account actions.
+- 2026-11-10: With explicit user approval, migration
+  `20261110120000_add_gift_voucher_requests` was applied to the configured
+  production Neon database with `prisma db execute --file`, then registered
+  through `prisma migrate resolve --applied`. All 19 columns, four indexes and
+  the migration checksum were verified; `prisma migrate status` reports all
+  54 local migrations applied. Existing records were not changed and no real
+  voucher request or notification was created during verification.
 - 2026-10-23: Daily Telegram report chart rasterization is isolated from the
   long-running Next.js/PM2 process through
   `scripts/render-daily-report-chart.mjs`. The generated SVG is passed over

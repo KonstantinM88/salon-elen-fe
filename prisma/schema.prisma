@@ -86,6 +86,32 @@ model SiteVisit {
   @@map("site_visit")
 }
 
+/// Non-binding requests only; not redeemable voucher codes or balances.
+model GiftVoucherRequest {
+  id                 String   @id
+  reference          String   @unique
+  amountCents        Int
+  locale             String   @db.VarChar(2)
+  buyerName          String   @db.VarChar(100)
+  email              String   @db.VarChar(254)
+  phone              String   @db.VarChar(40)
+  recipientName      String   @db.VarChar(100)
+  senderName         String   @db.VarChar(100)
+  message            String   @db.VarChar(500)
+  delivery           String   @db.VarChar(10)
+  status             String   @default("NEW") @db.VarChar(12)
+  adminNote          String   @default("") @db.VarChar(1000)
+  consentAt          DateTime @default(now())
+  consentVersion     String   @default("gutschein-request-v1")
+  notifiedAt         DateTime?
+  receiptSentAt      DateTime?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@index([status, createdAt])
+  @@index([email, createdAt])
+}
+
 model Booking {
   id        String   @id @default(cuid())
   name      String

@@ -46,6 +46,7 @@ const publicPages: PublicPage[] = [
   })),
   { path: "/services", priority: 0.9, changeFrequency: "weekly" },
   { path: "/prices", priority: 0.8, changeFrequency: "weekly" },
+  { path: "/gutschein", priority: 0.8, changeFrequency: "monthly" },
   { path: "/about", priority: 0.7, changeFrequency: "monthly" },
   { path: "/news", priority: 0.7, changeFrequency: "daily" },
   { path: "/contacts", priority: 0.65, changeFrequency: "monthly" },

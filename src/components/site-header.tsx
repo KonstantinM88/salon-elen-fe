@@ -9,6 +9,7 @@ import { useSession, signIn, signOut } from "next-auth/react";
 import {
   Scissors,
   BadgeDollarSign,
+  Gift,
   Phone,
   Newspaper,
   Info,
@@ -35,6 +36,7 @@ type NavKey =
   | "nav_home"
   | "nav_services"
   | "nav_prices"
+  | "nav_gutschein"
   | "nav_gallery"
   | "nav_contacts"
   | "nav_news"
@@ -52,6 +54,7 @@ const NAV: NavItem[] = [
   { href: "/", labelKey: "nav_home", icon: Sparkles, tone: "text-fuchsia-500 dark:text-fuchsia-400" },
   { href: "/services", labelKey: "nav_services", icon: Scissors, tone: "text-emerald-600 dark:text-emerald-400" },
   { href: "/prices", labelKey: "nav_prices", icon: BadgeDollarSign, tone: "text-amber-600 dark:text-amber-400" },
+  { href: "/gutschein", labelKey: "nav_gutschein", icon: Gift, tone: "text-rose-600 dark:text-rose-300" },
   { href: "/gallerie", labelKey: "nav_gallery", icon: Images, tone: "text-pink-500 dark:text-pink-400" },
   { href: "/contacts", labelKey: "nav_contacts", icon: Phone, tone: "text-sky-600 dark:text-sky-400" },
   { href: "/news", labelKey: "nav_news", icon: Newspaper, tone: "text-violet-600 dark:text-violet-400" },
@@ -215,8 +218,8 @@ export default function SiteHeader() {
       <div className="mx-auto flex h-14 max-w-[1440px] items-center justify-between px-3 sm:px-4 lg:px-5">
         <Logo />
 
-        {/* ── Desktop nav (lg+) ── */}
-        <nav className="hidden lg:flex items-center gap-0.5 mx-2 flex-1 justify-center min-w-0">
+        {/* ── Desktop navigation (1440px+) ── */}
+        <nav className="hidden min-[1440px]:flex items-center gap-0.5 mx-2 flex-1 justify-center min-w-0">
           {NAV.filter((n) => !(n.href === "/admin" && !canSeeAdmin)).map(
             (item) => {
               const active =
@@ -243,8 +246,8 @@ export default function SiteHeader() {
           )}
         </nav>
 
-        {/* ── Desktop right zone (lg+) ── */}
-        <div className="hidden lg:flex items-center gap-1.5 flex-shrink-0">
+        {/* ── Desktop account controls (1440px+) ── */}
+        <div className="hidden min-[1440px]:flex items-center gap-1.5 flex-shrink-0">
           <LocaleSwitcher />
           <ThemeToggle />
 
@@ -280,10 +283,10 @@ export default function SiteHeader() {
           )}
         </div>
 
-        {/* ── Mobile menu button (< lg) ── */}
+        {/* ── Compact menu button (< 1440px) ── */}
         <button
           className={cx(
-            "lg:hidden h-9 w-9 rounded-full border flex items-center justify-center transition-colors flex-shrink-0",
+            "min-[1440px]:hidden h-9 w-9 rounded-full border flex items-center justify-center transition-colors flex-shrink-0",
             "border-rose-200/60 bg-white/60 text-rose-700",
             "dark:bg-slate-900/60 dark:border-white/20 dark:text-white"
           )}
@@ -294,10 +297,10 @@ export default function SiteHeader() {
         </button>
       </div>
 
-      {/* ── Mobile menu (< lg) ── */}
+      {/* ── Compact menu (< 1440px) ── */}
       <div
         className={cx(
-          "lg:hidden w-full overflow-hidden border-t transition-[max-height] duration-300",
+          "min-[1440px]:hidden w-full overflow-hidden border-t transition-[max-height] duration-300",
           "border-rose-100/40 dark:border-slate-800",
           open ? "max-h-[80vh]" : "max-h-0"
         )}

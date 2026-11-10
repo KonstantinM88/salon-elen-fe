@@ -16,6 +16,7 @@ import {
   Sparkles,
   Home,
   Tag,
+  Gift,
   Newspaper,
   Info,
   User,
@@ -30,6 +31,7 @@ type MainNavKey =
   | "nav_home"
   | "nav_services"
   | "nav_prices"
+  | "nav_gutschein"
   | "nav_contacts"
   | "nav_news"
   | "nav_about";
@@ -80,6 +82,13 @@ type MessengerItem = {
 };
 
 const mainNav: MainNavItem[] = [
+  {
+    href: "/gutschein",
+    labelKey: "nav_gutschein",
+    icon: Gift,
+    glowClass: "from-rose-400 via-pink-400 to-amber-300",
+    ringClass: "dark:shadow-[0_0_16px_rgba(236,72,153,0.85)]",
+  },
   {
     href: "/",
     labelKey: "nav_home",

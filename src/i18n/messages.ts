@@ -7,6 +7,7 @@ export type BaseMessages = {
   nav_home: string;
   nav_services: string;
   nav_prices: string;
+  nav_gutschein: string;
   nav_gallery: string;
   nav_contacts: string;
   nav_news: string;
@@ -949,6 +950,7 @@ const ruMessages: BaseMessages = {
   nav_home: "Главная",
   nav_services: "Услуги",
   nav_prices: "Цены",
+  nav_gutschein: "Сертификаты",
   nav_gallery: "Галерея",
   nav_contacts: "Контакты",
   nav_news: "Новости",
@@ -1939,6 +1941,7 @@ const deMessages: BaseMessages = {
   nav_home: "Startseite",
   nav_services: "Leistungen",
   nav_prices: "Preise",
+  nav_gutschein: "Gutscheine",
   nav_gallery: "Galerie",
   nav_contacts: "Kontakt",
   nav_news: "Neuigkeiten",
@@ -2931,6 +2934,7 @@ const enMessages: BaseMessages = {
   nav_home: "Home",
   nav_services: "Services",
   nav_prices: "Prices",
+  nav_gutschein: "Gift vouchers",
   nav_gallery: "Gallery",
   nav_contacts: "Contacts",
   nav_news: "News",
