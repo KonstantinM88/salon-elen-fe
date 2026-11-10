@@ -7,4 +7,4 @@ export {
   Role,
   VideoType,
 } from "../generated/prisma/client";
-export type { GiftVoucherRequest } from "../generated/prisma/client";
+export type { GiftVoucherRequest, GiftVoucherStatusEvent } from "../generated/prisma/client";

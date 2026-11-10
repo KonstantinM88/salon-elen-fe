@@ -56,7 +56,8 @@ export async function POST(request: Request) {
       if (existing.email !== data.email || existing.amountCents !== data.amount * 100
         || existing.buyerName !== data.buyerName || existing.phone !== data.phone
         || existing.recipientName !== data.recipientName || existing.senderName !== data.senderName
-        || existing.message !== data.message || existing.delivery !== data.delivery) {
+        || existing.message !== data.message || existing.delivery !== data.delivery
+        || existing.designKey !== data.designKey) {
         return NextResponse.json({ error: 'VALIDATION' }, { status: 409 });
       }
       return NextResponse.json({ ok: true, reference: existing.reference, receiptSent: !!existing.receiptSentAt });
@@ -69,7 +70,7 @@ export async function POST(request: Request) {
       id: data.requestId, reference: `ELEN-${randomBytes(6).toString('hex').toUpperCase()}`,
       amountCents: data.amount * 100, locale: data.locale, buyerName: data.buyerName,
       email: data.email, phone: data.phone, recipientName: data.recipientName,
-      senderName: data.senderName, message: data.message, delivery: data.delivery,
+      senderName: data.senderName, message: data.message, delivery: data.delivery, designKey: data.designKey,
     } });
     const results = await Promise.allSettled([notifyGiftRequest(order), sendGiftReceipt(order)]);
     results.forEach((result, index) => {

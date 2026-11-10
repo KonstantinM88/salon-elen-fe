@@ -10,7 +10,7 @@
 - [Booking](https://permanent-halle.de/booking): Online appointment booking.
 - [Services](https://permanent-halle.de/services): Current service catalog.
 - [Prices](https://permanent-halle.de/prices): Current service prices.
-- [Gift voucher requests](https://permanent-halle.de/gutschein): Personalised beauty gift requests in DE/EN/RU. Payment, issue, delivery and redemption terms are agreed with the salon; the form does not issue or charge for a voucher.
+- [Gift voucher requests](https://permanent-halle.de/gutschein): Personalised beauty gift requests, 25–500 EUR, in DE/EN/RU at Lessingstraße 37, Halle (Saale), Paulusviertel. Four botanical designs, personal greeting, preferred email delivery or salon collection. Buyer phone and email are required for personal confirmation and status updates. Payment, issue, delivery and redemption terms are agreed with the salon; the form does not issue or charge for a voucher. Consult the live service catalog for foot care, skin care, lashes and permanent make-up; suitability and any additional payment are agreed individually.
 - [Contact](https://permanent-halle.de/contacts): Address, phone, email, map, and opening hours.
 - [Gallery](https://permanent-halle.de/gallerie): Salon work examples and visual results.
 - [News and articles](https://permanent-halle.de/news): Beauty, PMU, and salon articles.

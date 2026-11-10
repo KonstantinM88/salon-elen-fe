@@ -99,6 +99,7 @@ model GiftVoucherRequest {
   senderName         String   @db.VarChar(100)
   message            String   @db.VarChar(500)
   delivery           String   @db.VarChar(10)
+  designKey          String   @default("orchid") @db.VarChar(20)
   status             String   @default("NEW") @db.VarChar(12)
   adminNote          String   @default("") @db.VarChar(1000)
   consentAt          DateTime @default(now())
@@ -107,9 +108,29 @@ model GiftVoucherRequest {
   receiptSentAt      DateTime?
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
+  statusEvents       GiftVoucherStatusEvent[]
 
   @@index([status, createdAt])
   @@index([email, createdAt])
+}
+
+/// Durable status notification history. No internal notes are sent to buyers.
+model GiftVoucherStatusEvent {
+  id                    String   @id @default(uuid())
+  requestId             String
+  request               GiftVoucherRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  previousStatus        String   @db.VarChar(12)
+  status                String   @db.VarChar(12)
+  createdById           String
+  createdAt             DateTime @default(now())
+  clientNotifiedAt      DateTime?
+  adminChatIds          String[] @default([])
+  adminDeliveredChatIds String[] @default([])
+  adminNotifiedAt       DateTime?
+  deliveryLockedUntil   DateTime?
+  deliveryLockToken     String?
+
+  @@index([requestId, createdAt])
 }
 
 model Booking {

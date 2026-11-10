@@ -11,3 +11,44 @@
 @media(max-width:850px){.hero{grid-template-columns:1fr;padding:55px 7% 40px;min-height:0;gap:15px}.hero h1{font-size:clamp(44px,8vw,68px)}.heroCopy .description,.lead{max-width:600px}.heroArt{height:440px;max-width:520px;width:100%;justify-self:center}.heroCard{min-height:290px}.cardTitle{font-size:54px}.envelope{inset:100px 0 40px 8%}.occasion{padding-inline:7%}.builder{padding:60px 7%}.builderGrid{grid-template-columns:.85fr 1.15fr;gap:30px}.previewCard{padding:24px}.previewAmount{font-size:60px!important}.previewLabel{font-size:26px}.previewCard .cardBrand{font-size:8px}.fieldGrid{grid-template-columns:1fr;gap:0}.faq{gap:35px}.perks{gap:12px}}
 @media(max-width:600px){.hero{padding-top:36px}.hero h1{font-size:46px;margin:20px 0 24px}.lead{font-size:22px}.description{font-size:13px}.heroActions{gap:20px}.primary{font-size:11px;padding-inline:20px}.heroArt{height:390px}.heroCard{min-height:265px;padding:27px}.cardTitle{font-size:46px;margin-top:28px}.heroCard p{font-size:12px}.envelope{inset:100px 0 50px 8%}.heroCardLine{margin-block:22px}.artCaption{font-size:9px;bottom:24px;padding:12px 16px}.artNumber{font-size:7px}.occasion{grid-template-columns:1fr;gap:22px;padding-top:30px;padding-bottom:50px}.occasionGrid{grid-template-columns:1fr;gap:22px}.occasionGrid article{display:grid;grid-template-columns:35px 1fr;gap:4px 15px;padding-top:18px}.occasionGrid h3{margin:0;font-size:20px}.occasionGrid p{grid-column:2;max-width:none}.builderGrid{grid-template-columns:1fr;gap:36px}.builderHeader{text-align:left;margin-bottom:28px}.builderHeader h2{font-size:32px}.previewColumn{position:static;max-width:400px;width:100%;margin:auto;padding:0}.previewCard{padding:30px}.previewLabel{margin-top:26px!important;font-size:30px}.previewAmount{font-size:65px!important}.previewMessage{font-size:13px}.previewDisclaimer{margin-bottom:16px!important}.previewPlace{display:none}.fieldGrid{grid-template-columns:1fr}.process{padding:55px 7%}.process>div{grid-template-columns:1fr;gap:26px;margin-top:30px}.process article{display:grid;grid-template-columns:42px 1fr;gap:6px 15px}.process h3{margin:0;align-self:center}.process p{grid-column:2}.faq{padding:10px 7% 55px;grid-template-columns:1fr;gap:24px}.faq h2{max-width:none}.local{padding:50px 7%}.success{padding:24px}.success h3{font-size:27px}}
 @media(prefers-reduced-motion:reduce){.page *{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
+
+.searchHeading { display: block; margin-bottom: 22px; max-width: 38ch; font: 500 15px/1.6 var(--font-sans), Arial, sans-serif; letter-spacing: .02em; color: var(--rose); }
+.heroBotanical { position: absolute; inset: 0; }
+.heroBotanical img { object-fit: cover; }
+.heroBotanical::after { content: ''; position: absolute; inset: 0; background: linear-gradient(90deg, #352332ec 12%, #352332c4 55%, #35233245); }
+.heroCard > :not(.heroBotanical):not(.seal) { position: relative; z-index: 1; }
+.heroCard > .seal { z-index: 1; }
+.answer, .treatments { max-width: 1200px; margin: auto; padding: 50px 5%; }
+.answer { border-top: 1px solid var(--line); }
+.answer h2, .treatments h2 { margin: 18px 0; font-family: var(--font-playfair), Georgia, serif; font-size: clamp(28px, 3.5vw, 42px); line-height: 1.25; font-weight: 400; }
+.answer > p:last-child, .treatments > p:not(.eyebrow) { max-width: 78ch; color: var(--muted); font-size: 14px; line-height: 1.9; }
+.treatments > div { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 18px; margin-top: 30px; }
+.treatments > div > a { border: 1px solid var(--line); padding: 24px; border-radius: 16px; background: var(--paper); min-width: 0; }
+.treatments a > span { color: var(--rose); font: italic 24px Georgia, serif; }
+.treatments h3 { display: flex; justify-content: space-between; gap: 12px; font: 400 21px/1.4 Georgia, serif; margin: 18px 0 12px; }
+.treatments h3 svg { flex-shrink: 0; }
+.treatments a p { font-size: 12px; line-height: 1.8; color: var(--muted); }
+.treatments a:hover { border-color: var(--rose); }
+.previewCard { background: var(--gift-background); color: var(--gift-foreground); border-color: var(--gift-border); padding-top: 175px; }
+.previewCard::before { border-color: var(--gift-border); opacity: .45; z-index: 1; }
+.previewBotanical { position: absolute; inset: 0 0 auto; height: 150px; }
+.previewBotanical img { object-fit: cover; object-position: center 35%; }
+.previewBotanical::after { content: ''; position: absolute; inset: 0; background: linear-gradient(0deg, var(--gift-background), transparent 70%); }
+.previewRecipient, .previewFrom { border-color: var(--gift-border); }
+.builderGrid { column-gap: 8%; row-gap: 32px; }
+.designPicker { grid-column: 1 / -1; border: 0; padding: 0; margin: 0; min-width: 0; }
+.designPicker legend { font-size: 12px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; margin-bottom: 20px; }
+.designOptions { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
+.designOption { position: relative; display: block; min-width: 0; cursor: pointer; }
+.designOption input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.designSwatch { display: block; position: relative; aspect-ratio: 1.8; border-radius: 12px; overflow: hidden; border: 3px solid transparent; }
+.designSwatch > img { object-fit: cover; }
+.designName { display: block; font-size: 11px; line-height: 1.6; margin-top: 8px; }
+.designCheck { display: none; position: absolute; right: 8px; bottom: 8px; background: #814553; color: #fff; padding: 5px; border-radius: 50%; }
+.designOption input:checked + .designSwatch { border-color: var(--rose); box-shadow: 0 0 0 3px var(--paper); }
+.designOption input:checked + .designSwatch .designCheck { display: block; }
+.designOption input:focus-visible + .designSwatch { outline: 3px solid var(--rose); outline-offset: 4px; }
+.designOption input:disabled ~ span { opacity: .6; }
+@media (max-width: 1000px) { .treatments > div { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 850px) { .builderGrid { column-gap: 30px; } }
+@media (max-width: 600px) { .answer, .treatments { padding: 36px 7%; } .searchHeading { font-size: 13px; margin-bottom: 16px; } .previewCard { padding-top: 150px; } .previewBotanical { height: 125px; } .treatments > div { grid-template-columns: 1fr; } .designOptions { grid-template-columns: repeat(2, minmax(0, 1fr)); } }

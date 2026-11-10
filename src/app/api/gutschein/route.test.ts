@@ -24,7 +24,7 @@ const { POST } = await import('./route');
 
 const data = {
   requestId: '800b4c99-692d-4b7b-b5e6-9186981585ce', locale: 'de', amount: 100,
-  buyerName: 'Test Buyer', email: 'test@example.invalid', phone: '',
+  buyerName: 'Test Buyer', email: 'test@example.invalid', phone: '+49 177 8995106', designKey: 'peony',
   recipientName: 'Recipient', senderName: '', message: '', delivery: 'EMAIL', consent: true, website: '',
 };
 let address = 1;
@@ -40,6 +40,8 @@ test('voucher request endpoint guards writes, persists before notification, and 
   try {
     assert.equal((await POST(request(data, 'https://external.invalid'))).status, 403);
     assert.equal((await POST(request({ ...data, amount: 1 }))).status, 400);
+    assert.equal((await POST(request({ ...data, phone: '' }))).status, 400);
+    assert.equal((await POST(request({ ...data, designKey: 'invalid' }))).status, 400);
     assert.equal(stored.length, 0);
     const response = await POST(request(data));
     assert.equal(response.status, 201);
@@ -48,6 +50,7 @@ test('voucher request endpoint guards writes, persists before notification, and 
     assert.equal(result.receiptSent, false);
     assert.equal(stored[0].amountCents, 10000);
     assert.equal(stored[0].email, data.email);
+    assert.equal(stored[0].designKey, 'peony');
     assert.match(result.reference, /^ELEN-[0-9A-F]{12}$/);
     assert.equal('email' in result, false);
     existing = { ...stored[0], receiptSentAt: null };
@@ -55,6 +58,7 @@ test('voucher request endpoint guards writes, persists before notification, and 
     assert.equal(duplicate.status, 200);
     assert.equal((await duplicate.json()).reference, result.reference);
     assert.equal(stored.length, 1);
+    assert.equal((await POST(request({ ...data, designKey: 'lily' }))).status, 409);
     existing = null;
     recentCount = 3;
     assert.equal((await POST(request(data))).status, 429);

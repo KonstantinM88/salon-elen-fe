@@ -135,6 +135,31 @@ Useful scripts:
 
 ## Important Change Log
 
+- 2026-11-10: With explicit user approval, migration
+  `20261110150000_gift_designs_status_notifications` was applied to the
+  configured production Neon database in a transaction with lock/statement
+  timeouts, then registered with `prisma migrate resolve --applied`. All 55
+  migrations are up to date; the migration checksum, 20 request columns, 12
+  status-event columns and event constraints were verified. The one existing
+  request kept all previous field values (verified by a before/after digest)
+  and received the default orchid design. No status events, customer requests
+  or real notifications were created during migration verification. Deployment
+  remains a separate operation from this database migration and Git push.
+- 2026-11-10: Gutschein requests now support four persisted botanical designs
+  (orchid/plum, peony/rose, ginkgo/sage, lily/champagne). New requests require a
+  contact phone in both UI and server validation; old requests remain valid.
+  Additive migration `20261110150000_gift_designs_status_notifications` adds
+  `designKey` and `GiftVoucherStatusEvent`. Admin status transitions atomically
+  create an event, then send localized buyer emails and direct admin Telegram
+  messages, tracking acknowledgements separately per channel and admin chat.
+  Pending deliveries are visible and retryable in admin; note-only saves do not
+  notify customers. Optimistic concurrency guards stale forms; event delivery
+  leases limit simultaneous retries. Internal notes never leave admin.
+  `/gutschein` adds local answer-first DE/EN/RU copy, service links, six shared
+  visible/schema FAQ entries and botanical OG metadata. Artwork provenance and
+  prompts live in `readme/GUTSCHEIN_ARTWORK.md`. This migration must be applied
+  before deploying the new code; local checks do not apply it or send real
+  customer notifications. No new background poller or cron was introduced.
 - 2026-11-10: Added `/gutschein` in DE/EN/RU with a live gift preview and
   non-binding voucher requests. `GiftVoucherRequest` is additive migration
   `20261110120000_add_gift_voucher_requests`; deploy its table before exposing

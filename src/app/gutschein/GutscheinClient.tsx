@@ -1,16 +1,22 @@
 'use client';
 
-import { useRef, useState, type FormEvent } from 'react';
+import { useRef, useState, type CSSProperties, type FormEvent } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { ArrowDown, ArrowUpRight, Check, CheckCircle2, Gift, Heart, Mail, MapPin, Sparkles } from 'lucide-react';
 import { useI18n } from '@/i18n/I18nProvider';
 import { giftCopy } from '@/lib/gutschein-copy';
 import { GIFT_AMOUNTS } from '@/lib/gutschein';
+import { GIFT_DESIGN_KEYS, giftDesigns, type GiftDesignKey } from '@/lib/gutschein-designs';
+import { giftDetailsCopy, giftFaq } from '@/lib/gutschein-details-copy';
 import styles from './gutschein.module.css';
 
 export default function GutscheinClient() {
   const { locale } = useI18n();
   const t = giftCopy[locale];
+  const detail = giftDetailsCopy[locale];
+  const [designKey, setDesignKey] = useState<GiftDesignKey>('orchid');
+  const design = giftDesigns[designKey];
   const [amount, setAmount] = useState('100');
   const [custom, setCustom] = useState(false);
   const [recipient, setRecipient] = useState('');
@@ -31,6 +37,8 @@ export default function GutscheinClient() {
     const form = new FormData(event.currentTarget);
     const value = Number(amount);
     if (!Number.isInteger(value) || value < 25 || value > 500) { setError(t.invalid); return; }
+    const phone = String(form.get('phone') || '').trim();
+    if (!/^[+()\d\s./-]+$/.test(phone) || phone.replace(/\D/g, '').length < 7 || phone.replace(/\D/g, '').length > 15) { setError(detail.invalidPhone); return; }
     submissionLock.current = true;
     setPending(true);
     setError('');
@@ -38,8 +46,8 @@ export default function GutscheinClient() {
     try {
       const response = await fetch('/api/gutschein', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ requestId: requestId.current, locale, amount: value,
-          buyerName: form.get('buyerName'), email: form.get('email'), phone: form.get('phone'),
+        body: JSON.stringify({ requestId: requestId.current, locale, amount: value, designKey,
+          buyerName: form.get('buyerName'), email: form.get('email'), phone,
           recipientName: recipient, senderName: sender, message, delivery,
           consent: form.get('consent') === 'on', website: form.get('website'),
         }),
@@ -56,7 +64,7 @@ export default function GutscheinClient() {
     <section className={styles.hero}>
       <div className={styles.heroCopy}>
         <p className={styles.eyebrow}>{t.eyebrow}</p>
-        <h1>{t.title}<br /><em>{t.titleAccent}</em></h1>
+        <h1><span className={styles.searchHeading}>{detail.heading}</span>{t.title}<br /><em>{t.titleAccent}</em></h1>
         <p className={styles.lead}>{t.intro}</p>
         <p className={styles.description}>{t.description}</p>
         <div className={styles.heroActions}><a href="#gestalten" className={styles.primary}>{t.cta}<ArrowUpRight size={18} /></a><a href="#ablauf" className={styles.textLink}>{t.secondary}<ArrowDown size={16} /></a></div>
@@ -64,11 +72,13 @@ export default function GutscheinClient() {
       </div>
       <div className={styles.heroArt} aria-hidden="true">
         <div className={styles.halo} /><div className={styles.envelope} />
-        <div className={styles.heroCard}><div className={styles.cardBrand}>SALON ELEN <Sparkles size={22} /></div><div className={styles.cardTitle}>{t.voucher}</div><p>{t.voucherSub}</p><div className={styles.heroCardLine} /><span>BEAUTY · CARE · YOU</span><div className={styles.seal}><Gift size={25} /></div></div>
+        <div className={styles.heroCard}><div className={styles.heroBotanical}><Image src={giftDesigns.orchid.image} alt="" fill sizes="(max-width: 600px) 85vw, 440px" priority /></div><div className={styles.cardBrand}>SALON ELEN <Sparkles size={22} /></div><div className={styles.cardTitle}>{t.voucher}</div><p>{t.voucherSub}</p><div className={styles.heroCardLine} /><span>BEAUTY · CARE · YOU</span><div className={styles.seal}><Gift size={25} /></div></div>
         <div className={styles.artCaption}><Heart size={16} />{t.badge}</div>
         <span className={styles.artNumber}>01 / ELEN GIFT COLLECTION</span>
       </div>
     </section>
+
+    <section className={styles.answer}><p className={styles.eyebrow}>HALLE (SAALE) · PAULUSVIERTEL</p><h2>{detail.answerTitle}</h2><p>{detail.answer}</p></section>
 
     <section className={styles.occasion}>
       <div><p className={styles.eyebrow}>A LITTLE MORE LOVE</p><h2>{t.occasionTitle}</h2></div><p>{t.occasionIntro}</p>
@@ -78,8 +88,17 @@ export default function GutscheinClient() {
     <section id="gestalten" className={styles.builder}>
       <header className={styles.builderHeader}><p className={styles.eyebrow}>{t.formEyebrow}</p><h2>{t.formTitle}</h2><p>{t.formIntro}</p></header>
       <div className={styles.builderGrid}>
+        {!result && <fieldset className={styles.designPicker} disabled={pending}>
+          <legend>{detail.design}</legend>
+          <div className={styles.designOptions}>{GIFT_DESIGN_KEYS.map(key => <label key={key} className={styles.designOption}>
+            <input type="radio" name="designKey" value={key} checked={designKey === key} onChange={() => setDesignKey(key)} />
+            <span className={styles.designSwatch}><Image src={giftDesigns[key].image} alt="" fill sizes="(max-width: 600px) 40vw, 240px" /><span className={styles.designCheck}><Check size={15} /></span></span>
+            <span className={styles.designName}>{giftDesigns[key].names[locale]}</span>
+          </label>)}</div><p className={styles.hint}>{detail.designHint}</p>
+        </fieldset>}
         <aside className={styles.previewColumn}>
-          <div className={styles.previewCard}>
+          <div className={styles.previewCard} data-design={designKey} style={{ '--gift-background': design.background, '--gift-foreground': design.foreground, '--gift-border': design.border } as CSSProperties}>
+            <div className={styles.previewBotanical}><Image key={designKey} src={design.image} alt={design.names[locale]} fill sizes="(max-width: 600px) 86vw, (max-width: 850px) 36vw, 440px" /></div>
             <div className={styles.cardBrand}>SALON ELEN<Sparkles size={20} /></div>
             <p className={styles.previewLabel}>{t.voucher}</p><p className={styles.previewAmount}>{Number(amount) >= 25 && Number(amount) <= 500 ? amount : '—'} <span>€</span></p>
             <div className={styles.previewRecipient}><small>{t.to}</small><strong>{recipient || t.defaultRecipient}</strong></div>
@@ -104,7 +123,7 @@ export default function GutscheinClient() {
             </fieldset>
             <fieldset disabled={pending}><legend>{t.contact}</legend>
               <label className={styles.field}><span>{t.buyer} *</span><input name="buyerName" autoComplete="name" minLength={2} maxLength={100} required /></label>
-              <div className={styles.fieldGrid}><label className={styles.field}><span>{t.email} *</span><input name="email" autoComplete="email" type="email" maxLength={254} required /></label><label className={styles.field}><span>{t.phone} <small>({t.optional})</small></span><input name="phone" autoComplete="tel" type="tel" maxLength={40} /></label></div>
+              <div className={styles.fieldGrid}><label className={styles.field}><span>{t.email} *</span><input name="email" autoComplete="email" type="email" maxLength={254} required /></label><label className={styles.field}><span>{t.phone} *</span><input name="phone" autoComplete="tel" type="tel" inputMode="tel" minLength={7} maxLength={40} required aria-describedby="phone-hint" /><small id="phone-hint">{detail.phoneHint}</small></label></div>
               <div role="group" aria-label={t.delivery} className={styles.delivery}><button type="button" aria-pressed={delivery === 'EMAIL'} className={delivery === 'EMAIL' ? styles.chosen : ''} onClick={() => setDelivery('EMAIL')}><Mail size={19} />{t.emailDelivery}</button><button type="button" aria-pressed={delivery === 'PICKUP'} className={delivery === 'PICKUP' ? styles.chosen : ''} onClick={() => setDelivery('PICKUP')}><MapPin size={19} />{t.pickup}</button></div><p className={styles.hint}>{t.deliveryHint}</p>
               <div className={styles.honeypot} aria-hidden="true"><label>Website<input name="website" tabIndex={-1} autoComplete="off" /></label></div>
               <label className={styles.consent}><input type="checkbox" name="consent" required /><span>{t.privacy} <Link href={`/datenschutz${suffix}`} target="_blank" rel="noopener noreferrer">{t.privacyLink}<span className="sr-only"> ↗</span></Link></span></label>
@@ -115,8 +134,9 @@ export default function GutscheinClient() {
       </div>
     </section>
 
+    <section className={styles.treatments}><p className={styles.eyebrow}>BEAUTY · CARE · HALLE</p><h2>{detail.treatmentsTitle}</h2><p>{detail.treatmentsIntro}</p><div>{detail.treatments.map(([href, title, text], index) => <Link href={`${href}${suffix}`} key={href}><span>0{index + 1}</span><h3>{title}<ArrowUpRight size={20} /></h3><p>{text}</p></Link>)}</div></section>
     <section id="ablauf" className={styles.process}><h2>{t.how}</h2><div>{t.steps.map(([title, text], index) => <article key={title}><span>0{index + 1}</span><h3>{title}</h3><p>{text}</p></article>)}</div></section>
-    <section className={styles.faq}><div><p className={styles.eyebrow}>GUTSCHEIN · SALON ELEN</p><h2>{t.faqTitle}</h2></div><div>{t.faq.map(([question, answer]) => <details key={question}><summary>{question}<span aria-hidden="true">+</span></summary><p>{answer}</p></details>)}</div></section>
+    <section className={styles.faq}><div><p className={styles.eyebrow}>GUTSCHEIN · SALON ELEN</p><h2>{t.faqTitle}</h2></div><div>{giftFaq(locale).map(([question, answer]) => <details key={question}><summary>{question}<span aria-hidden="true">+</span></summary><p>{answer}</p></details>)}</div></section>
     <section className={styles.local}><Sparkles size={28} /><h2>{t.localTitle}</h2><p>{t.localText}</p><div><Link href={`/services${suffix}`}>{t.services}<ArrowUpRight size={17} /></Link><Link href={`/contacts${suffix}`}>{t.contacts}<ArrowUpRight size={17} /></Link></div></section>
   </div>;
 }

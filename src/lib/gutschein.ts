@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { GIFT_DESIGN_KEYS } from './gutschein-designs';
 
 export const GIFT_AMOUNTS = [25, 50, 75, 100, 150, 200] as const;
 export const GIFT_STATUSES = ['NEW', 'CONTACTED', 'COMPLETED', 'CANCELED'] as const;
@@ -13,7 +14,9 @@ export const giftRequestSchema = z.object({
   amount: z.number().int().min(25).max(500),
   buyerName: shortText(100).pipe(z.string().min(2)),
   email: z.string().trim().email().max(254).transform(value => value.toLowerCase()),
-  phone: shortText(40).refine(value => value === '' || /^[+()\d\s./-]{6,40}$/.test(value)),
+  phone: shortText(40).refine(value => /^[+()\d\s./-]+$/.test(value)
+    && value.replace(/\D/g, '').length >= 7 && value.replace(/\D/g, '').length <= 15),
+  designKey: z.enum(GIFT_DESIGN_KEYS).default('orchid'),
   recipientName: shortText(100),
   senderName: shortText(100),
   message: shortText(500),
