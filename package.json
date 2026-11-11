@@ -13,6 +13,7 @@
         "typecheck": "tsc --noEmit",
         "test:styles": "node --test scripts/tailwind-sources.test.mjs",
         "test:payments": "tsx --test src/lib/payments/payment-policy.test.ts",
+        "test:ai-information": "tsx --test src/lib/ai/salon-information.test.ts src/app/api/ai/chat/information.test.ts",
         "test:validation": "tsx --test src/lib/validation-contracts.test.ts src/lib/auth-validation.test.ts src/lib/home-gutschein.test.ts src/lib/gutschein.test.ts src/lib/gutschein-status.test.ts src/app/api/gutschein/route.test.ts",
         "test:telegram-analyst": "tsx --test src/lib/telegram/sender.test.ts src/lib/analytics/gsc-insights.test.ts src/lib/ai/daily-report-comparison.test.ts src/lib/ai/daily-report-chart.test.ts",
         "import:fusspflege-news": "tsx scripts/import-fusspflege-news.ts",

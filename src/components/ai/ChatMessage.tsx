@@ -4,6 +4,7 @@
 
 import { motion } from 'framer-motion';
 import { RotateCcw } from 'lucide-react';
+import { safeAssistantOptionUrl } from '@/lib/ai/option-url';
 
 export interface Message {
   id: string;
@@ -122,7 +123,7 @@ interface ContentProps {
   isError?: boolean;
 }
 
-/** Allow only safe internal booking urls for [option url="..."] */
+/** Allow only known local destinations for [option url="..."] */
 function parseOptionUrl(rawAttrs?: string): string | undefined {
   if (!rawAttrs) return undefined;
   const attrRegex = /([a-zA-Z_][\w-]*)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s\]]+))/g;
@@ -131,9 +132,7 @@ function parseOptionUrl(rawAttrs?: string): string | undefined {
     const key = match[1].toLowerCase();
     const value = (match[2] ?? match[3] ?? match[4] ?? '').trim();
     if (key === 'url') {
-      if (value.startsWith('/booking/')) return value;
-      if (/^https?:\/\/[^/]+\/booking\//i.test(value)) return value;
-      return undefined;
+      return safeAssistantOptionUrl(value, typeof window === 'undefined' ? undefined : window.location.origin);
     }
   }
   return undefined;

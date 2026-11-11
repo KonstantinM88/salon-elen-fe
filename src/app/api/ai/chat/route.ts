@@ -99,6 +99,7 @@ import {
   isSalonFaqMenuIntent,
   isSalonOverviewIntent,
 } from '@/lib/ai/salon-assistant-content';
+import { resolveSalonInformation } from '@/lib/ai/salon-information';
 
 // ─── Config ─────────────────────────────────────────────────────
 
@@ -4534,6 +4535,19 @@ export async function POST(
 
   try {
   if (!forceGpt) {
+  // Voucher/foot-care consultation precedes generic FAQ/service routing, but
+  // never consumes protected booking/verification input or a catalog/menu reset.
+  if (!isResetToMainMenuIntent(message, session.locale) &&
+      !isGreetingIntent(message, session.locale)) {
+    const information = resolveSalonInformation(message, session.locale, session.context);
+    // The legacy catalog detector also matches "how much" / "сколько стоит".
+    // Explicit voucher questions and health warnings must not become a price list.
+    if (information && (!isFullCatalogRequest(message, session.locale) || information.preferOverCatalog)) {
+      appendSessionMessage(sessionId, 'assistant', information.text);
+      console.log(`[AI Chat] session=${sessionId.slice(0, 8)}... fastpath=salon-information topic=${information.topic}`);
+      return NextResponse.json({ text: information.text, sessionId, inputMode: 'text' });
+    }
+  }
   if (
     !hasActiveBookingFlow &&
     session.context.awaitingConsultationBookingConfirmation &&

@@ -2,6 +2,7 @@
 
 import { ORG_TZ } from '@/lib/orgTime';
 import { buildSalonFaqSystemContext } from '@/lib/ai/salon-assistant-content';
+import { buildSalonInformationContext } from '@/lib/ai/salon-information';
 
 /**
  * Builds the system prompt with dynamic context (current date, timezone).
@@ -21,6 +22,7 @@ export function buildSystemPrompt(locale?: string): string {
     minute: '2-digit',
   });
   const faqContext = buildSalonFaqSystemContext(locale);
+  const informationContext = buildSalonInformationContext(locale === 'en' || locale === 'ru' ? locale : 'de');
 
   return `${SYSTEM_PROMPT}
 
@@ -35,6 +37,11 @@ DYNAMISCHER KONTEXT
 AKTUELLE FAQ-BASIS
 ═══════════════════════════════════════════════════
 ${faqContext}
+
+═══════════════════════════════════════════════════
+GUTSCHEIN & FUSSPFLEGE: VERIFIZIERTE BERATUNGSBASIS
+═══════════════════════════════════════════════════
+${informationContext}
 `;
 }
 

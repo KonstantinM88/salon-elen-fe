@@ -135,6 +135,20 @@ Useful scripts:
 
 ## Important Change Log
 
+- 2026-11-11: AI consultation now shares the public Gutschein FAQ, form choices,
+  four design names and processing-status explanations through
+  `src/lib/ai/salon-information.ts`. It provides 13 gift-voucher and 17 foot-care
+  FAQ entries per DE/EN/RU locale, topic buttons, paginated question menus and
+  locale-preserving form/page links. Deterministic answers and the GPT system
+  context share the same source. Voucher chat cannot order, issue, redeem,
+  cancel, check a personal request or confirm payment; manual salon agreement
+  remains required. Foot-care prices/durations/availability stay tool-driven;
+  health red flags must not become routine cosmetic booking suggestions.
+  Protected booking/registration/OTP inputs bypass the new FAQ handler. Option
+  URLs are restricted to known same-site routes, preserving Google handoff.
+  `npm run test:ai-information` covers content, routing, safe URLs and the real
+  chat endpoint with stubbed analytics/DB/network. No schema or migration change.
+  See `readme/AI_SALON_INFORMATION.md` for sources and maintenance boundaries.
 - 2026-11-11: Online treatment payments are temporarily paused through shared
   `src/lib/payments/config.ts` (`PAYMENT_OPTIONS.onlineEnabled=false`). Keep
   onsite selected and Stripe/PayPal visible but disabled, with DE/EN/RU copy.

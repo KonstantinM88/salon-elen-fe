@@ -3,6 +3,7 @@ import {
   type HomeFaqItem,
   type HomeFaqLocale,
 } from '@/lib/home-faq';
+import { buildInformationTopicOptions } from './salon-information';
 
 export type SalonAssistantLocale = 'de' | 'en' | 'ru';
 
@@ -152,7 +153,7 @@ export function buildSalonFaqMenuText(locale?: string): string {
         ? 'Choose a question or write your own. I will explain it clearly and help with the next step.'
         : 'Wählen Sie eine Frage oder schreiben Sie Ihre eigene. Ich erkläre alles verständlich und helfe beim nächsten Schritt.';
 
-  return `**${faq.title}** 🌸\n\n${faq.description}\n\n${options}\n\n${ask}`;
+  return `**${faq.title}** 🌸\n\n${faq.description}\n\n${options}\n${buildInformationTopicOptions(normalized)}\n\n${ask}`;
 }
 
 export function buildSalonFaqAnswerText(
