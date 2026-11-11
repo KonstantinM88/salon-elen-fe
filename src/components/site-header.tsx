@@ -215,11 +215,11 @@ export default function SiteHeader() {
         "dark:from-slate-950/90 dark:via-slate-950/90 dark:to-slate-950/90 dark:border-slate-800"
       )}
     >
-      <div className="mx-auto flex h-14 max-w-[1440px] items-center justify-between px-3 sm:px-4 lg:px-5">
+      <div className="mx-auto flex h-14 max-w-[1440px] items-center justify-between px-3 sm:px-4 lg:grid lg:h-auto lg:min-h-14 lg:grid-cols-[auto_minmax(0,1fr)_auto] lg:gap-x-3 lg:gap-y-1 lg:px-5 lg:py-2 xl:h-14 xl:py-0">
         <Logo />
 
-        {/* ── Desktop navigation (1440px+) ── */}
-        <nav className="hidden min-[1440px]:flex items-center gap-0.5 mx-2 flex-1 justify-center min-w-0">
+        {/* ── Desktop navigation (1024px+); its own row on narrow desktops ── */}
+        <nav className="hidden min-w-0 items-center justify-center gap-0.5 lg:col-span-3 lg:row-start-2 lg:flex xl:col-span-1 xl:col-start-2 xl:row-start-1">
           {NAV.filter((n) => !(n.href === "/admin" && !canSeeAdmin)).map(
             (item) => {
               const active =
@@ -232,13 +232,13 @@ export default function SiteHeader() {
                   key={item.href}
                   href={item.href}
                   className={cx(
-                    "flex items-center gap-1 px-2 xl:px-2.5 h-8 rounded-full text-[13px] xl:text-sm font-medium transition-colors whitespace-nowrap",
+                    "flex shrink-0 items-center gap-1 px-1.5 2xl:px-2 h-8 rounded-full text-xs 2xl:text-[13px] font-medium transition-colors whitespace-nowrap",
                     active
                       ? "bg-rose-200/50 text-rose-900 shadow-sm shadow-rose-200/20 dark:bg-white/10 dark:text-white dark:shadow-none"
                       : "text-rose-800/70 hover:text-rose-900 hover:bg-rose-100/50 dark:text-white/65 dark:hover:text-white dark:hover:bg-white/8"
                   )}
                 >
-                  <item.icon className={cx("h-3.5 w-3.5 flex-shrink-0", item.tone)} />
+                  <item.icon className={cx("h-3 w-3 2xl:h-3.5 2xl:w-3.5 flex-shrink-0", item.tone)} />
                   <span className="truncate">{t(item.labelKey)}</span>
                 </Link>
               );
@@ -246,14 +246,14 @@ export default function SiteHeader() {
           )}
         </nav>
 
-        {/* ── Desktop account controls (1440px+) ── */}
-        <div className="hidden min-[1440px]:flex items-center gap-1.5 flex-shrink-0">
+        {/* ── Desktop account controls (1024px+) ── */}
+        <div className="hidden items-center gap-1.5 flex-shrink-0 lg:col-start-3 lg:row-start-1 lg:flex">
           <LocaleSwitcher />
           <ThemeToggle />
 
           {isAuthed ? (
             <>
-              <span className="hidden xl:block text-[11px] text-rose-700/50 dark:text-white/50 max-w-[140px] truncate">
+              <span className="hidden min-[1600px]:block text-[11px] text-rose-700/50 dark:text-white/50 max-w-[100px] truncate">
                 {email}
               </span>
               <button
@@ -283,24 +283,27 @@ export default function SiteHeader() {
           )}
         </div>
 
-        {/* ── Compact menu button (< 1440px) ── */}
+        {/* ── Mobile menu button (< 1024px) ── */}
         <button
           className={cx(
-            "min-[1440px]:hidden h-9 w-9 rounded-full border flex items-center justify-center transition-colors flex-shrink-0",
+            "lg:hidden h-9 w-9 rounded-full border flex items-center justify-center transition-colors flex-shrink-0",
             "border-rose-200/60 bg-white/60 text-rose-700",
             "dark:bg-slate-900/60 dark:border-white/20 dark:text-white"
           )}
           onClick={() => setOpen((v) => !v)}
           aria-label="Toggle menu"
+          aria-expanded={open}
+          aria-controls="mobile-site-menu"
         >
           {open ? <X className="h-4.5 w-4.5" /> : <Menu className="h-4.5 w-4.5" />}
         </button>
       </div>
 
-      {/* ── Compact menu (< 1440px) ── */}
+      {/* ── Mobile menu (< 1024px) ── */}
       <div
+        id="mobile-site-menu"
         className={cx(
-          "min-[1440px]:hidden w-full overflow-hidden border-t transition-[max-height] duration-300",
+          "lg:hidden w-full overflow-hidden border-t transition-[max-height] duration-300",
           "border-rose-100/40 dark:border-slate-800",
           open ? "max-h-[80vh]" : "max-h-0"
         )}

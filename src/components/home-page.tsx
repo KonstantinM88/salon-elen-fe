@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 
 import RainbowCTA from "@/components/RainbowCTA";
+import HomeGutscheinSection from "@/components/home-gutschein-section";
 import { HOME_FAQ } from "@/lib/home-faq";
 import { useI18n } from "@/i18n/I18nProvider";
 import type { Locale } from "@/i18n/locales";
@@ -824,6 +825,8 @@ export default function HomePage({ latest, promotionBanner }: Props) {
           </motion.div>
         </div>
       </section>
+
+      <HomeGutscheinSection locale={locale} />
 
       <section
         className={`relative overflow-hidden bg-[#704b57] py-20 text-white sm:py-28 dark:bg-[#35262c] ${styles.signatureSection}`}

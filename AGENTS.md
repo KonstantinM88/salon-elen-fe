@@ -135,6 +135,24 @@ Useful scripts:
 
 ## Important Change Log
 
+- 2026-11-11: The homepage now includes a localized DE/EN/RU Gutschein
+  feature immediately after the services section, using the existing botanical
+  artwork and a rose/plum card composition. Its primary CTA links to the
+  locale-preserving `/gutschein#gestalten` designer, with a secondary page link.
+  Visible copy describes the 25–500 EUR request range, four designs and manual
+  salon confirmation without suggesting an instant purchase or issued voucher.
+  This static section adds no database reads, form submission or new artwork.
+  Verified DE/EN/RU links and the primary CTA into the RU designer, loaded
+  images and no horizontal overflow at 320/390/768/1024/1366/1440px. All 13
+  Gutschein/home-section tests, targeted ESLint and production build passed.
+- 2026-11-10: Restored horizontal desktop header navigation and account
+  controls at 1024px, with the burger limited to widths below 1024px. At
+  1024–1279px the complete navigation uses its own row; at 1280px+ the header
+  stays in one row. Compact link spacing and deferring the optional account
+  email to wide screens preserve Gutscheine and avoid hiding desktop links.
+  Browser checks covered DE/EN/RU at 1024/1280/1366px (plus DE at 1279/1440px)
+  without clipped labels or overlaps; the mobile menu opens at 390px.
+  Do not raise the desktop-to-burger threshold to 1440px to fit a new link.
 - 2026-11-10: With explicit user approval, migration
   `20261110150000_gift_designs_status_notifications` was applied to the
   configured production Neon database in a transaction with lock/statement
@@ -169,8 +187,8 @@ Useful scripts:
   These records are requests, not paid vouchers, redeemable codes or balances;
   payment, issue and redemption terms must be agreed with the salon. See
   `readme/GUTSCHEIN.md`. No live migration or real notification test is implied
-  by local verification. Header navigation switches to the compact menu below
-  1440px so the new localized link does not overlap the logo or account actions.
+  by local verification. The initial 1440px header breakpoint was superseded
+  by the desktop-navigation restoration recorded above.
 - 2026-11-10: With explicit user approval, migration
   `20261110120000_add_gift_voucher_requests` was applied to the configured
   production Neon database with `prisma db execute --file`, then registered
