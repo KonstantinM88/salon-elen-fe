@@ -3,8 +3,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import { buildPublicUrl } from '@/lib/public-url';
 import { getPayPalAccessToken, getPayPalApiUrl } from '@/lib/paypal-utils';
 import { getAppointmentPayableCents } from '@/lib/promotions';
+import { onlinePaymentGuard } from '@/lib/payments/online-payment-guard';
 
 export async function POST(request: NextRequest) {
+  const unavailable = onlinePaymentGuard();
+  if (unavailable) return unavailable;
   try {
     const body = await request.json();
     const { appointmentId } = body;

@@ -31,7 +31,7 @@ export async function POST(req: NextRequest) {
         {
           ok: false,
           error: "Invalid data",
-          details: parsed.error.errors,
+          details: parsed.error.issues,
         },
         { status: 400 }
       );

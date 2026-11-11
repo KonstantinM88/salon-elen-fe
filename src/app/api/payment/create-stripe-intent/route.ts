@@ -2,13 +2,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { getAppointmentPayableCents } from '@/lib/promotions';
-
-// ✅ ИСПРАВЛЕНО: Используем правильную версию API
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2024-12-18.acacia' as Stripe.LatestApiVersion,
-});
+import { onlinePaymentGuard } from '@/lib/payments/online-payment-guard';
 
 export async function POST(request: NextRequest) {
+  const unavailable = onlinePaymentGuard();
+  if (unavailable) return unavailable;
   try {
     const body = await request.json();
     const { appointmentId, locale = 'en' } = body;
@@ -29,6 +27,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Создаём Payment Intent
+    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+      apiVersion: '2024-12-18.acacia' as Stripe.LatestApiVersion,
+    });
     const paymentIntent = await stripe.paymentIntents.create({
       amount,
       currency: 'eur',

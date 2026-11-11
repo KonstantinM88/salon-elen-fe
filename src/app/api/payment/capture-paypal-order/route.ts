@@ -7,8 +7,11 @@ import { prisma } from '@/lib/prisma';
 import { sendStatusChangeEmail } from '@/lib/email';
 import { sendAdminNotification } from '@/lib/send-admin-notification';
 import { notifyClientAppointmentStatus } from '@/lib/telegram-bot';
+import { onlinePaymentGuard } from '@/lib/payments/online-payment-guard';
 
 export async function POST(request: NextRequest) {
+  const unavailable = onlinePaymentGuard();
+  if (unavailable) return unavailable;
   try {
     const body = await request.json();
     const { orderId, appointmentId } = body;

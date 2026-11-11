@@ -1,5 +1,9 @@
 /* src/app/globals.css — Tailwind v4 совместимая версия */
-@import "tailwindcss";
+/* Only application sources: deployment backups and build caches are not UI. */
+@import "tailwindcss" source("../");
+@source not "../generated";
+@source not "../**/*.bak";
+@source not "../**/*.backup";
 @tailwind utilities;
 /* @plugin "tailwindcss-animate"; */
 

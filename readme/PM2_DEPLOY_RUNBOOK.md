@@ -7,7 +7,8 @@
 
 ## 1. Безопасный деплой без рассинхрона Server Actions
 
-Используйте только reload по `ecosystem.config.cjs`, а не случайные stop/start:
+Используйте скрипт ниже: для текущего деплоя в один каталог он управляет
+остановкой, сборкой и запуском через `ecosystem.config.cjs`:
 
 ```bash
 cd ~/apps/salon-elen-fe
@@ -29,9 +30,12 @@ running while `.next` is removed or rebuilt can produce transient
 `ChunkLoadError` / `MODULE_NOT_FOUND` errors for server chunks. The script now
 prefers a short maintenance window during build over serving a half-replaced
 build artifact. If the build fails, it restores the previous `.next` backup and
-restarts the old PM2 process.
+restarts the old PM2 process. This is a build-artifact fallback, not a complete
+dependency rollback: after changing package versions, restore the matching
+commit/lockfile and rerun the deploy script if a full rollback is needed.
 
-Это уменьшает вероятность того, что клиент останется со старым action-id после новой сборки.
+Уникальный `DEPLOYMENT_VERSION` передаётся в сборку и PM2. Это не делает старые
+Server Actions доступными: давно открытая вкладка всё ещё может требовать обновления.
 
 ## 2. Проверка процессов PM2
 
@@ -88,9 +92,37 @@ echo "$DATABASE_URL" | sed 's/:[^:@/]*@/:***@/'
 
 Что делать:
 
-1. деплой только через `reload` и одну рабочую версию;
+1. деплой через `scripts/deploy-pm2.sh` и одну рабочую версию;
 2. при наличии reverse proxy/CDN не кэшировать HTML App Router агрессивно;
 3. после релиза при необходимости инвалидировать кэш на прокси.
+
+### Неверный формат Server Action ID
+
+`The Server Reference ID did not match the expected format. Received "y"`
+отличается от отсутствующего действия с корректным ID. Значения вроде `y`
+или короткого hex-ID могут приходить от автоматического сканирования либо от
+несовместимой версии клиента. По одному PM2 stack trace нельзя установить
+источник запроса или утверждать, что сайт взломан.
+
+Сопоставьте время с nginx access log: путь, метод, user-agent и HTTP-статус.
+Проверьте реальную форму в новой вкладке после деплоя. Если ошибка повторяется
+на обычной форме, зафиксируйте URL, время и текущий deployment ID, исключите
+старый HTML/RSC-кэш и параллельные сборки. Не отключайте авторизацию, проверки
+Server Actions или их ошибки ради чистого лога. Постоянный encryption key нужен
+для согласования нескольких серверов/сборок и не исправляет случайный ID `y`.
+
+Документация: https://nextjs.org/docs/messages/failed-to-find-server-action
+
+### Предупреждения об оптимизации CSS
+
+Tailwind читает файлы как текст. При автоматическом сканировании от корня
+`.next.previous-*`, созданная скриптом перед сборкой, могла попадать в источники
+и порождать мусорные arbitrary classes. `src/app/globals.css` теперь ограничивает
+источники каталогом `src`, исключая generated-код и `.bak`/`.backup`.
+Резервные сборки также исключены в `.gitignore`. Корректные safe-area классы
+в компонентах сохраняются; `npm run test:styles` проверяет область сканирования
+и генерацию мобильного отступа. `Found warnings while optimizing generated CSS`
+само по себе не означает провал сборки — проверяйте итоговый exit code.
 
 ## 5. Рекомендуемый релизный цикл
 

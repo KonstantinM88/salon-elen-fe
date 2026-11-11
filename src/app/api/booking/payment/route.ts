@@ -8,6 +8,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { DEFAULT_LOCALE, LOCALES, type Locale } from '@/i18n/locales';
 import { translate, type MessageKey } from '@/i18n/messages';
+import { isPaymentMethodAvailable } from '@/lib/payments/config';
+import { onlinePaymentGuard } from '@/lib/payments/online-payment-guard';
 
 type PaymentMethod = 'card' | 'paypal' | 'cash';
 
@@ -53,6 +55,11 @@ export async function POST(
         { error: t('api_payment_invalid_method') },
         { status: 400 },
       );
+    }
+
+    if (!isPaymentMethodAvailable(paymentMethod)) {
+      const unavailable = onlinePaymentGuard();
+      if (unavailable) return unavailable;
     }
 
     // 1. Находим запись

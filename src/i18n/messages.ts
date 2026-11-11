@@ -424,6 +424,10 @@ export type BaseMessages = {
   booking_payment_badge: string;
   booking_payment_hero_title: string;
   booking_payment_hero_subtitle: string;
+  booking_payment_onsite_subtitle: string;
+  booking_payment_online_paused: string;
+  booking_payment_temporarily_unavailable: string;
+  booking_payment_onsite_how_works: string;
   booking_payment_appointment_id: string;
   booking_payment_method_title: string;
 
@@ -1375,6 +1379,10 @@ const ruMessages: BaseMessages = {
   booking_payment_badge: "Шаг 6 — Оплата и финальное подтверждение",
   booking_payment_hero_title: "Завершение записи",
   booking_payment_hero_subtitle: "Выберите способ оплаты и подтвердите бронь",
+  booking_payment_onsite_subtitle: "Подтвердите запись — оплата услуги в салоне",
+  booking_payment_online_paused: "Онлайн-оплата временно недоступна. Подтвердите запись без предоплаты и оплатите услугу в салоне.",
+  booking_payment_temporarily_unavailable: "Временно недоступно",
+  booking_payment_onsite_how_works: "Подтвердите запись кнопкой ниже. Сейчас оплата услуги доступна только в салоне — онлайн ничего оплачивать не нужно.",
   booking_payment_appointment_id: "Номер записи:",
   booking_payment_method_title: "Способ оплаты",
   booking_payment_onsite_title: "Оплата в салоне",
@@ -2379,6 +2387,10 @@ const deMessages: BaseMessages = {
   booking_payment_hero_title: "Buchung abschließen",
   booking_payment_hero_subtitle:
     "Wählen Sie die Zahlungsmethode und bestätigen Sie die Buchung",
+  booking_payment_onsite_subtitle: "Termin bestätigen — die Behandlung bezahlen Sie im Salon",
+  booking_payment_online_paused: "Online-Zahlungen sind vorübergehend nicht verfügbar. Bestätigen Sie Ihren Termin ohne Vorauszahlung und bezahlen Sie die Behandlung im Salon.",
+  booking_payment_temporarily_unavailable: "Vorübergehend nicht verfügbar",
+  booking_payment_onsite_how_works: "Bestätigen Sie Ihren Termin mit der Schaltfläche unten. Die Behandlung bezahlen Sie derzeit ausschließlich im Salon — eine Online-Zahlung ist nicht erforderlich.",
   booking_payment_appointment_id: "Buchungsnummer:",
   booking_payment_method_title: "Zahlungsmethode",
   booking_payment_onsite_title: "Zahlung im Salon",
@@ -3369,6 +3381,10 @@ const enMessages: BaseMessages = {
   booking_payment_hero_title: "Complete Booking",
   booking_payment_hero_subtitle:
     "Choose payment method and confirm your booking",
+  booking_payment_onsite_subtitle: "Confirm your booking — pay for your treatment at the salon",
+  booking_payment_online_paused: "Online payments are temporarily unavailable. Confirm your booking without prepayment and pay for your treatment at the salon.",
+  booking_payment_temporarily_unavailable: "Temporarily unavailable",
+  booking_payment_onsite_how_works: "Confirm your booking using the button below. Payment for your treatment is currently available only at the salon — no online payment is required.",
   booking_payment_appointment_id: "Booking number:",
   booking_payment_method_title: "Payment Method",
   booking_payment_onsite_title: "Pay at Salon",

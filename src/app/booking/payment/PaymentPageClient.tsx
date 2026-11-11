@@ -1,12 +1,12 @@
 // src/app/booking/payment/PaymentPageClient.tsx
-// ✅ ОБНОВЛЁННАЯ ВЕРСИЯ - Stripe и PayPal АКТИВНЫ
+// Online payment integrations are retained behind the shared payment policy.
 "use client";
 
 import * as React from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import dynamic from 'next/dynamic';
-import { loadStripe } from '@stripe/stripe-js';
+import { loadStripe } from '@stripe/stripe-js/pure';
 import { Elements } from '@stripe/react-stripe-js';
 import PremiumProgressBar from "@/components/PremiumProgressBar";
 import { BookingAnimatedBackground } from "@/components/layout/BookingAnimatedBackground";
@@ -27,6 +27,7 @@ import {
 } from "lucide-react";
 import { useTranslations } from "@/i18n/useTranslations";
 import { useLocale } from "@/i18n/LocaleContext";
+import { PAYMENT_OPTIONS, isPaymentMethodAvailable } from '@/lib/payments/config';
 
 // ✅ Динамически импортируем компоненты
 const Ballpit = dynamic(() => import('@/components/Ballpit'), { ssr: false });
@@ -36,7 +37,9 @@ const PayPalButtons = dynamic(() => import('@/components/payment/PayPalButtons')
 type PaymentMethod = "onsite" | "stripe" | "paypal";
 
 // ✅ Инициализация Stripe
-const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
+const stripePromise = PAYMENT_OPTIONS.onlineEnabled
+  ? loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!)
+  : null;
 
 /* ===================== Floating Particles ===================== */
 function FloatingParticles() {
@@ -234,7 +237,7 @@ export default function PaymentPageClient({
   const confirmInFlightRef = React.useRef(false);
 
   const createStripePayment = async () => {
-    if (!appointmentId) return;
+    if (!PAYMENT_OPTIONS.onlineEnabled || !appointmentId) return;
     
     setIsCreatingPayment(true);
     setError(null);
@@ -266,6 +269,7 @@ export default function PaymentPageClient({
   };
 
   const handleMethodSelect = async (method: PaymentMethod) => {
+    if (!isPaymentMethodAvailable(method)) return;
     setSelectedMethod(method);
     setError(null);
     setClientSecret(null);
@@ -504,7 +508,7 @@ export default function PaymentPageClient({
               `,
             }}
           >
-            {t("booking_payment_hero_subtitle")}
+            {t(PAYMENT_OPTIONS.onlineEnabled ? "booking_payment_hero_subtitle" : "booking_payment_onsite_subtitle")}
           </motion.p>
 
           <motion.p
@@ -575,6 +579,12 @@ export default function PaymentPageClient({
                     {t("booking_payment_method_title")}
                   </h2>
 
+                  {!PAYMENT_OPTIONS.onlineEnabled && (
+                    <p role="status" className="rounded-xl border border-amber-300/30 bg-amber-300/10 p-3 text-sm leading-relaxed text-amber-100">
+                      {t("booking_payment_online_paused")}
+                    </p>
+                  )}
+
                   {/* ✅ МЕТОДЫ ОПЛАТЫ */}
                   <div className="grid gap-3 md:gap-4 sm:grid-cols-2 lg:grid-cols-3">
                     
@@ -616,9 +626,10 @@ export default function PaymentPageClient({
                     <motion.button
                       type="button"
                       onClick={() => handleMethodSelect("stripe")}
-                      whileHover={{ scale: 1.02, y: -2 }}
-                      whileTap={{ scale: 0.98 }}
-                      className={`flex flex-col items-start gap-2.5 md:gap-3 rounded-xl md:rounded-2xl border px-3 py-3 md:px-4 md:py-4 text-left transition-all ${
+                      disabled={!PAYMENT_OPTIONS.onlineEnabled}
+                      whileHover={PAYMENT_OPTIONS.onlineEnabled ? { scale: 1.02, y: -2 } : undefined}
+                      whileTap={PAYMENT_OPTIONS.onlineEnabled ? { scale: 0.98 } : undefined}
+                      className={`flex flex-col items-start gap-2.5 md:gap-3 rounded-xl md:rounded-2xl border px-3 py-3 md:px-4 md:py-4 text-left transition-all disabled:cursor-not-allowed disabled:opacity-50 ${
                         selectedMethod === "stripe"
                           ? "border-blue-400/80 bg-gradient-to-r from-blue-500/30 via-blue-600/20 to-blue-500/25 shadow-[0_0_25px_rgba(59,130,246,0.4)]"
                           : "border-white/15 bg-white/5 hover:border-blue-300/50 hover:bg-white/10"
@@ -631,7 +642,7 @@ export default function PaymentPageClient({
                           </div>
                           <div>
                             <div className="text-sm md:text-base font-bold text-white">{t("booking_payment_stripe_title")}</div>
-                            <div className="text-[10px] md:text-xs text-slate-400">{t("booking_payment_stripe_desc")}</div>
+                            <div className="text-[10px] md:text-xs text-slate-400">{t(PAYMENT_OPTIONS.onlineEnabled ? "booking_payment_stripe_desc" : "booking_payment_temporarily_unavailable")}</div>
                           </div>
                         </div>
                         {selectedMethod === "stripe" && (
@@ -650,9 +661,10 @@ export default function PaymentPageClient({
                     <motion.button
                       type="button"
                       onClick={() => handleMethodSelect("paypal")}
-                      whileHover={{ scale: 1.02, y: -2 }}
-                      whileTap={{ scale: 0.98 }}
-                      className={`flex flex-col items-start gap-2.5 md:gap-3 rounded-xl md:rounded-2xl border px-3 py-3 md:px-4 md:py-4 text-left transition-all ${
+                      disabled={!PAYMENT_OPTIONS.onlineEnabled}
+                      whileHover={PAYMENT_OPTIONS.onlineEnabled ? { scale: 1.02, y: -2 } : undefined}
+                      whileTap={PAYMENT_OPTIONS.onlineEnabled ? { scale: 0.98 } : undefined}
+                      className={`flex flex-col items-start gap-2.5 md:gap-3 rounded-xl md:rounded-2xl border px-3 py-3 md:px-4 md:py-4 text-left transition-all disabled:cursor-not-allowed disabled:opacity-50 ${
                         selectedMethod === "paypal"
                           ? "border-amber-400/80 bg-gradient-to-r from-amber-500/30 via-yellow-500/20 to-amber-500/25 shadow-[0_0_25px_rgba(245,197,24,0.4)]"
                           : "border-white/15 bg-white/5 hover:border-amber-300/50 hover:bg-white/10"
@@ -668,7 +680,7 @@ export default function PaymentPageClient({
                           </div>
                           <div>
                             <div className="text-sm md:text-base font-bold text-white">{t("booking_payment_paypal_title")}</div>
-                            <div className="text-[10px] md:text-xs text-slate-400">{t("booking_payment_paypal_desc")}</div>
+                            <div className="text-[10px] md:text-xs text-slate-400">{t(PAYMENT_OPTIONS.onlineEnabled ? "booking_payment_paypal_desc" : "booking_payment_temporarily_unavailable")}</div>
                           </div>
                         </div>
                         {selectedMethod === "paypal" && (
@@ -687,7 +699,7 @@ export default function PaymentPageClient({
                   {/* ФОРМЫ ОПЛАТЫ */}
                   <div className="mt-6">
                     <AnimatePresence mode="wait">
-                    {selectedMethod === "stripe" && (
+                    {PAYMENT_OPTIONS.onlineEnabled && selectedMethod === "stripe" && (
                       <motion.div
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
@@ -717,7 +729,7 @@ export default function PaymentPageClient({
                       </motion.div>
                     )}
 
-                    {selectedMethod === "paypal" && (
+                    {PAYMENT_OPTIONS.onlineEnabled && selectedMethod === "paypal" && (
                       <motion.div
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
@@ -765,7 +777,7 @@ export default function PaymentPageClient({
                       {t("booking_payment_info_how_works_title")}
                     </p>
                     <p className="text-xs md:text-sm text-slate-300 leading-relaxed">
-                      {t("booking_payment_info_how_works_desc")}
+                      {t(PAYMENT_OPTIONS.onlineEnabled ? "booking_payment_info_how_works_desc" : "booking_payment_onsite_how_works")}
                     </p>
                   </div>
 

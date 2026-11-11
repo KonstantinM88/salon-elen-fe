@@ -135,6 +135,40 @@ Useful scripts:
 
 ## Important Change Log
 
+- 2026-11-11: Online treatment payments are temporarily paused through shared
+  `src/lib/payments/config.ts` (`PAYMENT_OPTIONS.onlineEnabled=false`). Keep
+  onsite selected and Stripe/PayPal visible but disabled, with DE/EN/RU copy.
+  The three provider create/capture routes and the legacy method-selection API
+  reject online choices before DB writes or provider calls. Stripe uses its
+  pure loader and is not initialized while paused. Onsite confirmation remains
+  unpaid/idempotent with existing notifications; Stripe webhooks remain enabled
+  to reconcile payments initiated before the pause. Do not delete credentials,
+  integrations or payment history. To resume, flip the shared flag and rebuild /
+  deploy both UI and APIs. Already-issued Stripe client secrets are not revoked
+  by this app-level switch. `npm run test:payments` uses stubbed DB/providers.
+- 2026-11-11: Dependency security refresh aligns Next.js / third-parties /
+  eslint-config-next at 16.4.6, React / React DOM at 19.3.1, Prisma CLI / client /
+  PostgreSQL adapter at 7.10.1, Sharp at 0.35.5 and PostCSS at 8.5.32. Compatible
+  transitive security pins were refreshed; keep Stripe's existing API contract
+  and other unrelated major-version boundaries. Zod was separately reviewed and
+  migrated from v3 to 4.6.7 to address the collection-validation advisory:
+  Google completion now uses `error.issues`, and `npm run test:validation`
+  covers booking/article contracts, real credentials/registration validation
+  with a stubbed DB, and the Gutschein suite. No database migration is needed.
+  `npm audit --omit=dev` reports zero findings; the full audit retains eight
+  moderate dev-only findings through typescript-eslint's Minimatch 10 dependency.
+  Do not use `audit fix --force` to downgrade eslint-config-next or override an
+  unrelated major solely to hide these reports.
+- 2026-11-11: Tailwind source detection is explicitly rooted at `src`, excluding
+  generated code and legacy `.bak` / `.backup` files. Deployment backups
+  `.next.previous-*` are Git-ignored and must never become Tailwind inputs.
+  `npm run test:styles` checks the scan boundary and preserves real mobile
+  safe-area utilities / desktop navigation utilities. The PM2 runbook now
+  distinguishes malformed Server Action IDs (including automated scans) from
+  valid but stale build IDs; retain request validation rather than suppressing
+  these errors or changing encryption keys without evidence. The admin watcher
+  excludes `useEffectEvent` callbacks from effect dependencies, as required by
+  React 19, so status renders do not restart the deployment probe/timer.
 - 2026-11-11: The homepage now includes a localized DE/EN/RU Gutschein
   feature immediately after the services section, using the existing botanical
   artwork and a rose/plum card composition. Its primary CTA links to the

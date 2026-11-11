@@ -177,7 +177,9 @@ export default function AdminDeploymentWatcher({
       window.removeEventListener("focus", handleWindowFocus);
       document.removeEventListener("submit", blockStaleSubmit, true);
     };
-  }, [blockStaleSubmit, checkDeploymentVersion, initialDeploymentVersion]);
+    // Effect Events intentionally change identity between renders. Including
+    // them here would restart the timer/probe after every status update.
+  }, [initialDeploymentVersion]);
 
   if (!initialDeploymentVersion) {
     return null;
